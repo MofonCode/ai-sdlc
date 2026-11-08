@@ -99,6 +99,7 @@ public static class SdlcServices
 
         services.AddListCyclesRequestHandler();
         services.AddResolveCycleRequestHandler();
+        services.AddComposeAdmissionRequestHandler();
 
         services.AddApprovalTextRequestHandler();
 

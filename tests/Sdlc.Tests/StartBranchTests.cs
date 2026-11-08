@@ -136,6 +136,54 @@ public sealed class StartBranchTests
     }
 
     [TestMethod]
+    public async Task A_sandbox_opens_beside_the_repository_on_a_branch_of_its_own_kind()
+    {
+        // D-144: one worktree for every cycle the work turns into, named for the first.
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+
+        Result<StartBranch.Response> result = await Send(git, CycleBranchKind.Plan, sandbox: true);
+
+        Assert.AreEqual("sandbox/" + Id, result.Value.Branch);
+        StringAssert.StartsWith(result.Value.Command, "git worktree add -b sandbox/" + Id + " ../");
+        StringAssert.Contains(result.Value.Command, ".sandboxes/" + Id + " origin/development");
+        StringAssert.Contains(result.Value.Command, "mkdir -p");
+    }
+
+    [TestMethod]
+    public async Task A_sandbox_switches_nothing_so_uncommitted_work_does_not_hold_it_shut()
+    {
+        Result<StartBranch.Response> result = await Send(new FakeRepository { Uncommitted = ["src/Half.cs"] }, CycleBranchKind.Plan, sandbox: true);
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+    }
+
+    [TestMethod]
+    public async Task A_plan_switch_over_uncommitted_work_is_refused_naming_it_and_offering_a_sandbox()
+    {
+        // The switch would carry the changes into the cycle as work no plan declared (D-144, D-94).
+        Result<StartBranch.Response> result = await Send(new FakeRepository { Uncommitted = [".sdlc/techstack.md", "src/Half.cs"] }, CycleBranchKind.Plan);
+
+        Assert.IsTrue(result.IsFailed, "A plan branch was switched to over uncommitted work.");
+        string message = result.Errors[0].Message;
+        StringAssert.Contains(message, ".sdlc/techstack.md");
+        StringAssert.Contains(message, "src/Half.cs");
+        StringAssert.Contains(message, "Commit, stash or discard");
+        StringAssert.Contains(message, "sdlc branch " + Id + " sandbox");
+    }
+
+    [TestMethod]
+    public async Task The_frameworks_own_ignore_files_do_not_hold_a_plan_switch_shut()
+    {
+        // Opening a cycle writes the cycles directory's ignore, and a report its own; neither is anybody's work.
+        Result<StartBranch.Response> result = await Send(
+            new FakeRepository { Uncommitted = [".sdlc/cycles/.gitignore", ".sdlc/reports/.gitignore"] },
+            CycleBranchKind.Plan);
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+    }
+
+    [TestMethod]
     public async Task A_worktree_is_only_for_planning()
     {
         Result<StartBranch.Response> result = await Send(new FakeRepository(), CycleBranchKind.Build, worktree: true);
@@ -151,7 +199,7 @@ public sealed class StartBranchTests
         return result.Value;
     }
 
-    private static async Task<Result<StartBranch.Response>> Send(FakeRepository git, CycleBranchKind kind, string? release = null, bool worktree = false)
+    private static async Task<Result<StartBranch.Response>> Send(FakeRepository git, CycleBranchKind kind, string? release = null, bool worktree = false, bool sandbox = false)
     {
         using var workspace = CycleWorkspace.Create(Id);
 
@@ -165,6 +213,6 @@ public sealed class StartBranchTests
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
         Assert.IsTrue(CycleId.TryParse(Id, out CycleId? id));
 
-        return await gate.Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id.Value, kind, worktree));
+        return await gate.Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id.Value, kind, worktree, sandbox));
     }
 }

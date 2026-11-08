@@ -181,6 +181,12 @@ public sealed class PublicSurfaceTests
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
 
+        // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
+        "Sdlc.Core.Cycles.ComposeAdmission",
+        "Sdlc.Core.Cycles.ComposeAdmission+Query",
+        "Sdlc.Core.Cycles.ComposeAdmission+Response",
+        "Sdlc.Core.Cycles.SandboxBranch",
+
         // 'sdlc cycles --here': which cycle a skill given no id means, one used and several asked about (D-142).
         "Sdlc.Core.Cycles.NextStep",
         "Sdlc.Core.Cycles.ResolveCycle",

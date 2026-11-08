@@ -28,7 +28,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | a person, or `batch-build` |
 | [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification | a person, or `batch-build` |
 | **Pull requests and unattended runs** | | | |
-| [`pr`](../../skills/README.md#pr) | `<cycle id>... [--plan \| --draft] \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together — or a draft; asks before every push | a person\*, or `batch-build` |
+| [`pr`](../../skills/README.md#pr) | `<cycle id>... [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; asks before every push | a person\*, or `batch-build` |
 | [`batch-build`](../../skills/README.md#batch-build) | `[<cycle id>] [--pr] [--unattended]` | builds and verifies every queued cycle — or the one named — each on its own branch, then reports the sitrep | a person, or the factory |
 | [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<cycle id>` | brings a pull request up to date with the integration branch when it conflicts or goes red, inside the declared files, then verifies again | a person |
 | **Reading and deciding** | | | |

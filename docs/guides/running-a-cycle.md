@@ -63,18 +63,20 @@ The interview resumes from the outcome and why the slicing left, against the cod
 cycle's plan branch deletes the successor's file.
 
 **You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
-id and claims it, then `sdlc branch <id> plan --worktree` and the `git worktree add` it prints, and says
-the id, the branch and the folder in one line. Then it interviews you — section 3.
+id and claims it, then `sdlc branch <id> sandbox` and the `git worktree add` it prints, and says the id, the
+branch and the folder in one line. Then it interviews you — section 3.
 
-**Each cycle gets a folder of its own**, `../<repository>.cycles/<id>`, on its own branch (D-105). That is
-what lets you write several intents at once: your own checkout is never switched, and one cycle's
-half-finished documents never ride into another's. Open a session in the cycle's folder to carry on with
-it, and remove the folder with `git worktree remove` once the cycle has merged. Ask for one working copy
-and the skill switches this checkout instead.
+**The work gets a sandbox**, `../<repository>.sandboxes/<id>`, on `sandbox/<id>`, named for its first cycle
+(D-144). Every cycle the work turns into — a slicing, an intent you have it cut in two — opens beside the first,
+in the same folder and on the same branch, so one session sees all of them and `/sdlc:batch-plan` can take
+them to plan together. Your own checkout is never switched, so uncommitted work there stays where it is. Open a
+session in the sandbox to carry on, and remove it with `git worktree remove` once what it held has merged.
 
-**It refuses while anything is uncommitted**, and names the files: a switch carries uncommitted changes
-with it, so they would reach the cycle's diff as work no plan declared. Commit, stash or discard them,
-and ask again. The skill asks you which rather than choosing.
+**What leaves the sandbox is what you approved.** `/sdlc:pr --plan` in the sandbox runs `sdlc admit`, which
+takes the approved cycles' folders, and any successors the sandbox wrote, onto an admission branch —
+`cycle/<id>/plan` for one, `slices/sandbox-<id>/plan` for several — in a folder beside the sandbox. The rest
+stay and go by a later admission. Ask for one working copy instead and the skill switches this checkout to
+`cycle/<id>/plan`, which refuses uncommitted work: the switch would carry it into the cycle.
 
 **What the skill runs, for when you need it by hand.** Opening a batch of cycles before interviewing any
 of them is the one ordinary reason:

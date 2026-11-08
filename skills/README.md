@@ -232,7 +232,7 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 
 #### Output
 
-A cycle id, its plan branch `cycle/<id>/plan`, and `intent.md` — problem, wanted outcomes, fixed decisions, what
+A cycle id, the sandbox it lives in — `sandbox/<id>`, in `../<repository>.sandboxes/<id>`, or the one it was opened in (D-144) — and `intent.md` — problem, wanted outcomes, fixed decisions, what
 must not change, and a `## Open` section that is required even when empty. It never asks how to build the
 thing, anything about the stack, or criteria in testable form; those belong to the plan, the declared
 stack and the spec.
@@ -242,7 +242,8 @@ stack and the spec.
 | Condition | Result | What to do |
 |---|---|---|
 | the declared stack is not in place | `sdlc new` refuses | fill in `techstack.draft.md`, which adoption wrote, and rename it into place |
-| anything is uncommitted | `sdlc new` refuses and names the files, because the cycle's branch would carry them into its diff | the skill asks what you want done with them — commit, stash or discard — and opens the cycle again |
+| a placed file is not committed | the sandbox starts from the integration branch as committed, so it lacks the file, and a command there says so | commit it on the integration branch, and open the sandbox again |
+| one working copy was asked for, and anything is uncommitted | `sdlc branch <id> plan` refuses and names the files, because the switch would carry them into the cycle | the skill asks what you want done with them — commit, stash or discard |
 | `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
 | `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:steer <id>`, which carries a change down instead |
 | `--reslice` names a cycle approved, abandoned or missing | refuses on that cycle, saying which | — |
@@ -253,7 +254,7 @@ stack and the spec.
 /sdlc:intent
 ```
 
-Expect a cycle id and the branch the skill switched to, then one question — *what is this cycle for?*, or
+Expect a cycle id and the sandbox it opened, then one question — *what is this cycle for?*, or
 for a new solution *what should someone be able to do first?* — with example answers under it, and then
 one question at a time, each depending on your last answer. *Not sure* is always an answer, and the skill
 says where it records it. Nothing is written until the interview is done, because the intent is written
@@ -1196,6 +1197,7 @@ touches the remote.
 
 ```
 /sdlc:pr <cycle id>... [--plan | --draft] | --all
+/sdlc:pr --plan
 ```
 
 #### Parameters
@@ -1203,7 +1205,7 @@ touches the remote.
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the verified cycle to push — or, with `--plan`, every cycle of one slicing |
-| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125) |
+| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125). Given no id, in a sandbox, every approved plan the sandbox carries and the successors it wrote, composed by `sdlc admit` onto `cycle/<id>/plan` or `slices/sandbox-<id>/plan`; what is not approved stays, and each cycle taken is named before the push is asked for (D-144) |
 | `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence, its body leading with the criteria marked Not met and each open blocker's rule, gist, place and fix |
 | `--all` | every cycle that is ready, asking once before the first push |
 

@@ -36,9 +36,10 @@ internal static class Usage
                                      Commits what it writes, creates the integration branch and
                                      switches to it, and drafts the three files only a person
                                      places -- solution, techstack, constraints -- beside them.
-            new                      Open a cycle: allocate its id and create its directory. Refuses
-                                     until a declared stack is in place, and while anything is
-                                     uncommitted. The intent skill runs it; you rarely type it.
+            new                      Open a cycle: allocate its id, claim it where every worktree of
+                                     the repository looks, and create its directory. Refuses until
+                                     a declared stack is in place. In a sandbox, the cycle opens
+                                     beside the others. The intent skill runs it; you rarely type it.
             scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
                                      architecture tests and a reference slice -- and the .NET build
                                      settings it compiles under. On a solution adopted into existing
@@ -95,10 +96,12 @@ internal static class Usage
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
-                                     it, the plan's own branch before that. 'plan --worktree'
-                                     opens the cycle in a folder of its own beside the
-                                     repository instead, so several cycles are planned at once.
-                                     'plan' refuses a local plan branch whose ledger lacks the
+                                     it, the plan's own branch before that. 'sandbox' opens a
+                                     worktree on sandbox/<id> beside the repository, where every
+                                     cycle the work turns into is planned. 'plan --worktree'
+                                     opens the one cycle in a folder of its own. 'plan' without a
+                                     worktree refuses uncommitted work, which the switch would
+                                     carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
             factory                  Write the factory's pipeline for the recorded platform: a run
                                      a person starts, never a schedule, of batch-build --pr
@@ -133,6 +136,14 @@ internal static class Usage
                                      ledger, and a plan that needs a file only a sibling's plan
                                      creates; names the files two plans share. /sdlc:pr --plan
                                      runs it.
+            admit                    In a sandbox: print the one git command that takes its
+                                     approved cycles' folders, and the successors it wrote, onto
+                                     cycle/<id>/plan for one or slices/sandbox-<id>/plan for
+                                     several, from the integration branch, in a worktree beside
+                                     the sandbox. What the gate does not let through stays. Refuses
+                                     outside a sandbox, with nothing approved, over uncommitted
+                                     changes in an approved cycle, and a plan that needs a file
+                                     only a sibling's plan creates. /sdlc:pr --plan runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and

@@ -177,7 +177,8 @@ flag and is detected, as a scaffolded solution with no cycle yet approved. The i
 question at a time, by type, each with example answers, and *not sure* is an answer with a place to go.
 The intent's sections are the same for every type: the questions vary, the contract downstream does not.
 
-**Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125).
+**Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125). **The
+pieces are planned together, in one sandbox** (D-144), and what is approved leaves it by `sdlc admit`.
 `intent` may first propose the most atomic slicing it can find: a piece is **atomic** when it can be built,
 verified and merged against the integration branch as it stands, without any other open cycle. The person
 accepts it once — merging pieces, or marking one atomic — and nothing is sliced unattended. Each piece that
@@ -2206,7 +2207,7 @@ each list their own steps and nothing past the hand-back; `batch-build` and `bat
 
 **A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
 `sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
-for the person to choose from; nothing picks among several. `draft approval` and `pr` keep the id required.
+for the person to choose from; nothing picks among several. `draft approval` and `pr` keep the id required — `pr --plan` in a sandbox excepted, which names every cycle it takes (D-144).
 
 **Every stage's hand-back names a new session** for the next stage, and so does `sdlc status` beside the
 next command. A session carried past one stage rebuilds its whole context on every turn after an idle
@@ -2265,7 +2266,7 @@ they print verbatim.
 | Command | Does |
 |---|---|
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
-| `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10) |
+| `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10), in the directory every worktree of the repository shares (D-144) |
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
@@ -2283,13 +2284,14 @@ they print verbatim.
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
-| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105) |
+| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144) |
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id>` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
+| `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
@@ -6882,6 +6884,10 @@ once with `none`, and the list is quiet after that. The `init` skill says so bef
 
 **Governs:** §5.3, §8.2, §9, §15.2, §16
 
+**Superseded in part by D-144.** The refusal of uncommitted work moved from `sdlc new` to `sdlc branch <id> plan`
+without a worktree, the one step that switches a checkout. What stands: adoption drafts the three files, commits,
+and creates the integration branch.
+
 **Decision.** Five parts, from one walked adoption.
 
 1. **`init` places none of the files only a person writes; it drafts three.** `solution.draft.md`,
@@ -7221,6 +7227,56 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-144 — Work is planned in a sandbox, one worktree holding every cycle it turns into, and only what is approved leaves it
+
+**Governs:** §3.1, §15.2
+
+**Revisits D-105 and D-94; extends D-125.** D-105 gave each cycle a worktree and a plan branch of its own from its
+first question, and left D-94's refusal of uncommitted work in `sdlc new` because the person's checkout was still
+where the id was claimed. D-125 composes `slices/<slug>/plan` from siblings' plan branches. **Leaves D-83 and D-87
+unchanged:** what reaches the integration branch is still an admitted plan, by a reviewed pull request, checked by
+the diff it carries.
+
+**Decision.**
+
+- **A sandbox.** `sdlc branch <id> sandbox` prints the worktree for `sandbox/<id>`, beside the repository in
+  `../<repository>.sandboxes/<id>`, from the integration branch, named for the work's first cycle. Every cycle the
+  work turns into — a slicing's pieces, an intent cut in two (D-141) — is opened **inside** it by `sdlc new`, on
+  the same branch and in the same folder. The intent skill opens one by default; a person who asks for one
+  working copy still gets the switch to `cycle/<id>/plan`.
+- **An id is claimed where every worktree looks.** `sdlc new` claims it in git's shared directory as well as in
+  the cycle's folder, so two sandboxes opening a cycle in the same second collide, where two folders' claims
+  would each have won.
+- **The refusal of uncommitted work moves to the switch.** `sdlc new` no longer refuses it; `sdlc branch <id>
+  plan` without a worktree does, naming the files and offering a sandbox, because that is the only step that
+  carries them. A sandbox starts from what the integration branch committed, so a placed file left uncommitted
+  is missing from it rather than ridden into it.
+- **Only what is approved leaves.** `sdlc admit`, in a sandbox, composes an admission branch beside it from the
+  integration branch: each cycle the gate lets through, its folder as the sandbox committed it, and every
+  successor the sandbox wrote — on `cycle/<id>/plan` for one, `slices/sandbox-<id>/plan` for several. Those are
+  branches the pull-request check already admits, so a sandbox adds no new admission. A cycle still being planned
+  stays and goes later. `/sdlc:pr --plan`, given no id in a sandbox, runs it and names every cycle it takes before
+  asking to push — the one place `pr` goes without an id (D-142), because the set is what the person approved.
+
+**Why.** One problem usually becomes several intents, and with a worktree and a branch per intent from the first
+question, a person reviewing their intents together had them in as many folders, sessions and plan pull requests.
+The sandbox is D-105's isolation at the grain the work arrives in: the person's checkout is never switched, and
+nothing uncommitted rides anywhere, while the cycles of one piece of work sit where one session and
+`batch-plan` see them all. Admission composed from the sandbox, rather than a pull request of the sandbox itself,
+is what lets one cycle leave while its sibling is still being argued over.
+
+**Rejected.**
+
+- *A pull request of `sandbox/<id>` itself.* Everything in it would have to be approved before any of it could be
+  admitted, and the check would need a new kind of branch to read.
+- *Keeping a worktree and plan branch per cycle and grouping them afterwards.* What D-105 built, and the ceremony
+  this removes: several folders and sessions for one piece of work.
+- *Keeping the uncommitted refusal in `sdlc new`.* Its reason was the switch, which a sandbox does not make; it
+  would refuse a cycle over work that cannot reach it.
+- *Composing admission from the working copy.* What is admitted must be what the sandbox committed, so an
+  uncommitted change in an approved cycle refuses instead.
+- *Naming the admission branch `sandbox/<id>/admit`.* A branch and a branch beneath it cannot coexist in git.
 
 ### D-143 — A person starts the factory, which builds the cycle that unlocks the most first, and does nothing but build
 
@@ -9114,6 +9170,11 @@ and a pipeline grants access the same way a person does.
 ### D-105 — Each cycle is planned in a worktree of its own
 
 **Governs:** §15.2
+
+**Superseded in part by D-144.** The intent skill opens a sandbox — one worktree on `sandbox/<id>` for every cycle
+the work turns into — rather than a worktree per cycle, and `sdlc new` no longer refuses uncommitted work. What
+stands: planning happens beside the repository, and the person's checkout is never switched; `plan --worktree`
+still opens one cycle alone.
 
 **Decision.** `sdlc branch <id> plan --worktree` prints `git worktree add -b cycle/<id>/plan
 ../<repository>.cycles/<id> <integration>` and creates the cycle's directory there. The intent skill uses

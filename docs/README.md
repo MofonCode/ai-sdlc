@@ -114,6 +114,7 @@ One governed change, from why it exists to a pull request.
 | **atomic cycle** | a cycle that can be built, verified and merged against the integration branch as it stands, without any other open cycle. The one rule a slicing is held to; there is no floor on how small (D-125) | — |
 | **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Intents already written are cut again with `--reslice` while none has a spec (D-141). Not the *reference slice* in §2, which is code | `/sdlc:intent` |
 | **a successor** | a slice that needs another's code, waiting as a file rather than a cycle. `succeeds:` lists what it waits for — cycle ids, or `successor:<slug>` for one not started yet — and its state, `waiting`, `ready`, `stuck` or `unresolved`, is worked out from the record on every read. A person starts a ready one with `/sdlc:intent --from successor:<slug>` | `.sdlc/successors/<slug>.md`, `sdlc successors` |
+| **a sandbox** | the worktree a piece of work is planned in, on `sandbox/<id>` beside the repository, named for its first cycle. Every cycle the work turns into opens inside it, and only what is approved leaves it, composed onto an admission branch by `sdlc admit` (D-144) | `sdlc branch <id> sandbox`, `sdlc admit` |
 
 ### The four artifact kinds
 

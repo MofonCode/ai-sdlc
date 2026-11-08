@@ -388,6 +388,11 @@ What is honest to say about the rest:
   `/sdlc:intent --reslice` splits an intent or joins several. Both are skill text; the binary already refused
   the rounds that would let a changed intent leave a stale spec behind. A skill acting on one cycle takes its
   id as optional, and `sdlc cycles --here` names the cycle or lists the ones to ask about.
+- **Planning in a sandbox has only met the suite** (0.38.0). The intent skill opens one worktree on
+  `sandbox/<id>` for every cycle a piece of work turns into, and `sdlc admit` composes what is approved onto an
+  admission branch the check already knows. The commands it prints are held as strings: nobody has yet run a
+  sandbox through to an admitted pull request, and `sdlc new` no longer refuses uncommitted work, which the plan
+  switch refuses instead.
 - **The factory is started by a person and has not been started that way yet** (0.38.0). Its pipeline has no
   schedule and no Operate step, takes one optional cycle to build alone, and builds the cycle the most
   successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule

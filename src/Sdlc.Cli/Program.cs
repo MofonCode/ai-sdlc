@@ -95,6 +95,7 @@ try
         "successors" => await Workspace.Run(line, SuccessorsCommand).ConfigureAwait(false),
         "successor" => await SuccessorCommand(line).ConfigureAwait(false),
         "slices" => await SlicesCommand(line).ConfigureAwait(false),
+        "admit" => await Workspace.Run(line, AdmitCommand).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -898,19 +899,24 @@ static async Task<int> BranchCommand(CommandLine line)
     if (line.Arguments.Count < 2)
     {
         await Console.Error.WriteLineAsync(
-            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- plan, build, build-unattended or forward.")
+            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- sandbox, plan, build, build-unattended or forward.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
-    CycleBranchKind? kind = CycleBranch.Named.Cast<CycleBranchKind?>().FirstOrDefault(k =>
-        string.Equals(CycleBranch.NameOf(k!.Value), line.Arguments[1], StringComparison.OrdinalIgnoreCase));
+    // A sandbox is planning on a branch of its own kind, sandbox/<id>, in a worktree (D-144).
+    bool sandbox = string.Equals(line.Arguments[1], "sandbox", StringComparison.OrdinalIgnoreCase);
+
+    CycleBranchKind? kind = sandbox
+        ? CycleBranchKind.Plan
+        : CycleBranch.Named.Cast<CycleBranchKind?>().FirstOrDefault(k =>
+            string.Equals(CycleBranch.NameOf(k!.Value), line.Arguments[1], StringComparison.OrdinalIgnoreCase));
 
     if (kind is null)
     {
         await Console.Error.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"'{line.Arguments[1]}' is not a kind of work. Ask for plan, build, build-unattended or forward."))
+            $"'{line.Arguments[1]}' is not a kind of work. Ask for sandbox, plan, build, build-unattended or forward."))
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
@@ -918,7 +924,7 @@ static async Task<int> BranchCommand(CommandLine line)
     return await WithCycle(line, "branch", async (workspace, id) =>
     {
         Result<StartBranch.Response> result = await workspace
-            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value, line.HasOption("worktree")))
+            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value, line.HasOption("worktree"), sandbox))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -988,6 +994,35 @@ static async Task<int> LeadCommand(CommandLine line)
 // The one git command that composes slices/<slug>/plan from the siblings' plan branches, so one pull request
 // admits every plan sliced together (D-125). The command alone on standard output, as 'branch' prints it;
 // the shared files, and why, on standard error.
+// What a sandbox has approved, composed onto an admission branch the check already knows (D-144). The command
+// alone on standard output, so the pr skill runs exactly what was decided; what stays behind, on standard error.
+static async Task<int> AdmitCommand(Workspace workspace)
+{
+    Result<ComposeAdmission.Response> result = await workspace
+        .Send<ComposeAdmission.Query, ComposeAdmission.Response>(new ComposeAdmission.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    ComposeAdmission.Response admission = result.Value;
+
+    await Console.Out.WriteLineAsync(admission.Command).ConfigureAwait(false);
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"{admission.Branch} takes {string.Join(", ", admission.Admitted)}{(admission.Successors.Count == 0 ? string.Empty : " and " + admission.Successors.Count + " successor" + (admission.Successors.Count == 1 ? string.Empty : "s"))} onto the integration branch, in {admission.Folder}. {VerifySlicing.Shared(admission.Comparison).Detail} Check it with 'sdlc verify-chain {admission.Branch} --base <integration branch>' before it is pushed, and remove the folder once it merges."))
+        .ConfigureAwait(false);
+
+    foreach ((CycleId id, string why) in admission.Staying)
+    {
+        await Console.Error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"Staying in the sandbox: {id} - {why}.")).ConfigureAwait(false);
+    }
+
+    return ExitCode.Ok;
+}
+
 static async Task<int> SlicesCommand(CommandLine line)
 {
     List<CycleId> ids = [];
