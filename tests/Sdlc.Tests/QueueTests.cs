@@ -92,6 +92,51 @@ public sealed class QueueTests
         StringAssert.Contains(QueuedRenderer.Render(queue), "could not be read");
     }
 
+    [TestMethod]
+    public async Task A_queued_cycle_names_every_successor_waiting_on_it_even_behind_another()
+    {
+        // What merging it starts moving, and why it is built first: a run that stops on its time limit has
+        // then spent its hours where they unblock the most.
+        using CycleWorkspace workspace = Approved();
+        SuccessorTests.Write(workspace, "totals", workspace.Cycle.Id.ToString());
+        SuccessorTests.Write(workspace, "chart", "successor:totals");
+        SuccessorTests.Write(workspace, "unrelated", "20200101_0000_00");
+
+        ListQueuedCycles.Response queue = await Read(workspace, new FakeRepository());
+
+        CollectionAssert.AreEqual(new[] { "totals", "chart" }, queue.Cycles.Single().Unlocks.ToArray());
+        StringAssert.Contains(QueuedRenderer.Render(queue), "merging it starts: successor:totals, successor:chart");
+    }
+
+    [TestMethod]
+    public async Task A_run_named_for_one_queued_cycle_gets_that_cycle_alone()
+    {
+        using CycleWorkspace workspace = Approved();
+
+        ListQueuedCycles.Response queue = await Read(workspace, new FakeRepository(), workspace.Cycle.Id);
+
+        Assert.AreEqual(workspace.Cycle.Id, queue.Cycles.Single().Id);
+        Assert.AreEqual(0, queue.Held.Count);
+    }
+
+    [TestMethod]
+    public async Task A_run_named_for_a_cycle_that_is_not_queued_is_refused_with_why()
+    {
+        // The factory's one input. A run started for a cycle it cannot build stops before it builds anything,
+        // rather than building everything else instead.
+        using CycleWorkspace workspace = Approved();
+        FakeRepository git = new() { Remote = ["cycle/" + workspace.Cycle.Id + "/build-unattended"] };
+
+        Result<ListQueuedCycles.Response> taken = await Send(workspace, git, workspace.Cycle.Id);
+        Assert.IsTrue(CycleId.TryParse("20200101_0000_00", out CycleId? missing));
+        Result<ListQueuedCycles.Response> nowhere = await Send(workspace, new FakeRepository(), missing);
+
+        Assert.IsTrue(taken.IsFailed);
+        StringAssert.Contains(taken.Errors[0].Message, "factory run has taken it");
+        Assert.IsTrue(nowhere.IsFailed);
+        StringAssert.Contains(nowhere.Errors[0].Message, "no such cycle");
+    }
+
     private static CycleWorkspace Approved(string? release = null)
     {
         var workspace = CycleWorkspace.Create();
@@ -118,14 +163,18 @@ public sealed class QueueTests
         return workspace;
     }
 
-    private static async Task<ListQueuedCycles.Response> Read(CycleWorkspace workspace, FakeRepository git)
+    private static async Task<ListQueuedCycles.Response> Read(CycleWorkspace workspace, FakeRepository git, CycleId? only = null)
     {
-        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
-
-        Result<ListQueuedCycles.Response> result = await gate
-            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query());
+        Result<ListQueuedCycles.Response> result = await Send(workspace, git, only);
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
+    }
+
+    private static async Task<Result<ListQueuedCycles.Response>> Send(CycleWorkspace workspace, FakeRepository git, CycleId? only)
+    {
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+
+        return await gate.Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(only));
     }
 }

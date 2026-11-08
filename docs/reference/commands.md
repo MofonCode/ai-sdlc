@@ -68,7 +68,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
 | `sdlc perspective show <name> --for <stage>` | binary | a perspective's method and questions for one stage; `--cover` for an author's list |
 | `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the successors a person can start |
-| `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
+| `sdlc cycles --here [--for <step>]` | binary | which cycle a skill given no id means: the one this branch carries that is ready for the step, or the list to ask from |
+| `sdlc cycles --queued [<id>]` | binary | what a build would take now, in the order to build it, and what is held back and why; with an id, that cycle alone or why not |
 | `sdlc cycles --claims` | binary | which files each cycle claims |
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
 | `sdlc suggestions [<id>] [--all]` | binary | what was noticed and not acted on, each concern once; `--all` adds what became of each and which cycle decided it |

@@ -30,6 +30,11 @@ public static class QueuedRenderer
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"{Indent}{cycle.Id}  {cycle.Headline ?? "(no headline)"}"));
+
+            if (cycle.Unlocks.Count > 0)
+            {
+                output.AppendLine(Indent + Indent + "  merging it starts: " + string.Join(", ", cycle.Unlocks.Select(slug => "successor:" + slug)));
+            }
         }
 
         output.AppendLine();

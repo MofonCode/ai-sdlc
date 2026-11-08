@@ -181,6 +181,14 @@ public sealed class PublicSurfaceTests
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
 
+        // 'sdlc cycles --here': which cycle a skill given no id means, one used and several asked about (D-142).
+        "Sdlc.Core.Cycles.NextStep",
+        "Sdlc.Core.Cycles.ResolveCycle",
+        "Sdlc.Core.Cycles.ResolveCycle+Candidate",
+        "Sdlc.Core.Cycles.ResolveCycle+Query",
+        "Sdlc.Core.Cycles.ResolveCycle+Response",
+        "Sdlc.Core.Cycles.ResolveRenderer",
+
         // 'sdlc cycles --queued': what the factory would build and what it would pass over (D-85).
         "Sdlc.Core.Factory.QueuedRenderer",
         "Sdlc.Core.Factory.ListQueuedCycles",

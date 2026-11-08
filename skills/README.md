@@ -1206,22 +1206,23 @@ sitrep. Run by the factory, it is the whole of what the factory does (D-84).
 | | |
 |---|---|
 | Stage | unattended runs, when several cycles are approved and waiting |
-| Started by | a person, or the factory on a schedule |
+| Started by | a person, here or by starting the factory's pipeline |
 | Reads | `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for which plans stand up services |
 | Writes | what `build`, `verify` and `remediate` write, for each cycle, each in its own worktree on `cycle/<id>/build-unattended` |
 
 #### Syntax
 
 ```
-/sdlc:batch-build [--pr] [--unattended]
+/sdlc:batch-build [<cycle id>] [--pr] [--unattended]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
+| `<cycle id>` | builds that cycle alone, and stops with why when it is not queued. Without it, every queued cycle, the one the most successors wait on first |
 | `--pr` | opens a pull request for every cycle that reached an outcome — ready when it passed, a draft when it is `blocked` or `escalated` — asking once before the run |
-| `--unattended` | asks nothing: the schedule that started the run was the decision. Used by the factory's pipeline |
+| `--unattended` | asks nothing: the person who started the run made the decision. Used by the factory's pipeline |
 
 #### Output
 
@@ -1239,6 +1240,7 @@ question is about volume and a person should answer it before waiting rather tha
 |---|---|---|
 | a cycle cannot be made to pass | stops that cycle, and with `--pr` opens a draft rather than a ready pull request | [Handling blockers](../docs/guides/handling-blockers.md) |
 | a cycle is held back by a branch on the remote | does not build it; the sitrep says why | delete the branch to put it back in the queue |
+| the cycle named is not queued | builds nothing, and says why | `sdlc status <id>`, or run without an id |
 
 #### Example
 

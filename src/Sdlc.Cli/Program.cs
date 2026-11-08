@@ -422,15 +422,54 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
         return await Sweep(workspace).ConfigureAwait(false);
     }
 
+    if (line.HasOption("here"))
+    {
+        // A skill given no cycle id asks which one it means (D-142). Zero only when exactly one is ready for
+        // the step, so "use the id it printed" is the exit code and nothing has to parse prose.
+        NextStep step = NextStep.Any;
+
+        if (line.TryOption("for", out string? forStep) && !ResolveCycle.TryParseStep(forStep, out step))
+        {
+            await Console.Error.WriteLineAsync("--for takes spec, plan, build, verify or remediate.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        Result<ResolveCycle.Response> resolved = await workspace
+            .Send<ResolveCycle.Query, ResolveCycle.Response>(new ResolveCycle.Query(step))
+            .ConfigureAwait(false);
+
+        if (resolved.IsFailed)
+        {
+            return await Report(resolved, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(ResolveRenderer.Render(resolved.Value)).ConfigureAwait(false);
+
+        return resolved.Value.Only is not null ? ExitCode.Ok : ExitCode.Refused;
+    }
+
     if (line.HasOption("queued"))
     {
+        // One cycle named: a run started for it. Anything else after --queued is a mistake worth saying.
+        CycleId? only = null;
+
+        if (line.Arguments.Count > 0)
+        {
+            if (line.Arguments.Count > 1 || !CycleId.TryParse(line.Arguments[0], out only))
+            {
+                await Console.Error.WriteLineAsync("'sdlc cycles --queued [<id>]' takes at most one cycle id.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+        }
+
         Result<ListQueuedCycles.Response> queue = await workspace
-            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query())
+            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(only))
             .ConfigureAwait(false);
 
         if (queue.IsFailed)
         {
-            return await Report(queue, ExitCode.Failed).ConfigureAwait(false);
+            // A named cycle that is not queued is refused with why; with none named, a failure is the gate's.
+            return await Report(queue, only is null ? ExitCode.Failed : ExitCode.Refused).ConfigureAwait(false);
         }
 
         await Console.Out.WriteAsync(QueuedRenderer.Render(queue.Value)).ConfigureAwait(false);

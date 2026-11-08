@@ -148,10 +148,20 @@ internal static class Usage
                                      waiting and going stale; the successors a person can start,
                                      or that are stuck. Fetch the remote first: a built cycle is
                                      read from its own branch. It starts nothing.
-            cycles --queued          What a build would take now -- approved, no verify, not
-                                     abandoned -- and every cycle held back, with why: a
-                                     cycle/<id>/... branch on the remote, or an approval the
-                                     gate no longer accepts. Deleting the branch re-queues it.
+            cycles --here [--for <step>]
+                                     Which cycle a skill given no id means: the cycles this
+                                     branch carries -- its own on a cycle branch, otherwise
+                                     those not yet on the integration branch -- that are ready
+                                     for spec, plan, build, verify or remediate. Exactly one:
+                                     prints its id alone and exits 0. Several, or none: lists
+                                     them and exits 1, so the person is asked, never guessed for.
+            cycles --queued [<id>]   What a build would take now -- approved, no verify, not
+                                     abandoned -- in the order to build it: the cycle the most
+                                     successors wait on first, then oldest. And every cycle held
+                                     back, with why: a cycle/<id>/... branch on the remote, or an
+                                     approval the gate no longer accepts. Deleting the branch
+                                     re-queues it. With an id, that cycle alone, and exits 1 with
+                                     why when it is not queued.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
                                      one. Exits 1 if not -- and always for a test run, a cycle
                                      a local build judged. For every cycle, 'cycles --pr-ready'.

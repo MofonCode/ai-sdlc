@@ -98,6 +98,7 @@ public static class SdlcServices
         services.AddWriteVerdictRequestHandler();
 
         services.AddListCyclesRequestHandler();
+        services.AddResolveCycleRequestHandler();
 
         services.AddApprovalTextRequestHandler();
 
