@@ -16,6 +16,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | a person |
 | [`plan`](../../skills/README.md#plan) | `[<cycle id>]` | decides how, and what will prove each criterion | a person |
 | [`batch-plan`](../../skills/README.md#batch-plan) | `` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once | a person |
+| [`next`](../../skills/README.md#next) | `` | pulls the next wave from the backlog, plans it in one sandbox, and stops at the approvals | a person |
 | **The loop** | | | |
 | [`interrogate`](../../skills/README.md#interrogate) | `[<cycle id>] <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | a stage skill, or a person |
 | [`refine`](../../skills/README.md#refine) | `[<cycle id>] <intent\|spec\|plan>` | applies a round's findings to that document. Never judges | a stage skill, or a person |

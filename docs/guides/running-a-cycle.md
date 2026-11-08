@@ -184,6 +184,11 @@ comes ready in. Once what it waits on has merged, `sdlc unpark <id>` takes it ba
 interrogated again against the code that merged — a round that changes nothing leaves an approval standing. A
 file two plans merely both name is only reported: their pull requests may conflict at merge.
 
+**When merges make the next wave ready**, `/sdlc:next` takes all of it: it starts each ready successor with a
+short interview, takes back each parked cycle whose predecessor merged and reads its spec and plan again, plans
+the new intents in one sandbox, and stops at the approvals with the waves still to come (D-147). Run it after
+each wave merges and a sliced piece of work reaches completion one wave at a time; merging stays yours.
+
 **Several intents at once.** Once you have read every intent in a working copy and are happy with them,
 `/sdlc:batch-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
 and hands back once: a line per cycle, every plan panel, and one question about every open suggestion across

@@ -1,4 +1,4 @@
-# The nineteen skills
+# The twenty skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -45,7 +45,7 @@ denies an agent the command. The other is requested: `pr` is the only stage that
 repository, so it asks before every push — but no hook blocks a push, and what stops an unready cycle
 from merging is the pull-request check.
 
-**All nineteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+**All twenty are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the six protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
@@ -549,6 +549,62 @@ the same one taken in after the plan; one question across every cycle is the tra
 - [`spec`](#spec), [`plan`](#plan) — what it runs for each cycle
 - [`draft`](#draft) — next, a person approves each with `/sdlc:draft approval <id>` and a rename
 - [`batch-build`](#batch-build) — the same shape for building
+
+---
+
+### `next`
+
+Pulls the next wave from the backlog — every successor ready now started, every parked cycle whose predecessor
+merged taken back and read again — plans them in one sandbox, and stops at the approvals (D-147).
+
+| | |
+|---|---|
+| Stage | the planning chain, for whatever the last merges made ready |
+| Started by | a person, after merges land, or asking what is next for a piece of work |
+| Reads | `sdlc backlog` for the wave; then what `intent`, `interrogate`, `spec` and `plan` read, per item |
+| Writes | what `intent`, `spec` and `plan` write, per item; removes a parked cycle's `parked.md` through `sdlc unpark` |
+
+#### Syntax
+
+```
+/sdlc:next
+```
+
+#### Parameters
+
+None. The wave is everything `sdlc backlog` lists as ready now.
+
+#### Output
+
+One line per item — planned, read again and unchanged or changed, parked, or stopped and why — then the plan panels,
+one question about suggestions, and the backlog still to come. It stops at the approvals.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| nothing in the backlog is ready | shows the backlog and the queue, and stops | merge what the queue says unlocks the most, then ask again |
+
+#### Example
+
+```
+/sdlc:next
+```
+
+Expect one line per item it will take, a short interview for each successor, a long run with no questions, then
+one line per item, the plan panels, one question, and the waves still to come.
+
+#### Remarks
+
+**It is local, and the factory never runs it.** An intent is an interview and a plan is read before it is approved;
+the factory builds what a person approved and nothing more (D-143). Run after each wave merges, it carries a sliced
+piece of work to completion one wave at a time.
+
+#### See also
+
+- [`batch-plan`](#batch-plan) — what it runs for the intents it opened
+- [`intent`](#intent) — `--from successor:<slug>`, what it runs for each successor
+- [Running a cycle](../docs/guides/running-a-cycle.md)
 
 ---
 

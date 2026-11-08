@@ -1104,10 +1104,10 @@ public sealed class PluginTests
 
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
-        Assert.AreEqual(19, skills, "The readme says nineteen skills.");
+        Assert.AreEqual(20, skills, "The readme says twenty skills.");
         Assert.AreEqual(19, constraints, "The readme says nineteen global constraints.");
 
-        StringAssert.Contains(readme, "nineteen skills");
+        StringAssert.Contains(readme, "twenty skills");
         StringAssert.Contains(readme, "nineteen global constraints");
     }
 

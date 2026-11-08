@@ -304,10 +304,10 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill and refusal, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the nineteen skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the nineteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
@@ -397,7 +397,9 @@ What is honest to say about the rest:
 - **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
   park` runs at the plan and keeps the spec and plan; `sdlc backlog` shows the parked and the successors in the
   waves they come ready in; `sdlc unpark` takes one back once its predecessor merged. The re-reading on unpark is
-  where a plan written before its code existed meets that code, and nobody has watched one yet.
+  where a plan written before its code existed meets that code, and nobody has watched one yet. `/sdlc:next`
+  takes whatever the last merges made ready, plans it in one sandbox, and stops at the approvals; it is skill
+  text, and no piece of work has been carried through it wave by wave yet.
 - **The factory is started by a person and has not been started that way yet** (0.38.0). Its pipeline has no
   schedule and no Operate step, takes one optional cycle to build alone, and builds the cycle the most
   successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule

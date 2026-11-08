@@ -27,6 +27,7 @@ Each document stage runs its own interrogate-and-refine loop before it hands bac
 
 - **Where am I?** `sdlc status <id>` — prints the next command
 - **A successor is ready** — `/sdlc:intent --from successor:<slug>`; `sdlc backlog` lists them, with parked cycles
+- **Merges landed** — `/sdlc:next` starts what they made ready, plans it in one sandbox, and stops at the approvals
 - **A plan was parked** — it waits on another's code; `sdlc unpark <id>` once that merged, then interrogate its spec and plan again
 - **A blocking finding** the loop could not clear — `guides/handling-blockers.md`
 - **Verify says `blocked`** — `/sdlc:remediate <id>`, then verify again

@@ -2186,6 +2186,7 @@ which is the ordinary case.
 | `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
 | `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
 | `batch-plan` | takes every cycle this branch carries from a clean intent to a plan, spec then plan per cycle, and hands back once — D-142 |
+| `next` | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox, and stops at the approvals — D-147 |
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | applies an artifact's findings to that artifact |
@@ -2228,6 +2229,7 @@ mechanical rather than promised.
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
 | `batch-plan` | a cycle this branch carries ready for a spec or a plan | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle |
+| `next` | a backlog item ready now | nothing; with nothing ready it shows the backlog and stops | what `intent`, `spec` and `plan` write, per item; removes a parked file |
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
 | `steer` | an intent | a cut or a join, which is `intent --reslice`'s; approved without a reopen | intent, spec, plan — whichever exist |
@@ -7232,6 +7234,38 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-147 — `next` pulls the backlog's ready wave into one sandbox and plans it, locally, stopping at the approvals
+
+**Governs:** §3.4, §15
+
+**Revisits D-125's *nothing starts a successor on its own*.** A person still starts it — by asking for the next
+wave — and the skill then starts every one that is ready, rather than the person naming each. **Not D-79's
+rejected `sdlc next`**, which would have been a second answer to "what state is adoption in" beside `doctor`; this
+is a skill that does the next wave's work.
+
+**Decision.** `/sdlc:next` takes no id. It reads `sdlc backlog`, and for everything ready now: opens one sandbox for
+the wave (D-144); starts each ready successor through the intent skill's `--from successor:<slug>` interview; takes
+back each ready parked cycle with `sdlc unpark` and interrogates its spec and plan again against what merged
+(D-145); then runs `batch-plan` over the new intents, whose park check may park one behind a sibling — the next
+wave forming. It hands back once, with the backlog still to come, and stops at the approvals. With nothing ready,
+it shows the backlog and the queue and stops. **It runs locally; the factory never runs it** (D-143).
+
+**Why.** The person wanted a loop that carries work to completion while keeping them informed and taking every
+decision that is theirs: what to build, whether a plan is right, when to merge. Between those, the steps are
+mechanical — which successors are ready, which parked plans may come back, what to plan — and a person doing them
+by hand meets the cost D-17 names. Merging stays the person's, so each wave crosses one merge, which is where the
+person is.
+
+**Rejected.**
+
+- *Running it in the factory.* Writing an intent is an interview and a plan is read before code; D-143.
+- *A command rather than a skill.* Starting a successor is an interview and reading a plan again is a round: both
+  need language. What a listing decides — the backlog, readiness, the park check — is already the binary's.
+- *Starting each ready item in its own sandbox.* A wave is planned together for the reason D-144 gives: one
+  session, one `batch-plan`, one admission.
+- *Unparking without reading the plan again.* Rounds hash documents, not the base; the code the plan assumed now
+  exists, and only a reader can say whether the plan still fits it (D-145).
+
 ### D-146 — A sandbox thrown away keeps what is worth recording, and a stopped cycle reaches the integration branch as a record
 
 **Governs:** §5.3, §15.2
@@ -8304,6 +8338,10 @@ ends on said "blockers 3" and nothing a person could act on.
 ### D-125 — Work is sliced into atomic cycles before any opens, and what waits is a successor, not a cycle
 
 **Governs:** §3.1, §3.4, §10.4, §16
+
+**Superseded in part by D-147.** A person asking for the next wave starts every successor that is ready, through
+`/sdlc:next`, rather than naming each; nothing starts one unasked. And by D-145: a plan found at the plan to need a
+sibling's code is parked, keeping its spec and plan, rather than becoming a successor.
 
 **Revisits D-25.** D-25 rejected a `split` skill, and deferred rather than rejected *"a read-only advisor that
 proposes how to cut an intent and writes nothing"*. This is that advisor, with the definition D-25 did not

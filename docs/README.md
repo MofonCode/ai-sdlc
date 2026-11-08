@@ -13,7 +13,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 | [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
 | [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
-| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the nineteen |
+| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -30,7 +30,7 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 
 | | What it is | Where |
 |---|---|---|
-| **the plugin** | the nineteen skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
+| **the plugin** | the twenty skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
 | **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc`, from nuget.org |
 | **the pinned release** | the release of the binary a solution runs, named in its local tool manifest. The global `sdlc` hands every command on to it, and a cycle's branch carries the pin it was cut with, so a cycle runs on the release it opened on (D-131) | `.config/dotnet-tools.json`, written by adoption |
 | **a local build** / a test run | a build of the binary nobody published. Its release ends in `-local`: a build run through `SDLC_DEV_BUILD`, which every `sdlc` started from that terminal hands to instead of the pin, says so when it runs, and a pack made outside a pipeline is stamped so. A cycle any of whose rounds one wrote is a **test run**, and never opens a pull request (D-135) | `SDLC_DEV_BUILD`; [Testing a local build](guides/testing-a-local-build.md) |
@@ -308,7 +308,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 ## 10. The skills
 
-**Nineteen skills, and the split that matters: a command is deterministic and the binary owns it; a
+**Twenty skills, and the split that matters: a command is deterministic and the binary owns it; a
 skill needs language and an agent runs it.** The binary never writes a planning document and a skill
 never decides a gate.
 
@@ -319,6 +319,7 @@ never decides a gate.
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
 | `batch-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
+| `next` | pulls the next wave from the backlog — ready successors started, ready parked cycles read again — plans it in one sandbox, and stops at the approvals |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |
 | `steer` | carries a mid-cycle correction, or suggestions taken in or declined, down the chain, editing rather than regenerating |

@@ -32,7 +32,7 @@ the cheapest way to discover that what you were about to add already lives somew
 
 | Index | Describes |
 |---|---|
-| [`skills/README.md`](skills/README.md) | the nineteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
 | [`docs/guides/README.md`](docs/guides/README.md) | the guides, one task each: what each covers, when to read it, what it leaves to another |
 | [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | the mechanisms, one page each: how it works and why, for a person using it rather than doing a task |
