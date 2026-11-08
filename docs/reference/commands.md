@@ -61,6 +61,9 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc factory` | binary | writes the factory's pipeline for your platform, which a person starts. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion, ready successor or file, in one shape for `intent --from` |
 | `sdlc successors` | binary | every slice waiting on another's code, and whether it is waiting, ready, stuck or unresolved — worked out, never stored |
+| `sdlc backlog` | binary | every successor and parked cycle, in the waves they come ready in, each with how to start it |
+| `sdlc park <id>` | binary | the plan-time claim check: parks a plan that needs a file only another unbuilt plan creates, keeping its spec and plan. `/sdlc:plan` runs it |
+| `sdlc unpark <id>` | binary | takes a parked cycle back once what it waits on has merged with a pass |
 | `sdlc successor check` | binary | refuses a successor that cannot be read, names nothing that exists, or loops |
 | `sdlc slices <slug> <id> <id>...` | binary | the git command that composes `slices/<slug>/plan` from the siblings' plan branches, so one pull request admits a slicing's plans. Refuses a plan that needs what only a sibling creates. `/sdlc:pr <id>... --plan` runs it |
 | `sdlc admit` | binary | in a sandbox, the git command that takes its approved cycles and the successors it wrote onto an admission branch beside it; what is not approved stays. `/sdlc:pr --plan` runs it |

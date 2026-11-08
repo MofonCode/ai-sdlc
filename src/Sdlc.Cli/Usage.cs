@@ -120,6 +120,17 @@ internal static class Usage
                                      stuck behind an abandoned cycle, or unresolved -- worked out
                                      from the record. Ready means everything it succeeds is on
                                      the integration branch with a passing verify (D-125).
+            backlog                  Every successor and every parked cycle, in the waves they come
+                                     ready in -- ready now, then after one more merge, and so on
+                                     -- each with how to start it, and apart from them the stuck
+                                     and the unresolved. A view; it writes nothing (D-145).
+            park <id>                Compare a cycle's plan with every plan not yet built. A file
+                                     only another creates parks it: writes parked.md with what it
+                                     waits on, keeping its spec and plan. A file two plans both
+                                     name is reported. The plan skill runs it.
+            unpark <id>              Take a parked cycle back once everything it waits on merged
+                                     with a passing verify; its spec and plan are then read again
+                                     against what merged. Refuses one still waiting, saying why.
             successor check          Refuse a successor file that cannot be read, one naming a
                                      cycle or slug that does not exist, and a loop through
                                      succeeds:. Exits 0 when the set is sound.

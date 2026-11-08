@@ -173,6 +173,14 @@ read for is proof adequacy. Ask of each check: *which case does it never run, an
 never read?* If either has an answer, the proof is not adequate, and an inadequate
 proof is worse than none because it produces a green verification instead of an obvious gap.
 
+**A plan that needs another's unbuilt code is parked** (D-145). Once its round is clean the plan skill runs
+`sdlc park <id>`, which compares its files with every plan not yet built. A file only another plan creates means
+this one cannot be built against the integration branch as it stands: it keeps its spec and plan, waits in
+`parked.md`, and is held out of the build queue. `sdlc backlog` lists it beside the successors, in the wave it
+comes ready in. Once what it waits on has merged, `sdlc unpark <id>` takes it back, and its spec and plan are
+interrogated again against the code that merged — a round that changes nothing leaves an approval standing. A
+file two plans merely both name is only reported: their pull requests may conflict at merge.
+
 **Several intents at once.** Once you have read every intent in a working copy and are happy with them,
 `/sdlc:batch-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
 and hands back once: a line per cycle, every plan panel, and one question about every open suggestion across

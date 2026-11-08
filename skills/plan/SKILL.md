@@ -427,6 +427,19 @@ panel's `Loop` line says the loop is stuck on one rule. It is the same loop the 
 run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
 a rule coming back three times, which is the loop going backwards rather than going slowly.
 
+**Once the round is clean, check what the plan needs from plans not yet built** (D-145):
+
+```
+sdlc park <id>
+```
+
+It compares this plan's files with every plan not yet built — the cycles beside it in the sandbox, and those
+admitted and waiting for a build. **A file only another plan creates parks this cycle**: it writes `parked.md`,
+keeps the spec and plan, and the cycle waits until that one merges. Say so in a line at the hand-back, with what
+it waits on, and that it may still be approved — it builds once `sdlc unpark <id>` takes it back and its spec and
+plan are read again against what merged. **A file two plans both name is not a dependency**: say which, since
+their pull requests may conflict, and carry on.
+
 **First, the suggestions the plan's rounds left open, if there are any.** Ask once, from a file, in
 free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an
 answer, and the commonest one — skip all of this when nothing is open.

@@ -393,6 +393,10 @@ What is honest to say about the rest:
   admission branch the check already knows. The commands it prints are held as strings: nobody has yet run a
   sandbox through to an admitted pull request, and `sdlc new` no longer refuses uncommitted work, which the plan
   switch refuses instead.
+- **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
+  park` runs at the plan and keeps the spec and plan; `sdlc backlog` shows the parked and the successors in the
+  waves they come ready in; `sdlc unpark` takes one back once its predecessor merged. The re-reading on unpark is
+  where a plan written before its code existed meets that code, and nobody has watched one yet.
 - **The factory is started by a person and has not been started that way yet** (0.38.0). Its pipeline has no
   schedule and no Operate step, takes one optional cycle to build alone, and builds the cycle the most
   successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule

@@ -181,6 +181,17 @@ public sealed class PublicSurfaceTests
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
 
+        // Parking and the backlog: a plan needing another's unmerged code waits with its spec and plan kept (D-145).
+        "Sdlc.Core.Successors.BacklogRenderer",
+        "Sdlc.Core.Successors.ParkCycle",
+        "Sdlc.Core.Successors.ParkCycle+Command",
+        "Sdlc.Core.Successors.ParkCycle+Response",
+        "Sdlc.Core.Successors.Parked",
+        "Sdlc.Core.Successors.ReadSuccessors+ParkedStanding",
+        "Sdlc.Core.Successors.UnparkCycle",
+        "Sdlc.Core.Successors.UnparkCycle+Command",
+        "Sdlc.Core.Successors.UnparkCycle+Response",
+
         // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
         "Sdlc.Core.Cycles.ComposeAdmission",
         "Sdlc.Core.Cycles.ComposeAdmission+Query",

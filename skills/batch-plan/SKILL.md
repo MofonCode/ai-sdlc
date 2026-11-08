@@ -70,8 +70,9 @@ reading and approving the plans — is worth a fresh session.
 
 ## 3. Hand back once
 
-**One line per cycle**: its id, its headline, and where it got to — `planned`, or stopped and why, in the
-person's terms, never as a count. Then, for each planned cycle:
+**One line per cycle**: its id, its headline, and where it got to — `planned`, `parked` with what it waits on
+(the `plan` skill's `sdlc park` decides it), or stopped and why, in the person's terms, never as a count. Then
+`sdlc backlog` verbatim when anything was parked, and, for each planned cycle:
 
 ```
 sdlc status <id> --stage plan --brief

@@ -141,6 +141,7 @@ public static class VerifyChain
             Cycle.FileNameOf(ArtifactKind.Spec),
             Cycle.FileNameOf(ArtifactKind.Plan),
             "approval.md",
+            Successors.Parked.FileName,
             ".gitignore",
         };
 

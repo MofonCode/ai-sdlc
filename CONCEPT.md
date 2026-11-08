@@ -2292,6 +2292,9 @@ they print verbatim.
 | `successor start <slug> <id>` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
 | `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144) |
+| `park <id>` | the plan-time claim check: compares the cycle's plan with every plan not yet built; a file only another creates parks it, writing `parked.md` with what it waits on and the commit it was planned against, and a file two plans name is reported (D-145) |
+| `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
+| `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
@@ -7227,6 +7230,49 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-145 — A plan needing another's unbuilt code is parked with its spec and plan kept, and the backlog is a view of the parked and the successors
+
+**Governs:** §3.1, §3.4, §10.1, §15.2
+
+**Extends D-125.** D-125 compares the plans of one slicing at admission, refuses a plan needing a sibling's
+unmerged code, and keeps what waits as a successor: an outcome and a why, never a plan. **Leaves D-86 unchanged:**
+two plans naming one file still meet at merge, reported and not serialised.
+
+**Decision.**
+
+- **The claim check runs at the plan.** `sdlc park <id>`, run by the plan skill once a round is clean, compares the
+  plan with every plan not yet built — the cycles beside it in a sandbox, and those admitted and waiting for a build
+  — by D-125's comparison.
+- **A dependency parks the cycle.** A file only another plan creates writes `parked.md` in the cycle's folder: what
+  it waits on, the commit it was planned against, and why. The cycle keeps its id, spec and plan; it may be
+  approved and admitted; and the build queue holds it back, naming what it waits on.
+- **It comes back by `sdlc unpark`**, once everything it waits on has merged into the integration branch with a
+  passing verify — ready meaning what a successor's ready means, worked out by the same reader. Its spec and plan
+  are then interrogated again against the code that merged; a round that changes nothing leaves its approval
+  standing, and one that changes the plan sends it back to the person.
+- **The backlog is a view, `sdlc backlog`**: every successor and every parked cycle, grouped in the waves they come
+  ready in — ready now, after one more merge, and so on — with the stuck and the unresolved apart. Nothing stores
+  it.
+- **`parked.md` travels with a plan** through admission, as planning paperwork.
+
+**Why.** The person who adopted this would not throw away planned work to redo it later: a spec and plan are paid
+for in rounds. A successor is right for a piece never planned; a piece the slicing cut wrong was planned, and
+discarding that plan to write it again from an outcome spends the rounds twice. **The risk parking carries is
+drift**: the plan was written before the code it needs existed, and rounds hash documents, not the base. Unparking
+is where that is answered, by reading the plan again against what merged rather than trusting it.
+
+**Rejected.**
+
+- *Demoting the cycle to a successor, discarding its spec and plan.* Simpler, and the cost the person declined.
+- *A `backlog.md`.* One file edited from many sandboxes conflicts, and a stored readiness is stale the moment
+  something merges (D-115's reasoning).
+- *Refusing approval of a parked cycle.* An approval covers the bytes of three documents; if the re-reading
+  changes nothing they still match, and a person who read the plan should not have to sign it twice.
+- *The gate refusing a parked cycle.* The build queue is what picks work, and it holds a parked cycle back with
+  the reason; a person building one by hand is told by the backlog and the queue, and the gate stays about the
+  documents.
+- *Serialising cycles that merely share a file.* D-86: a conflict is met at merge, where a person is.
 
 ### D-144 — Work is planned in a sandbox, one worktree holding every cycle it turns into, and only what is approved leaves it
 

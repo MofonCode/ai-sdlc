@@ -21,6 +21,7 @@ using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
+using Sdlc.Core.Successors;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
 // hold. On Windows the default is the console codepage, which turns an em dash into a question mark -
@@ -96,6 +97,9 @@ try
         "successor" => await SuccessorCommand(line).ConfigureAwait(false),
         "slices" => await SlicesCommand(line).ConfigureAwait(false),
         "admit" => await Workspace.Run(line, AdmitCommand).ConfigureAwait(false),
+        "park" => await WithCycle(line, "park", ParkCommand).ConfigureAwait(false),
+        "unpark" => await WithCycle(line, "unpark", UnparkCommand).ConfigureAwait(false),
+        "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -994,6 +998,75 @@ static async Task<int> LeadCommand(CommandLine line)
 // The one git command that composes slices/<slug>/plan from the siblings' plan branches, so one pull request
 // admits every plan sliced together (D-125). The command alone on standard output, as 'branch' prints it;
 // the shared files, and why, on standard error.
+// The plan-time claim check (D-145). Zero either way: parked or not is an answer, and the first line says which.
+static async Task<int> ParkCommand(Workspace workspace, CycleId id)
+{
+    Result<ParkCycle.Response> result = await workspace
+        .Send<ParkCycle.Command, ParkCycle.Response>(new ParkCycle.Command(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    ParkCycle.Response park = result.Value;
+
+    if (park.AlreadyParked)
+    {
+        await Console.Out.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"{id} is parked already. 'sdlc backlog' says what it waits on.")).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    await Console.Out.WriteLineAsync(park.Written is { } written
+        ? string.Create(CultureInfo.InvariantCulture, $"{id} is parked: {written.Why} Its spec and plan are kept; it waits on {string.Join(", ", written.WaitsOn)}, and 'sdlc unpark {id}' takes it back once each has merged.")
+        : string.Create(CultureInfo.InvariantCulture, $"{id} needs nothing another unbuilt plan creates, so it can be built alone.")).ConfigureAwait(false);
+
+    foreach (ComputeClaimGraph.Collision shared in park.Shared)
+    {
+        CycleId other = shared.First == id ? shared.Second : shared.First;
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"It names {string.Join(", ", shared.Files)}, which {other} names too: their pull requests may conflict, and the second to merge resolves it.")).ConfigureAwait(false);
+    }
+
+    return ExitCode.Ok;
+}
+
+// A parked cycle back on its way, once everything it waited on has merged with a pass (D-145).
+static async Task<int> UnparkCommand(Workspace workspace, CycleId id)
+{
+    Result<UnparkCycle.Response> result = await workspace
+        .Send<UnparkCycle.Command, UnparkCycle.Response>(new UnparkCycle.Command(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"{id} is unparked. Its plan was written before {string.Join(", ", result.Value.File.WaitsOn)} merged: read it again against what did -- '/sdlc:interrogate {id} spec', then plan -- before it is approved or built.")).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing.
+static async Task<int> BacklogCommand(Workspace workspace)
+{
+    Result<ReadSuccessors.Response> result = await workspace
+        .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(BacklogRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 // What a sandbox has approved, composed onto an admission branch the check already knows (D-144). The command
 // alone on standard output, so the pr skill runs exactly what was decided; what stays behind, on standard error.
 static async Task<int> AdmitCommand(Workspace workspace)

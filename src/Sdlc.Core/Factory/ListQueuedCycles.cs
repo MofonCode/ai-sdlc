@@ -158,6 +158,18 @@ public static class ListQueuedCycles
                     continue;
                 }
 
+                // D-145: a parked plan needs code another cycle has not merged, so building it now cannot work.
+                if (successors.Value.Waiting.FirstOrDefault(p => p.Cycle == claim.Cycle) is { } parked)
+                {
+                    held.Add(new HeldBack(
+                        claim.Cycle,
+                        headline,
+                        string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"it is parked, waiting on {string.Join(", ", parked.Waits.Select(ReadSuccessors.Describe))}; once each has merged, 'sdlc unpark {claim.Cycle}' and read its spec and plan again")));
+                    continue;
+                }
+
                 if (taken.Length == 0)
                 {
                     queued.Add(new Queued(claim.Cycle, headline, Waiting(successors.Value, claim.Cycle)));
