@@ -66,6 +66,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a stack line that answers nothing](../guides/handling-refusals.md#a-stack-line-that-answers-nothing) | keep only rows the release asks about; change any other line in a cycle |
 | **A promotion's pull request — `sdlc promotion`** | |
 | [a branch that may not promote](../guides/handling-refusals.md#a-branch-that-may-not-promote) | open it into the integration branch as a cycle, and promote from there or from a `release/*` branch |
+| **Mining — `sdlc mine record`, and its pull request** | |
+| [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename each draft into place or delete it, then record again |
+| [a mining pull request carries something that is not mining's](../guides/handling-refusals.md#a-mining-pull-request-carries-something-that-is-not-minings) | take out what is not a husk's deletion, and fix the record the check names |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |

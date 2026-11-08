@@ -310,6 +310,27 @@ public static class ProposeConstraints
                 return Result.Fail<Response>(errors);
             }
 
+            // A mined cycle whose folder is gone still counts toward a rule's three cycles: the ledger kept
+            // which rules its findings cited (D-152). One whose folder is still here was counted above.
+            Result<Mining.MinedLedger> mined = await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            foreach (Mining.MinedCycle husk in (mined.ValueOrDefault ?? Mining.MinedLedger.Empty).Cycles
+                .Where(husk => !cycles.Any(cycle => cycle.Id.ToString() == husk.Cycle)))
+            {
+                if (!CycleId.TryParse(husk.Cycle, out CycleId? id))
+                {
+                    continue;
+                }
+
+                foreach (string rule in husk.Cited)
+                {
+                    if (ConstraintId.TryParse(rule, out ConstraintId? ruleId))
+                    {
+                        cited.Add(new Cited(ruleId.Value, null, id.Value, "(mined)", 1));
+                    }
+                }
+            }
+
             List<Recurrence> grouped = [.. Group(cited)];
 
             return Result.Ok(new Response(

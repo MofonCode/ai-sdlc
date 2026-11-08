@@ -222,6 +222,13 @@ you rename the drafts. It is not a cycle, and what it places binds the next cycl
 the integration branch after the merge. Never before the passing verify: rounds after it would read rules
 it placed. The pull-request check reports the order, and leaves keeping it to you (D-111, D-113).
 
+**Once the drafts are placed, record the sitting**: `sdlc mine record <the proposal file>`. Every cycle that
+finished and is on the integration branch becomes a **husk** — what later mining needs from it is kept in
+`.sdlc/mined.json`, and everything else is in git at the merge commit it names (D-152). It prints the
+deletion of the husks' folders for you to run on a branch of its own; the pull request carrying only that,
+the records and the ledger is admitted as mining. A cycle mined before its own pull request merged is not a
+husk yet, and is mined again next time.
+
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
 use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and
 its reader raises it as a suggestion. The intent, spec and plan each ask you once, at hand-back, which to

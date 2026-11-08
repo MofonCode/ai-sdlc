@@ -406,6 +406,14 @@ What is honest to say about the rest:
   successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule
   until somebody runs `sdlc factory` again and commits it; `sdlc doctor` names it a problem until then.
   `sdlc operate` is a command a person runs.
+- **Mining, areas and husks have only met the suite** (0.39.0). Reading the record across cycles is now
+  `/sdlc:mine`; `converge` means only a document's rounds settling. A recorded entry's title is its
+  headline, held to fifteen words and each clause to sixty. A solution may name the parts of its code in
+  `areas.md`, built up from what plans propose, and every reader then gets every headline but in full only
+  what its change reaches. `sdlc mine record` turns mined cycles into husks whose folders a person deletes
+  through a pull request the check admits as mining. No solution has an area, a husk or a mined ledger yet,
+  so nobody knows how much narrowing saves or whether a reader shown a headline misses what it needed. It
+  is a minor: a plan of a cycle opened on it names its areas, or its round is refused.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through

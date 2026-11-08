@@ -1,6 +1,6 @@
 ---
 name: mine
-description: Mine the solution's cycles -- read what every merged cycle argued, settled and raised, and propose the rules, decisions and stack rows it is missing, answering every item. Proposes and never places. Use once a cycle's verify passes, or when somebody asks to bring the rules, decisions and stack up to what the cycles settled.
+description: Mine the solution's cycles -- read what every finished cycle argued, settled and raised, propose the rules, decisions, stack rows, areas and successors it is missing, answer every item, and record the sitting so mined cycles become husks a person may delete. Proposes and never places. Use once a cycle's verify passes, or when somebody asks to bring the records up to what the cycles settled or to clear out old cycles.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: ""
 allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git show *)
@@ -11,6 +11,7 @@ allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git show *)
 ```
 sdlc mine
 sdlc draft mining <the proposal file>
+sdlc mine record <the proposal file>
 ```
 
 **Mining is reading the record across cycles; converging is a document's rounds settling.** The two
@@ -203,5 +204,58 @@ person marks anything; it is not theirs to find.
 
 Show the answer verbatim under its own heading. **It is advisory**: the person chose knowingly, and the
 review makes the choice visible rather than overruling it. Then the renames are theirs.
+
+## 5. Record the sitting, and name the husks
+
+Once the person has renamed the drafts into place — or deleted the ones they decided against — run:
+
+```
+sdlc mine record <the proposal file>
+```
+
+It refuses while a draft is still beside its file. Otherwise it records the sitting in `.sdlc/mined.json`,
+which only the binary writes, and **every cycle that is finished and merged becomes a husk**: its verify
+passed or a person abandoned it, and its folder is on the integration branch. What later mining needs from it
+is kept there — its merge commit, its files, the rules it cited, the areas its plan proposed (D-152). A cycle
+mined on its own branch before its pull request is not merged yet; say so, and it is mined again next time.
+Show what it prints verbatim.
+
+**Two sections of the proposal file feed it, and the drafter ignores both:**
+
+```markdown
+## Watch
+
+- <a concern seen in fewer than three cycles, in one sentence> — <cycle>, <cycle>
+
+## Declined
+
+- <suggestion id>: <why it will not be done>
+```
+
+**Watch** is how a concern below the bar keeps its count once the folders it came from are gone: the next
+sitting's report lists it with its cycles, and a third cycle brings it to the bar. Write the gist the same way
+each time, or it is counted as a new concern. **Declined** is what became of a suggestion nobody will do.
+
+**A suggestion worth doing becomes a successor**, not a rule — most are. Its text is copied in, because the cycle
+it came from is about to be deleted:
+
+```markdown
+## Successors
+
+### [ ] add <slug> — <what it makes possible>
+**Succeeds:** <the cycle it came from>
+
+**Outcome:** <what it should make possible>
+
+**Why it matters:** <the suggestion's id, its gist and its remedy, copied>
+```
+
+`sdlc draft mining` writes it to `.sdlc/successors/<slug>.md`; the ledger says the cycle it succeeds merged, so
+it is ready, and `/sdlc:next` picks it up.
+
+**Then the husks go, and that is the person's to do.** The record prints the deletion — a `mining/<date>`
+branch, `git rm -r` per husk, the ledger added — for them to run and commit with `git commit -F`, then a pull
+request into the integration branch. The check admits it as mining when it carries only the records, the ledger,
+successors and the husks' deletions. Never run the deletion yourself.
 
 ---

@@ -198,7 +198,10 @@ request carrying only the pin, what adoption writes, and answers in the declared
 is checked by writing those files again and comparing. Moving dependency versions: a pull request whose only
 change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
 checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
-both.
+both. **Nor does mining** (D-152): a pull request carrying only the records a person placed from a sitting, the
+mining ledger, successors, and the deletion of folders the ledger records as mined is checked by reading those
+records and finding every deleted cycle in the ledger. It is how a husk leaves, and how what mining placed
+after a merge reaches the integration branch.
 
 ### 3.2 Steering a cycle that is already underway
 
@@ -2292,7 +2295,9 @@ they print verbatim.
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
 | `mine` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113, D-148 |
-| `draft mining <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
+| `draft mining <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
+| `mine record <file>` | once the drafts are placed, records the sitting in `.sdlc/mined.json`: each finished cycle on the integration branch becomes a husk, with its merge commit, its files, the rules it cited and the areas it proposed, and the deletion of the husks' folders is printed for a person to run. Deletes nothing; refuses while a draft is still beside its file — D-152 |
+| `mine --history` | the mining ledger: every mined cycle, every sitting with what it accepted and declined, and the concerns watched below the bar — D-152 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
@@ -7250,6 +7255,46 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-152 — A mined cycle is a husk: the ledger keeps what later mining needs, and a person deletes its folder
+
+**Governs:** §3.1, §5.3, §15
+
+**Extends D-104 and D-112** — mining answers every item, now with `successor`, `watch` and `declined` among the
+answers — **D-146**, whose recorded abandonment is mined like any other cycle, **D-125 and D-145**, whose readiness
+reads the ledger, and **D-69**, whose three-cycle count reads it too. **Leaves D-45 standing**: a husk leaves only
+through a pull request, and the one the check admits without a cycle is mining's.
+
+**Decision.** Once the person has renamed a sitting's drafts into place, `sdlc mine record <file>` records it in
+`.sdlc/mined.json`, a file the binary writes and the hook denies to every agent, as it does a findings round. Each
+cycle that is **finished** — its verify passed, or a person abandoned it — and **merged** — its folder is on the
+integration branch — becomes a **husk**, recorded with the last commit there that touched its folder, the files its
+plan declared and its change touched, every rule its findings cited, the areas its plan proposed, its rounds,
+reopens and verdicts. The sitting records what the person accepted, the suggestions declined with why under `##
+Declined`, and the concerns watched below the bar under `## Watch`, each with the cycles it was seen in. It
+refuses while a draft is still beside its file, and **deletes nothing**: it prints the deletion of the husks'
+folders, on a branch of their own, for the person to run. A cycle mined on its own branch before its pull request
+is not merged yet, and is mined again at the next sitting. A suggestion worth doing becomes a successor of the cycle
+it came from, its outcome and why copied in, since that cycle's folder is about to go. **What reads a cycle's folder
+reads the ledger once it is gone**: a rule's count toward three cycles, the area replay and its proposals, and
+whether a successor or a parked cycle waiting on it is ready. The husk is deleted outright — no stub.
+
+**Why.** The person wanted cycles consumed rather than kept forever: the context they hold lives in git history,
+not in the working tree, and MarketSense's cycles directory had reached 21 MB four cycles in, 19 MB of it one
+cycle's rounds. The argument for keeping them was that later mining reads them; the ledger keeps exactly what it
+reads, and the merge commit recovers the rest.
+
+**Rejected.**
+
+- *Keeping cycles for their context.* The context is in git; the ledger says where.
+- *A stub left in the folder* — the approval and a summary. A file that exists to be skimmed and ignored.
+- *Mining one cycle at a time.* The three-cycle bar cannot be seen from inside one cycle.
+- *Deleting before the merge.* The pull request would carry no governed cycle (D-45).
+- *The binary deleting the folder.* Deleting is a person's act, as throwing a sandbox away is (D-146).
+- *Trusting git alone for the counts.* A count read from history on every run is slow and reads branches nobody
+  merged; the ledger holds what merged.
+- *Leaving a husk's deletion to an ordinary cycle's pull request.* It would carry another cycle's folder, which
+  only that cycle's pull request may.
 
 ### D-151 — A reader gets every headline, and in full only the entries in the areas its stage touches
 

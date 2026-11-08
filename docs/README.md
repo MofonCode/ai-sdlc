@@ -165,6 +165,8 @@ place the truth lives. Only the first of them binds.
 | **headline** | an entry's own title, at most fifteen words, each clause at most sixty. Every reader is handed every headline and the body only of the entries in scope, so nobody is unaware an entry exists | `sdlc decisions show <id>`, `sdlc constraints show <id>` |
 | **theme** | the roles this solution's surfaces use and the values that fill them — sixteen slots, the one place a colour or a typeface lives. Binds nothing: a departure is a linter's job | `.sdlc/theme.json` |
 | **mining** | reading the record across cycles — bringing the rules, the decisions and the declared stack up to what verified or merged cycles settled, in one sitting and outside any cycle's rounds — on a cycle's branch, a commit of its own after the passing verify (D-111): a ranked report, a proposal file of `add`, `supersede`, `reword` and `set` lines a person marks — **never remove** — drafts of the three files with only the marked lines applied, and an advisory review saying whether the approved set is *in alignment*. Binds the next cycle, never one in flight | `/sdlc:mine`, `sdlc mine`, `sdlc draft mining <file>` |
+| **husk** | a mined cycle: finished, merged, and recorded in the mining ledger, so its folder may be deleted. Everything in it is in git at the merge commit the ledger names; a person deletes it on a branch of its own, through a pull request the check admits as mining | `sdlc mine record` |
+| **the mining ledger** | `.sdlc/mined.json`, the only thing a husk leaves in the tree: each mined cycle's merge commit, files, cited rules and proposed areas, each sitting's accepted and declined, and the concerns watched below the bar. Written only by the binary | `sdlc mine --history` |
 
 There are **17 global constraints in force**; `CON_04` and `CON_13` are superseded by `CON_16` and
 `CON_15` and kept on the page. `sdlc constraints` is the authority, and it says which.
@@ -333,7 +335,7 @@ never decides a gate.
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |
 | `propose` | reads the record and argues for an entry — a rule, a decision, a theme role |
-| `mine` | reads every merged cycle at once and proposes what the rules, decisions and stack are missing, answering every item the cycles raised |
+| `mine` | reads every finished cycle at once and proposes what the rules, decisions, stack and areas are missing, answering every item the cycles raised, then records the sitting so mined cycles become husks a person may delete |
 | `constraints` | shows the rules in force, all tiers resolved |
 | `status` | shows where a cycle has got to, and the next command |
 | `suggestions` | lists the open non-blocking findings a solution has accumulated, each concern once, and with `--all` whether each was accepted, declined or answered |

@@ -301,6 +301,16 @@ internal static class Usage
                                      never mentions.
                                      Ends with the proposal file a person marks for 'draft
                                      mining'. Proposes; writes nothing that binds.
+            mine record <file>       Once the drafts are renamed into place: record the sitting in
+                                     .sdlc/mined.json -- each finished cycle on the integration
+                                     branch becomes a husk, with its merge commit, its files, the
+                                     rules it cited and the areas it proposed -- and print the
+                                     deletion of the husks' folders, for a person to run on a
+                                     branch of its own. Deletes nothing. Refuses while a draft is
+                                     still beside its file.
+            mine --history           The mining ledger: every mined cycle, every sitting with what
+                                     was accepted and declined, and the concerns watched below the
+                                     bar of three cycles.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record

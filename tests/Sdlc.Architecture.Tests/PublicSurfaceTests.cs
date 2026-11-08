@@ -153,6 +153,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Chain.VerifyUpgrade",
         "Sdlc.Core.Chain.VerifyUpgrade+Query",
         "Sdlc.Core.Chain.VerifyUpgrade+Response",
+        "Sdlc.Core.Chain.VerifyMining",
+        "Sdlc.Core.Chain.VerifyMining+Query",
         "Sdlc.Core.Constraints.Constraint",
         "Sdlc.Core.Constraints.JudgedPer",
         "Sdlc.Core.Constraints.ConstraintDetail",
@@ -260,6 +262,18 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Leads.ReadLead+Query",
         "Sdlc.Core.Leads.ReadLead+Response",
         "Sdlc.Core.Leads.TrackerItem",
+
+        // Mining's ledger, the record of a sitting, and the husks it names (D-152).
+        "Sdlc.Core.Mining.MinedArea",
+        "Sdlc.Core.Mining.MinedCycle",
+        "Sdlc.Core.Mining.MinedDecline",
+        "Sdlc.Core.Mining.MinedLedger",
+        "Sdlc.Core.Mining.MiningRenderer",
+        "Sdlc.Core.Mining.MiningRun",
+        "Sdlc.Core.Mining.RecordMining",
+        "Sdlc.Core.Mining.RecordMining+Command",
+        "Sdlc.Core.Mining.RecordMining+Response",
+        "Sdlc.Core.Mining.Watched",
 
         // 'sdlc operate': production's errors filed as leads (D-89). The store and the filer are
         // interfaces so the suite needs neither a network nor a CLI.

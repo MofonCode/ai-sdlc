@@ -1752,17 +1752,18 @@ headings of its own.
 
 ### `mine`
 
-Reads what every merged cycle argued, settled and raised, and proposes the rules, decisions and stack rows
-the solution is missing, answering every item. Proposes and never places. **Mining is reading the record
-across cycles; converging is a document's rounds settling** — the two were once both called convergence,
-and this was `/sdlc:propose convergence` (D-148).
+Reads what every finished cycle argued, settled and raised, proposes the rules, decisions, stack rows, areas
+and successors the solution is missing, answering every item, and records the sitting so each mined cycle
+becomes a husk a person may delete. Proposes and never places. **Mining is reading the record across cycles;
+converging is a document's rounds settling** — the two were once both called convergence, and this was
+`/sdlc:propose convergence` (D-148).
 
 | | |
 |---|---|
 | Stage | none. Once a verify passes — on the cycle's branch before its pull request, or on the integration branch after the merge (D-111) |
 | Started by | a person, or `pr` asking whether to mine on the branch now |
-| Reads | `sdlc mine`, every cycle's findings rounds, its reopens and the verify history git holds |
-| Writes | the proposal file under `.sdlc/reports/`. The drafts are written by `sdlc draft mining`; **never** the files a person places |
+| Reads | `sdlc mine`, every cycle's findings rounds, its reopens and the verify history git holds, and the mining ledger |
+| Writes | the proposal file under `.sdlc/reports/`. The drafts and successors are written by `sdlc draft mining`, the ledger by `sdlc mine record`; **never** the files a person places, and never a husk's deletion |
 
 #### Syntax
 
@@ -1786,11 +1787,23 @@ one that would lose an entry or a row, a fresh process reviews the approved set 
 `solution.md` and says *in alignment* or *deviates*, and the person renames the drafts. It binds the next
 cycle, never one in flight.
 
+**Areas and successors come from the same file** (D-150, D-152). `## Areas` adds an area once three cycles'
+plans name it, renames, merges, removes, re-globs and tags entries; `## Successors` turns a suggestion worth
+doing into a successor of the cycle it came from, its text copied in. Entries over the word budget are
+proposed for rewording (D-149).
+
+**Then the sitting is recorded and the husks named** (D-152). Once the drafts are placed, `sdlc mine record`
+writes `.sdlc/mined.json`: every finished cycle on the integration branch becomes a husk, with what later
+mining reads from it kept there, the concerns under `## Watch` carried with their cycles, and the suggestions
+under `## Declined` with why. It prints the deletion of the husks' folders for the person to run on a branch of
+its own; the check admits that pull request as mining.
+
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
 | on a cycle branch whose verify has not passed | stops and says so | finish the cycle first (D-111) |
+| a draft still beside its file at `sdlc mine record` | records nothing | rename it into place or delete it, then record |
 
 #### Example
 

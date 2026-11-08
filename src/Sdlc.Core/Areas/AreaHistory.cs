@@ -1,3 +1,4 @@
+using FluentResults;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
 
@@ -62,6 +63,21 @@ public static class AreaHistory
                 : [];
 
             cycles.Add((cycle.Id, DeclaredFiles.Read(plan), PlanAreas.Read(plan).ValueOrDefault ?? [], changed));
+        }
+
+        // A mined cycle whose folder is gone is read from the ledger, which kept exactly what this needs (D-152).
+        Result<Mining.MinedLedger> mined = await Mining.MinedLedger.Read(solutionRoot, cancellationToken).ConfigureAwait(false);
+
+        foreach (Mining.MinedCycle husk in (mined.ValueOrDefault ?? Mining.MinedLedger.Empty).Cycles)
+        {
+            if (CycleId.TryParse(husk.Cycle, out CycleId? id) && !cycles.Exists(cycle => cycle.Cycle == id.Value))
+            {
+                cycles.Add((
+                    id.Value,
+                    husk.Declared,
+                    [.. husk.Areas.Select(area => new PlanArea(PlanAreaKind.Proposed, area.Name, area.Files))],
+                    husk.Changed));
+            }
         }
 
         return Of(cycles.ConvertAll(cycle => (cycle.Cycle, cycle.Declared, cycle.Lines, cycle.Changed)), defined);

@@ -13,6 +13,7 @@ using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Leads;
+using Sdlc.Core.Mining;
 using Sdlc.Core.Operate;
 using Sdlc.Core.Perspectives;
 using Sdlc.Core.Hooks;
@@ -149,6 +150,8 @@ public static class SdlcServices
         services.AddProposeMiningRequestHandler();
         services.AddDraftMiningRequestHandler();
         services.AddReadAreasRequestHandler();
+        services.AddRecordMiningRequestHandler();
+        services.AddVerifyMiningRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

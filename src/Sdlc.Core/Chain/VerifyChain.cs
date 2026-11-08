@@ -104,13 +104,14 @@ public static class VerifyChain
         : IRequest<Response>;
 
     /// <summary>
-    /// The files mining changes, relative to the root (D-104, D-111).
+    /// The files mining changes, relative to the root (D-104, D-111, D-150).
     /// </summary>
     public static IReadOnlyList<string> Mined { get; } =
     [
         Cycle.SdlcDirectoryName + "/" + FileConstraintDocuments.SolutionConstraintsFileName,
         Cycle.SdlcDirectoryName + "/" + DecisionParser.FileName,
         Cycle.SdlcDirectoryName + "/" + Cycle.TechStackFileName,
+        Cycle.SdlcDirectoryName + "/" + Areas.AreaParser.FileName,
     ];
 
     /// <summary>

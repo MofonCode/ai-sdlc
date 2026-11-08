@@ -96,6 +96,10 @@ public static class ProposeMining
     /// What the cycles say about the areas: the names plans proposed, how often each area would have matched,
     /// and changed files no area covers (D-150).
     /// </param>
+    /// <param name="Mined">
+    /// The mining ledger: the cycles already mined, and the concerns watched below the bar, whose counts carry
+    /// across sittings because the folders they came from are gone (D-152).
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
@@ -103,7 +107,8 @@ public static class ProposeMining
         StackCoverage.Unmentioned Stack,
         IReadOnlyList<CycleRecord>? Record = null,
         IReadOnlyList<string>? OverBudget = null,
-        AreaHistory.Reading? Areas = null);
+        AreaHistory.Reading? Areas = null,
+        Mining.MinedLedger? Mined = null);
 
     /// <summary>Asks for the report.</summary>
     public sealed record Query : IRequest<Response>;
@@ -210,6 +215,24 @@ public static class ProposeMining
 
         Areas(text, response.Areas);
 
+        // What earlier sittings left: the cycles already mined, and the concerns watched below the bar, which
+        // a cycle mined now may carry over it (D-152).
+        if (response.Mined is { } mined && (mined.Cycles.Count > 0 || mined.Watch.Count > 0))
+        {
+            text.AppendLine();
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Mined before   {mined.Cycles.Count} cycles in .sdlc/{Mining.MinedLedger.FileName}, {mined.Watch.Count} concerns watched"));
+
+            foreach (Mining.Watched watched in mined.Watch)
+            {
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  watched: {watched.Gist} -- {watched.Cycles.Count} of {ProposeConstraints.Bar} cycles ({string.Join(", ", watched.Cycles)})"));
+            }
+
+            foreach (Mining.MinedCycle husk in mined.Cycles.Where(husk => response.Record?.Any(record => record.Cycle.ToString() == husk.Cycle) == true))
+            {
+                text.AppendLine("  " + husk.Cycle + " is mined and still here: a husk, waiting for its folder to be deleted");
+            }
+        }
+
         text.AppendLine();
         text.AppendLine("Stack");
 
@@ -236,10 +259,14 @@ public static class ProposeMining
         text.AppendLine("  ## Stack        ### [ ] set <concern> — <choice, or none>");
         text.AppendLine("  ## Areas        ### [ ] add <name> — <what it is>   ### [ ] rename <old> <new> — <why>   ### [ ] merge <from> into <to> — <why>");
         text.AppendLine("                  ### [ ] remove <name> — <why>   ### [ ] files <name> — <globs>   ### [ ] tag DEC_04 — <area, area, or none>");
+        text.AppendLine("  ## Successors   ### [ ] add <slug> — <what it makes possible>, with **Succeeds:**, **Outcome:** and **Why it matters:** beneath");
+        text.AppendLine("  ## Watch        - <a concern below the bar> — <cycle>, <cycle>");
+        text.AppendLine("  ## Declined     - <suggestion id>: <why>");
         text.AppendLine();
         text.AppendLine("  Under each heading, the entry's clauses as they would be pasted, and '> ' lines for the evidence.");
         text.AppendLine("  There is no remove: supersede a rule or decision, and set a stack concern to none.");
-        text.AppendLine("  Then 'sdlc draft mining " + proposals + "' writes the drafts from what was marked [x].");
+        text.AppendLine("  Then 'sdlc draft mining " + proposals + "' writes the drafts from what was marked [x],");
+        text.AppendLine("  and once they are renamed into place, 'sdlc mine record " + proposals + "' records the sitting and names the husks.");
 
         return text.ToString();
     }
@@ -428,7 +455,8 @@ public static class ProposeMining
                 unmentioned,
                 record,
                 await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false),
-                await AreaHistory.Read(solution.Path, defined.Value, cancellationToken).ConfigureAwait(false)));
+                await AreaHistory.Read(solution.Path, defined.Value, cancellationToken).ConfigureAwait(false),
+                (await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false)).ValueOrDefault));
         }
 
         /// <summary>

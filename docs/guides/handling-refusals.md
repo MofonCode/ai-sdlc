@@ -477,6 +477,31 @@ main.
 **Next:** open the pull request into the integration branch instead, as a cycle, and promote from there. A fix
 a release needs now is a cycle on its `release/*` branch, which then promotes (D-88).
 
+## Mining — the two ways it is refused
+
+Mining is not a cycle (D-104): a sitting proposes, a person places what they accept, `sdlc mine record`
+records it, and the husks it names leave through a pull request of their own (D-152).
+
+### a draft is still beside its file
+
+`sdlc mine record` is refused while `constraints.draft.md`, `decisions.draft.md`, `techstack.draft.md` or
+`areas.draft.md` is still in `.sdlc/`. A draft not renamed is a decision the person has not made yet, and
+recording the sitting over it would mark cycles mined whose answers were never placed.
+
+**Next:** rename each draft into place, or delete the ones you decided against, then run `sdlc mine record`
+again with the same proposal file.
+
+### a mining pull request carries something that is not mining's
+
+A pull request with no cycle that carries only the records, the mining ledger, successors and changes under
+`.sdlc/cycles/` is checked as mining. It is refused when a cycle path is not the deletion of a cycle the
+ledger records as mined, when the records it places do not parse, when an area covers no file, or when an
+entry names an area nobody defines. A cycle's folder leaves only once it is mined, and only by deletion.
+
+**Next:** `sdlc verify-chain <branch> --base <integration branch>` names each failing check. Take out what is
+not a husk's deletion — a cycle that is not in the ledger yet is mined at the next sitting after it merges —
+and fix the record the check names.
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take

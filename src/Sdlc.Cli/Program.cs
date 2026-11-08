@@ -16,6 +16,7 @@ using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
+using Sdlc.Core.Mining;
 using Sdlc.Core.Decisions;
 using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
@@ -108,7 +109,7 @@ try
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
-        "mine" => await Workspace.Run(line, Mine).ConfigureAwait(false),
+        "mine" => await MineCommand(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
@@ -741,6 +742,22 @@ static async Task<int> VerifyChainCommand(CommandLine line)
 static async Task<int> VerifyUpgradeOrRefuse(Workspace workspace, CommandLine line, string given)
 {
     (IReadOnlyList<string>? changed, string? divergence) = await AgainstBase(workspace, line).ConfigureAwait(false);
+
+    // A mining sitting's records, the ledger and mined cycles' deletions: no cycle, nothing built (D-152).
+    if (changed is not null && VerifyMining.Carries(changed))
+    {
+        Result<VerifyUpgrade.Response> mined = await workspace
+            .Send<VerifyMining.Query, VerifyUpgrade.Response>(new VerifyMining.Query(changed))
+            .ConfigureAwait(false);
+
+        if (mined.IsFailed)
+        {
+            return await Report(mined, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(VerifyMining.Render(mined.Value)).ConfigureAwait(false);
+        return mined.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
+    }
 
     if (changed is null || divergence is null || !VerifyUpgrade.Carries(changed))
     {
@@ -1547,6 +1564,55 @@ static async Task<int> DraftMined(Workspace workspace, CommandLine line)
 // One report for every record, so a person mines the cycles in one sitting rather than three (D-104, D-148).
 // Kept like the others, and it names the proposal file beside it with the same timestamp, which is the
 // one file a skill writes and a person edits.
+// 'sdlc mine' reports; 'mine record <file>' records a sitting once its drafts are placed; '--history' reads the
+// ledger a husk leaves behind (D-152).
+static async Task<int> MineCommand(CommandLine line)
+{
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "record", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+
+        if (rest.Arguments.Count == 0)
+        {
+            await Console.Error.WriteLineAsync("Which proposal file? 'sdlc mine record <file>', the file '/sdlc:mine' wrote and you marked.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        return await Workspace.Run(rest, async workspace =>
+        {
+            Result<RecordMining.Response> recorded = await workspace
+                .Send<RecordMining.Command, RecordMining.Response>(new RecordMining.Command(Path.GetFullPath(rest.Arguments[0])))
+                .ConfigureAwait(false);
+
+            if (recorded.IsFailed)
+            {
+                return await Report(recorded, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(MiningRenderer.RenderRecorded(recorded.Value)).ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
+    if (line.HasOption("history"))
+    {
+        return await Workspace.Run(line, async workspace =>
+        {
+            Result<MinedLedger> ledger = await MinedLedger.Read(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+
+            if (ledger.IsFailed)
+            {
+                return await Report(ledger, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(MiningRenderer.RenderHistory(ledger.Value)).ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
+    return await Workspace.Run(line, Mine).ConfigureAwait(false);
+}
+
 static async Task<int> Mine(Workspace workspace)
 {
     Result<ProposeMining.Response> result = await workspace

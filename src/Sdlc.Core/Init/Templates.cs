@@ -311,6 +311,7 @@ public static class Templates
             "| `constraints.md` | this solution's own rules | a person, by hand |",
             "| `decisions.md` | the choices this solution has settled, so a cycle reads the argument rather than having it again | a person, by hand |",
             "| `areas.md` | the parts of this solution's code and the files each covers, so a reader gets in full only the rules and decisions its change reaches | a person, by hand |",
+            "| `mined.json` | the mining ledger: each mined cycle's merge commit and what later mining reads from it, so its folder may be deleted | `sdlc mine record` |",
             "| `cycles/<id>/intent.md` | why the change exists | the intent stage |",
             "| `cycles/<id>/spec.md` | what done means | the spec stage |",
             "| `cycles/<id>/plan.md` | how, and the proof per criterion | the plan stage |",

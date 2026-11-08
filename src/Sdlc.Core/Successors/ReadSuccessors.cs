@@ -466,6 +466,14 @@ public static class ReadSuccessors
                 return known;
             }
 
+            // A mined cycle's folder may be gone, deleted as a husk; the ledger says it merged, and whether it
+            // passed or stopped, which is all readiness asks (D-152).
+            if (Ledger().Find(id.ToString()) is { } mined)
+            {
+                _known[id] = mined.Abandoned ? WaitState.Abandoned : WaitState.Merged;
+                return _known[id];
+            }
+
             Cycle cycle = new(id, root);
             string folder = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, id.ToString()) + "/";
             string verifyPath = folder + Cycle.FileNameOf(ArtifactKind.Verify);
@@ -500,6 +508,28 @@ public static class ReadSuccessors
 
             _known[id] = state;
             return state;
+        }
+
+        private Mining.MinedLedger? _ledger;
+
+        // Read where merged is read: the integration branch, else the working copy.
+        private Mining.MinedLedger Ledger()
+        {
+            if (_ledger is not null)
+            {
+                return _ledger;
+            }
+
+            string relative = Cycle.SdlcDirectoryName + "/" + Mining.MinedLedger.FileName;
+            string? text = at is not null
+                ? repository!.ReadAt(root, at, relative)
+                : File.Exists(Mining.MinedLedger.PathIn(root)) ? File.ReadAllText(Mining.MinedLedger.PathIn(root)) : null;
+
+            _ledger = text is null
+                ? Mining.MinedLedger.Empty
+                : Mining.MinedLedger.Parse(text, relative).ValueOrDefault ?? Mining.MinedLedger.Empty;
+
+            return _ledger;
         }
 
         private static bool Passed(string verify)

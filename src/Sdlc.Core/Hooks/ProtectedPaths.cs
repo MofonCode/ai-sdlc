@@ -185,7 +185,9 @@ public static class ProtectedPaths
             && string.Equals(segments[^2], "findings", StringComparison.OrdinalIgnoreCase)
             && (IsRoundFileName(segments[^1]) || IsLedgerFileName(segments[^1]))
                 ? Round
-                : Describe(segments[^1]);
+                : string.Equals(segments[^1], Mining.MinedLedger.FileName, StringComparison.OrdinalIgnoreCase)
+                    ? Mined
+                    : Describe(segments[^1]);
 
         return file is not null;
     }
@@ -205,6 +207,20 @@ public static class ProtectedPaths
         + "it to the rounds before it, and refuses it while anything above it in the chain is unsettled. "
         + "Put the readers' findings and your dispositions in a file outside the repository and run "
         + "'sdlc round <id> <artifact> --from <file>'.");
+
+    /// <summary>
+    /// The mining ledger: not a person's file but the binary's, denied to an agent like a round (D-152).
+    /// </summary>
+    /// <remarks>
+    /// It records which cycles are mined and so may be deleted, and carries the counts later mining reads. An
+    /// agent that could write it could mark a cycle mined that was not, and its folder would go with nothing
+    /// taken from it.
+    /// </remarks>
+    public static ProtectedFile Mined { get; } = new(
+        "the mining ledger",
+        "It is written by the binary once a person has placed what a mining sitting decided, and it says which "
+        + "cycles are husks whose folders may go. Run 'sdlc mine record <file>' with the proposal file the "
+        + "person marked.");
 
     /// <summary>
     /// Whether a file name is a findings ledger's: <c>&lt;artifact&gt;.json</c> (D-107).
@@ -316,7 +332,7 @@ public static class ProtectedPaths
             foreach (string target in RedirectTargets(segment))
             {
                 string name = target.Replace('\\', '/').Split('/')[^1];
-                if ((IsFindingsPath(target) ? Round : Describe(name)) is { } redirected)
+                if ((IsFindingsPath(target) ? Round : string.Equals(name, Mining.MinedLedger.FileName, StringComparison.OrdinalIgnoreCase) ? Mined : Describe(name)) is { } redirected)
                 {
                     file = redirected;
                     return true;
@@ -340,6 +356,12 @@ public static class ProtectedPaths
             if (NamesARound(segment))
             {
                 file = Round;
+                return true;
+            }
+
+            if (NamesWhole(segment, Mining.MinedLedger.FileName))
+            {
+                file = Mined;
                 return true;
             }
         }

@@ -85,6 +85,9 @@ public static class DraftMining
 
         /// <summary>The solution's areas, and which area each entry carries (D-150).</summary>
         Areas,
+
+        /// <summary>Suggestions worth doing, written as successors of the cycle they came from (D-152).</summary>
+        Successors,
     }
 
     /// <summary>One proposal, as the file holds it.</summary>
@@ -142,6 +145,7 @@ public static class DraftMining
                     "DECISIONS" => Record.Decisions,
                     "STACK" => Record.Stack,
                     "AREAS" => Record.Areas,
+                    "SUCCESSORS" => Record.Successors,
                     _ => null,
                 };
                 continue;
@@ -381,6 +385,13 @@ public static class DraftMining
             return AreaHeading(heading, words, statement, accepted);
         }
 
+        if (record == Record.Successors)
+        {
+            return words is ["add", var slug] && Successors.Successor.IsSlug(slug)
+                ? Result.Ok((Operation.Add, (string?)slug, statement, accepted))
+                : Result.Fail(string.Create(CultureInfo.InvariantCulture, $"'### {heading}': a successor is 'add <slug> — <what it makes possible>', the slug lower case words joined by hyphens."));
+        }
+
         Operation? operation = words.Length == 0 ? null : words[0].ToUpperInvariant() switch
         {
             "ADD" => Operation.Add,
@@ -587,6 +598,71 @@ public static class DraftMining
 
         return Result.Ok((string.Join(newline, lines), rules, decisions));
     }
+
+    /// <summary>
+    /// A successor file for one accepted suggestion: what it waits for, and the outcome and why copied in, because
+    /// the cycle the suggestion came from is about to be deleted as a husk (D-152).
+    /// </summary>
+    /// <param name="proposal">The accepted proposal: <c>add &lt;slug&gt; — headline</c>, with <c>**Succeeds:**</c>,
+    /// <c>**Outcome:**</c> and <c>**Why it matters:**</c> beneath.</param>
+    /// <returns>The file's text, or what the proposal is missing.</returns>
+    public static Result<string> SuccessorFile(Proposal proposal)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+
+        Dictionary<string, string> clauses = new(StringComparer.Ordinal);
+        string? open = null;
+
+        foreach (string line in proposal.Body.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            System.Text.RegularExpressions.Match clause = System.Text.RegularExpressions.Regex.Match(
+                line, @"^\*\*(?<label>Succeeds|Outcome|Why it matters):\*\*\s*(?<body>.*)$", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1));
+
+            if (clause.Success)
+            {
+                open = clause.Groups["label"].Value;
+                clauses[open] = clause.Groups["body"].Value.Trim();
+            }
+            else if (open is not null && line.Trim().Length > 0)
+            {
+                clauses[open] = (clauses[open] + "\n" + line.TrimEnd()).Trim();
+            }
+        }
+
+        List<string> missing = [.. _successorClauses.Where(label => !clauses.TryGetValue(label, out string? body) || body.Length == 0)];
+
+        if (missing.Count > 0)
+        {
+            return Result.Fail<string>(string.Create(CultureInfo.InvariantCulture, $"successor {proposal.Target} has no {string.Join(", ", missing)}. A successor of a mined cycle carries what it succeeds, its outcome and its why, copied in."));
+        }
+
+        string text = string.Join(
+            "\n",
+            [
+                "---",
+                "succeeds: " + clauses["Succeeds"],
+                "---",
+                string.Empty,
+                "# " + proposal.Statement,
+                string.Empty,
+                "## Outcome",
+                string.Empty,
+                clauses["Outcome"],
+                string.Empty,
+                "## Why",
+                string.Empty,
+                clauses["Why it matters"],
+                string.Empty,
+            ]);
+
+        Result<Successors.Successor> parsed = Successors.Successor.Parse(proposal.Target!, text);
+
+        return parsed.IsFailed
+            ? Result.Fail<string>(string.Create(CultureInfo.InvariantCulture, $"successor {proposal.Target}: {string.Join("; ", parsed.Errors.Select(error => error.Message))}"))
+            : Result.Ok(text);
+    }
+
+    private static readonly string[] _successorClauses = ["Succeeds", "Outcome", "Why it matters"];
 
     /// <summary>The empty area file, for a solution placing its first area.</summary>
     public static string EmptyAreas { get; } = string.Join(
@@ -883,6 +959,27 @@ public static class DraftMining
                 return Result.Ok(DraftResult.Refused(unplaced));
             }
 
+            // A suggestion worth doing becomes a successor, its text copied in. Checked whole before anything is
+            // written, so a refused file leaves no half-drafted sitting behind (D-152).
+            List<(string Slug, string Text)> successors = [];
+
+            foreach (Proposal proposal in accepted.Where(proposal => proposal.Record == Record.Successors))
+            {
+                Result<string> file = SuccessorFile(proposal);
+
+                if (file.IsFailed)
+                {
+                    return Result.Ok(DraftResult.Refused(string.Join(Environment.NewLine, file.Errors.Select(error => error.Message))));
+                }
+
+                if (File.Exists(Path.Combine(Successors.Successor.DirectoryOf(solution.Path), proposal.Target + ".md")))
+                {
+                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"There is already a successor called {proposal.Target}. Give this one another slug.")));
+                }
+
+                successors.Add((proposal.Target!, file.Value));
+            }
+
             foreach ((Record record, Pending entry) in drafts)
             {
                 if (entry.Draft is null || string.Equals(entry.Draft, entry.Original, StringComparison.Ordinal))
@@ -934,6 +1031,17 @@ public static class DraftMining
                 string from = Cycle.SdlcDirectoryName + "/" + draftName;
                 string to = Cycle.SdlcDirectoryName + "/" + entry.File;
                 renames.Add(string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {from} {to}"));
+            }
+
+            if (successors.Count > 0)
+            {
+                Directory.CreateDirectory(Successors.Successor.DirectoryOf(solution.Path));
+            }
+
+            foreach ((string slug, string text) in successors)
+            {
+                await File.WriteAllTextAsync(Path.Combine(Successors.Successor.DirectoryOf(solution.Path), slug + ".md"), text, cancellationToken).ConfigureAwait(false);
+                report.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Successors.Successor.RelativePath(slug)}: written -- a successor, ready once what it succeeds has merged"));
             }
 
             int declined = parsed.Value.Count - accepted.Count;
