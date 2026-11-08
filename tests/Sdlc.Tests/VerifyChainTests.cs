@@ -645,12 +645,44 @@ public sealed class VerifyChainTests
     [TestMethod]
     [DataRow("verify.md")]
     [DataRow("evidence/tests.json")]
-    [DataRow("abandoned.md")]
-    public void A_build_or_a_stop_is_not_planning_paperwork(string inside)
+    public void A_build_is_not_planning_paperwork(string inside)
     {
         Assert.IsTrue(CycleId.TryParse("20260929_1456_32", out CycleId? id));
 
         Assert.IsFalse(VerifyChain.AdmitsAsPlan(id.Value, [".sdlc/cycles/20260929_1456_32/" + inside]));
+    }
+
+    [TestMethod]
+    public async Task An_abandoned_cycle_is_admitted_as_a_record_with_no_approval_asked()
+    {
+        // D-146: a cycle stopped in a sandbox reaches the integration branch as the record of a choice. Nothing is
+        // built from it, so no approval or proof is asked of it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.Abandon();
+
+        VerifyChain.Response verdict = await Check(
+            workspace,
+            [".sdlc/cycles/" + workspace.Cycle.Id + "/intent.md", ".sdlc/cycles/" + workspace.Cycle.Id + "/abandoned.md"]);
+
+        Assert.IsTrue(verdict.Admission, Describe(verdict));
+        Assert.IsTrue(verdict.Holds, Describe(verdict));
+    }
+
+    [TestMethod]
+    public async Task An_abandonment_does_not_carry_code_past_the_check()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.Abandon();
+
+        VerifyChain.Response verdict = await Check(
+            workspace,
+            [".sdlc/cycles/" + workspace.Cycle.Id + "/abandoned.md", "src/Orders/OrderService.cs"]);
+
+        Assert.IsFalse(verdict.Admission, Describe(verdict));
+        Assert.IsFalse(verdict.Holds, Describe(verdict));
     }
 
     [TestMethod]

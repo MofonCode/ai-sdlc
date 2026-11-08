@@ -100,6 +100,7 @@ try
         "park" => await WithCycle(line, "park", ParkCommand).ConfigureAwait(false),
         "unpark" => await WithCycle(line, "unpark", UnparkCommand).ConfigureAwait(false),
         "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
+        "discard" => await Workspace.Run(line, DiscardCommand).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -1049,6 +1050,23 @@ static async Task<int> UnparkCommand(Workspace workspace, CycleId id)
         CultureInfo.InvariantCulture,
         $"{id} is unparked. Its plan was written before {string.Join(", ", result.Value.File.WaitsOn)} merged: read it again against what did -- '/sdlc:interrogate {id} spec', then plan -- before it is approved or built.")).ConfigureAwait(false);
     return ExitCode.Ok;
+}
+
+// What throwing a sandbox away would lose (D-146). It reports and deletes nothing; zero once nothing worth
+// recording is left unrecorded, so the removal it prints is safe to offer.
+static async Task<int> DiscardCommand(Workspace workspace)
+{
+    Result<DiscardSandbox.Response> result = await workspace
+        .Send<DiscardSandbox.Query, DiscardSandbox.Response>(new DiscardSandbox.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(DiscardRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Remove is null ? ExitCode.Refused : ExitCode.Ok;
 }
 
 // Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing.

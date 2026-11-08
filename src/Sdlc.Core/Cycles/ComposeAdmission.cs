@@ -49,6 +49,7 @@ public static class ComposeAdmission
     /// <param name="Staying">The cycles the sandbox carries that stay behind, each with why.</param>
     /// <param name="Successors">The successor files it carries.</param>
     /// <param name="Comparison">What comparing the plans found: the shared files to say.</param>
+    /// <param name="Records">The abandoned cycles it carries as records of what was stopped (D-146).</param>
     public sealed record Response(
         string Branch,
         string Folder,
@@ -56,7 +57,8 @@ public static class ComposeAdmission
         IReadOnlyList<CycleId> Admitted,
         IReadOnlyList<(CycleId Id, string Why)> Staying,
         IReadOnlyList<string> Successors,
-        ComputeClaimGraph.SlicingComparison Comparison);
+        ComputeClaimGraph.SlicingComparison Comparison,
+        IReadOnlyList<CycleId> Records);
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository) : IRequestHandler<Query, Response>
     {
@@ -135,12 +137,29 @@ public static class ComposeAdmission
                 plans.Add(ComputeClaimGraph.SlicePlan.Read(candidate.Id, plan));
             }
 
+            // D-146: a cycle stopped here goes too, as the record of what was argued and stopped. Abandoned cycles are
+            // never carried as work, so they are found apart: here, not yet on the integration branch.
+            List<CycleId> records = [];
+
+            foreach (Cycle stopped in CycleIndex.All(root).Where(c => c.IsAbandoned && !repository.PathExistsAt(root, integrationRef, Folder(c.Id) + "abandoned.md")))
+            {
+                string folder = Folder(stopped.Id);
+
+                if (uncommitted.Any(path => path.Replace('\\', '/').StartsWith(folder, StringComparison.Ordinal)))
+                {
+                    problems.Add(string.Create(CultureInfo.InvariantCulture, $"{stopped.Id} was abandoned and its folder has uncommitted changes; commit the abandonment on {sandbox} first."));
+                    continue;
+                }
+
+                records.Add(stopped.Id);
+            }
+
             if (problems.Count > 0)
             {
                 return Result.Fail<Response>("Nothing was composed: " + string.Join(" ", problems));
             }
 
-            if (admitted.Count == 0)
+            if (admitted.Count == 0 && records.Count == 0)
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
@@ -156,8 +175,9 @@ public static class ComposeAdmission
                 return Result.Fail<Response>("Nothing was composed: " + Chain.VerifySlicing.Atomic(comparison).Detail);
             }
 
-            string branch = admitted.Count == 1
-                ? admitted[0].BranchName(CycleBranchKind.Plan)
+            CycleId[] leaving = [.. admitted.Concat(records).Order()];
+            string branch = leaving.Length == 1
+                ? leaving[0].BranchName(CycleBranchKind.Plan)
                 : SlicingBranch.NameOf(SandboxBranch.SlugOf(primary.Value));
 
             if (repository.RefExists(root, branch))
@@ -182,13 +202,13 @@ public static class ComposeAdmission
 
             // Beside the sandbox, so composing never moves the sandbox off its branch.
             string place = "../" + primary.Value + ".admit";
-            IEnumerable<string> paths = admitted.Select(id => Folder(id).TrimEnd('/')).Concat(successors);
+            IEnumerable<string> paths = leaving.Select(id => Folder(id).TrimEnd('/')).Concat(successors);
 
             string command = string.Create(
                 CultureInfo.InvariantCulture,
-                $"git worktree add -b {branch} {place} {integrationRef} && git -C {place} checkout {sandbox} -- {string.Join(' ', paths)} && git -C {place} commit -m \"Admit {string.Join(", ", admitted)} from {sandbox}\"");
+                $"git worktree add -b {branch} {place} {integrationRef} && git -C {place} checkout {sandbox} -- {string.Join(' ', paths)} && git -C {place} commit -m \"Admit {string.Join(", ", leaving)} from {sandbox}\"");
 
-            return Result.Ok(new Response(branch, place, command, admitted, staying, successors, comparison));
+            return Result.Ok(new Response(branch, place, command, admitted, staying, successors, comparison, records));
         }
 
         private static string Folder(CycleId id) =>

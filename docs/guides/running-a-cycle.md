@@ -75,7 +75,10 @@ session in the sandbox to carry on, and remove it with `git worktree remove` onc
 **What leaves the sandbox is what you approved.** `/sdlc:pr --plan` in the sandbox runs `sdlc admit`, which
 takes the approved cycles' folders, and any successors the sandbox wrote, onto an admission branch —
 `cycle/<id>/plan` for one, `slices/sandbox-<id>/plan` for several — in a folder beside the sandbox. The rest
-stay and go by a later admission. Ask for one working copy instead and the skill switches this checkout to
+stay and go by a later admission. **To throw a sandbox away**, ask `sdlc discard` there first: it says which cycles
+are empty or can go, and which fixed a decision or had readers raise something — worth recording with `sdlc draft
+abandon <id>`, placed by you, so `sdlc admit` takes the record to the integration branch. It prints the removal
+only once nothing worth keeping is left unrecorded (D-146). Ask for one working copy instead and the skill switches this checkout to
 `cycle/<id>/plan`, which refuses uncommitted work: the switch would carry it into the cycle.
 
 **What the skill runs, for when you need it by hand.** Opening a batch of cycles before interviewing any

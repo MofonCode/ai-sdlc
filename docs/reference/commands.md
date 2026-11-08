@@ -67,6 +67,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc successor check` | binary | refuses a successor that cannot be read, names nothing that exists, or loops |
 | `sdlc slices <slug> <id> <id>...` | binary | the git command that composes `slices/<slug>/plan` from the siblings' plan branches, so one pull request admits a slicing's plans. Refuses a plan that needs what only a sibling creates. `/sdlc:pr <id>... --plan` runs it |
 | `sdlc admit` | binary | in a sandbox, the git command that takes its approved cycles and the successors it wrote onto an admission branch beside it; what is not approved stays. `/sdlc:pr --plan` runs it |
+| `sdlc discard` | binary | in a sandbox, what throwing it away would lose; prints the removal once nothing worth recording is left unrecorded |
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |

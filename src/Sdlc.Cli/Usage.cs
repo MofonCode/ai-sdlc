@@ -124,6 +124,12 @@ internal static class Usage
                                      ready in -- ready now, then after one more merge, and so on
                                      -- each with how to start it, and apart from them the stuck
                                      and the unresolved. A view; it writes nothing (D-145).
+            discard                  In a sandbox: what throwing it away would lose. Each cycle
+                                     is empty, can go, is worth recording -- it fixed a decision,
+                                     or its readers raised something -- or is recorded already.
+                                     Prints the removal for a person to run once nothing worth
+                                     recording is unrecorded, and exits 1 until then. Deletes
+                                     nothing.
             park <id>                Compare a cycle's plan with every plan not yet built. A file
                                      only another creates parks it: writes parked.md with what it
                                      waits on, keeping its spec and plan. A file two plans both
@@ -154,7 +160,8 @@ internal static class Usage
                                      the sandbox. What the gate does not let through stays. Refuses
                                      outside a sandbox, with nothing approved, over uncommitted
                                      changes in an approved cycle, and a plan that needs a file
-                                     only a sibling's plan creates. /sdlc:pr --plan runs it.
+                                     only a sibling's plan creates. Abandoned cycles go with it as
+                                     records. /sdlc:pr --plan runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and

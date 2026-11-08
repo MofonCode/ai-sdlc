@@ -392,7 +392,8 @@ What is honest to say about the rest:
   `sandbox/<id>` for every cycle a piece of work turns into, and `sdlc admit` composes what is approved onto an
   admission branch the check already knows. The commands it prints are held as strings: nobody has yet run a
   sandbox through to an admitted pull request, and `sdlc new` no longer refuses uncommitted work, which the plan
-  switch refuses instead.
+  switch refuses instead. `sdlc discard` says what throwing a sandbox away would lose, and an abandoned cycle now
+  reaches the integration branch as a record by `sdlc admit`.
 - **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
   park` runs at the plan and keeps the spec and plan; `sdlc backlog` shows the parked and the successors in the
   waves they come ready in; `sdlc unpark` takes one back once its predecessor merged. The re-reading on unpark is

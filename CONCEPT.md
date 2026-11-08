@@ -2295,6 +2295,7 @@ they print verbatim.
 | `park <id>` | the plan-time claim check: compares the cycle's plan with every plan not yet built; a file only another creates parks it, writing `parked.md` with what it waits on and the commit it was planned against, and a file two plans name is reported (D-145) |
 | `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
+| `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
@@ -7230,6 +7231,39 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-146 — A sandbox thrown away keeps what is worth recording, and a stopped cycle reaches the integration branch as a record
+
+**Governs:** §5.3, §15.2
+
+**Extends D-144 and D-87.** D-144 deletes a cycle the work was cut away from when nothing of it was pushed; the
+admission check (D-87) admitted planning paperwork and nothing a stop wrote, so an abandonment had no way onto
+the integration branch short of the full chain, which it could never pass.
+
+**Decision.**
+
+- **`sdlc discard`, in a sandbox, says what throwing it away would lose**, cycle by cycle: *empty* — no intent, or
+  one no round judged and no decision fixed; *can go* — judged and nothing argued; *worth recording* — a fixed
+  decision, or a reader raised something; *recorded* — a person's abandonment is there. It deletes nothing, and
+  prints the removal, for the person to run, only once nothing worth recording is unrecorded.
+- **A stopped cycle is a record, and admission takes it.** An abandoned cycle's folder rides with `sdlc admit` —
+  alone when nothing in the sandbox is approved — and the check admits it as the record of what was argued and
+  stopped: no approval and no proof are asked, because nothing is ever built from it. A path outside its folder
+  still runs the full chain.
+
+**Why.** The person who adopted this wanted cycles that are only scratch to go without ceremony, and cycles that
+argued something to stay as evidence for later automated decisions: `propose` and `decisions` read the record, and
+a cycle deleted from a sandbox is one they never see. The first cut is a file listing, so the binary makes it;
+the abandonment that records the rest stays a person's file (§5.3).
+
+**Rejected.**
+
+- *Recording every cycle.* An abandonment for a scratch intent records a choice nobody made, and buries the ones
+  somebody did.
+- *Deleting every cycle a person throws away.* What was argued is the material later proposals are built from.
+- *The model alone deciding what is worth keeping.* Whether a decision was fixed or a reader raised something is
+  on disk; a judgement is needed only past that, and it is the person's when they read the review.
+- *Leaving abandonments off the integration branch.* Then the record exists only in a folder about to be removed.
 
 ### D-145 — A plan needing another's unbuilt code is parked with its spec and plan kept, and the backlog is a view of the parked and the successors
 

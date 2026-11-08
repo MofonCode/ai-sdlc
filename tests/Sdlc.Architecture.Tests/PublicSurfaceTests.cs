@@ -192,6 +192,14 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Successors.UnparkCycle+Command",
         "Sdlc.Core.Successors.UnparkCycle+Response",
 
+        // Throwing a sandbox away: what can go, and what is worth recording first (D-146).
+        "Sdlc.Core.Cycles.DiscardRenderer",
+        "Sdlc.Core.Cycles.DiscardSandbox",
+        "Sdlc.Core.Cycles.DiscardSandbox+Entry",
+        "Sdlc.Core.Cycles.DiscardSandbox+Query",
+        "Sdlc.Core.Cycles.DiscardSandbox+Response",
+        "Sdlc.Core.Cycles.DiscardVerdict",
+
         // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
         "Sdlc.Core.Cycles.ComposeAdmission",
         "Sdlc.Core.Cycles.ComposeAdmission+Query",
