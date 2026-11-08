@@ -439,6 +439,15 @@ public static class ProposalsRenderer
             return;
         }
 
+        if (response.Candidates.Any(candidate => candidate.Source == DecisionSource.Departure))
+        {
+            output.AppendLine(Indent + "A departure an approved cycle declared means the record no longer says what the");
+            output.AppendLine(Indent + "solution does. Propose a new entry for what the cycle chose, and Superseded-by on");
+            output.AppendLine(Indent + "the one it departed from -- or the next cycle is judged by the decision this one");
+            output.AppendLine(Indent + "set aside. If the departure was meant for that cycle alone, leave the record as is.");
+            output.AppendLine();
+        }
+
         output.AppendLine(Indent + "None of this is a decision yet. Three tests, all of which have to pass:");
         output.AppendLine();
         output.AppendLine(Field + "1. the alternatives were real -- somebody could have chosen otherwise");
@@ -459,6 +468,7 @@ public static class ProposalsRenderer
     {
         DecisionSource.Intent => "intent  fixed decisions",
         DecisionSource.Plan => "plan    shape and departures",
+        DecisionSource.Departure => "departs from a standing decision -- propose superseding it",
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, "Unknown source."),
     };
 

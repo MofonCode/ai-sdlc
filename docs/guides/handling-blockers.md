@@ -222,6 +222,18 @@ refuses anything but `pass`.**
 **Do not refine a verify document.** Its blockers are answered by a fresh adjudication when the outcome
 is `pass`, and by remediation when it is `blocked`; `sdlc status` names whichever applies.
 
+**The change itself is read too.** The verify round's diff reader is handed the intent, the plan, the
+solution's decisions and `diff.patch`, and raises a finding — its id starts `diff.` — when the change does
+something it was not given leave to:
+
+| It cites | It means | You |
+|---|---|---|
+| `CON_07.2` | the change does something the plan did not describe: a drive-by refactor, an unrelated fix. Judged by what each change is for, never by which files it touched | take it back out; keep it as a `Noticed:` line for a later cycle |
+| `CON_24` | the change takes what a recorded decision set aside, and neither the intent nor the plan declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — declare the departure in the plan with `/sdlc:steer` and approve it again |
+
+**These go to `/sdlc:remediate` whatever the outcome reads**, because no adjudication changes the code;
+`sdlc status` names it.
+
 ### Answering it
 
 ```

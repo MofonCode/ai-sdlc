@@ -146,7 +146,7 @@ public sealed class DecisionsTests
     [TestMethod]
     public async Task The_record_says_departing_is_legal_and_silence_is_not()
     {
-        // The distinction CON_19 rests on, and the one a reader will get wrong in the other direction: a
+        // The distinction CON_24 rests on, and the one a reader will get wrong in the other direction: a
         // decision that cannot be revisited is a cage, and the first case it does not fit would see the
         // record ignored rather than amended. What the rule catches is nobody noticing they departed.
         using var workspace = CycleWorkspace.Create();
@@ -155,7 +155,7 @@ public sealed class DecisionsTests
         string rendered = DecisionsRenderer.Render(await ReadRecord(workspace), DecisionDetail.Full);
 
         StringAssert.Contains(rendered, "may depart");
-        StringAssert.Contains(rendered, "CON_19");
+        StringAssert.Contains(rendered, "CON_24");
         StringAssert.Contains(rendered, "departing in silence is not");
     }
 

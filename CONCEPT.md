@@ -301,12 +301,12 @@ separating "the part that is judged".
 |---|---|---|
 | `intent` | `Problem` | `CON_01`; `spec` derives criteria from it |
 | | `Wanted outcomes` | `CON_16` — this is its left-hand side |
-| | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
+| | `Fixed decisions` | `CON_01` routes decisions-already-taken here, and `CON_24` a departure from a recorded one; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
 | `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
-| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
+| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_24` |
 | | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
 | | `Proof` | `CON_21`, and `verify`'s criterion table |
@@ -360,7 +360,7 @@ carries the check.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_19` |
+| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_24` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 A plan holds a file table, never diffs. Line-level change is the build artifact — the branch and
@@ -1022,13 +1022,13 @@ nobody.
 | `CON_16` | a spec covers every outcome its intent asks for, and all of each one | spec |
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
-| `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
 | `CON_20` | a spec says what is recorded when the action fails | spec |
 | `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
 | `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
 | `CON_23` | a criterion that ranges over cases lists them | spec |
+| `CON_24` | a departure from a recorded decision is declared where it arises, and later stages rely on it | intent, spec, plan, diff |
 
-**Four ids are absent because they no longer bind**, and each is explained once below.
+**Five ids are absent because they no longer bind**, and each is explained once below.
 
 `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -1051,6 +1051,12 @@ would miss, so a fresh reader found a new one every round, and one plan took 44 
 outcome, or cannot fail on a defect the reader names in this change. `CON_22` blocks a claim the
 verdict relies on. What a reader can only imagine is a suggestion. Both stay on the page verbatim for
 the findings that cited them (D-127).
+
+`CON_19` asked a plan to say why it departed from a recorded decision, and held nothing else to the
+record: an intent could ask for what a decision set aside, a spec could require it, and a change could do
+it, with no rule broken until a plan happened to reach for it. `CON_24` replaces it and carries one
+principle through the chain — a departure is declared once, where it arises, and every later stage relies
+on it — judged at the intent, the spec, the plan and the change (D-139).
 
 `CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
@@ -1151,11 +1157,17 @@ something nobody chose. **A decision forbids nothing** — where a choice does, 
 or an architecture test, and the two are separate artifacts of one choice. Ids are monotonic and a
 reversed entry takes a new id while the old one stays on the page, as §20's own preamble has it.
 
-**Departing is legal; departing in silence is not.** `CON_19` asks a plan whose approach contradicts a
-standing entry to say in `Shape and departures` what the recorded decision would have cost here — the
-same shape `CON_15` takes for the declared stack, and a separate rule rather than a reworded one because
-what is forbidden changed (§7.4). D-72, which reverses the half of D-70 that shipped the record binding
-nothing.
+**Departing is legal; departing in silence is not.** The decisions are standing criteria every cycle
+inherits, as it inherits the constraints, so every stage that writes reads them and every reader that
+judges is handed them, in short form: id, statement and `Instead of`. `CON_24` asks a departure to be
+declared once, where it arises — an outcome in the intent's `Fixed decisions`, with who and why; an
+approach in the plan's `Shape and departures`, with what the decision would have cost — as one line
+opening `Departs from DEC_nn`. A spec, a plan or a change taking what a decision set aside with no such
+line above it is a blocking finding; one that merely seems relevant is a suggestion. The verify round's
+diff reader holds the change to it. The binary parses the lines and reports them — first and apart
+in the approval draft, in `sdlc status`, in the pull request — and `propose decisions` offers each one an
+approved cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
+supersedes the plan-only rule of D-72).
 
 ### 8.1.2 `theme.json`
 
@@ -2243,7 +2255,7 @@ they print verbatim.
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
-| `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117 |
+| `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session adds the dispositions of earlier findings (D-49) — D-117, D-121 |
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
@@ -7186,6 +7198,110 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-140 — The minor moves when a solution's cycles can behave differently; the patch moves for everything else that ships
+
+**Governs:** nothing in §1–18: it is how this repository numbers its own releases, stated in `AGENTS.md` under
+Releasing.
+
+**Decision.** The release is `major.minor.patch`, and every change that ships moves one of them (D-131). **The
+patch** moves for a change that leaves an existing solution's cycles behaving as they did: a fix, a new command
+or option, wording, a shipped document. **The minor** moves, and the patch returns to 0, for a change that can
+make an existing solution's cycle block where it passed before, or that changes what a person or a stage must
+write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file
+changed, a command removed. A planned milestone moves it too. **The major** stays 0 until the framework promises
+compatibility between releases. In doubt, the minor.
+
+**Why.** A solution pins a release (D-131), and the number is what its team reads before moving the pin. Until
+this, the minor moved by roadmap and the patch for everything else, so 0.36.11, which superseded a constraint
+and added a reader that blocks, carried the same kind of number as a column widened in `sdlc doctor`. A team
+moving from 0.36.10 to 0.36.11 had no way to know a round could now refuse what it accepted, short of reading
+every commit. The minor is the one signal that costs nothing to read.
+
+**What it costs.** The judgement is a person's at merge time, and the pipeline does not hold it: whether a
+change can make a cycle block is not something a diff shows. A wrong patch is caught, if at all, in review.
+
+**Rejected.**
+
+- *Strict semantic versioning with a 1.0 now.* It promises compatibility the framework does not yet keep: the
+  rules are still moving every few releases, and a major per break would spend numbers that mean nothing.
+- *Checking it in the pipeline, for instance a minor whenever `CONSTRAINTS.md` changes.* A constraint's wording
+  can move without changing what blocks, and a reader can be added without touching that file. The check would
+  be wrong in both directions.
+- *The minor by roadmap alone.* That is what was done, and it is how 0.36.11 came to be a patch.
+
+### D-139 — The decisions run through the whole cycle, a departure is declared where it arises, and the change is read against both
+
+**Governs:** §4.2, §7.5, §8.1.1, §15.2
+
+**Decision.** A solution's recorded decisions are standing criteria every cycle inherits, as it inherits the
+constraints. Five parts:
+
+- **Every stage that writes reads them.** The intent interview reads `sdlc decisions` before it asks anything,
+  does not re-ask what is settled, and says at once, in a sentence or two, when the person asks for what a
+  decision set aside — then asks whether to keep the decision or depart. The spec, the plan and the build read
+  them too. A departure the build discovers is not made in code: it stops and hands back, and the route is
+  `steer`.
+- **Every reader that judges is handed them.** `sdlc round prompt` puts the standing decisions in the block every
+  reader of an intent, a spec, a plan and a verify shares, in short form: id, statement and `Instead of`. Until
+  now no reader was handed the record at all, so `CON_19` could fire only on a plan that admitted its own
+  departure.
+- **`CON_24` supersedes `CON_19`.** A departure is declared once, where it arises — an outcome in the intent's
+  `Fixed decisions`, with who and why; an approach in the plan's `Shape and departures`, with what the decision
+  would have cost — and every later stage relies on it. It blocks only on an actual contradiction of an
+  `Instead of` with no declaration at or above it; a decision that merely seems relevant is a suggestion.
+- **A departure is one marked line**, `- Departs from DEC_nn (the decision in brief): what this cycle does
+  instead`, which the binary parses. The shape check refuses one naming a decision the record does not hold.
+  The approval draft lists departures first and apart from the plan's other choices, `sdlc status` names them
+  beside the gate, the pull request carries them, and `propose decisions` offers each one an approved cycle
+  declared as a supersede of the decision it departed from.
+- **The verify round gains a diff reader**, beside the rules reader and the perspectives. It is handed the
+  intent, the plan, the decisions and `diff.patch` — not the spec, the test summary or the build log — and every
+  rule whose subject is the diff: `CON_07.2`, `CON_11` and `CON_24`. It judges scope by purpose, never by the
+  plan's file list, which stays a signal. Its findings are the verify round's, so `remediate` works them.
+
+**Why.** Two of the record's promises were not kept. The plan's reader was never handed the record, so the rule
+that was meant to catch a silent departure could only catch an announced one; and nothing read the change
+against the record, so a build could take what a decision set aside wherever the plan was silent — and plans
+are silent about most of what decisions are about: error handling, logging, time, naming. Judging only the change
+would have been the opposite mistake: holding the build to something no earlier stage was told about. A
+departure is cheapest where it arises — one question to the person who wants it, at the intent — and dearest
+where it is found late: an approved spec unsettled at the plan, or code to undo. `CON_07.2` was in the same
+state: its subject is the diff, and no reader was ever handed a diff rule, because `Applies to` is matched by
+the artifact's name and nothing judged the diff by name. The same reader holds both.
+
+**Why one rule across four stages rather than three.** The principle is the point — declared once, relied on
+after — and a person should read it once. Three rules would state it only to someone who read all three. The
+cost is moving every citation of `CON_19`, which D-72 counted against a different merger.
+
+**Why a reader of its own rather than the adjudicator.** The adjudicator's job is narrow and exacting — quote
+the assertion, judge the criterion — in the largest prompt of the cycle, and its output is a criterion table
+with no place for a finding about scope. A separate reader runs in parallel, is handed a third of what the
+adjudicator is, and leaves the adjudicator as it was. It costs one more prompt per verify round, carrying the
+plan and the diff.
+
+**What it does not do.** It does not select which decisions a reader is handed: every standing entry goes, in
+short form, about a hundred tokens each. Past a hundred standing entries the cost is attention rather than
+context, and `sdlc doctor` says so. Selecting by the paths a decision covers is the remedy, deferred because it
+changes the shape of a person's file and no solution is near the line. **Evidence on the loops is partial**: in
+the cycles still in MarketSense's history the plan rule raised at most one blocker per cycle, and the long plan
+loops were proof adequacy — cases the spec never listed, which D-132 answered. This decision is for correctness,
+and its narrow trigger is so it adds no loops of its own.
+
+**Rejected.**
+
+- *Checking only at the plan* — what shipped, and the plan's reader was not even handed the record.
+- *Checking only the change* — judging the build against something no earlier stage was told about.
+- *The decisions check inside the adjudicator* — above.
+- *Three rules, keeping `CON_19`* — above.
+- *Copying the decisions into each document* — a copy goes stale, which is why constraints are rendered fresh
+  and never copied (`CON_09`). A document cites a decision by id when it relies on one or departs from it.
+- *A mechanical check of the change against the record* — whether a hunk contradicts a paragraph is a judgement
+  about language, D-72's own argument.
+- *Letting the plan choose which decisions a reader is handed* — the decision the plan's author did not think of
+  is the one that slips.
+- *Holding the diff to the plan's file list* — the list is the author's best guess before the code existed, and
+  a reader blocking on it would make a loop out of every guess.
 
 ### D-138 — `sdlc settings` shows how a solution is set to run, and the settings stay where they live
 

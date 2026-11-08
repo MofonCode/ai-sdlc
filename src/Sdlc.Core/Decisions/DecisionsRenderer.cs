@@ -11,6 +11,12 @@ public enum DecisionDetail
 
     /// <summary>Every clause. What a stage needs in order not to re-decide something.</summary>
     Full,
+
+    /// <summary>
+    /// Id, statement and <c>Instead of</c>: what a reader judges a contradiction against (D-72), at about a
+    /// third of the size, so a long record still fits beside the document it judges (D-139).
+    /// </summary>
+    Judged,
 }
 
 /// <summary>
@@ -82,18 +88,31 @@ public static class DecisionsRenderer
                 continue;
             }
 
+            if (detail == DecisionDetail.Judged)
+            {
+                Clause(output, "instead of", decision.InsteadOf);
+                continue;
+            }
+
             Clause(output, "decided", decision.Decided);
             Clause(output, "because", decision.Because);
             Clause(output, "instead of", decision.InsteadOf);
             Clause(output, "from", decision.From);
         }
 
+        // A reader is told how to judge the record in its own instructions; this paragraph is for a writer.
+        if (detail == DecisionDetail.Judged)
+        {
+            return output.ToString();
+        }
+
         output.AppendLine();
-        output.AppendLine("A plan may depart from any of these, and CON_19 asks it to say what the recorded");
-        output.AppendLine("decision would have cost here. Departing is legal; departing in silence is not. An");
-        output.AppendLine("entry names the alternatives that were real, so a plan reaching for one of them is");
-        output.AppendLine("either correcting a decision that has stopped fitting or repeating an argument");
-        output.AppendLine("somebody already had -- and those need opposite responses at the gate.");
+        output.AppendLine("A cycle may depart from any of these, and CON_24 asks it to say so where the");
+        output.AppendLine("departure arises: an outcome in the intent, under Fixed decisions; an approach in");
+        output.AppendLine("the plan, under Shape and departures. Write it as one line, '- Departs from DEC_nn");
+        output.AppendLine("(the decision in brief): what this cycle does instead', with who and why. Departing");
+        output.AppendLine("is legal; departing in silence is not. The spec, the plan and the code are each read");
+        output.AppendLine("against this record, and rely on a departure declared above them.");
 
         if (response.Superseded > 0 && detail == DecisionDetail.Brief)
         {

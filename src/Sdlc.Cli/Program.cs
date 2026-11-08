@@ -1888,6 +1888,13 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         status = status with { Successors = successors.Value };
     }
 
+    // The recorded decisions this cycle departs from, beside the gate that approves them (D-139).
+    IReadOnlyList<Decision> recorded = await Departures.Recorded(status.Cycle.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+    status = status with
+    {
+        Departures = Departures.Named(await Departures.Of(status.Cycle, CancellationToken.None).ConfigureAwait(false), recorded),
+    };
+
     ArtifactKind kind = state.Kind;
     ArtifactOutline outline = await ArtifactOutlineReader
         .ReadFile(state.Path, CancellationToken.None)
@@ -1901,7 +1908,10 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         : null;
     ArtifactValidation? shape = text is null
         ? null
-        : ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false));
+        : Departures.Checked(
+            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false)),
+            text,
+            recorded);
 
     StagePanel panel = new(state, outline, shape, text is null ? null : ArtifactSize.Describe(kind, text));
     SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);

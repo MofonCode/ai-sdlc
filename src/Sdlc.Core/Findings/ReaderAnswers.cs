@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentResults;
+using Sdlc.Core.Cycles;
 
 namespace Sdlc.Core.Findings;
 
@@ -113,6 +114,35 @@ public static class ReaderAnswers
 
     /// <summary>The verify's adjudicator.</summary>
     public const string Adjudicate = "adjudicate";
+
+    /// <summary>
+    /// The verify round's diff reader: the change itself judged against every rule whose subject is the
+    /// diff, the plan and the decisions (D-139).
+    /// </summary>
+    public const string Diff = "diff";
+
+    /// <summary>
+    /// Whether a finding is the diff reader's: about the change itself, so answered by changing the code or
+    /// the plan rather than by a new adjudication (D-139).
+    /// </summary>
+    /// <param name="finding">The finding.</param>
+    /// <returns>True when its id is under the diff reader's prefix.</returns>
+    public static bool IsAboutTheChange(Finding finding)
+    {
+        ArgumentNullException.ThrowIfNull(finding);
+
+        return finding.Id.StartsWith(Diff + ".", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Every reader a round runs blind, in order: the rules reader, the diff reader on a verify, then each
+    /// written perspective.
+    /// </summary>
+    /// <param name="artifact">The artifact being judged.</param>
+    /// <param name="perspectives">The active perspectives that have a document.</param>
+    /// <returns>The readers' names.</returns>
+    public static IReadOnlyList<string> Blind(ArtifactKind artifact, IEnumerable<string> perspectives) =>
+        [Rules, .. artifact == ArtifactKind.Verify ? (string[])[Diff] : [], .. perspectives];
 
     /// <summary>The round file collect drafts in the round's directory.</summary>
     public const string RoundFileName = "round.json";
@@ -264,7 +294,26 @@ public static class ReaderAnswers
     /// <param name="answer">The answer.</param>
     /// <param name="perspective">The perspective that read, or null for the rules reader.</param>
     /// <returns>The findings, conflicts and rows, and the ids made suggestions; or a refusal.</returns>
-    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective)
+    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective) =>
+        FindingsOf(answer, perspective, prefix: null);
+
+    /// <summary>One reader's findings, by the reader's name: its perspective, or its own prefix.</summary>
+    /// <remarks>
+    /// The diff reader's ids go under <c>diff.</c>, as a perspective's go under its name, so they cannot
+    /// collide with the rules reader's in the same round. It names no perspective: <c>propose
+    /// constraints</c> counts by perspective, and the diff reader is not one.
+    /// </remarks>
+    /// <param name="answer">The answer.</param>
+    /// <param name="reader">The reader's name.</param>
+    /// <returns>The findings, or a refusal.</returns>
+    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader) => reader switch
+    {
+        Rules => FindingsOf(answer, perspective: null, prefix: null),
+        Diff => FindingsOf(answer, perspective: null, prefix: Diff),
+        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null),
+    };
+
+    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix)
     {
         ArgumentNullException.ThrowIfNull(answer);
 
@@ -311,7 +360,8 @@ public static class ReaderAnswers
                 ? string.Create(CultureInfo.InvariantCulture, $"{(severity == Severity.Blocking ? "F" : "S")}_x{++unnamed:D2}")
                 : given.Id.Trim();
 
-            string id = perspective is null ? local : perspective.Name + "." + local[(local.LastIndexOf('.') + 1)..];
+            string? under = perspective?.Name ?? prefix;
+            string id = under is null ? local : under + "." + local[(local.LastIndexOf('.') + 1)..];
 
             if (!ids.Add(id))
             {

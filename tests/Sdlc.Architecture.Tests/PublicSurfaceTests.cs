@@ -368,6 +368,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Decisions.DecisionId",
         "Sdlc.Core.Decisions.DecisionParser",
         "Sdlc.Core.Decisions.DecisionsRenderer",
+
+        // The departures a cycle declares from that record (D-139): status and the shape check in the
+        // CLI read them, so the one parser answers what a departure line says everywhere it is shown.
+        "Sdlc.Core.Decisions.Departure",
+        "Sdlc.Core.Decisions.Departures",
         "Sdlc.Core.Decisions.ReadDecisions",
         "Sdlc.Core.Decisions.ReadDecisions+Query",
         "Sdlc.Core.Decisions.ReadDecisions+Response",
