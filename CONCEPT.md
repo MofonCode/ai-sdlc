@@ -2294,10 +2294,10 @@ they print verbatim.
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
-| `mine` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113, D-148 |
+| `mine` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — and the open suggestions of the finished cycles not yet mined, with the concerns earlier sittings ignored, ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113, D-148, D-153 |
 | `draft mining <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
-| `mine record <file>` | once the drafts are placed, records the sitting in `.sdlc/mined.json`: each finished cycle on the integration branch becomes a husk, with its merge commit, its files, the rules it cited and the areas it proposed, and the deletion of the husks' folders is printed for a person to run. Deletes nothing; refuses while a draft is still beside its file — D-152 |
-| `mine --history` | the mining ledger: every mined cycle, every sitting with what it accepted and declined, and the concerns watched below the bar — D-152 |
+| `mine record <file>` | once the drafts are placed, records the sitting in `.sdlc/mined.json`: each finished cycle on the integration branch becomes a husk, with its merge commit, its files, the rules it cited and the areas it proposed, the suggestions ignored are tallied by concern, and the deletion of the husks' folders is printed for a person to run. Deletes nothing; refuses while a draft is still beside its file — D-152, D-153 |
+| `mine --history` | the mining ledger: every mined cycle, every sitting with what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in — D-152, D-153 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
@@ -7255,6 +7255,43 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-153 — Mining answers a suggestion by taking it further, declining it, or ignoring it, and only an ignored one is tallied
+
+**Governs:** §15
+
+**Extends D-152**, whose ledger gains the tally, **and D-112**, whose accounting for every item now covers the
+open suggestions. **Leaves D-115 standing**: what became of a suggestion inside a cycle is still read from where
+a person wrote it.
+
+**Decision.** `sdlc mine` lists the open suggestions of every finished cycle not yet mined, as `<cycle>/<id>`,
+and the concerns earlier sittings ignored with the cycles each was ignored in. Mining answers each suggestion
+one of three ways. **Taken further**, it becomes a successor and lives on as that file and then a cycle.
+**Declined**, it is a decision a person stands behind, written under `## Declined` with its reason and kept in
+the sitting. **Ignored** — nothing to do and nothing to decide — it is written under `## Ignored` as its concern
+and the cycles it was ignored in, and `sdlc mine record` adds that to the ledger's `ignored` tally: no reason, no
+decision, and nothing `sdlc suggestions` shows as declined. The tally is by concern, not id, since the same
+concern has a new id in every cycle; the skill words an ignored suggestion as the report's earlier gist when it
+is one, so the count grows. **A concern ignored in three cycles is at the bar**: the report and the recorded
+sitting say so, and the next sitting proposes it, takes it further, or declines it. The bar is the skill's to
+keep; nothing refuses.
+
+**Why.** The person wanted declining kept for what was actually decided against, and a way to let a suggestion
+go without recording it as a decision. Declined suggestions keep their reason and successors keep their text,
+so an ignored one was the only answer that left nothing once its folder was deleted — and a concern ignored
+once per cycle, its folder gone each time, would never be seen to recur.
+
+**Rejected.**
+
+- *Recording nothing for an ignored suggestion.* A concern ignored cycle after cycle would never reach the bar.
+- *Keeping the cycle folders so the counts survive.* D-152 weighed it; the folders were 21 MB four cycles in,
+  and the same concern still needs matching by gist across cycles.
+- *A record of every suggestion's outcome in the ledger.* A decline and a successor already live somewhere; a
+  second copy is one to drift.
+- *An ignore counted as a watched concern.* Watch holds what mining saw in the findings; mixing the two would
+  hide which concerns were let go and which were noticed.
+- *A bare `## Declined` line as an ignore.* Declining and ignoring would share a section and differ by a reason
+  somebody forgot to write.
 
 ### D-152 — A mined cycle is a husk: the ledger keeps what later mining needs, and a person deletes its folder
 

@@ -209,6 +209,74 @@ public sealed class MiningTests
         StringAssert.Contains(history, "1 of 3 -- a concern");
     }
 
+    [TestMethod]
+    public void An_ignored_concern_is_tallied_across_sittings_and_is_no_decision()
+    {
+        MinedLedger ledger = MinedLedger.Empty
+            .With([], Run(), [], [new Watched("the chart needs a keyboard path", ["20261001_0900_01"])])
+            .With([], Run(), [], [new Watched("the chart needs a keyboard path", ["20261002_0900_01"])]);
+
+        MinedLedger read = MinedLedger.Parse(ledger.Write(), "mined.json").Value;
+
+        CollectionAssert.AreEquivalent(new[] { "20261001_0900_01", "20261002_0900_01" }, read.Ignored!.Single().Cycles.ToArray());
+        Assert.IsTrue(read.Runs.All(run => run.Declined.Count == 0), "Ignoring declines nothing.");
+        StringAssert.Contains(MiningRenderer.RenderHistory(read), "2 of 3 -- the chart needs a keyboard path");
+    }
+
+    [TestMethod]
+    public void A_ledger_written_before_ignored_concerns_reads_as_having_none()
+    {
+        MinedLedger read = MinedLedger.Parse("""{ "cycles": [], "watch": [], "runs": [] }""", "mined.json").Value;
+
+        Assert.AreEqual(0, read.Ignored!.Count);
+    }
+
+    [TestMethod]
+    public async Task A_sitting_records_what_it_ignored_and_says_when_a_concern_reaches_the_bar()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify("pass");
+        await File.WriteAllTextAsync(
+            MinedLedger.PathIn(workspace.Root),
+            MinedLedger.Empty.With([], Run(), [], [new Watched("the chart needs a keyboard path", ["20261001_0900_01", "20261002_0900_01"])]).Write());
+
+        FakeRepository git = new();
+        git.Refs.Add(Integration);
+        git.History[Integration + ":.sdlc/cycles/" + workspace.Cycle.Id] = [("merged", DateTimeOffset.UnixEpoch)];
+
+        string proposals = await Proposals(workspace, "## Ignored\n\n- the chart needs a keyboard path — " + workspace.Cycle.Id + "\n");
+        RecordMining.Response recorded = (await Record(workspace, git, proposals)).Value;
+
+        MinedLedger ledger = (await MinedLedger.Read(workspace.Root, CancellationToken.None)).Value;
+        Assert.AreEqual(3, ledger.Ignored!.Single().Cycles.Count);
+        Assert.AreEqual(0, ledger.Watch.Count, "Ignored is its own tally, not a watched concern.");
+        StringAssert.Contains(MiningRenderer.RenderRecorded(recorded), "ignored in 3 cycles, at the bar: the chart needs a keyboard path");
+    }
+
+    [TestMethod]
+    public async Task The_report_lists_a_finished_cycles_open_suggestions_and_what_was_ignored_before()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteSuggestionRound(ArtifactKind.Plan, id: "maintainability.S_03", cites: null);
+        await File.WriteAllTextAsync(
+            MinedLedger.PathIn(workspace.Root),
+            MinedLedger.Empty.With([], Run(), [], [new Watched("the chart needs a keyboard path", ["20261001_0900_01", "20261002_0900_01", "20261003_0900_01"])]).Write());
+
+        ProposeMining.Response inFlight = await Report(workspace);
+        Assert.AreEqual(0, inFlight.Suggestions!.Count, "A cycle in flight answers its own suggestions through steer.");
+
+        workspace.WriteVerify("pass");
+        ProposeMining.Response finished = await Report(workspace);
+        string rendered = ProposeMining.Render(finished, "proposed.md");
+
+        StringAssert.Contains(rendered, workspace.Cycle.Id + "/maintainability.S_03");
+        StringAssert.Contains(rendered, "ignored before, 3 of 3 cycles: the chart needs a keyboard path");
+        StringAssert.Contains(rendered, "do not ignore it again");
+        StringAssert.Contains(rendered, "## Ignored");
+    }
+
     private static MinedCycle Husk(string id) =>
         new(id, "abc123", DateTimeOffset.UnixEpoch, false, ["src/Thing.cs"], ["src/Thing.cs"], [], [], new Dictionary<string, int> { ["intent"] = 1 }, 0, ["pass"]);
 
@@ -228,6 +296,14 @@ public sealed class MiningTests
     {
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
         return await gate.Send<RecordMining.Command, RecordMining.Response>(new RecordMining.Command(proposals));
+    }
+
+    private static async Task<ProposeMining.Response> Report(CycleWorkspace workspace)
+    {
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(new FakeRepository()));
+        Result<ProposeMining.Response> report = await gate.Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query());
+        Assert.IsTrue(report.IsSuccess, string.Join("; ", report.Errors.Select(error => error.Message)));
+        return report.Value;
     }
 
     private static async Task<VerifyUpgrade.Response> Verify(CycleWorkspace workspace, IReadOnlyList<string> changed)

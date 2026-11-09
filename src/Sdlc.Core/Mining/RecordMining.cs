@@ -52,12 +52,14 @@ public static class RecordMining
     /// <param name="Unfinished">Cycles still in flight, which mining leaves alone.</param>
     /// <param name="Watched">How many concerns the ledger now watches.</param>
     /// <param name="IntegrationBranch">The branch the husks' pull request goes to.</param>
+    /// <param name="Ignored">The concerns the ledger has seen ignored, and how many cycles each was ignored in.</param>
     public sealed record Response(
         IReadOnlyList<MinedCycle> Recorded,
         IReadOnlyList<CycleId> Unmerged,
         IReadOnlyList<CycleId> Unfinished,
         int Watched,
-        string IntegrationBranch);
+        string IntegrationBranch,
+        IReadOnlyList<Watched>? Ignored = null);
 
     /// <summary>The drafts mining writes, which must be placed or thrown away before a sitting is recorded.</summary>
     public static IReadOnlyList<string> Drafts { get; } =
@@ -69,31 +71,18 @@ public static class RecordMining
     ];
 
     /// <summary>
-    /// Reads the proposal file's <c>## Watch</c> and <c>## Declined</c> sections: <c>- &lt;concern&gt; —
-    /// &lt;cycle&gt;, &lt;cycle&gt;</c> and <c>- &lt;suggestion id&gt;: &lt;reason&gt;</c>.
+    /// Reads the proposal file's <c>## Watch</c>, <c>## Ignored</c> and <c>## Declined</c> sections: <c>-
+    /// &lt;concern&gt; — &lt;cycle&gt;, &lt;cycle&gt;</c> for the first two and <c>- &lt;suggestion id&gt;:
+    /// &lt;reason&gt;</c> for the last.
     /// </summary>
     /// <param name="markdown">The proposal file.</param>
-    /// <returns>The concerns watched, the suggestions declined, and every accepted heading.</returns>
-    public static (IReadOnlyList<Watched> Watch, IReadOnlyList<MinedDecline> Declined, IReadOnlyList<string> Accepted) Read(string markdown)
+    /// <returns>The concerns watched, the suggestions declined, every accepted heading, and the concerns ignored.</returns>
+    public static (IReadOnlyList<Watched> Watch, IReadOnlyList<MinedDecline> Declined, IReadOnlyList<string> Accepted, IReadOnlyList<Watched> Ignored) Read(string markdown)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
         IReadOnlyDictionary<string, IReadOnlyList<string>> sections = ArtifactSections.Read(markdown);
-        List<Watched> watch = [];
         List<MinedDecline> declined = [];
-
-        foreach (string line in Bullets(sections, "Watch"))
-        {
-            int dash = line.LastIndexOf(" — ", StringComparison.Ordinal);
-            dash = dash < 0 ? line.LastIndexOf(" -- ", StringComparison.Ordinal) : dash;
-
-            if (dash > 0)
-            {
-                watch.Add(new Watched(
-                    line[..dash].Trim(),
-                    [.. line[(dash + 3)..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(id => id.Trim('-', ' '))]));
-            }
-        }
 
         foreach (string line in Bullets(sections, "Declined"))
         {
@@ -109,7 +98,57 @@ public static class RecordMining
             .Where(line => line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase))
             .Select(line => line[7..].Trim())];
 
-        return (watch, declined, accepted);
+        return (Concerns(sections, "Watch"), declined, accepted, Concerns(sections, "Ignored"));
+    }
+
+    // A concern and the cycles it was seen in: "- <gist> — <cycle>, <cycle>".
+    private static List<Watched> Concerns(IReadOnlyDictionary<string, IReadOnlyList<string>> sections, string name)
+    {
+        List<Watched> concerns = [];
+
+        foreach (string line in Bullets(sections, name))
+        {
+            int dash = line.LastIndexOf(" — ", StringComparison.Ordinal);
+            dash = dash < 0 ? line.LastIndexOf(" -- ", StringComparison.Ordinal) : dash;
+
+            if (dash > 0)
+            {
+                concerns.Add(new Watched(
+                    line[..dash].Trim(),
+                    [.. line[(dash + 3)..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(id => id.Trim('-', ' '))]));
+            }
+        }
+
+        return concerns;
+    }
+
+    /// <summary>
+    /// Whether a cycle is finished, which is when mining may read it as settled: its verify passed, or a person
+    /// abandoned it.
+    /// </summary>
+    /// <param name="cycle">The cycle.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>True when it is.</returns>
+    public static async Task<bool> IsFinished(Cycle cycle, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(cycle);
+
+        if (cycle.IsAbandoned)
+        {
+            return true;
+        }
+
+        string verify = cycle.PathOf(ArtifactKind.Verify);
+
+        if (!File.Exists(verify))
+        {
+            return false;
+        }
+
+        Result<FrontmatterDocument> split = Frontmatter.Read(await File.ReadAllTextAsync(verify, cancellationToken).ConfigureAwait(false), verify);
+
+        return split.IsSuccess
+            && string.Equals(Frontmatter.Key(split.Value.Yaml, "outcome"), "pass", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<string> Bullets(IReadOnlyDictionary<string, IReadOnlyList<string>> sections, string name) =>
@@ -169,7 +208,7 @@ public static class RecordMining
                     continue;
                 }
 
-                if (!cycle.IsAbandoned && !await Passed(cycle, cancellationToken).ConfigureAwait(false))
+                if (!await IsFinished(cycle, cancellationToken).ConfigureAwait(false))
                 {
                     unfinished.Add(cycle.Id);
                     continue;
@@ -187,17 +226,18 @@ public static class RecordMining
                 recorded.Add(await Mined(cycle, commits[^1].Commit, now, report.Value, cancellationToken).ConfigureAwait(false));
             }
 
-            (IReadOnlyList<Watched> watch, IReadOnlyList<MinedDecline> declined, IReadOnlyList<string> accepted) =
+            (IReadOnlyList<Watched> watch, IReadOnlyList<MinedDecline> declined, IReadOnlyList<string> accepted, IReadOnlyList<Watched> ignored) =
                 Read(await File.ReadAllTextAsync(request.From, cancellationToken).ConfigureAwait(false));
 
             MinedLedger written = ledger.Value.With(
                 recorded,
                 new MiningRun(now, [.. recorded.Select(cycle => cycle.Cycle)], accepted, declined),
-                watch);
+                watch,
+                ignored);
 
             await File.WriteAllTextAsync(MinedLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new Response(recorded, unmerged, unfinished, written.Watch.Count, integration));
+            return Result.Ok(new Response(recorded, unmerged, unfinished, written.Watch.Count, integration, written.Ignored));
         }
 
         private static async Task<MinedCycle> Mined(Cycle cycle, string merge, DateTimeOffset now, ProposeMining.Response report, CancellationToken cancellationToken)
@@ -228,21 +268,6 @@ public static class RecordMining
                 how?.Rounds.ToDictionary(round => Cycle.NameOf(round.Key), round => round.Value, StringComparer.Ordinal) ?? [],
                 how?.Reopens.Count ?? 0,
                 [.. how?.Verdicts.Select(verdict => verdict.Outcome ?? "unreadable") ?? []]);
-        }
-
-        private static async Task<bool> Passed(Cycle cycle, CancellationToken cancellationToken)
-        {
-            string verify = cycle.PathOf(ArtifactKind.Verify);
-
-            if (!File.Exists(verify))
-            {
-                return false;
-            }
-
-            Result<FrontmatterDocument> split = Frontmatter.Read(await File.ReadAllTextAsync(verify, cancellationToken).ConfigureAwait(false), verify);
-
-            return split.IsSuccess
-                && string.Equals(Frontmatter.Key(split.Value.Yaml, "outcome"), "pass", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
