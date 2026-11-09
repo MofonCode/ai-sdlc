@@ -100,6 +100,10 @@ public static class ProposeMining
     /// The mining ledger: the cycles already mined, and the concerns watched below the bar, whose counts carry
     /// across sittings because the folders they came from are gone (D-152).
     /// </param>
+    /// <param name="Suggestions">
+    /// The open suggestions of the finished cycles not mined yet: each is taken further, declined with its reason,
+    /// or ignored, and an ignored one is tallied by concern in the ledger, since nothing else keeps it (D-153).
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
@@ -108,7 +112,8 @@ public static class ProposeMining
         IReadOnlyList<CycleRecord>? Record = null,
         IReadOnlyList<string>? OverBudget = null,
         AreaHistory.Reading? Areas = null,
-        Mining.MinedLedger? Mined = null);
+        Mining.MinedLedger? Mined = null,
+        IReadOnlyList<Suggestion>? Suggestions = null);
 
     /// <summary>Asks for the report.</summary>
     public sealed record Query : IRequest<Response>;
@@ -214,6 +219,7 @@ public static class ProposeMining
         }
 
         Areas(text, response.Areas);
+        Suggested(text, response.Suggestions ?? [], response.Mined?.Ignored ?? []);
 
         // What earlier sittings left: the cycles already mined, and the concerns watched below the bar, which
         // a cycle mined now may carry over it (D-152).
@@ -262,6 +268,7 @@ public static class ProposeMining
         text.AppendLine("  ## Successors   ### [ ] add <slug> — <what it makes possible>, with **Succeeds:**, **Outcome:** and **Why it matters:** beneath");
         text.AppendLine("  ## Watch        - <a concern below the bar> — <cycle>, <cycle>");
         text.AppendLine("  ## Declined     - <suggestion id>: <why>");
+        text.AppendLine("  ## Ignored      - <the concern, worded as it was ignored before> — <cycle>, <cycle>");
         text.AppendLine();
         text.AppendLine("  Under each heading, the entry's clauses as they would be pasted, and '> ' lines for the evidence.");
         text.AppendLine("  There is no remove: supersede a rule or decision, and set a stack concern to none.");
@@ -269,6 +276,48 @@ public static class ProposeMining
         text.AppendLine("  and once they are renamed into place, 'sdlc mine record " + proposals + "' records the sitting and names the husks.");
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// The open suggestions of the cycles being mined, and the concerns earlier sittings ignored (D-153).
+    /// </summary>
+    /// <remarks>
+    /// Each suggestion is answered one of three ways. Taken further, it becomes a successor and lives on as a file;
+    /// declined, its reason is kept in the sitting; ignored, nothing about it survives its folder but the tally.
+    /// The earlier ignored concerns are listed in their own words so an ignored suggestion is worded the same way
+    /// and counted with them, and one at the bar is not ignored again.
+    /// </remarks>
+    private static void Suggested(StringBuilder text, IReadOnlyList<Suggestion> suggestions, IReadOnlyList<Mining.Watched> ignored)
+    {
+        if (suggestions.Count == 0 && ignored.Count == 0)
+        {
+            return;
+        }
+
+        text.AppendLine();
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Suggestions   {suggestions.Count} open in {suggestions.Select(suggestion => suggestion.Cycle).Distinct().Count()} finished cycles -- take each further, decline it with why, or ignore it"));
+
+        foreach (Suggestion suggestion in suggestions
+            .OrderBy(suggestion => suggestion.Cycle.ToString(), StringComparer.Ordinal)
+            .ThenBy(suggestion => suggestion.Finding.Id, StringComparer.Ordinal))
+        {
+            string raiser = suggestion.Finding.Perspective is { } perspective ? " [" + perspective + "]" : string.Empty;
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {suggestion.Cycle}/{suggestion.Finding.Id}{raiser} on the {string.Join(", ", suggestion.Documents.Select(Cycle.NameOf))}: {suggestion.Finding.Headline}"));
+        }
+
+        foreach (Mining.Watched concern in ignored.OrderByDescending(concern => concern.Cycles.Count))
+        {
+            string bar = concern.Cycles.Count >= ProposeConstraints.Bar
+                ? " -- at the bar: propose it, make it a successor, or decline it, and do not ignore it again"
+                : string.Empty;
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  ignored before, {concern.Cycles.Count} of {ProposeConstraints.Bar} cycles: {concern.Gist} ({string.Join(", ", concern.Cycles)}){bar}"));
+        }
     }
 
     /// <summary>
@@ -448,6 +497,29 @@ public static class ProposeMining
                 return defined.ToResult<Response>();
             }
 
+            Mining.MinedLedger? mined = (await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false)).ValueOrDefault;
+            Result<Suggestions.Response> open = await mediator
+                .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (open.IsFailed)
+            {
+                return open.ToResult<Response>();
+            }
+
+            // Only a finished cycle's: one in flight still answers its own through steer, and one already mined
+            // had its suggestions answered at that sitting.
+            HashSet<CycleId> finished = [];
+
+            foreach (Cycle cycle in CycleIndex.All(solution.Path))
+            {
+                if (mined?.Find(cycle.Id.ToString()) is null
+                    && await Mining.RecordMining.IsFinished(cycle, cancellationToken).ConfigureAwait(false))
+                {
+                    finished.Add(cycle.Id);
+                }
+            }
+
             return Result.Ok(new Response(
                 rules.Value,
                 groups,
@@ -456,7 +528,8 @@ public static class ProposeMining
                 record,
                 await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false),
                 await AreaHistory.Read(solution.Path, defined.Value, cancellationToken).ConfigureAwait(false),
-                (await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false)).ValueOrDefault));
+                mined,
+                [.. open.Value.Suggestions.Where(suggestion => finished.Contains(suggestion.Cycle))]));
         }
 
         /// <summary>

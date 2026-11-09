@@ -1,11 +1,11 @@
 # The guides
 
-Nine guides, each answering one task. Eight are for somebody using the framework; the last is for somebody
+Ten guides, each answering one task. Nine are for somebody using the framework; the last is for somebody
 changing it.
 This file is the index: what each one covers, when you would read it, and what it leaves to another.
 
 **They are in the order a person meets them.** Install once per machine, initialize and declare once per
-repository, then run cycles — and keep the two `handling-` guides to hand for when a cycle stops. **If you want the
+repository, then run cycles, mine them once they finish — and keep the two `handling-` guides to hand for when a cycle stops. **If you want the
 whole thing end to end with a real solution in it**, `../samples/rolling-a-die.md` is that walk.
 
 | Guide | Covers | Read it |
@@ -16,6 +16,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`running-a-cycle.md`](running-a-cycle.md) | one cycle from the rules to a pull request, stage by stage — the happy path | once, front to back, then when you need a stage again |
 | [`setting-up-the-factory.md`](setting-up-the-factory.md) | the factory from nothing to a watched first run: the agent's credential, the tools on the agent, the integration branch, the pipeline and its permissions, and what to do when a step fails | once per solution, when you are ready to let a pipeline build |
 | [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
+| [`mining-the-cycles.md`](mining-the-cycles.md) | after a cycle finishes: reading what the cycles settled, deciding the rules, decisions, stack rows, areas and successors the solution keeps, answering every open suggestion — taken further, declined or ignored — and deleting the finished cycles' folders | once a verify passes, on the cycle's branch or after the merge, or after several cycles in one sitting |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
 | [`handling-refusals.md`](handling-refusals.md) | every refusal, hook denial and turn sent back, with the remedy for each | when something stops |
 | [`testing-a-local-build.md`](testing-a-local-build.md) | a cycle run end to end on a build of the framework nobody published: switching it on, what stops it at the pull request, and shipping the change for real | when you are changing ai-sdlc itself and want to watch a cycle go through the change |
@@ -88,6 +89,17 @@ the factory's pipeline does, and the morning: reading the sitrep, merging one pu
 
 What it does not cover: setting it up, which is `setting-up-the-factory.md`; the stages themselves, which are
 `running-a-cycle.md`; or promotion to main, which is the team's process and not the framework's.
+
+## `mining-the-cycles.md`
+
+**What a solution keeps from its finished cycles.** When to mine and when not to, a sitting step by step — the
+report, the proposal file, the drafts, the two reviews, the renames, the record and the husks' deletion — what
+each section of the proposal file holds and what places it, and how a suggestion is answered: taken further as a
+successor, declined with a reason, or ignored and tallied by concern until it reaches the bar. It closes with what
+refuses.
+
+What it does not cover: the skill's every input and output, which is `../../skills/README.md`; or a document's
+rounds settling inside a cycle, which is `handling-blockers.md` — the word *converge* now means only that.
 
 ## `handling-blockers.md`
 

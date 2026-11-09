@@ -32,6 +32,12 @@ public static class MiningRenderer
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {response.Unfinished.Count} cycle{(response.Unfinished.Count == 1 ? string.Empty : "s")} still in flight, left alone"));
         }
 
+        // A concern ignored in enough cycles is a pattern, and the next sitting has to answer it (D-153).
+        foreach (Watched ignored in (response.Ignored ?? []).Where(ignored => ignored.Cycles.Count >= Proposals.ProposeConstraints.Bar))
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ignored in {ignored.Cycles.Count} cycles, at the bar: {ignored.Gist} -- the next sitting proposes it, makes it a successor, or declines it"));
+        }
+
         if (response.Recorded.Count == 0)
         {
             return text.ToString();
@@ -102,6 +108,17 @@ public static class MiningRenderer
             foreach (Watched watched in ledger.Watch)
             {
                 text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {watched.Cycles.Count} of 3 -- {watched.Gist} ({string.Join(", ", watched.Cycles)})"));
+            }
+        }
+
+        if (ledger.Ignored is { Count: > 0 } ignored)
+        {
+            text.AppendLine();
+            text.AppendLine("Suggestions ignored, by concern:");
+
+            foreach (Watched concern in ignored)
+            {
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {concern.Cycles.Count} of {Proposals.ProposeConstraints.Bar} -- {concern.Gist} ({string.Join(", ", concern.Cycles)})"));
             }
         }
 

@@ -35,7 +35,8 @@ a cycle, with how long their longest finding stood and whether the rule is the f
 rested on no rule, grouped by who raised them and at which stage, each sample with its cycle, its id and
 how many rounds it stood; which readers raised what a later one withdrew; and, per cycle, **the rounds
 each document took, every reopen with the reason the person wrote, and every verdict the verify
-reached** — then what approved cycles stated, and what the declared stack never mentions. It ends with
+reached** — then what approved cycles stated, **the open suggestions of the finished cycles not yet mined,
+and the concerns earlier sittings ignored**, and what the declared stack never mentions. It ends with
 the path of the proposal file.
 
 **The report is what to read, not what to propose.** Its samples are pointers, and a history runs to
@@ -69,6 +70,27 @@ more**, and every entry the report lists **over the word budget** gets one of:
   `## For the framework` in the proposal file, with its evidence, for the person to carry to ai-sdlc
 - *no proposal, because* — one line, and a real reason: a one-off, a mistake the rule caught correctly,
   a choice already in the code that nothing will revisit
+
+### Answer every open suggestion
+
+The report's *Suggestions* section lists each open suggestion as `<cycle>/<id>`. Each gets one of three
+answers, and **propose the one the suggestion earns, not the one that is easiest** (D-153):
+
+| Answer | When | Where it lives afterwards |
+|---|---|---|
+| **taken further** | it is worth doing | a successor under `## Successors`, its text copied in — the successor file, then the cycle it becomes |
+| **declined** | somebody decided against it, and that decision should be on record, because someone will raise it again and deserves the reason | a `## Declined` line with the reason, kept in the sitting |
+| **ignored** | nothing needs doing and nothing needs deciding: a one-off, a nicety, a reader's taste | a `## Ignored` line — a tally of the concern and the cycles it was ignored in, and nothing else |
+
+**Decline is not a polite ignore.** A decline is a decision a person stands behind; propose one only where
+you can write the reason they would give. Everything else that is not worth doing is ignored.
+
+**An ignored suggestion is counted by its concern, not its id** — an id belongs to its cycle, and the same
+concern raised next cycle has another. Before writing an `## Ignored` line, read the report's *ignored
+before* lines: where the suggestion is one of those concerns, write its gist **exactly as it is written
+there**, so the tally gains this cycle rather than starting a new concern. Several suggestions of one
+concern in this sitting are one line with each cycle once. **A concern at the bar is not ignored again**:
+the report marks it, and it is proposed as a rule, taken further, or declined.
 
 This list goes in the proposal file under `## Not proposed`, after the four sections the drafter reads;
 it ignores any other heading. **An item with no answer is a hole in the review**, and step 4 is told to
@@ -138,6 +160,14 @@ each a bold label and a colon, exactly as constraints.md writes them, so the dra
 ## Not proposed
 
 - <the item> — <already recorded as DEC_04 | no proposal, because ...>
+
+## Declined
+
+- <cycle>/<suggestion id>: <why it will not be done>
+
+## Ignored
+
+- <the concern, in one sentence, worded as the report's ignored-before line when it is one> — <cycle>, <cycle>
 ```
 
 **There is no remove.** A rule out of force is superseded and keeps its place; a reversed decision takes a
@@ -195,9 +225,11 @@ file — nothing else — and asked the question the first cannot, because it se
 
 > Here is everything the record raised, and what was made of it. Name each argued rule, reopen, criterion
 > that failed more than one verdict, and perspective at the bar that has **no answer** in the proposal file
-> — neither a proposal nor a line under `## Not proposed` or `## For the framework`. Then name each
-> `no proposal, because` whose reason the report contradicts. Answer **complete**, or list the gaps. Do
-> not propose anything yourself.
+> — neither a proposal nor a line under `## Not proposed` or `## For the framework` — and each open
+> suggestion that is neither a successor, a `## Declined` line nor counted on an `## Ignored` line. Name
+> each concern the report marks at the bar that is ignored again, and each `## Ignored` gist that rewords
+> one the report already lists. Then name each `no proposal, because` whose reason the report contradicts.
+> Answer **complete**, or list the gaps. Do not propose anything yourself.
 
 Show both answers verbatim, each under its own heading. A gap goes back to step 1 for that item before the
 person marks anything; it is not theirs to find.
@@ -220,7 +252,7 @@ is kept there — its merge commit, its files, the rules it cited, the areas its
 mined on its own branch before its pull request is not merged yet; say so, and it is mined again next time.
 Show what it prints verbatim.
 
-**Two sections of the proposal file feed it, and the drafter ignores both:**
+**Three sections of the proposal file feed it, and the drafter ignores all three:**
 
 ```markdown
 ## Watch
@@ -229,12 +261,18 @@ Show what it prints verbatim.
 
 ## Declined
 
-- <suggestion id>: <why it will not be done>
+- <cycle>/<suggestion id>: <why it will not be done>
+
+## Ignored
+
+- <the concern> — <cycle>, <cycle>
 ```
 
 **Watch** is how a concern below the bar keeps its count once the folders it came from are gone: the next
 sitting's report lists it with its cycles, and a third cycle brings it to the bar. Write the gist the same way
-each time, or it is counted as a new concern. **Declined** is what became of a suggestion nobody will do.
+each time, or it is counted as a new concern. **Declined** is what a person decided against, with why.
+**Ignored** is the one answer that would otherwise leave nothing behind: the ledger keeps the concern and the
+cycles it was ignored in — no reason, no decision — so the next sitting's report can say it keeps coming back.
 
 **A suggestion worth doing becomes a successor**, not a rule — most are. Its text is copied in, because the cycle
 it came from is about to be deleted:
