@@ -1794,8 +1794,9 @@ proposed for rewording (D-149).
 
 **Then the sitting is recorded and the husks named** (D-152). Once the drafts are placed, `sdlc mine record`
 writes `.sdlc/mined.json`: every finished cycle on the integration branch becomes a husk, with what later
-mining reads from it kept there, the concerns under `## Watch` carried with their cycles, and the suggestions
-under `## Declined` with why. It prints the deletion of the husks' folders for the person to run on a branch of
+mining reads from it kept there, the concerns under `## Watch` carried with their cycles, the suggestions
+under `## Declined` with why, and the concerns under `## Ignored` tallied with the cycles they were ignored in.
+It prints the deletion of the husks' folders for the person to run on a branch of
 its own; the check admits that pull request as mining.
 
 #### Refusals
@@ -1824,6 +1825,12 @@ their reasons, and every verdict the verify reached; fresh processes group each 
 problem underneath; every argued rule, reopen, repeated failure and perspective at the bar gets a
 proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
 fresh process names any item left without one.
+
+**Every open suggestion of a finished cycle is taken further, declined or ignored** (D-153). A successor and a
+decline each live on — as a file, and as a reason in the sitting. An ignored one leaves only a tally of its
+concern and the cycles it was ignored in, so the report can say when the same concern keeps being ignored; at
+three cycles it is at the bar, and is proposed, taken further or declined rather than ignored again. Decline is
+kept for what a person decided against and would give a reason for.
 
 #### See also
 

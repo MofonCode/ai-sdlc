@@ -228,6 +228,8 @@ finished and is on the integration branch becomes a **husk** — what later mini
 deletion of the husks' folders for you to run on a branch of its own; the pull request carrying only that,
 the records and the ledger is admitted as mining. A cycle mined before its own pull request merged is not a
 husk yet, and is mined again next time.
+`mining-the-cycles.md` is the sitting step by step, and how each open suggestion is taken further, declined
+or ignored.
 
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
 use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and

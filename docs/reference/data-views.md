@@ -38,7 +38,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the open suggestions, every cycle](../guides/running-a-cycle.md) | each cycle's `suggestions.json` | `sdlc suggestions` | the binary |
 | [what the record says is missing](../../skills/README.md#mine) | read from every cycle and the ledger | `sdlc mine` | — |
 | **Mining** | | | |
-| [the mined cycles, each sitting, what is watched](../../skills/README.md#mine) | `.sdlc/mined.json` | `sdlc mine --history` | the binary, through `sdlc mine record` |
+| [the mined cycles, each sitting, what is watched and what was ignored](../../skills/README.md#mine) | `.sdlc/mined.json` | `sdlc mine --history` | the binary, through `sdlc mine record` |
 | [a husk's contents, once its folder is gone](../../skills/README.md#mine) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |
 

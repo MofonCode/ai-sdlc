@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.39.0** · iteration 4 · .NET 10
+**Version 0.39.1** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.39.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.39.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -296,6 +296,7 @@ refusal with its remedy.
 | [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) | one cycle end to end, stage by stage |
 | [`docs/guides/setting-up-the-factory.md`](docs/guides/setting-up-the-factory.md) | the factory set up once, step by step, to a watched first run |
 | [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built overnight: the integration branch, the factory, and the morning |
+| [`docs/guides/mining-the-cycles.md`](docs/guides/mining-the-cycles.md) | after a cycle finishes: what the solution keeps from it, every open suggestion answered, and the finished cycles' folders cleared |
 | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
 | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
 | [`docs/guides/testing-a-local-build.md`](docs/guides/testing-a-local-build.md) | a cycle run end to end on a change to the framework nobody has published, and why it never reaches a pull request |
@@ -414,7 +415,9 @@ What is honest to say about the rest:
   what its change reaches. `sdlc mine record` turns mined cycles into husks whose folders a person deletes
   through a pull request the check admits as mining. No solution has an area, a husk or a mined ledger yet,
   so nobody knows how much narrowing saves or whether a reader shown a headline misses what it needed. It
-  is a minor: a plan of a cycle opened on it names its areas, or its round is refused.
+  is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
+  report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
+  one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through

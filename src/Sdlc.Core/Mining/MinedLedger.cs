@@ -75,7 +75,17 @@ public sealed record MiningRun(
 /// <param name="Cycles">Every mined cycle, in the order recorded.</param>
 /// <param name="Watch">Concerns below the bar, each with the cycles it was seen in.</param>
 /// <param name="Runs">Every mining sitting recorded.</param>
-public sealed record MinedLedger(IReadOnlyList<MinedCycle> Cycles, IReadOnlyList<Watched> Watch, IReadOnlyList<MiningRun> Runs)
+/// <param name="Ignored">
+/// Suggestions a sitting left alone, each concern with the cycles it was ignored in. Not a decision: a declined
+/// suggestion keeps its reason in its sitting, and one taken further lives on as a successor or a cycle. An
+/// ignored one is the only kind that leaves nothing behind once its folder goes, so this tally is what lets the
+/// same concern ignored cycle after cycle reach the bar (D-153).
+/// </param>
+public sealed record MinedLedger(
+    IReadOnlyList<MinedCycle> Cycles,
+    IReadOnlyList<Watched> Watch,
+    IReadOnlyList<MiningRun> Runs,
+    IReadOnlyList<Watched>? Ignored = null)
 {
     /// <summary>The ledger's file name, in the framework's directory.</summary>
     public const string FileName = "mined.json";
@@ -89,7 +99,7 @@ public sealed record MinedLedger(IReadOnlyList<MinedCycle> Cycles, IReadOnlyList
     };
 
     /// <summary>A solution that has mined nothing.</summary>
-    public static MinedLedger Empty { get; } = new([], [], []);
+    public static MinedLedger Empty { get; } = new([], [], [], []);
 
     /// <summary>Where a solution's ledger lives.</summary>
     /// <param name="solutionRoot">The solution's root.</param>
@@ -113,7 +123,7 @@ public sealed record MinedLedger(IReadOnlyList<MinedCycle> Cycles, IReadOnlyList
 
             return read is null
                 ? Result.Fail<MinedLedger>(source + ": the mining ledger is empty.")
-                : Result.Ok(read with { Cycles = read.Cycles ?? [], Watch = read.Watch ?? [], Runs = read.Runs ?? [] });
+                : Result.Ok(read with { Cycles = read.Cycles ?? [], Watch = read.Watch ?? [], Runs = read.Runs ?? [], Ignored = read.Ignored ?? [] });
         }
         catch (JsonException error)
         {
@@ -139,38 +149,47 @@ public sealed record MinedLedger(IReadOnlyList<MinedCycle> Cycles, IReadOnlyList
     public string Write() => JsonSerializer.Serialize(this, _options) + "\n";
 
     /// <summary>
-    /// The ledger with newly mined cycles, a sitting, and watch items added: a concern already watched gains the
-    /// new cycles, and a new one is added.
+    /// The ledger with newly mined cycles, a sitting, and watched and ignored concerns added: a concern already
+    /// held gains the new cycles, and a new one is added.
     /// </summary>
     /// <param name="cycles">The cycles mined now.</param>
     /// <param name="run">The sitting.</param>
     /// <param name="watch">The concerns the sitting watched.</param>
+    /// <param name="ignored">The suggestions the sitting ignored, by concern.</param>
     /// <returns>The new ledger.</returns>
-    public MinedLedger With(IReadOnlyList<MinedCycle> cycles, MiningRun run, IReadOnlyList<Watched> watch)
+    public MinedLedger With(IReadOnlyList<MinedCycle> cycles, MiningRun run, IReadOnlyList<Watched> watch, IReadOnlyList<Watched>? ignored = null)
     {
         ArgumentNullException.ThrowIfNull(cycles);
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(watch);
 
-        List<Watched> merged = [.. Watch];
+        return this with
+        {
+            Cycles = [.. Cycles, .. cycles.Where(cycle => Find(cycle.Cycle) is null)],
+            Watch = Merged(Watch, watch),
+            Runs = [.. Runs, run],
+            Ignored = Merged(Ignored ?? [], ignored ?? []),
+        };
+    }
 
-        foreach (Watched item in watch)
+    private static List<Watched> Merged(IReadOnlyList<Watched> held, IReadOnlyList<Watched> added)
+    {
+        List<Watched> merged = [.. held];
+
+        foreach (Watched item in added)
         {
             int at = merged.FindIndex(known => string.Equals(known.Gist, item.Gist, StringComparison.Ordinal));
-            merged.Add(item);
 
             if (at >= 0)
             {
                 merged[at] = merged[at] with { Cycles = [.. merged[at].Cycles.Union(item.Cycles, StringComparer.Ordinal)] };
-                merged.RemoveAt(merged.Count - 1);
+            }
+            else
+            {
+                merged.Add(item);
             }
         }
 
-        return this with
-        {
-            Cycles = [.. Cycles, .. cycles.Where(cycle => Find(cycle.Cycle) is null)],
-            Watch = merged,
-            Runs = [.. Runs, run],
-        };
+        return merged;
     }
 }
