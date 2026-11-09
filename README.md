@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.39.1** · iteration 4 · .NET 10
+**Version 0.39.2** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.39.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.39.2`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -406,7 +406,9 @@ What is honest to say about the rest:
 - **The factory is started by a person and has not been started that way yet** (0.38.0). Its pipeline has no
   schedule and no Operate step, takes one optional cycle to build alone, and builds the cycle the most
   successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule
-  until somebody runs `sdlc factory` again and commits it; `sdlc doctor` names it a problem until then.
+  until somebody runs `sdlc factory` again and commits it; `sdlc doctor` names it a problem until then, and
+  names the solution's own pool that the rewrite replaces. Since 0.39.2 an upgrade pull request may keep that
+  pool while taking the release's other sections; it has passed MarketSense's file in the suite, not on its server.
   `sdlc operate` is a command a person runs.
 - **Mining, areas and husks have only met the suite** (0.39.0). Reading the record across cycles is now
   `/sdlc:mine`; `converge` means only a document's rounds settling. A recorded entry's title is its

@@ -233,6 +233,49 @@ public sealed class UpgradeTests
         StringAssert.Contains(check.Detail, "1 of the team's own");
     }
 
+    [TestMethod]
+    public void A_teams_own_pool_is_kept_while_the_release_moves_the_sections_around_it()
+    {
+        // MarketSense's move to 0.39.1: its factory ran nightly on its own pool, and the release dropped the schedule
+        // and added a parameter. Taking those two and keeping the pool is three sections, each from one side.
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "development").ReplaceLineEndings("\n");
+        string parameters = template[template.IndexOf("parameters:", StringComparison.Ordinal)..template.IndexOf("lockBehavior:", StringComparison.Ordinal)];
+        string ours = template.Replace("      vmImage: ubuntu-latest", "      name: OurFactory", StringComparison.Ordinal);
+        string existing = ours.Replace(parameters, "schedules:\n  - cron: '0 2 * * *'\n    branches:\n      include: [development]\n\n", StringComparison.Ordinal);
+
+        Assert.AreNotEqual(ours, existing, "The test needs the base to run on a schedule.");
+
+        VerifyChain.ChainCheck check = VerifyUpgrade.Shaped("azure-pipelines.factory.yml", template, existing, ours);
+
+        Assert.IsTrue(check.Passed, check.Detail);
+    }
+
+    [TestMethod]
+    public void A_section_neither_side_had_is_refused_and_named()
+    {
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "development").ReplaceLineEndings("\n");
+        string added = template.Replace("lockBehavior: sequential", "variables:\n  secret: ours\n\nlockBehavior: sequential", StringComparison.Ordinal);
+        string moved = template.Replace("timeoutInMinutes: 360", "timeoutInMinutes: 3600", StringComparison.Ordinal);
+
+        VerifyChain.ChainCheck section = VerifyUpgrade.Shaped("azure-pipelines.factory.yml", template, template, added);
+        VerifyChain.ChainCheck nested = VerifyUpgrade.Shaped("azure-pipelines.factory.yml", template, template, moved);
+
+        Assert.IsFalse(section.Passed);
+        StringAssert.Contains(section.Detail, "'variables'");
+        Assert.IsFalse(nested.Passed, "The spend ceiling, raised inside the job.");
+        StringAssert.Contains(nested.Detail, "timeoutInMinutes");
+    }
+
+    [TestMethod]
+    public void Without_a_base_outside_the_steps_is_this_releases_whole()
+    {
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "development").ReplaceLineEndings("\n");
+        string ours = template.Replace("      vmImage: ubuntu-latest", "      name: OurFactory", StringComparison.Ordinal);
+
+        Assert.IsFalse(VerifyUpgrade.Shaped("azure-pipelines.factory.yml", template, null, ours).Passed);
+        Assert.IsTrue(VerifyUpgrade.Shaped("azure-pipelines.factory.yml", template, null, template).Passed);
+    }
+
     private const string Packages = """
         <Project>
           <PropertyGroup>

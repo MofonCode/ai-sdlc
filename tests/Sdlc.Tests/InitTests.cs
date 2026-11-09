@@ -892,20 +892,25 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public void The_agent_file_names_every_file_only_a_person_writes()
+    public void The_agent_file_points_at_the_list_of_files_only_a_person_writes_rather_than_copying_it()
     {
-        // It said four for as long as there had been six. The hook reads its list from ProtectedPaths,
-        // so this does too -- a seventh file fails here rather than being left out of the one place an
-        // agent is told what it may not write.
+        // It said four for as long as there had been six, and once a solution had it, six after the seventh:
+        // adoption writes it once and an upgrade may not touch it, so a list here stays at the release that
+        // adopted. The solution's README is rewritten by every release and is held to the hook's list below.
         string agents = Templates.Agents("a solution");
 
-        foreach (string name in ProtectedPaths.Names)
+        StringAssert.Contains(agents, "**Some files are a person's to write**");
+        StringAssert.Contains(agents, "`.sdlc/README.md`" + Environment.NewLine + "lists them");
+
+        foreach (string count in (string[])["Four", "Five", "Six", "Seven", "Eight", "Nine"])
         {
-            StringAssert.Contains(agents, "`" + name + "`");
+            Assert.IsFalse(agents.Contains(count + " files", StringComparison.Ordinal), $"The agent file counts them: '{count} files'.");
         }
 
-        StringAssert.Contains(agents, "**Seven files are a person's to write**");
-        Assert.AreEqual(7, ProtectedPaths.Names.Count, "The count in the sentence is written out, so it moves with the list.");
+        foreach (string name in ProtectedPaths.Names.Where(name => !agents.Contains(".sdlc/" + name, StringComparison.Ordinal)))
+        {
+            Assert.IsFalse(agents.Contains("`" + name + "`", StringComparison.Ordinal), $"The agent file lists {name}.");
+        }
     }
 
     [TestMethod]

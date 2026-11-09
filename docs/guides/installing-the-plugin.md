@@ -329,7 +329,7 @@ reinstall took, look at the file's timestamp or run a command only the newer bui
 **Reinstalling updates this machine and no repository on it.** Every governed solution still pins the
 release it pinned, and has the hook configuration, the pipeline and the `.sdlc/README.md` that release wrote.
 In each one, on the integration branch, a person moves the pin and then runs adoption again. Adoption picks
-update mode by itself, refreshes only what the framework owns, and touches none of the six files only a person
+update mode by itself, refreshes only what the framework owns, and touches none of the seven files only a person
 writes:
 
 ```pwsh
