@@ -15,7 +15,7 @@
          Cycle.FrameworkVersion is deliberately NOT this. That constant is the artifact format
          stamped into every file's framework_version, and binding it here would restamp every
          artifact as a new format on a release that changed no format at all. -->
-    <VersionPrefix>0.39.1</VersionPrefix>
+    <VersionPrefix>0.39.2</VersionPrefix>
 
     <!-- A pack made anywhere but the pipeline is a local build, and its version says so: 0.36.7-local (D-135).
          A solution can pin it to test a change, and no cycle it judges reaches a pull request, because the rounds

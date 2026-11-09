@@ -47,7 +47,7 @@ opposite halves of the job; what the command writes, commits and drafts, and the
 creates; the interview and where each answer goes; filling in the three drafts, renaming them into place
 and committing them; making the pipeline's check required; and opening the first cycle.
 
-It closes with **what your solution owns**: the six files only a person writes, what each holds, when it
+It closes with **what your solution owns**: the seven files only a person writes, what each holds, when it
 changes and which command drafts or proposes it — and the theme, which is the one solution file a cycle
 may change.
 

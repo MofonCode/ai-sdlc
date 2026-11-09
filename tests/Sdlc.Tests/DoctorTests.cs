@@ -133,7 +133,29 @@ public sealed class DoctorTests
 
         Assert.AreEqual(CheckOutcome.Problem, scheduled.Outcome);
         StringAssert.Contains(scheduled.Remedy!, "sdlc factory");
+        StringAssert.Contains(scheduled.Remedy!, "git diff", "Rewriting drops a step of the team's own, and the remedy says so.");
         Assert.AreEqual(CheckOutcome.Sound, started.Outcome);
+    }
+
+    [TestMethod]
+    public async Task A_scheduled_factory_on_its_own_pool_is_told_the_rewrite_replaces_that_pool()
+    {
+        // MarketSense: its factory runs on agents carrying the browsers, and 'sdlc factory' writes a hosted pool.
+        using var solution = Scratch.Create();
+        await Adopt(solution, Platform.AzureDevOps);
+
+        string path = Path.Combine(solution.Root, FactoryPipeline.PathOf(Platform.AzureDevOps));
+        string ours = FactoryPipeline.Text(Platform.AzureDevOps, "development")
+            .ReplaceLineEndings("\n")
+            .Replace("      vmImage: ubuntu-latest", "      name: OurFactory", StringComparison.Ordinal)
+            .Replace("lockBehavior:", "schedules:\n  - cron: '0 2 * * *'\n\nlockBehavior:", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(path, ours);
+
+        Check check = (await Diagnosis(solution)).Checks.Single(candidate => candidate.Subject == "the factory");
+
+        Assert.AreEqual(CheckOutcome.Problem, check.Outcome);
+        StringAssert.Contains(check.Remedy!, "name: OurFactory");
+        StringAssert.Contains(check.Remedy!, "put your pool");
     }
 
     [TestMethod]
