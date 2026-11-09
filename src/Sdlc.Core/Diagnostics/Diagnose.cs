@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
@@ -232,13 +233,27 @@ public static class Diagnose
 
             string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
 
-            return text.Contains("cron:", StringComparison.Ordinal)
-                ? new Check(
-                    "the factory",
-                    CheckOutcome.Problem,
-                    FactoryPipeline.PathOf(platform).Replace('\\', '/') + " still runs on a schedule; this release's factory is started by a person, for every queued cycle or one named (D-143)",
-                    "run 'sdlc factory', which rewrites it, and commit it")
-                : new Check("the factory", CheckOutcome.Sound, "started by a person, never on a schedule");
+            if (!text.Contains("cron:", StringComparison.Ordinal))
+            {
+                return new Check("the factory", CheckOutcome.Sound, "started by a person, never on a schedule");
+            }
+
+            // 'sdlc factory' writes the template over the file, so the remedy says what that loses before it says to
+            // run it: told only to rewrite, MarketSense would have lost the pool its browsers live on.
+            Result<SolutionDocument> read = await SolutionDocument.ReadFile(solution.Path, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<string> pools = read.IsSuccess
+                ? VerifyUpgrade.OwnPools(FactoryPipeline.Text(platform, read.Value.IntegrationBranch), text)
+                : [];
+
+            return new Check(
+                "the factory",
+                CheckOutcome.Problem,
+                FactoryPipeline.PathOf(platform).Replace('\\', '/') + " still runs on a schedule; this release's factory is started by a person, for every queued cycle or one named (D-143)",
+                pools.Count == 0
+                    ? "run 'sdlc factory', which writes this release's pipeline over it, put back from 'git diff' any step of your own it dropped, and commit it"
+                    : "run 'sdlc factory', which writes this release's pipeline over it and its own pool over yours ("
+                        + string.Join(", ", pools)
+                        + "); put your pool and any step of your own back from 'git diff', and commit it");
         }
 
         private async Task<Check> LineEndingsCheck(CancellationToken cancellationToken)

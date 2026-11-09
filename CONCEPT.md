@@ -1354,7 +1354,8 @@ repository actually uses before a person places it (D-76).
 **`AGENTS.md`** is lean and under 200 lines: a short summary of what the solution is; references —
 a relative path plus a one-line description — to `techstack.md`, the build and test procedure, and
 how to run the application locally; and a repo map. It never contains constraints, and never anything
-that goes stale the moment a cycle runs. If one already exists, `init` prints the leaned version and
+that goes stale the moment a cycle runs, or a release: it points at `.sdlc/README.md` for the files only a
+person writes rather than listing them (D-155). If one already exists, `init` prints the leaned version and
 leaves the file alone.
 
 **It commits what it created, then creates the integration branch.** An uncommitted `AGENTS.md` is
@@ -7256,6 +7257,62 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-155 — The solution's agent file points at the list of files only a person writes, and holds no copy of it
+
+**Governs:** §9
+
+**Narrows §9's account of `AGENTS.md`**, which already keeps out anything that goes stale.
+
+**Decision.** The `AGENTS.md` adoption writes says that some files are a person's to write and every agent write to
+them is denied, that `.sdlc/README.md` lists them, and that the denial names the `sdlc` command that prints what
+belongs in one. It names no count and lists no file.
+
+**Why.** Adoption writes `AGENTS.md` once, and an upgrade may not touch it (D-133), so whatever it says is fixed at
+the release that adopted. MarketSense's said six files after 0.39.0 made it seven, and only a cycle could correct
+it. `.sdlc/README.md` is rewritten by every release and held to the hook's list by the suite, so it is right
+wherever the agent file points at it. Nothing is lost at the moment of a write: the denial already names the
+command for the file it refused.
+
+**Rejected.**
+
+- *Letting an upgrade rewrite the paragraph in `AGENTS.md`.* It would need a region of the team's file marked as
+  the framework's, merged in update mode and compared by the upgrade check: machinery to keep a copy current,
+  where pointing at the original leaves nothing to keep.
+- *Keeping the list for an agent to read up front.* An agent learns the list before it tries a write either way,
+  from the README the file points at; the copy only ever adds a way to be wrong.
+
+### D-154 — Outside a pipeline's steps, an upgrade takes each section from the base or the release on its own
+
+**Governs:** §9
+
+**Amends D-133**, whose pipeline comparison took everything outside the step lists from one side, whole.
+
+**Decision.** The upgrade check compares what lies outside a pipeline's step lists as **sections**: a key and every
+line under it. A key with a step list beneath it is a container, whose own line is one section and whose keys are
+sections in turn, so a job's pool is a section and the job around it another. Each section must be what this
+release writes or what the base had, absent counting as a value on either side, so a section the release added
+may be left out and one it dropped may be kept. With no base copy, outside the steps is still the release's whole.
+The refusal names the section. `sdlc doctor`, where it tells a person to run `sdlc factory`, first names a pool of
+the file's own that the rewrite would replace, and says to put it back with any step of the team's own.
+
+**Why.** 0.38's factory dropped its schedule and gained a parameter. MarketSense's factory runs on its own pool,
+whose agents carry the browsers, so no file passed: the release's frame moved its pool to a hosted agent and the
+base's kept the schedule. D-133 had already rejected comparing a pipeline as text for this reason and given the
+steps their own rule; the frame was left whole and met the same case one release later. Doctor's remedy, run
+`sdlc factory` and commit, would have removed the pool and the feed sign-in without a word.
+
+**What it lets through.** A team may keep a section the release meant to change, the old schedule beside the new
+parameter. That is the team's own frame carried over, as a step of its own is, and doctor still names a factory on
+a schedule a problem.
+
+**Rejected.**
+
+- *Declaring the factory's pool in the solution, for `sdlc factory` to write.* Right for the pool, and silent on
+  the next section a team changes.
+- *Letting the pool alone differ.* The same rule as sections, with a list of which keys count to keep current.
+- *Naming every step of the file's own in doctor's remedy.* Without the base, an older release's step looks like
+  a team's, and doctor would tell a person to keep the Operate step D-143 removed.
+
 ### D-153 — Mining answers a suggestion by taking it further, declining it, or ignoring it, and only an ignored one is tallied
 
 **Governs:** §15
@@ -8150,8 +8207,8 @@ holds when:
 - **Each pipeline has every step that release writes, and beside them only the team's own steps the base
   already had.** A pipeline is compared step by step rather than as text, because a solution adds steps of its
   own: a browser install, a feed sign-in. Every step the template writes is there exactly, in its order; every
-  other step is one the base had, unchanged; outside the step lists - triggers, pool, job - the file is the
-  base's or the template's, whole. Comments and blank lines are not compared, because neither runs.
+  other step is one the base had, unchanged; outside the step lists - triggers, pool, job - each section is the
+  base's or the template's, on its own (D-154). Comments and blank lines are not compared, because neither runs.
 - **The declared stack is only answered.** Every line it had is kept, in order. Each line added is a row this
   release ships and the base's stack never mentions (D-93), answered once, or the heading and header of the
   rules table it goes into.

@@ -355,8 +355,11 @@ public static class VerifyUpgrade
     /// file is compared as steps rather than as text: each step this release writes is there exactly and in its order,
     /// and every other step is one the base had, unchanged. A step added, a step of the team's changed, a step of the
     /// framework's missing or edited, and it is refused.</para>
-    /// <para><strong>Outside the steps it is the base's or this release's</strong>, whole: the triggers, the pool,
-    /// the job. Comments and blank lines are not compared, because neither runs.</para>
+    /// <para><strong>Outside the steps each section is the base's or this release's</strong>: the triggers, the
+    /// schedule, the parameters, the pool, each on its own. Whole, it could never pass for a team that runs on its own
+    /// pool once a release moved another section, which is how 0.38's factory, started by a person, met MarketSense's
+    /// own agents. A section is a key and everything under it; a key that holds a step list is only a container, and
+    /// the keys inside it are sections in turn. Comments and blank lines are not compared, because neither runs.</para>
     /// <para><strong>What it lets through</strong>: a step of the team's own dropped in the upgrade. That weakens the
     /// team's own pipeline, not the framework's steps, and it is visible in the diff.</para>
     /// </remarks>
@@ -386,13 +389,38 @@ public static class VerifyUpgrade
         Shape had = existing is null ? Shape.Empty : Shape.Of(existing);
         var has = Shape.Of(head);
 
-        if (!has.Frame.SequenceEqual(want.Frame, StringComparer.Ordinal)
-            && !(existing is not null && has.Frame.SequenceEqual(had.Frame, StringComparer.Ordinal)))
+        if (existing is null)
         {
-            return new VerifyChain.ChainCheck(
-                name,
-                false,
-                "outside its steps - the triggers, the pool, the job - it is neither what this release writes nor what the base had. A change of a team's own belongs in a cycle.");
+            if (!has.Frame.SequenceEqual(want.Frame, StringComparer.Ordinal))
+            {
+                return new VerifyChain.ChainCheck(
+                    name,
+                    false,
+                    "the base had no copy, so outside its steps it must be what this release writes. A change of a team's own belongs in a cycle.");
+            }
+        }
+        else
+        {
+            IReadOnlyDictionary<string, string> wanted = Sections(want.Frame);
+            IReadOnlyDictionary<string, string> kept = Sections(had.Frame);
+            IReadOnlyDictionary<string, string> holds = Sections(has.Frame);
+
+            string? strayed = holds.Keys
+                .Concat(wanted.Keys)
+                .Distinct(StringComparer.Ordinal)
+                .FirstOrDefault(section =>
+                    !string.Equals(holds.GetValueOrDefault(section), wanted.GetValueOrDefault(section), StringComparison.Ordinal)
+                    && !string.Equals(holds.GetValueOrDefault(section), kept.GetValueOrDefault(section), StringComparison.Ordinal));
+
+            if (strayed is not null)
+            {
+                return new VerifyChain.ChainCheck(
+                    name,
+                    false,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"outside its steps, '{strayed}' is neither what this release writes nor what the base had. Each section may be either, on its own; a change of a team's own belongs in a cycle."));
+            }
         }
 
         int at = 0;
@@ -439,6 +467,143 @@ public static class VerifyUpgrade
             own.Count == 0
                 ? string.Create(CultureInfo.InvariantCulture, $"the steps sdlc {Release.Version} writes, and no others.")
                 : string.Create(CultureInfo.InvariantCulture, $"the steps sdlc {Release.Version} writes, with {own.Count} of the team's own carried over unchanged."));
+    }
+
+    /// <summary>
+    /// Where a pipeline runs, wherever it is not where this release's template runs it: the part of a team's own that
+    /// rewriting the file from the template would lose and the team's agents depend on.
+    /// </summary>
+    /// <remarks>
+    /// Doctor names it before it tells anyone to run <c>sdlc factory</c>, which writes the template over the file. A
+    /// pool is the one section a team changes that no release does, so naming it is never naming something the
+    /// release meant to replace; a step of the team's own cannot be told apart from an older release's step without
+    /// the base, so it is left to the diff.
+    /// </remarks>
+    /// <param name="template">What this release writes.</param>
+    /// <param name="file">The file as it is.</param>
+    /// <returns>Each pool of the file's own, as its lines after the key, trimmed and joined; empty when there is none.</returns>
+    public static IReadOnlyList<string> OwnPools(string template, string file)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(file);
+
+        Dictionary<string, string> wanted = Sections(Shape.Of(template).Frame);
+
+        return
+        [
+            .. Sections(Shape.Of(file).Frame)
+                .Where(section => section.Key.Split(" > ")[^1] is "pool" or "runs-on"
+                    && !string.Equals(section.Value, wanted.GetValueOrDefault(section.Key), StringComparison.Ordinal))
+                .Select(section =>
+                {
+                    string[] lines = section.Value.Split('\n');
+                    return lines.Length == 1
+                        ? lines[0].Trim()
+                        : string.Join("; ", lines.Skip(1).Select(line => line.Trim()));
+                }),
+        ];
+    }
+
+    /// <summary>What lies outside a pipeline's step lists, as its sections, each named by where it sits.</summary>
+    /// <remarks>
+    /// A section is a key and every line under it. A key with a step list somewhere beneath it is a container
+    /// instead: its own line is a section, and each key inside it is one in turn, so a job's pool is one section and
+    /// the job around it another. A list item is named by its whole line, because its key alone does not tell two
+    /// jobs apart. A section absent from a file is compared as absent, so one the release added and the base never
+    /// had may be left out, and one the release dropped may be kept.
+    /// </remarks>
+    /// <param name="frame">The lines outside the step lists, indentation kept.</param>
+    /// <returns>Each section's text, by its name.</returns>
+    private static Dictionary<string, string> Sections(IReadOnlyList<string> frame)
+    {
+        List<Node> roots = [];
+        Stack<Node> open = new();
+
+        foreach (string line in frame)
+        {
+            var node = new Node(line);
+
+            // An item at its key's own indent, as YAML allows, is still under the key.
+            while (open.Count > 0
+                && (open.Peek().Indent > node.Indent
+                    || (open.Peek().Indent == node.Indent && !(node.Dash && !open.Peek().Dash))))
+            {
+                open.Pop();
+            }
+
+            (open.Count > 0 ? open.Peek().Children : roots).Add(node);
+            open.Push(node);
+        }
+
+        Dictionary<string, string> sections = new(StringComparer.Ordinal);
+
+        void Add(string name, string text)
+        {
+            string unique = name;
+
+            for (int n = 2; sections.ContainsKey(unique); n++)
+            {
+                unique = string.Create(CultureInfo.InvariantCulture, $"{name} ({n})");
+            }
+
+            sections[unique] = text;
+        }
+
+        void Walk(Node node, string? within)
+        {
+            if (node.Contains)
+            {
+                string name = within is null ? node.Trimmed : within + " > " + node.Trimmed;
+                Add(name, node.Trimmed);
+
+                foreach (Node child in node.Children)
+                {
+                    Walk(child, name);
+                }
+            }
+            else
+            {
+                Add(within is null ? node.Key : within + " > " + node.Key, string.Join('\n', node.Lines()));
+            }
+        }
+
+        foreach (Node root in roots)
+        {
+            Walk(root, null);
+        }
+
+        return sections;
+    }
+
+    /// <summary>One line outside the step lists, and the lines under it.</summary>
+    private sealed class Node(string line)
+    {
+        public string Line { get; } = line;
+
+        public string Trimmed { get; } = line.Trim();
+
+        public int Indent { get; } = line.Length - line.TrimStart().Length;
+
+        public bool Dash => Trimmed.StartsWith("- ", StringComparison.Ordinal);
+
+        public List<Node> Children { get; } = [];
+
+        /// <summary>Whether a step list is this line or lies under it.</summary>
+        public bool Contains => Trimmed == "steps:" || Children.Exists(child => child.Contains);
+
+        /// <summary>The key a section is named by: the text before its colon, marked when it is a list item.</summary>
+        public string Key
+        {
+            get
+            {
+                string body = Dash ? Trimmed[2..].TrimStart() : Trimmed;
+                int colon = body.IndexOf(':', StringComparison.Ordinal);
+                string key = colon < 0 ? body : body[..colon];
+                return Dash ? "- " + key : key;
+            }
+        }
+
+        public IEnumerable<string> Lines() => Children.SelectMany(child => child.Lines()).Prepend(Line);
     }
 
     /// <summary>A pipeline as what lies outside its step lists and each step in them, comments and blank lines aside.</summary>

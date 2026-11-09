@@ -432,13 +432,14 @@ init` again, and commit what it changes.
 
 A pipeline is compared as steps, because a solution keeps steps of its own beside the framework's. Every
 step this release writes must be there exactly, in its order; every other step must be one the base already
-had, unchanged; and outside the steps — triggers, pool, job — the file must be the base's or the template's.
-Comments and blank lines are not compared. The refusal names the step: one of the framework's missing,
-edited or moved, one of the team's added or changed, or a frame that is neither.
+had, unchanged; and outside the steps — triggers, schedule, parameters, pool — each section must be the
+base's or the template's, on its own, so a team keeps its own pool while taking the release's new trigger.
+Comments and blank lines are not compared. The refusal names the step or the section: one of the framework's
+missing, edited or moved, one of the team's added or changed, or a section that is neither.
 
-**Next:** put the framework's step back as `sdlc init` prints it, or `sdlc factory` writes it for the
-factory's pipeline, and keep the team's own steps as the base had them. Adding or changing a step of the
-team's own is a cycle's.
+**Next:** put the framework's step or section back as `sdlc init` prints it, or `sdlc factory` writes it for
+the factory's pipeline, and keep the team's own as the base had them. Adding or changing a step or a section of
+the team's own is a cycle's.
 
 ### a dependency file that changed more than versions
 
