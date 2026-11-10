@@ -8,6 +8,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Decisions;
+using Sdlc.Core.Deviations;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -339,6 +340,7 @@ public static class VerifyChain
             await EvidenceRead(cycle, checks, repository, solution.Path, cancellationToken).ConfigureAwait(false);
             await Covered(cycle, checks, cancellationToken).ConfigureAwait(false);
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
+            await Deviated(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
             MinedAfterVerify(cycle, request, checks);
 
@@ -554,7 +556,7 @@ public static class VerifyChain
 
             if (ledger.IsFailed
                 || ledger.Value.Decisions.Count == 0
-                || ledger.Value.Decisions[^1].Decision != GateDecision.Approved
+                || !ledger.Value.IsApproved
                 || !ledger.Value.Decisions.Any(entry => entry.Decision == GateDecision.Reopened))
             {
                 return;
@@ -569,7 +571,7 @@ public static class VerifyChain
                 return;
             }
 
-            DateTimeOffset approved = ledger.Value.Decisions[^1].At;
+            DateTimeOffset approved = ledger.Value.Current!.At;
             FindingsRound latest = history.Value[^1];
             bool after = latest.InterrogatedAt is { } at && at > approved;
 
@@ -579,6 +581,70 @@ public static class VerifyChain
                 after
                     ? string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} ran after the approval of {approved:yyyy-MM-dd HH:mm}")
                     : string.Create(CultureInfo.InvariantCulture, $"the cycle was reopened and approved again at {approved:yyyy-MM-dd HH:mm}, and the latest verify round predates it. Delete {Cycle.FileNameOf(ArtifactKind.Verify)}, build, record the evidence again, and verify the documents approved now.")));
+        }
+
+        /// <summary>
+        /// Where the build bent the approved documents, every bend is sound and a person answered it, and a
+        /// declined one was redone before the verdict that stands.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>Only where the cycle recorded any.</strong> A cycle that followed its plan has no
+        /// <c>deviations.md</c>, and nothing here is asked of it.</para>
+        /// <para><strong>Accepted or declined, never unanswered.</strong> A declined deviation no longer bends
+        /// anything, so the diff reader holds the code to the approved text again; what this asks is that a
+        /// verify ran after the decline, or the passing verdict is one about code the person turned down. Under
+        /// <c>approval: none</c> every deviation is accepted by the setting and the pull request is the review.</para>
+        /// </remarks>
+        private static async Task Deviated(
+            Cycle cycle,
+            List<ChainCheck> checks,
+            CancellationToken cancellationToken)
+        {
+            DeviationsState deviations = await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false);
+
+            if (!deviations.Recorded)
+            {
+                return;
+            }
+
+            checks.Add(new ChainCheck(
+                "the deviations are sound",
+                deviations.Problems.Count == 0,
+                deviations.Problems.Count == 0
+                    ? string.Create(CultureInfo.InvariantCulture, $"{deviations.Current.Count} since the approval that stands, each quoting the approved text it departs from")
+                    : string.Join(" ", deviations.Problems)));
+
+            IReadOnlyList<DeviationState> pending = deviations.Pending;
+
+            checks.Add(new ChainCheck(
+                "every deviation is answered",
+                pending.Count == 0,
+                pending.Count == 0
+                    ? deviations.AcceptedBySetting
+                        ? "accepted by 'approval: none'; the pull request is the review"
+                        : string.Create(CultureInfo.InvariantCulture, $"{deviations.Current.Count(state => state.Standing == DeviationStanding.Accepted)} accepted, {deviations.Declined.Count} declined")
+                    : string.Create(CultureInfo.InvariantCulture, $"{string.Join(", ", pending.Select(state => state.Deviation.Id))} {(pending.Count == 1 ? "has" : "have")} no answer. 'sdlc draft approval {cycle.Id}' drafts one for a person to mark and place.")));
+
+            if (deviations.Declined.Count == 0 || deviations.LastAnswered is not { } answered)
+            {
+                return;
+            }
+
+            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
+                .ReadHistory(cycle, ArtifactKind.Verify, cancellationToken)
+                .ConfigureAwait(false);
+
+            bool after = history.IsSuccess
+                && history.Value.Count > 0
+                && history.Value[^1].InterrogatedAt is { } at
+                && at > answered;
+
+            checks.Add(new ChainCheck(
+                "the verdict follows the deviations declined",
+                after,
+                after
+                    ? string.Create(CultureInfo.InvariantCulture, $"verified again after {string.Join(", ", deviations.Declined.Select(state => state.Deviation.Id))} {(deviations.Declined.Count == 1 ? "was" : "were")} declined")
+                    : string.Create(CultureInfo.InvariantCulture, $"{string.Join(", ", deviations.Declined.Select(state => state.Deviation.Id))} {(deviations.Declined.Count == 1 ? "was" : "were")} declined at {answered:yyyy-MM-dd HH:mm}, and the latest verify round predates it. Remediate with the note as the instruction, record the evidence, and verify again.")));
         }
 
         /// <summary>

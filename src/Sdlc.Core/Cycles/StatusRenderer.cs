@@ -116,6 +116,7 @@ public static class StatusRenderer
 
         Spent(output, status, state);
         Departing(output, status);
+        Deviating(output, status);
 
         Amended(output, status);
         Successors(output, status, host);
@@ -222,6 +223,8 @@ public static class StatusRenderer
             Field(output, string.Empty, "Approving this cycle approves each of these.");
         }
 
+        Deviating(output, status);
+
         output.AppendLine();
 
         if (Amended(output, status) | Successors(output, status, host))
@@ -259,6 +262,27 @@ public static class StatusRenderer
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Where the build bent the approved documents, one line each with where it stands, and nothing when it
+    /// bent nothing.
+    /// </summary>
+    /// <remarks>
+    /// On both panels: an unanswered deviation is what the pull request waits on, and a person reading the
+    /// panel is the one who answers it.
+    /// </remarks>
+    private static void Deviating(StringBuilder output, ReadCycleStatus.Response status)
+    {
+        if (status.Deviations is not { Count: > 0 } deviations)
+        {
+            return;
+        }
+
+        for (int index = 0; index < deviations.Count; index++)
+        {
+            Field(output, index == 0 ? "Deviates" : string.Empty, deviations[index]);
+        }
     }
 
     /// <summary>

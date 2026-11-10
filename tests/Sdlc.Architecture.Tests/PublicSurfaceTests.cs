@@ -54,6 +54,9 @@ public sealed class PublicSurfaceTests
         // Where a findings ledger stood when a decision was taken (D-107). Public because GateEntry carries it.
         "Sdlc.Core.Approvals.RoundAnchor",
 
+        // A person's answer to one deviation, per entry. Public because GateEntry carries it.
+        "Sdlc.Core.Approvals.DeviationAnswer",
+
         // The command 'sdlc draft approval' dispatches. Public because Sdlc.Cli sends it, like every
         // other operation's request; it returns ApprovalText.Response rather than a shape of its own,
         // because composing the decision and putting it on disk produce the same answer.
@@ -91,6 +94,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Proposals.ProposeMining+CycleRecord",
         "Sdlc.Core.Proposals.ProposeMining+Reopen",
         "Sdlc.Core.Proposals.ProposeMining+Verdict",
+        "Sdlc.Core.Proposals.ProposeMining+DeviationRecord",
         "Sdlc.Core.Evidence.CheckEvidence",
         "Sdlc.Core.Evidence.CheckEvidence+Query",
         "Sdlc.Core.Evidence.CheckEvidence+Response",
@@ -436,6 +440,20 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Decisions.ReadDecisions",
         "Sdlc.Core.Decisions.ReadDecisions+Query",
         "Sdlc.Core.Decisions.ReadDecisions+Response",
+
+        // 'sdlc deviations': where the build bent the approved documents, against what a person answered.
+        // The operation, the shapes its response exposes, the file's parser and the renderer.
+        "Sdlc.Core.Deviations.CycleDeviations",
+        "Sdlc.Core.Deviations.CycleDeviations+Query",
+        "Sdlc.Core.Deviations.CycleDeviations+Response",
+        "Sdlc.Core.Deviations.Deviation",
+        "Sdlc.Core.Deviations.DeviationCircle",
+        "Sdlc.Core.Deviations.DeviationKind",
+        "Sdlc.Core.Deviations.DeviationStanding",
+        "Sdlc.Core.Deviations.DeviationState",
+        "Sdlc.Core.Deviations.DeviationsFile",
+        "Sdlc.Core.Deviations.DeviationsRenderer",
+        "Sdlc.Core.Deviations.DeviationsState",
 
         // 'sdlc theme' and 'sdlc propose theme': the register, its one slot shape, the operation
         // that reads it and the renderer that both shows and proposes one. Theme is public rather

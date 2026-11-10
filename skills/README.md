@@ -898,7 +898,7 @@ stack, or the solution document.
 
 | Parameter | Description |
 |---|---|
-| `approval <id>` | the gate decision for that cycle. `--changes-requested`, `--deny` or `--reopen` drafts a refusal on the same terms |
+| `approval <id>` | the gate decision for that cycle. `--changes-requested`, `--deny` or `--reopen` drafts a refusal on the same terms. On an approved cycle whose build recorded deviations nobody answered, it drafts the answer to each instead |
 | `abandon <id>` | why that cycle stopped |
 | `solution` | the whole `solution.md`. `--standard profile\|existing` moves that one key |
 | `techstack` | the declared stack. `--empty` drafts nothing |
@@ -930,6 +930,7 @@ stack, or the solution document.
 | Condition | Result | What to do |
 |---|---|---|
 | a blocking finding is open, a document is missing, one has never been interrogated, or a round judged a document that has changed since | `draft approval` refuses to print | answer it; if it genuinely cannot be answered, `draft abandon` and a new cycle |
+| `--reopen` while a deviation is unanswered | `draft approval` refuses, and names each one | answer every deviation first: `sdlc draft approval <id>` |
 | a drafter that does not exist | refuses, and lists the four that do | — |
 | `draft solution` before the document is placed, or `draft techstack` while a draft is waiting | refuses, and leaves the waiting draft as it is: what is in it may be somebody's work | fill in the waiting draft and rename it — or delete it, and draft again |
 | the rename that places the file | shown, and never run or offered: the hook denies it in every spelling and through every shell | run it yourself |
@@ -1001,7 +1002,7 @@ Implements an approved plan, builds, tests, and records the evidence a verificat
 | Stage | build and verify, once the gate is satisfied |
 | Started by | a person, or `batch-build`, after a person has approved the cycle's three planning documents |
 | Reads | `plan.md` and the code |
-| Writes | source and tests, and the evidence verify will read |
+| Writes | source and tests, the evidence verify will read, and `deviations.md` where the approved text cannot be followed |
 
 #### Syntax
 
@@ -1055,6 +1056,12 @@ and only that (`CON_07.2`): creep inside an approved file is what reaches review
 work, which is where it is least likely to be questioned. Something worth fixing that the plan did not
 describe is left alone and recorded as a `Noticed:` line in the commit message, where the person
 reviewing the pull request will meet it.
+
+**Where the approved text cannot be followed, it records a deviation and keeps going** (D-156): a file the
+fix has to touch that the plan did not declare, a test whose name has to change, a decision the work cannot
+keep. Each quotes the approved text it departs from, names the blocker with its evidence, and says what was
+done instead, in `deviations.md`; `sdlc deviations <id>` checks it. A person answers each one before the
+merge, so the build no longer stops for a reopen to make the plan say what the code had to do.
 
 It checks that the suite actually ran: a trial cycle lost its whole verification to `dotnet test` exiting
 zero without running anything, because the runner was not configured. And **the turn end is checked as
@@ -1171,7 +1178,7 @@ planning document.
 | Stage | build and verify, after verify recorded `blocked`, or left a `diff.` finding open |
 | Started by | a person, or `batch-build` |
 | Reads | the criteria `verify.md` marks Not met, the verify findings, `sdlc pr-ready <id>`, and the code |
-| Writes | source and tests, fresh evidence, and a commit on the cycle's branch |
+| Writes | source and tests, fresh evidence, `deviations.md` where the approved text cannot be followed, and a commit on the cycle's branch |
 
 #### Syntax
 
@@ -1194,9 +1201,11 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 
 | Condition | Result | What to do |
 |---|---|---|
-| the criterion itself looks wrong | stops | `sdlc draft approval <id> --reopen`, which it names, and which withdraws the approval with a recorded reason |
+| the criterion itself looks wrong | records a `criterion` deviation narrowing it, and names the successor the dropped part becomes | answer it: `sdlc draft approval <id>` |
+| a fix needs the intent changed, a wider scope, or a file another cycle claims | stops | a successor, or `sdlc draft approval <id> --reopen` once every deviation is answered |
 | a regression — a pass that broke what an earlier pass fixed | stops | — |
 | two passes in a row reduce nothing | stops | — |
+| three deviations bend the same approved text and the verification still blocks | stops | — |
 
 #### Example
 
@@ -1211,7 +1220,9 @@ confident that was the cause — then the panel. Verify again as its own stage.
 
 `refine` and `remediate` are two editors with opposite guards, and the asymmetry is the whole design: if
 a failing test could cause an agent to adjust the spec, the criteria become whatever the code happens to
-do. So when the honest conclusion is "the criterion is wrong", the skill says it and stops.
+do. So when the honest conclusion is "the criterion is wrong", the skill never edits it: it records a
+deviation quoting it, which a person accepts or declines before the merge (D-156). A declined one is
+redone from the person's note.
 
 **It stops when it is not getting anywhere, not after a set number of tries.** It stops when a pass
 undoes what an earlier one answered, or when two passes in a row reduce nothing. That stopping is the

@@ -18,6 +18,7 @@ mechanical gates a merge.
 - `/sdlc:pr <id> --plan` — only with an integration branch: admits the plan before it is built; a slicing's plans together with `/sdlc:pr <id> <id>... --plan`
 - `/sdlc:build <id>` — implements, tests, records the evidence
 - `/sdlc:verify <id>` — adjudicates from the evidence alone
+- `sdlc draft approval <id>` — only when the build recorded deviations: set each `accepted: true`, or write why to decline it, then **rename it yourself**
 - `/sdlc:mine` — optional, after a pass: rules, decisions, stack and areas the cycle settled, as your own commit. Or after the merge
 - `sdlc mine record <file>` — after the merge, once the drafts are placed: mined cycles become husks, and it prints their deletion
 - `/sdlc:pr <id>` — pushes and opens the pull request. Asks first
@@ -35,6 +36,7 @@ Each document stage runs its own interrogate-and-refine loop before it hands bac
 - **Changed your mind** before approval — `/sdlc:steer <id> "..."`
 - **The intent is two things**, or two are one, before a spec — `/sdlc:intent --reslice <id>...`
 - **Take in a suggestion** a reader raised, before approval — `/sdlc:steer <id> <finding id>...`
-- **After approval** — `sdlc draft approval <id> --reopen`; once the plan is on `development`, on its plan branch (`sdlc branch <id> plan`), then `/sdlc:pr <id> --plan`
+- **The build bent the plan** — `sdlc deviations <id>`, then answer each with `sdlc draft approval <id>`; `guides/handling-blockers.md`
+- **The plan is wrong** after approval — answer every deviation, then `sdlc draft approval <id> --reopen`; once the plan is on `development`, on its plan branch (`sdlc branch <id> plan`), then `/sdlc:pr <id> --plan`
 - **Something refused** — `reference/refusals.md`
 - **Stop for good** — `sdlc draft abandon <id>`, and place it yourself

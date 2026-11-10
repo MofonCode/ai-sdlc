@@ -353,6 +353,11 @@ the plan branch before that. It implements what the plan decided **and only that
 the plan did not describe gets left alone and reported as a suggestion, because creep inside an approved
 file is what reaches review dressed as approved work, where it is least likely to be questioned.
 
+**Where the plan's approved text cannot be followed, it records a deviation and keeps going** (D-156): a
+file the fix has to touch that the plan did not declare, a test whose name has to change, a decision the
+work cannot keep. Each one quotes the approved text, names what blocked it, and says what was done
+instead, in `deviations.md`. You answer them after verify, below — the build does not stop for a reopen.
+
 It checks the suite actually ran rather than that the runner exited zero. A trial cycle lost its whole
 verification to `dotnet test` exiting zero without running anything, because the runner was not
 configured.
@@ -418,6 +423,25 @@ disagree with its own plan — a test that passed but does not reach its criteri
 It writes `pass` or `blocked`. On `pass`, go on to the pull request. On `blocked`,
 `handling-blockers.md` is the next step: remediation, and what happens when it runs out of progress.
 
+**Every reader judges against the documents as deviated.** Where the build recorded deviations, they are
+read beside the plan and the spec, and a change departing from the plan with no deviation describing it is
+blocked.
+
+### Answer the deviations
+
+When the build or remediation recorded any, `sdlc status` lists them under `Deviates`. **The pull request
+waits until you have answered every one**, with the same drafter that approved the plan:
+
+```pwsh
+sdlc deviations 20260929_1456_32
+sdlc draft approval 20260929_1456_32
+```
+
+It drafts each with `accepted: false` and `note: ""`. Set `accepted: true` to accept one; leave it false
+and write why to decline it, and remediation redoes that part. Then rename the draft into place.
+`handling-blockers.md` has the rest. Under `approval: none` they are accepted for you, and the pull request
+is where you read them.
+
 ## 7. Pull request
 
 ```pwsh
@@ -444,8 +468,8 @@ rather than creating it for you, and says the part that is easy to miss: a remot
 guarantee, so adoption is re-run afterwards to get the pipeline. This is the cost of adopting before the
 remote existed, and `adopting-the-framework.md` is where it is avoided.
 
-The body is the cycle rather than a summary somebody invented: the problem in the intent's own words, the
-criteria with the verification's verdict on each, the tier, the risk section, and anything still in an
+The body is the cycle rather than a summary somebody invented: any deviations first, with your answer to
+each, then the problem in the intent's own words, the criteria with the verification's verdict on each, the tier, the risk section, and anything still in an
 `## Open` region — because a reviewer should meet the limits before they approve.
 
 **It is not approving the merge.** A code owner does that, and never the agent that wrote the change. The

@@ -34,10 +34,11 @@ show a passing verify, stop and say so.
 a cycle, with how long their longest finding stood and whether the rule is the framework's; findings that
 rested on no rule, grouped by who raised them and at which stage, each sample with its cycle, its id and
 how many rounds it stood; which readers raised what a later one withdrew; and, per cycle, **the rounds
-each document took, every reopen with the reason the person wrote, and every verdict the verify
-reached** — then what approved cycles stated, **the open suggestions of the finished cycles not yet mined,
-and the concerns earlier sittings ignored**, and what the declared stack never mentions. It ends with
-the path of the proposal file.
+each document took, every reopen with the reason the person wrote, how many deviations its build
+recorded and where each stands, and every verdict the verify reached**, with the rules behind every
+deviation tallied across cycles — then what approved cycles stated, **the open suggestions of the
+finished cycles not yet mined, and the concerns earlier sittings ignored**, and what the declared stack
+never mentions. It ends with the path of the proposal file.
 
 **The report is what to read, not what to propose.** Its samples are pointers, and a history runs to
 hundreds of findings, which no single reading holds. So the reading is split:
@@ -60,7 +61,9 @@ hundreds of findings, which no single reading holds. So the reading is split:
 ### Account for every item
 
 Before writing a single proposal, list what the record raised, and give each one an answer. Every
-**argued rule**, every **reopen**, every **criterion that failed more than one verdict**, every
+**argued rule**, every **reopen**, every **rule behind deviations in more than one cycle** — a rule plans
+keep failing to anticipate — and every **declined deviation**, whose note is a person's decision with its
+alternative named, every **criterion that failed more than one verdict**, every
 **perspective at the bar**, every **group a reader returned whose findings stood three rounds or
 more**, and every entry the report lists **over the word budget** gets one of:
 

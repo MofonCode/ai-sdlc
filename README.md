@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.39.3** · iteration 4 · .NET 10
+**Version 0.40.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.39.3`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.40.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -421,6 +421,13 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **Deviations have only met the suite** (0.40.0). A build or a remediation that cannot follow the approved
+  text now records a deviation in `deviations.md` and keeps going, instead of stopping for a reopen; every
+  verify reader judges against it, and a person answers each one with the same approval drafter before the
+  pull request. It is a minor: build and remediate write a new file, the verify readers read it, a change
+  departing from the plan with no deviation describing it is blocked, a reopen is refused while a deviation
+  is unanswered, and the pull-request check waits on the answers. No cycle has recorded one yet, so nobody
+  knows how often a build deviates where it used to stop, or whether readers hold a deviation to its quote.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through

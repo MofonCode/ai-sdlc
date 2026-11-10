@@ -50,6 +50,11 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Amending an admitted plan — `sdlc draft approval --reopen`, `sdlc branch`** | |
 | [a reopen on the build branch](../guides/handling-refusals.md#a-reopen-on-the-build-branch) | `sdlc branch <id> plan`, reopen and approve there, `/sdlc:pr <id> --plan`; then keep or delete the build branch |
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
+| **Deviations — `sdlc draft approval`, `sdlc deviations`, `sdlc verify-chain`** | |
+| [a reopen with deviations unanswered](../guides/handling-refusals.md#a-reopen-with-deviations-unanswered) | `sdlc draft approval <id>`, answer each one, then reopen |
+| [a deviation unanswered](../guides/handling-refusals.md#a-deviation-unanswered) | `sdlc draft approval <id>`: `accepted: true`, or `false` with a note saying why |
+| [a deviation that does not hold](../guides/handling-refusals.md#a-deviation-that-does-not-hold) | the stage that wrote it corrects the quote, or writes the successor; a claimed file is not a deviation |
+| [a declined deviation not verified again](../guides/handling-refusals.md#a-declined-deviation-not-verified-again) | `/sdlc:remediate <id>`, then `/sdlc:verify <id>` |
 | **Successors — `sdlc successor`, `sdlc lead show successor:`** | |
 | [a successor that is not ready](../guides/handling-refusals.md#a-successor-that-is-not-ready) | wait until `sdlc successors` says `ready`; for a stuck one, correct `succeeds:` or delete the file |
 | [a loop through succeeds](../guides/handling-refusals.md#a-loop-through-succeeds) | correct one file's `succeeds:` so the loop opens |

@@ -39,7 +39,9 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc evidence <id>` | binary | records the base commit, the commit the build is at, the test summary and the diff between the two, which is not committed; refuses uncommitted code outside `.sdlc/`; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline | and the platform the tests ran on
 | `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
-| `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
+| `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open, and records a deviation where the approved text cannot be followed |
+| `sdlc deviations <id>` | binary | where the build bent the approved documents: each deviation, whether you accepted, declined or have yet to answer it, and anything wrong with it. Exits 1 while one misquotes the approved text or takes a file another cycle claims |
+| `sdlc draft approval <id>` | binary | on an approved cycle with deviations nobody answered, writes the answer to each, `accepted: false` and an empty note. **You set each, and rename it** |
 | `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not, and always for a test run: a cycle any round of which a local build wrote |
 | `/sdlc:pr <id>` | agent | pushes and opens the pull request. Asks first |
 | `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check; `slices/<slug>/plan` gets it for every cycle sliced together, with their successors and sibling plans checked; a branch that is no cycle's and changes only the pin, what `sdlc init` and `sdlc factory` write, answers in the declared stack and dependency versions gets the upgrade check |

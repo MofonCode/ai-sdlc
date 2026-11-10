@@ -112,6 +112,7 @@ try
         "mine" => await MineCommand(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
+        "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
@@ -1265,6 +1266,23 @@ static async Task<int> SlicesCommand(CommandLine line)
 
 // Every successor a slicing wrote, and where each stands -- worked out from the record, never stored
 // (D-125). A listing: it exits 0 whatever it found, and 'successor check' is the one that refuses.
+// Where the build bent the approved documents, against what a person answered. Refuses while anything is wrong
+// with them, so build and remediate can check what they recorded before they hand back.
+static async Task<int> DeviationsCommand(Workspace workspace, CycleId id)
+{
+    Result<Sdlc.Core.Deviations.CycleDeviations.Response> result = await workspace
+        .Send<Sdlc.Core.Deviations.CycleDeviations.Query, Sdlc.Core.Deviations.CycleDeviations.Response>(new Sdlc.Core.Deviations.CycleDeviations.Query(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Deviations.DeviationsRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.State.Problems.Count > 0 ? ExitCode.Refused : ExitCode.Ok;
+}
+
 static async Task<int> SuccessorsCommand(Workspace workspace)
 {
     Result<Sdlc.Core.Successors.ReadSuccessors.Response> result = await workspace
@@ -2263,6 +2281,27 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     {
         Departures = Departures.Named(await Departures.Of(status.Cycle, CancellationToken.None).ConfigureAwait(false), recorded),
     };
+
+    // Where the build bent the approved documents, and what the person has answered.
+    Sdlc.Core.Deviations.DeviationsState deviations = await Sdlc.Core.Deviations.CycleDeviations.Read(status.Cycle, CancellationToken.None).ConfigureAwait(false);
+    if (deviations.Current.Count > 0)
+    {
+        status = status with
+        {
+            Deviations =
+            [
+                .. deviations.Current.Select(deviation => Sdlc.Core.Deviations.DeviationsFile.Line(deviation.Deviation) + " - " + deviation.Standing switch
+                {
+                    Sdlc.Core.Deviations.DeviationStanding.Accepted => "accepted",
+                    Sdlc.Core.Deviations.DeviationStanding.Declined => "declined",
+                    _ => "unanswered",
+                }),
+                .. deviations.Pending.Count > 0
+                    ? [string.Create(CultureInfo.InvariantCulture, $"{deviations.Pending.Count} unanswered: sdlc draft approval {status.Cycle.Id}")]
+                    : Array.Empty<string>(),
+            ],
+        };
+    }
 
     ArtifactKind kind = state.Kind;
     ArtifactOutline outline = await ArtifactOutlineReader
