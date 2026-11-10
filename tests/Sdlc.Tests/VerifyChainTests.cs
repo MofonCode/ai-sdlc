@@ -365,6 +365,93 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
+    public async Task A_cycle_that_followed_its_plan_is_asked_nothing_about_deviations()
+    {
+        using CycleWorkspace workspace = Sound();
+
+        VerifyChain.Response verdict = await Check(workspace);
+
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name.Contains("deviation", StringComparison.Ordinal)), Describe(verdict));
+    }
+
+    [TestMethod]
+    [DataRow(null, null, false, DisplayName = "unanswered")]
+    [DataRow(true, null, true, DisplayName = "accepted")]
+    [DataRow(false, "Fix the fixture instead.", true, DisplayName = "declined")]
+    public async Task Every_deviation_is_answered_before_the_pull_request(bool? accepted, string? note, bool holds)
+    {
+        using CycleWorkspace workspace = Sound();
+        string sha = Deviate(workspace);
+
+        if (accepted is { } answer)
+        {
+            AnswerDeviation(workspace, sha, answer, note);
+        }
+
+        VerifyChain.Response verdict = await Check(workspace);
+
+        VerifyChain.ChainCheck answered = verdict.Checks.Single(check => check.Name == "every deviation is answered");
+        Assert.AreEqual(holds, answered.Passed, answered.Detail);
+        Assert.IsTrue(verdict.Checks.Single(check => check.Name == "the deviations are sound").Passed, Describe(verdict));
+
+        if (!holds)
+        {
+            StringAssert.Contains(answered.Detail, "DEV_01 has no answer. 'sdlc draft approval");
+        }
+    }
+
+    [TestMethod]
+    [DataRow("2026-10-01T10:00:00Z", false)]
+    [DataRow("2026-10-03T10:00:00Z", true)]
+    public async Task A_declined_deviation_is_verified_again_before_the_pull_request(string verifiedAt, bool holds)
+    {
+        // A decline means the build redoes that part, so a verdict from before it judged code the person
+        // turned down.
+        using CycleWorkspace workspace = Sound();
+        AnswerDeviation(workspace, Deviate(workspace), accepted: false, "Fix the fixture instead.");
+        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Verify, 1), $$"""
+            { "framework_version": "1.0.0", "cycle": "{{workspace.Cycle.Id}}", "artifact": "verify.md",
+              "upstream_sha256": "{{workspace.HashOf(ArtifactKind.Plan)}}", "interrogated_at": "{{verifiedAt}}",
+              "round": 1, "findings": [] }
+            """);
+
+        VerifyChain.Response verdict = await Check(workspace);
+
+        VerifyChain.ChainCheck follows = verdict.Checks.Single(check => check.Name == "the verdict follows the deviations declined");
+        Assert.AreEqual(holds, follows.Passed, follows.Detail);
+    }
+
+    // Records one plan deviation quoting the plan's own frontmatter, and returns its hash.
+    private static string Deviate(CycleWorkspace workspace)
+    {
+        CycleWorkspace.WriteRaw(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle), $"""
+            ## DEV_01 — A file the plan did not declare is changed
+
+            Kind: plan
+            Departs from: plan.md, Files
+            > cycle: {workspace.Cycle.Id}
+            Blocker: a test fails two runs in three
+            Deviation: another file is changed too.
+            Why: the fault is there.
+
+            """);
+
+        return Sdlc.Core.Deviations.DeviationsFile.Parse(
+            File.ReadAllText(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle)),
+            "deviations.md").Value.Single().Sha256;
+    }
+
+    private static void AnswerDeviation(CycleWorkspace workspace, string sha, bool accepted, string? note)
+    {
+        string ledger = File.ReadAllText(workspace.Cycle.ApprovalPath).TrimEnd();
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.ApprovalPath,
+            ledger[..^3]
+                + "  - decision: deviations\n    by: Peter Almanzar\n    at: 2026-10-02T12:00:00Z\n    deviations:\n"
+                + $"      - id: DEV_01\n        sha256: {sha}\n        accepted: {(accepted ? "true" : "false")}\n        note: \"{note}\"\n---\n");
+    }
+
+    [TestMethod]
     [DataRow(true, true, DisplayName = "a round over the old hash, on a checkout holding the log")]
     [DataRow(false, false, DisplayName = "a round over the new hash, on a clean checkout without it")]
     public async Task The_build_log_is_out_of_the_evidence_hash_and_a_round_over_the_old_one_still_holds(

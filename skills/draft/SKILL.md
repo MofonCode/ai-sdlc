@@ -68,6 +68,12 @@ Those three print the `reason` key with nothing after it, on purpose — the gat
 refuses a cycle and says nothing about why, so an unfilled one fails rather than standing quietly. Say
 that when you show it.
 
+**On an approved cycle whose build recorded deviations nobody answered, the same command drafts the answer
+to each one** (D-156): a `deviations` entry listing every deviation with `accepted: false` and `note: ""`.
+Show the deviations it prints, and tell the person: set `accepted: true` to accept one, or leave it false and
+write why in its note to decline it; false with no note is not reviewed, and the pull request waits on it. A
+reopen is refused until every deviation is answered — decline first, then reopen.
+
 **`abandon`** — why a cycle stopped. The reason is left empty and the file is rejected without one.
 Abandonment is terminal: the cycle will never build, even if it also holds an approval, and there is no
 command to revive it. The reason is history rather than safety — an agent stuck on a blocking finding has

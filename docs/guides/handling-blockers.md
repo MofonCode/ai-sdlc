@@ -172,7 +172,9 @@ it into the intent with your name on it, or to decline it. Name every one you wa
 ### After approval
 
 Refine refuses once a cycle is approved: the documents are hash-locked, so editing one would break the
-gate rather than satisfy it. A blocker found after approval means withdrawing the approval first:
+gate rather than satisfy it. **A build that finds the approved text cannot be followed records a deviation
+instead** — [below](#when-the-approved-text-cannot-be-followed) — and keeps going. A plan you find wrong in
+substance means withdrawing the approval first:
 
 ```pwsh
 sdlc draft approval <id> --reopen
@@ -253,18 +255,59 @@ again and commits it, and a fresh verification reads the new evidence.
 |---|---|
 | a pass undoes what an earlier one answered | a loop undoing its own work is not going to finish |
 | two passes in a row reduce nothing | nothing is moving |
+| a third deviation bends the same approved text, and the verification still blocks | the loop is going round, not converging |
 
 There is no pass ceiling. Nothing stops pass nine if pass nine is still making progress.
 
-### When the criterion is wrong
+### When the approved text cannot be followed
 
-**Remediate will not adjust the spec to match the code.** If the honest conclusion is that a criterion
-or a planned proof is wrong, it says so and stops. The recovery is yours: reopen the approval with a
-recorded reason, correct the document — by refine, or steer if the intent moved — and approve it again.
+**Remediate will not adjust the spec to match the code, and neither stage stops to ask you.** When the
+approved text cannot be followed — a file the fix has to touch that the plan did not declare, a test whose
+name has to change, a criterion no finite proof meets, a decision the work cannot keep — build or remediate
+does the work and records a **deviation** in `deviations.md` (D-156). Each one quotes the approved text it
+departs from, word for word, names the blocker with its evidence, and says what was done instead. A
+criterion may only be narrowed, and the part dropped becomes a successor.
+
+**A deviation doesn't excuse a blocker. It replaces the approved text the blocker was measured against,
+and you sign the replacement.** Every verify reader reads them and judges against the documents as
+deviated. A change that departs from the plan with no deviation describing it is blocked as an undeclared
+one, so the build can bend the plan but not silently.
+
+```pwsh
+sdlc deviations <id>
+```
+
+lists each one with where it stands. **Before the pull request, answer every one**, with the same drafter
+that approves:
+
+```pwsh
+sdlc draft approval <id>
+```
+
+On an approved cycle with unanswered deviations it drafts a `deviations` entry, each one listed with
+`accepted: false` and `note: ""`:
+
+| You leave | Means |
+|---|---|
+| `accepted: true` | accepted: it is part of what the cycle promises |
+| `accepted: false`, a note written | declined: remediate redoes that part, with your note as its instruction |
+| `accepted: false`, the note empty | not reviewed. The pull request check refuses until you answer it |
+
+Accept some and decline others in one entry; each is held to the hash of its text, so one edited after you
+answered it is unanswered again. A declined one has to be verified again before the pull request. **Under
+`approval: none`** every deviation is accepted, and the pull request, whose body leads with them, is your
+review.
+
+**When the deviations show the plan is wrong in substance, reopen** — but answer every deviation first;
+the drafter refuses a reopen until you have. The accepted ones are written into the amended plan, and the
+declined ones, with your notes, are the reopen's reason.
 
 ```pwsh
 sdlc draft approval <id> --reopen
 ```
+
+A change that needs the intent changed, a wider scope, or a file another cycle claims is never a
+deviation. The stage stops and hands back, and the choice is a successor or a reopen.
 
 ### Escalated
 

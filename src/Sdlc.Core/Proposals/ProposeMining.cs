@@ -9,6 +9,7 @@ using Sdlc.Core.Constraints;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
+using Sdlc.Core.Deviations;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -71,12 +72,21 @@ public static class ProposeMining
     /// <param name="Reopens">Every reopen, oldest first.</param>
     /// <param name="Verdicts">Every verdict its verify reached, oldest first.</param>
     /// <param name="Usage">What its readers cost, when its rounds recorded it (D-121).</param>
+    /// <param name="Deviations">Every deviation its build recorded, with where each stands and the rules behind it.</param>
     public sealed record CycleRecord(
         CycleId Cycle,
         IReadOnlyDictionary<ArtifactKind, int> Rounds,
         IReadOnlyList<Reopen> Reopens,
         IReadOnlyList<Verdict> Verdicts,
-        UsageLedger? Usage = null);
+        UsageLedger? Usage = null,
+        IReadOnlyList<DeviationRecord>? Deviations = null);
+
+    /// <summary>One deviation a cycle recorded, as mining tallies it.</summary>
+    /// <param name="Id">Its id.</param>
+    /// <param name="Kind">What it bent.</param>
+    /// <param name="Standing">Where it stands: accepted, declined, unanswered, or taken in by a reopen.</param>
+    /// <param name="Rules">The rules its blocker named; empty when it named none.</param>
+    public sealed record DeviationRecord(string Id, DeviationKind Kind, DeviationStanding Standing, IReadOnlyList<string> Rules);
 
     /// <summary>The report.</summary>
     /// <param name="Rules">What the findings say about the rules.</param>
@@ -194,6 +204,7 @@ public static class ProposeMining
         }
 
         Record(text, response.Record ?? []);
+        DeviatedBy(text, response.Record ?? []);
 
         text.AppendLine();
         text.AppendLine(string.Create(
@@ -360,7 +371,35 @@ public static class ProposeMining
     }
 
     /// <summary>
-    /// How each cycle went: rounds per document, reopens with their reasons, and every verdict.
+    /// Which rules keep causing deviations, across every cycle read: the rule each deviation's blocker named,
+    /// most first. A rule behind deviations in several cycles is one the plans keep failing to anticipate.
+    /// </summary>
+    private static void DeviatedBy(StringBuilder text, IReadOnlyList<CycleRecord> record)
+    {
+        List<(CycleId Cycle, DeviationRecord Deviation)> all = [.. record.SelectMany(cycle => (cycle.Deviations ?? []).Select(deviation => (cycle.Cycle, deviation)))];
+
+        if (all.Count == 0)
+        {
+            return;
+        }
+
+        text.AppendLine();
+        text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Deviations   {all.Count} across {all.Select(entry => entry.Cycle).Distinct().Count()} cycles, by the rule behind them"));
+
+        foreach (IGrouping<string, (CycleId Cycle, DeviationRecord Deviation)> rule in all
+            .SelectMany(entry => entry.Deviation.Rules.Count == 0 ? ["no rule named"] : entry.Deviation.Rules, (entry, rule) => (Rule: rule, entry))
+            .GroupBy(pair => pair.Rule, pair => pair.entry, StringComparer.Ordinal)
+            .OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key, StringComparer.Ordinal))
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {rule.Key}: {rule.Count()} in {rule.Select(entry => entry.Cycle).Distinct().Count()} cycle{(rule.Select(entry => entry.Cycle).Distinct().Count() == 1 ? string.Empty : "s")}, {rule.Count(entry => entry.Deviation.Standing == DeviationStanding.Declined)} declined"));
+        }
+    }
+
+    /// <summary>
+    /// How each cycle went: rounds per document, reopens with their reasons, every deviation, and every verdict.
     /// </summary>
     /// <remarks>
     /// The reopens are where a person already decided something and wrote down what they refused, and
@@ -394,6 +433,15 @@ public static class ProposeMining
                         text.AppendLine("      " + Cycle.NameOf(kind) + " " + document.Describe());
                     }
                 }
+            }
+
+            // How far the build had to bend the approved documents: a plan that needed many deviations was a
+            // weak plan, and a spec that needed criterion deviations overreached.
+            if (cycle.Deviations is { Count: > 0 } deviated)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    deviated {deviated.Count}x ({string.Join(", ", deviated.GroupBy(deviation => deviation.Kind).OrderBy(group => group.Key).Select(group => string.Create(CultureInfo.InvariantCulture, $"{group.Count()} {Deviation.NameOf(group.Key)}")))}): {deviated.Count(deviation => deviation.Standing is DeviationStanding.Accepted)} accepted, {deviated.Count(deviation => deviation.Standing is DeviationStanding.Declined)} declined, {deviated.Count(deviation => deviation.Standing is DeviationStanding.Pending)} unanswered, {deviated.Count(deviation => deviation.Standing is DeviationStanding.History)} taken in by a reopen"));
             }
 
             foreach (Reopen reopen in cycle.Reopens)
@@ -591,12 +639,19 @@ public static class ProposeMining
                     .Select(entry => new Reopen(entry.At, entry.By, entry.Reason)));
             }
 
+            DeviationsState deviations = await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false);
+
             return new CycleRecord(
                 cycle.Id,
                 rounds,
                 reopens,
                 Verdicts(cycle),
-                (await UsageLedger.Read(cycle, cancellationToken).ConfigureAwait(false)).ValueOrDefault);
+                (await UsageLedger.Read(cycle, cancellationToken).ConfigureAwait(false)).ValueOrDefault,
+                [.. deviations.States.Select(state => new DeviationRecord(
+                    state.Deviation.Id,
+                    state.Deviation.Kind,
+                    state.Standing,
+                    DeviationsFile.RulesOf(state.Deviation)))]);
         }
 
         /// <summary>

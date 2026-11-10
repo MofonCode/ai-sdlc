@@ -1,6 +1,7 @@
 using System.Globalization;
 using FluentResults;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Deviations;
 
 namespace Sdlc.Core.Findings;
 
@@ -16,11 +17,13 @@ namespace Sdlc.Core.Findings;
 /// What the verify rounds say about rules going backwards. A regression is a relapse on the verification:
 /// a finding answered by one pass and raised again by the next.
 /// </param>
+/// <param name="Circles">Approved text the cycle's deviations bent three times or more.</param>
 public sealed record RemediationState(
     int Spent,
     IReadOnlyList<int> OpenPerRound,
     IReadOnlyList<Finding> OpenBlockers,
-    OscillationState Loop)
+    OscillationState Loop,
+    IReadOnlyList<DeviationCircle>? Circles = null)
 {
     /// <summary>Whether anything still blocks.</summary>
     public bool Blocked => OpenBlockers.Count > 0;
@@ -60,7 +63,16 @@ public sealed record RemediationState(
     /// all three. There is deliberately no ceiling behind the predicate (D-66), so termination rests on
     /// it entirely.</para>
     /// </remarks>
-    public bool Escalated => Blocked && (Regressed || Stalled);
+    public bool Escalated => Blocked && (Regressed || Stalled || Circling);
+
+    /// <summary>
+    /// Whether three deviations or more bend the same approved text and the verification still blocks.
+    /// </summary>
+    /// <remarks>
+    /// D-65's halt carried to deviations: a third attempt to bend the same text is the loop going round, not
+    /// converging. It is not a cap on how many deviations a cycle may record.
+    /// </remarks>
+    public bool Circling => Circles is { Count: > 0 };
 
     /// <summary>Whether each pass reduced what was open, in order.</summary>
     /// <remarks>
@@ -129,7 +141,8 @@ public static class RemediationBudget
             spent,
             FindingsReader.OpenBlockersPerRound(rounds),
             FindingsReader.StandingBlockers(rounds),
-            Oscillation.Count(rounds)));
+            Oscillation.Count(rounds),
+            (await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false)).Circles));
     }
 
     /// <summary>
@@ -165,6 +178,14 @@ public static class RemediationBudget
         // Which of the two stopped it, because they call for different things. A regression says the
         // last pass broke what an earlier one fixed, so somebody should look at what it did; a stall
         // says nothing is moving, so somebody should look at whether the finding is answerable at all.
+        if (state.Circling)
+        {
+            DeviationCircle circle = state.Circles![0];
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"escalated: {string.Join(", ", circle.Ids)} bend the same text in {circle.Document}, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}");
+        }
+
         return state.Regressed
             ? string.Create(
                 CultureInfo.InvariantCulture,

@@ -26,9 +26,9 @@ yourself** — the cycle a skill acts on is not a guess.
 
 | | |
 |---|---|
-| **May edit** | source, tests |
+| **May edit** | source, tests, and `deviations.md` where the approved text cannot be followed |
 | **May never edit** | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
-| **Capped** | not on passes. It stops when a pass undoes earlier work, or two in a row reduce nothing |
+| **Capped** | not on passes. It stops when a pass undoes earlier work, two in a row reduce nothing, or three deviations bend the same approved text |
 
 **`approval.md` is denied at the tool call. The other three are yours to keep.** The hook sees a tool
 call and not which skill made it, so it cannot tell your edit to `spec.md` from the same edit made by
@@ -41,15 +41,36 @@ hash-locked, and editing one makes `sdlc gate` refuse the build and `sdlc verify
 merge, both naming which document moved. **You cannot edit your way past a criterion; you can only turn
 a cycle that would have opened a pull request into one that cannot.**
 
-So when the honest conclusion is "the criterion is wrong", say it and stop. Do not make the code satisfy
-a criterion you believe is mistaken, and do not edit the criterion. The move is
-`sdlc draft approval <id> --reopen`, which withdraws the approval with a recorded reason so the planning
-documents can be rewritten and re-approved. That is the recovery path, and it leaves a record.
+So when the honest conclusion is "the approved text cannot be followed", **record a deviation** rather
+than editing the document or stopping (D-156). Do not make the code satisfy a criterion you believe is
+mistaken, and do not edit the criterion: a `criterion` deviation narrows it, quoting it word for word, and
+names the successor the dropped part becomes. A person answers every deviation before the merge.
 
-**Not on this branch, once the plan is on the integration branch** (D-123). Remediation runs on a build
-branch, and the drafter refuses a reopen there: hand back, and the person reopens on the plan branch —
-`sdlc branch <id> plan` — and admits the amendment with `/sdlc:pr <id> --plan`. This build is then theirs
-to keep, by merging the integration branch in, or to delete for the factory to rebuild.
+A deviation is a section appended to `.sdlc/cycles/<id>/deviations.md`:
+
+```markdown
+## DEV_02 — Criterion 7 narrowed to the server host
+
+Kind: criterion
+Departs from: spec.md, Acceptance criteria
+> 7. The same implementation serves both hosts.
+Blocker: verify.F_04 under CON_08 — the framework gives each host its own implementation, so no test can show one
+Deviation: criterion 7 holds for the server host; the browser host's half becomes a successor.
+Why: no finite proof reaches the criterion as written.
+Successor: browser-host-parity — the browser host serves the same implementation
+```
+
+The quote decides the kind: `plan` and `proof` quote `plan.md`, `criterion` quotes `spec.md` and only
+narrows, `decision` quotes `decisions.md`. The blocker is the finding it answers, by id and gist, or the
+evidence. Never the intent, never wider, never a file another cycle claims — those stop you, and a person
+decides. Check it with `sdlc deviations <id>`, and commit it with the code.
+
+**A deviation a person declined is redone.** Its note is your instruction. If the redo still has to bend
+the approved text, record a new deviation with `Replaces: DEV_nn`; do not edit the declined one.
+
+**A reopen is the person's**, when the deviations show the plan is wrong in substance. It is refused until
+every deviation is answered, and once the plan is on the integration branch it happens on the plan branch,
+not this one (D-123).
 
 ## Know whether the loop is still getting anywhere
 
@@ -65,6 +86,7 @@ anybody could edit. What matters is not how many there have been but whether the
 | *making progress* | each pass has reduced what is open. Keep going — **there is no pass limit to run out of** |
 | *a pass undid earlier work* | a finding an earlier pass answered has been raised again, and the cycle has stopped |
 | *the last two passes reduced nothing* | nothing is moving, and the cycle has stopped |
+| *DEV_nn, DEV_nn, DEV_nn bend the same text* | a third attempt at the same approved text, and the verification still blocks: the loop is going round, and the cycle has stopped |
 
 **There used to be a hard three and there is deliberately no ceiling now (D-66).** A blind three failed
 an honest cycle that needed a fourth pass, and let a cycle making no progress at all spend all three. So
@@ -97,11 +119,11 @@ outcome was about.
 outcome reads `pass` (D-139). Two kinds:
 
 - **`CON_07.2` — the change does something the plan did not describe.** Take it back out. If it is worth
-  keeping, it is a `Noticed:` line in the commit message for a later cycle.
+  keeping, it is a `Noticed:` line in the commit message for a later cycle. **If the approved text cannot
+  be followed without it**, keep it and record a `plan` deviation answering the finding.
 - **`CON_24` — the change takes what a recorded decision set aside, and nothing declared the departure.**
   The finding quotes the decision in its own words. Make the code keep the decision. **If the work cannot
-  be done without departing, stop and hand back** with one plain line — which decision, and why — because
-  a departure is declared in the plan for a person to approve, through `/sdlc:steer`, never made in code.
+  be done without departing**, record a `decision` deviation quoting it, for the person to answer.
 
 Fix the **cause**, not the symptom. The failure modes to avoid, in order of how tempting they are:
 
@@ -132,7 +154,7 @@ reads the new evidence, so evidence left in your working tree is evidence it can
 ## Report and hand back
 
 **One line per unmet criterion and per finding**, carrying three things: what was wrong, what you
-changed, and whether you are confident that was the cause. A finding you are not confident about says so in its line — that is the
+changed — or the deviation you recorded — and whether you are confident that was the cause. A finding you are not confident about says so in its line — that is the
 most useful thing in the report, and it is the first thing a paragraph hides. Then:
 
 ```
