@@ -393,8 +393,9 @@ What is honest to say about the rest:
   id as optional, and `sdlc cycles --here` names the cycle or lists the ones to ask about.
 - **Planning in a sandbox has only met the suite** (0.38.0). The intent skill opens one worktree on
   `sandbox/<id>` for every cycle a piece of work turns into, and `sdlc admit` composes what is approved onto an
-  admission branch the check already knows. The commands it prints are held as strings: nobody has yet run a
-  sandbox through to an admitted pull request, and `sdlc new` no longer refuses uncommitted work, which the plan
+  admission branch the check already knows. The commands it prints are held as strings. The first sandbox taken
+  through to a pull request, MarketSense's, carried two approved plans, and `sdlc admit` crashed sorting them
+  until 0.39.3, so that one was composed by hand from the steps it prints; and `sdlc new` no longer refuses uncommitted work, which the plan
   switch refuses instead. `sdlc discard` says what throwing a sandbox away would lose, and an abandoned cycle now
   reaches the integration branch as a record by `sdlc admit`.
 - **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
