@@ -12,6 +12,7 @@ namespace Sdlc.Tests;
 public sealed class AdmissionTests
 {
     private const string Id = "20260929_1456_32";
+    private const string Later = "20260929_1500_00";
     private const string Sandbox = "sandbox/" + Id;
 
     [TestMethod]
@@ -27,6 +28,23 @@ public sealed class AdmissionTests
         StringAssert.StartsWith(admission.Command, "git worktree add -b cycle/" + Id + "/plan ../" + Id + ".admit origin/development");
         StringAssert.Contains(admission.Command, "checkout " + Sandbox + " -- .sdlc/cycles/" + Id);
         StringAssert.Contains(admission.Command, "commit -m \"Admit " + Id + " from " + Sandbox + "\"");
+    }
+
+    [TestMethod]
+    public async Task Two_approved_cycles_leave_together_on_the_sandbox_slicing_branch_in_the_order_they_opened()
+    {
+        using CycleWorkspace workspace = Approved();
+        using CycleWorkspace later = Approved(Later);
+        CopyCycle(later, workspace.Root);
+        FakeRepository git = Git(workspace);
+        git.Files[Sandbox + ":.sdlc/cycles/" + Later + "/plan.md"] = await File.ReadAllTextAsync(later.Cycle.PathOf(ArtifactKind.Plan));
+
+        Result<ComposeAdmission.Response> result = await Compose(workspace, git);
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.AreEqual("slices/sandbox-20260929-1456-32/plan", result.Value.Branch);
+        CollectionAssert.AreEquivalent(new[] { workspace.Cycle.Id, later.Cycle.Id }, result.Value.Admitted.ToArray());
+        StringAssert.Contains(result.Value.Command, "commit -m \"Admit " + Id + ", " + Later + " from " + Sandbox + "\"");
     }
 
     [TestMethod]
@@ -93,9 +111,9 @@ public sealed class AdmissionTests
         StringAssert.Contains(result.Errors[0].Message, "already exists");
     }
 
-    private static CycleWorkspace Approved()
+    private static CycleWorkspace Approved(string id = Id)
     {
-        var workspace = CycleWorkspace.Create(Id);
+        var workspace = CycleWorkspace.Create(id);
 
         workspace.WriteArtifact(ArtifactKind.Intent);
         workspace.WriteSpec(criteria: 2);
@@ -108,6 +126,19 @@ public sealed class AdmissionTests
 
         workspace.WriteApproval();
         return workspace;
+    }
+
+    /// <summary>Puts another workspace's cycle beside this one's, as a sandbox holding two would.</summary>
+    private static void CopyCycle(CycleWorkspace from, string root)
+    {
+        string target = new Cycle(from.Cycle.Id, root).Directory;
+
+        foreach (string file in Directory.EnumerateFiles(from.Cycle.Directory, "*", SearchOption.AllDirectories))
+        {
+            string copy = Path.Combine(target, Path.GetRelativePath(from.Cycle.Directory, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+            File.Copy(file, copy);
+        }
     }
 
     private static FakeRepository Git(CycleWorkspace workspace, IReadOnlyList<string>? uncommitted = null)

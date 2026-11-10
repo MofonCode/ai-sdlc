@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.39.2** · iteration 4 · .NET 10
+**Version 0.39.3** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.39.2`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.39.3`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -393,8 +393,9 @@ What is honest to say about the rest:
   id as optional, and `sdlc cycles --here` names the cycle or lists the ones to ask about.
 - **Planning in a sandbox has only met the suite** (0.38.0). The intent skill opens one worktree on
   `sandbox/<id>` for every cycle a piece of work turns into, and `sdlc admit` composes what is approved onto an
-  admission branch the check already knows. The commands it prints are held as strings: nobody has yet run a
-  sandbox through to an admitted pull request, and `sdlc new` no longer refuses uncommitted work, which the plan
+  admission branch the check already knows. The commands it prints are held as strings. The first sandbox taken
+  through to a pull request, MarketSense's, carried two approved plans, and `sdlc admit` crashed sorting them
+  until 0.39.3, so that one was composed by hand from the steps it prints; and `sdlc new` no longer refuses uncommitted work, which the plan
   switch refuses instead. `sdlc discard` says what throwing a sandbox away would lose, and an abandoned cycle now
   reaches the integration branch as a record by `sdlc admit`.
 - **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
