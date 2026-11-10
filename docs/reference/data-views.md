@@ -28,6 +28,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [its suggestions, and what became of each](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/findings/suggestions.json` | `sdlc suggestions <id>`; every status: `--all` | the binary, through `sdlc round` |
 | [what its readers cost](../../tools/README.md) | `.sdlc/cycles/<id>/findings/usage.json` | `sdlc status <id>` | the binary |
 | [the build's evidence](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/evidence/` | `sdlc evidence check <id>` | the binary, through `sdlc evidence` |
+| [where the build bent the approved documents](../guides/handling-blockers.md) | `.sdlc/cycles/<id>/deviations.md`; the answers in `approval.md` | `sdlc deviations <id>` | the build and remediate stages; the answers by a person |
 | [a plan parked behind another's code](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/parked.md` | `sdlc backlog` | the binary, through `sdlc park` |
 | [whether it holds, end to end](../guides/handling-refusals.md) | worked out from all of the above | `sdlc verify-chain <id>` | — |
 | **Across cycles** | | | |

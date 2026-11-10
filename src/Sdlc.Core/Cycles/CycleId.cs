@@ -23,7 +23,7 @@ namespace Sdlc.Core.Cycles;
 /// would leave the race it was written to close.
 /// </para>
 /// </remarks>
-public readonly record struct CycleId
+public readonly record struct CycleId : IComparable<CycleId>
 {
     /// <summary>The format an id is written in: date, 24-hour time, seconds.</summary>
     public const string Format = "yyyyMMdd_HHmm_ss";
@@ -138,6 +138,39 @@ public readonly record struct CycleId
         id = read?.Id;
         return parsed;
     }
+
+    /// <summary>Orders ids by the moment each cycle opened, which is also the order of their text.</summary>
+    /// <remarks>
+    /// Without it a sort of ids throws as soon as it has two to compare, which is how admitting two
+    /// cycles from one sandbox failed while admitting one never did.
+    /// </remarks>
+    /// <param name="other">The id to compare with.</param>
+    /// <returns>Less than zero when this cycle opened first, zero when at the same second, more otherwise.</returns>
+    public int CompareTo(CycleId other) => Opened.CompareTo(other.Opened);
+
+    /// <summary>Whether the left cycle opened before the right.</summary>
+    /// <param name="left">The left id.</param>
+    /// <param name="right">The right id.</param>
+    /// <returns>True when <paramref name="left"/> opened first.</returns>
+    public static bool operator <(CycleId left, CycleId right) => left.CompareTo(right) < 0;
+
+    /// <summary>Whether the left cycle opened after the right.</summary>
+    /// <param name="left">The left id.</param>
+    /// <param name="right">The right id.</param>
+    /// <returns>True when <paramref name="left"/> opened later.</returns>
+    public static bool operator >(CycleId left, CycleId right) => left.CompareTo(right) > 0;
+
+    /// <summary>Whether the left cycle opened no later than the right.</summary>
+    /// <param name="left">The left id.</param>
+    /// <param name="right">The right id.</param>
+    /// <returns>True when <paramref name="left"/> did not open after <paramref name="right"/>.</returns>
+    public static bool operator <=(CycleId left, CycleId right) => left.CompareTo(right) <= 0;
+
+    /// <summary>Whether the left cycle opened no earlier than the right.</summary>
+    /// <param name="left">The left id.</param>
+    /// <param name="right">The right id.</param>
+    /// <returns>True when <paramref name="left"/> did not open before <paramref name="right"/>.</returns>
+    public static bool operator >=(CycleId left, CycleId right) => left.CompareTo(right) >= 0;
 
     /// <summary>Renders the id as it is written in paths, branches and citations.</summary>
     /// <returns>The id as text.</returns>

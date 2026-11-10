@@ -89,7 +89,11 @@ change itself — not the verdict — against the intent, the plan and the decis
 (nothing the plan did not describe) and `CON_24` (nothing a decision set aside without a declared
 departure). **Its findings are about the code, so no adjudication answers them**: their ids start
 `diff.`, and the route is `/sdlc:remediate`, which `sdlc status` names. A departure the work genuinely
-needs is declared in the plan through `/sdlc:steer`, for a person to approve.
+needs is a deviation remediate records, for a person to answer.
+
+**Every reader is handed the cycle's deviations** (D-156): where the build could not follow the approved text,
+with whether each is in force. They judge against the documents as deviated. **This stage never records a
+deviation, and never answers one**: it verifies, and the person answers.
 
 **Every other blocking finding in the round is answered by a new adjudication, not by an edit.** Changing a verdict
 is adjudicating, so it happens where adjudicating happens: start a fresh adjudicator from a prompt written
@@ -116,7 +120,9 @@ person told only "blocked" goes looking for them. Then stop.
 adjudication; a hand-back that re-argues it produces a second, shorter verdict with no hash and no
 round, and a reader who disagrees with one cannot tell which one the chain carries.
 
-- **Passed?** The person decides whether to open a pull request.
+- **Passed?** The person decides whether to open a pull request. Where the build recorded deviations
+  nobody has answered, the panel lists them and names `sdlc draft approval <id>`: the pull request waits
+  on the person's answer to each.
 - **Blocked?** The person decides whether to remediate. Do not start remediating; you
   have just finished judging, and the separation is the point.
 

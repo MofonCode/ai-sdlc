@@ -246,6 +246,9 @@ extension, that is why — say so plainly instead of trying variations. The gene
 
 **The body is the cycle, not a summary you invented.** It should carry:
 
+- **first, a `Deviations` section when the build recorded any**: each line `sdlc deviations <id>` prints,
+  copied as it stands — the deviation, then whether it was accepted or declined. Under `approval: none` nobody
+  signed them, so this section *is* the review: a reviewer approving the pull request approves each one
 - the intent's problem, in the intent's words
 - the spec's criteria, and the verification's verdict on each
 - the tier, so a reviewer knows how reversible this is

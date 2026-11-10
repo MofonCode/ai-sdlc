@@ -30,6 +30,17 @@ public enum GateDecision
     /// again -- that is the whole mechanism.
     /// </remarks>
     Reopened,
+
+    /// <summary>
+    /// A person's answer to each deviation a build or a remediation recorded, accepted or declined one by one.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Not a decision about the cycle, so it never stands.</strong> It sits beside the approval it
+    /// answers for and leaves it in force: <see cref="ApprovalLedger.Current"/> passes over it, so the gate
+    /// keeps reading the hashes and anchors of the approval itself. A deviation replaces approved text the
+    /// build could not follow, and a person signs the replacement, so nothing is waived (D-27).
+    /// </remarks>
+    Deviations,
 }
 
 /// <summary>One entry in a cycle's gate ledger.</summary>
@@ -44,6 +55,9 @@ public enum GateDecision
 /// Why. Required on anything but an approval, and free to carry on one. There is deliberately no
 /// field recording findings let through: a blocking finding cannot be waived by any mechanism, so an
 /// entry has nothing to record there.
+/// </param>
+/// <param name="Answers">
+/// On a <see cref="GateDecision.Deviations"/> entry, the person's answer to each deviation; empty on any other.
 /// </param>
 /// <param name="Rounds">
 /// For each planning document, the latest round of its findings ledger when the decision was taken and
@@ -62,7 +76,22 @@ public sealed record GateEntry(
     DateTimeOffset At,
     IReadOnlyDictionary<string, string> Hashes,
     string? Reason,
-    IReadOnlyDictionary<string, RoundAnchor>? Rounds = null);
+    IReadOnlyDictionary<string, RoundAnchor>? Rounds = null,
+    IReadOnlyList<DeviationAnswer>? Answers = null);
+
+/// <summary>A person's answer to one deviation, as a deviations entry records it.</summary>
+/// <param name="Id">The deviation, as <c>DEV_nn</c>.</param>
+/// <param name="Sha256">The hash of the deviation's text as it was answered; an edit since leaves it unanswered.</param>
+/// <param name="Accepted">True when the person accepted it. False is the default the drafter writes.</param>
+/// <param name="Note">Why, when the person declined it. False with no note is a deviation nobody has reviewed.</param>
+public sealed record DeviationAnswer(string Id, string Sha256, bool Accepted, string? Note)
+{
+    /// <summary>Whether the person declined it: false, with the reason written.</summary>
+    public bool Declined => !Accepted && !string.IsNullOrWhiteSpace(Note);
+
+    /// <summary>Whether the person answered it at all: accepted, or declined with a reason.</summary>
+    public bool Answered => Accepted || Declined;
+}
 
 /// <summary>Where one document's findings ledger stood when a decision was taken (D-107).</summary>
 /// <param name="Round">The latest round it had.</param>
@@ -81,14 +110,32 @@ public sealed record ApprovalLedger(
     IReadOnlyList<GateEntry> Decisions)
 {
     /// <summary>
-    /// The decision that stands: the last one recorded.
+    /// The decision that stands: the last one recorded that decides the cycle.
     /// </summary>
     /// <remarks>
     /// A later approval supersedes an earlier refusal and a later reopen supersedes an approval, so
     /// order decides rather than presence. The file is append-only, which is what makes the last entry
-    /// meaningful.
+    /// meaningful. <strong>A deviations entry is passed over</strong>: it answers for the approval before it
+    /// and decides nothing about the cycle.
     /// </remarks>
-    public GateEntry? Current => Decisions.Count > 0 ? Decisions[^1] : null;
+    public GateEntry? Current => StandingIndex is int index ? Decisions[index] : null;
+
+    /// <summary>Where the decision that stands is in <see cref="Decisions"/>, or null when there is none.</summary>
+    public int? StandingIndex
+    {
+        get
+        {
+            for (int index = Decisions.Count - 1; index >= 0; index--)
+            {
+                if (Decisions[index].Decision != GateDecision.Deviations)
+                {
+                    return index;
+                }
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>Whether the cycle's standing decision is an approval.</summary>
     public bool IsApproved => Current?.Decision == GateDecision.Approved;
@@ -146,7 +193,7 @@ public sealed record ApprovalLedger(
             {
                 errors.Add(new Error(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{position} has decision '{entry.Decision}'. Expected approved, changes_requested, denied or reopened.")));
+                    $"{position} has decision '{entry.Decision}'. Expected approved, changes_requested, denied, reopened or deviations.")));
                 continue;
             }
 
@@ -164,7 +211,7 @@ public sealed record ApprovalLedger(
                 continue;
             }
 
-            if (decision != GateDecision.Approved && string.IsNullOrWhiteSpace(entry.Reason))
+            if (decision is not GateDecision.Approved and not GateDecision.Deviations && string.IsNullOrWhiteSpace(entry.Reason))
             {
                 errors.Add(new Error(
                     $"{position} refuses the cycle and says nothing about why. The reason is what the author has to work from."));
@@ -188,6 +235,32 @@ public sealed record ApprovalLedger(
                 anchors[document] = new RoundAnchor(round, anchor.Sha256.Trim());
             }
 
+            List<DeviationAnswer> answers = [];
+
+            foreach (AnswerShape answer in entry.Deviations ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(answer?.Id) || string.IsNullOrWhiteSpace(answer.Sha256))
+                {
+                    errors.Add(new Error(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{position} answers a deviation without its id and hash. 'sdlc draft approval' writes both; change only 'accepted' and 'note'.")));
+                    malformed = true;
+                    continue;
+                }
+
+                answers.Add(new DeviationAnswer(
+                    answer.Id.Trim(),
+                    answer.Sha256.Trim(),
+                    answer.Accepted ?? false,
+                    string.IsNullOrWhiteSpace(answer.Note) ? null : answer.Note.Trim()));
+            }
+
+            if (decision == GateDecision.Deviations && answers.Count == 0 && !malformed)
+            {
+                errors.Add(new Error($"{position} answers no deviation. A deviations entry lists each one the person answers."));
+                continue;
+            }
+
             if (malformed)
             {
                 continue;
@@ -199,7 +272,8 @@ public sealed record ApprovalLedger(
                 entry.At.Value.ToUniversalTime(),
                 entry.Hashes ?? [],
                 string.IsNullOrWhiteSpace(entry.Reason) ? null : entry.Reason.Trim(),
-                anchors));
+                anchors,
+                answers));
         }
 
         return errors.Count > 0
@@ -221,6 +295,7 @@ public sealed record ApprovalLedger(
         GateDecision.ChangesRequested => "changes_requested",
         GateDecision.Denied => "denied",
         GateDecision.Reopened => "reopened",
+        GateDecision.Deviations => "deviations",
         _ => throw new ArgumentOutOfRangeException(nameof(decision)),
     };
 
@@ -245,6 +320,9 @@ public sealed record ApprovalLedger(
                 return true;
             case string reopened when reopened.Equals("reopened", StringComparison.OrdinalIgnoreCase):
                 decision = GateDecision.Reopened;
+                return true;
+            case string deviations when deviations.Equals("deviations", StringComparison.OrdinalIgnoreCase):
+                decision = GateDecision.Deviations;
                 return true;
             default:
                 return false;
@@ -284,6 +362,20 @@ public sealed record ApprovalLedger(
         public string? Reason { get; set; }
 
         public Dictionary<string, AnchorShape>? Rounds { get; set; }
+
+        public List<AnswerShape>? Deviations { get; set; }
+    }
+
+    // Constructed by YamlDotNet through reflection, like the shapes above.
+    private sealed class AnswerShape
+    {
+        public string? Id { get; set; }
+
+        public string? Sha256 { get; set; }
+
+        public bool? Accepted { get; set; }
+
+        public string? Note { get; set; }
     }
 
     // Constructed by YamlDotNet through reflection, like the two shapes above.

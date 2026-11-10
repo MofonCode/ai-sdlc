@@ -718,6 +718,7 @@ public static class ApprovalGate
             GateDecision.ChangesRequested => "changes requested",
             GateDecision.Denied => "denied",
             GateDecision.Reopened => "reopened",
+            GateDecision.Deviations => "deviations answered",
             _ => "nothing at all",
         };
 

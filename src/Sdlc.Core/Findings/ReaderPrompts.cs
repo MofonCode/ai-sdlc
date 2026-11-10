@@ -9,6 +9,7 @@ using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
+using Sdlc.Core.Deviations;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Git;
 using Sdlc.Core.Perspectives;
@@ -165,6 +166,8 @@ public static class ReaderPrompts
 
                 await File(block, "evidence/" + name, path, "It was not recorded.", cancellationToken).ConfigureAwait(false);
             }
+
+            await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
         }
 
         if (withDocument)
@@ -174,6 +177,46 @@ public static class ReaderPrompts
         }
 
         return block.ToString();
+    }
+
+    /// <summary>
+    /// Where the build bent the approved documents: which deviations are in force and which a person declined,
+    /// then the file itself. A cycle with none is said to have none.
+    /// </summary>
+    /// <remarks>
+    /// A deviation in force -- accepted, or not yet answered -- replaces the approved text it quotes, so every
+    /// verify reader judges against the documents as deviated. A declined one replaces nothing, and code still
+    /// doing what it described departs from the approved text again. History, answered before a reopen, is left
+    /// out: the amended documents already say what it said.
+    /// </remarks>
+    private static async Task Deviated(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    {
+        DeviationsState deviations = await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false);
+
+        block.Append("Where the build bent the approved documents. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; a declined one replaces nothing:\n\n");
+
+        if (!deviations.Recorded || deviations.Current.Count == 0)
+        {
+            block.Append(deviations.Recorded && deviations.Problems.Count > 0
+                ? "deviations.md cannot be read: " + string.Join(" ", deviations.Problems) + "\n\n"
+                : "None. The build recorded no deviation, so the approved documents stand as written.\n\n");
+            return;
+        }
+
+        foreach (DeviationState state in deviations.Current)
+        {
+            string standing = state.Standing switch
+            {
+                DeviationStanding.Accepted => "in force, accepted",
+                DeviationStanding.Declined => "declined, not in force: " + state.Note,
+                _ => "in force, awaiting the person's answer",
+            };
+
+            block.Append("- ").Append(DeviationsFile.Line(state.Deviation)).Append(" -- ").Append(standing).Append('\n');
+        }
+
+        block.Append('\n');
+        await File(block, DeviationsFile.FileName, DeviationsFile.PathOf(cycle), "It does not exist.", cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Findings as the reconciler reads them: one JSON array, the fields that say what each is.</summary>
@@ -427,7 +470,7 @@ public static class ReaderPrompts
             // A Met is checked by finding its quote in the diff, and a reader without that instruction
             // only checks that something was named.
             string verify = request.Artifact == ArtifactKind.Verify
-                ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is not in the diff, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion.\n"
+                ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is not in the diff, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n"
                 : string.Empty;
 
             return Result.Ok(shared + Template("rules")
@@ -462,6 +505,7 @@ public static class ReaderPrompts
             await File(block, Cycle.FileNameOf(ArtifactKind.Plan), cycle.PathOf(ArtifactKind.Plan), "It does not exist.", cancellationToken).ConfigureAwait(false);
             block.Append("What this solution has already decided, and what each decision set aside:\n\n");
             await Decisions(block, cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
+            await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
             block.Append("The change to judge:\n\n");
             await File(block, "evidence/diff.patch", Path.Combine(cycle.EvidenceDirectory, "diff.patch"), "It was not recorded.", cancellationToken).ConfigureAwait(false);
 

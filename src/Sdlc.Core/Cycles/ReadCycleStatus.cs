@@ -166,6 +166,10 @@ public static class ReadCycleStatus
     /// The recorded decisions this cycle declares it departs from, when a caller asked (D-139): each the
     /// decision's own words with its id after. Not read here, for the reason <paramref name="AmendedOn"/> is not.
     /// </param>
+    /// <param name="Deviations">
+    /// Where the build bent the approved documents, when a caller asked: each deviation since the approval that
+    /// stands, one line with where it stands. Not read here, for the reason <paramref name="AmendedOn"/> is not.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
@@ -177,7 +181,8 @@ public static class ReadCycleStatus
         Findings.UsageLedger? Usage = null,
         string? AmendedOn = null,
         Successors.ReadSuccessors.Response? Successors = null,
-        IReadOnlyList<string>? Departures = null)
+        IReadOnlyList<string>? Departures = null,
+        IReadOnlyList<string>? Deviations = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);

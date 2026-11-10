@@ -88,6 +88,7 @@ public static class ApprovalRenderer
         GateDecision.ChangesRequested => "requesting changes",
         GateDecision.Denied => "denying",
         GateDecision.Reopened => "reopening a standing approval",
+        GateDecision.Deviations => "answering the deviations",
         _ => "deciding",
     };
 

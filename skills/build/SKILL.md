@@ -55,8 +55,8 @@ on it.
 7. report and hand back
 
 **The plan decides what is on the list, not the other way round.** An item you want to add that the
-plan does not declare is the plan being departed from, and that is a correction for a person to make
-rather than a line to tick.
+plan does not declare is the plan being departed from: leave it, unless the approved text cannot be
+followed without it — then it is a deviation, below.
 
 **Inside a batch, keep none.** When the batch-build skill is running this stage, its list has one line
 for this cycle and that line is the whole of what this stage shows. Seven more per cycle would bury
@@ -103,9 +103,8 @@ an area its plan did not declare (D-151). The plan describes an approach;
 most of what decisions settle — how errors are returned, what is logged, how time is stored, what things
 are named — shows only in code. The diff reader at verify reads the change against the decisions, and code
 that takes what a decision set aside with no `Departs from DEC_nn` line in the intent or the plan is a
-blocking finding under `CON_24`. **If the work cannot be done without departing, do not depart in code.**
-Stop and hand back with one plain line — which decision, in its own words, and why the build cannot keep
-it — and the route is `/sdlc:steer`, which declares the departure in the plan for a person to approve.
+blocking finding under `CON_24`. **If the work cannot be done without departing, record a `decision`
+deviation** quoting the decision, below, and the person answers it before the merge.
 
 `CON_07.2` forbids a change within a declared file that the plan did not describe — an unrelated
 refactor, a drive-by rename, a fix to something else you noticed in passing. The file set is a signal,
@@ -117,6 +116,49 @@ So when you notice something worth fixing that the plan did not describe: **leav
 `Noticed:` line in the commit message.** That is a suggestion for a later cycle, not a thing to slip in —
 and the commit message is where it survives. Your report is read once, by whoever is at the keyboard; the
 commit is read by whoever reviews the pull request, which is the person who can act on it.
+
+## When the approved text cannot be followed, record a deviation
+
+Something worth doing is a `Noticed:` line. Something the plan's approved text **cannot be followed
+without** is a deviation (D-156): a file the fix has to touch that the plan did not declare, a step that
+cannot be done as written, a test whose name has to change, a criterion no finite proof meets, a decision
+the work cannot keep. Do the work, and write down where you bent the plan, in
+`.sdlc/cycles/<id>/deviations.md`, appended, one section each:
+
+```markdown
+## DEV_01 — The stand-in's socket file is changed to fix a race
+
+Kind: plan
+Departs from: plan.md, Files
+> src/MarketSense.MassiveStandIn/StandInHost.cs
+Blocker: Credential_never_reaches_a_trader fails 2 runs in 3 with ObjectDisposedException (tests.json)
+Deviation: StreamSocket.cs is also changed; DropSockets no longer aborts a disposed connection.
+Why: the race is in StreamSocket, and no fix inside StandInHost reaches it.
+Files: `src/MarketSense.MassiveStandIn/StreamSocket.cs`
+```
+
+- **The quote decides the kind.** `plan` and `proof` quote `plan.md`; `criterion` quotes `spec.md` and may
+  only **narrow** — add `Successor: <slug> — what the dropped part makes possible`; `decision` quotes
+  `decisions.md`. Quote the approved text word for word. **Nothing to quote means nothing to deviate from**:
+  a choice the plan left open is yours to make, and is not recorded.
+- **The blocker rests on evidence**: the failing test and its error, or the plan step and why it cannot be
+  done. Never your say-so.
+- **Never the intent, never wider.** No new outcome, no new criterion, no more cases than the approved text
+  reached, and no file another cycle claims. Those are a successor or a reopen, and a person's call: stop
+  and hand back.
+- **Short.** A person reads every one before the merge. One line each, and the gist first.
+- **Ids are never reused.** A second attempt at one a person declined is a new deviation with
+  `Replaces: DEV_nn`.
+
+Check what you wrote before you commit it — it refuses a quote the approved text does not hold, a kind
+quoting the wrong document, and a file another cycle claims:
+
+```
+sdlc deviations <id>
+```
+
+Commit `deviations.md` with the change. Every verify reader reads it, and a change that departs from the plan
+with no deviation describing it is blocked as an undeclared one.
 
 **If the plan declares the solution skeleton, run `sdlc scaffold <id>`.** The first cycle of a new
 solution has no projects to change yet, so its plan declares the ones the skeleton supplies — a solution
@@ -136,14 +178,13 @@ errors, so code this cycle never touched can now refuse to compile. That is what
 a person approved, and the plan said which way it goes: fix what fails, or narrow the setting in the
 file — a severity in `.editorconfig`, a line in `WarningsNotAsErrors` with its reason. **Not a pragma
 in source, and not removing the file**: either would deliver something other than what was approved.
-If the fallout is wider than the plan predicted, stop and say so; that is a plan that needs reopening,
-not a build to push through.
+If the fallout reaches files the plan did not predict, fix them and record a `plan` deviation for each
+place the plan's text did not hold.
 
 **Write the tests the plan named.** The proof entries name tests in backticks, and `verify-chain`
 checks that each one ran and passed. A test with a different name than the plan committed to will fail
-that check even if it tests the right thing — so if the name has to change, the plan has to change
-first, which means `sdlc draft approval <id> --reopen` and a re-approval. Once the plan is on the integration
-branch, that reopen happens on its plan branch, not this one: stop and hand back (D-123).
+that check even if it tests the right thing — so if the name has to change, record a `proof` deviation
+quoting the planned proof and naming the test that replaces it.
 
 ## Build and test, and treat a warning as an error
 
@@ -181,8 +222,8 @@ It is not a rule to remember — it is why there is no point reporting done over
 Commit before recording evidence. Message saying what it does and why, referencing the cycle id.
 
 **Anything you noticed and left alone goes here, one `Noticed:` line each**, after the body. A file the
-plan did not declare and you had to add belongs here too, with the reason it was forced. This is the
-destination for everything the stage was not asked about: it reaches the reviewer, and it keeps the
+plan did not declare and you had to add is not one of these: it is a deviation, in `deviations.md`. This is
+the destination for everything the stage was not asked about: it reaches the reviewer, and it keeps the
 hand-back to the stage's own result.
 
 **Why this order.** `sdlc evidence` refuses code nobody committed (D-124). It records the commit the build
@@ -243,7 +284,7 @@ sdlc status <id> --brief
 ```
 
 Show it verbatim. Then **at most five lines of your own**, and only these three things: what you
-implemented, what the build and the tests said, and **how many** `Noticed:` lines the commit carries.
+implemented, what the build and the tests said, and **how many** `Noticed:` lines and deviations the commit carries.
 This is the one stage where prose earns its place, because a diff is not self-describing — but it is five
 lines, not a narrative, and the panel above already carries the cycle, the counts, the gate and the next
 command.

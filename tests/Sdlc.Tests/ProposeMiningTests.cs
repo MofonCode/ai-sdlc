@@ -60,6 +60,42 @@ public sealed class ProposeMiningTests
     }
 
     [TestMethod]
+    public async Task Deviations_are_counted_per_cycle_and_tallied_by_the_rule_behind_them()
+    {
+        // How far each plan had to bend, and which rules keep making it bend: the two things mining is asked
+        // to say about deviations.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteApproval();
+        CycleWorkspace.WriteRaw(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle), """
+            ## DEV_01 — An undeclared file is changed
+
+            Kind: plan
+            Departs from: plan.md, Files
+            > content
+            Blocker: diff.F_01 under CON_07.2
+            Deviation: another file is changed.
+            Why: the fault is there.
+
+            ## DEV_02 — The proof waits for the page
+
+            Kind: proof
+            Departs from: plan.md, Proof
+            > content
+            Blocker: CON_07.2 again, the wait was undescribed
+            Deviation: the probe waits until the page is live.
+            Why: it read too early.
+
+            """);
+
+        string report = await Render(workspace, new FakeRepository());
+
+        StringAssert.Contains(report, "deviated 2x (1 plan, 1 proof): 0 accepted, 0 declined, 2 unanswered", report);
+        StringAssert.Contains(report, "Deviations   2 across 1 cycles, by the rule behind them");
+        StringAssert.Contains(report, "CON_07.2: 2 in 1 cycle, 0 declined");
+    }
+
+    [TestMethod]
     public async Task An_argued_rule_says_how_long_its_longest_finding_stood_and_whose_rule_it_is()
     {
         // Forty findings answered at once and one argued for nineteen rounds read the same by count.

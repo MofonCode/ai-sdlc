@@ -33,6 +33,22 @@ public sealed class ParkingTests
     }
 
     [TestMethod]
+    public async Task A_plan_needing_files_two_other_unbuilt_plans_create_waits_on_both_in_the_order_they_opened()
+    {
+        const string Second = "20261103_0900_02";
+        const string Both = "20261103_0900_03";
+        using CycleWorkspace workspace = Two();
+        Write(workspace, Second, ("src/Averages.cs", "new"), null);
+        Write(workspace, Both, ("src/Totals.cs", "calls it"), ("src/Averages.cs", "calls it"));
+
+        Result<ParkCycle.Response> park = await Park(workspace, Both);
+
+        Assert.IsTrue(park.IsSuccess, string.Join("; ", park.Errors.Select(e => e.Message)));
+        Assert.IsNotNull(park.Value.Written, "A plan that cannot be built alone was not parked.");
+        CollectionAssert.AreEqual(new[] { Creator, Second }, park.Value.Written.WaitsOn.Select(on => on.ToString()).ToArray());
+    }
+
+    [TestMethod]
     public async Task A_plan_that_needs_nothing_unmerged_is_not_parked_and_a_shared_file_is_only_said()
     {
         using CycleWorkspace workspace = Two(neederAlsoNames: "src/Shared.cs", creatorAlsoNames: "src/Shared.cs");

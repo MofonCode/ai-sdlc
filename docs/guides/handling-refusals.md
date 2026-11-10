@@ -327,6 +327,51 @@ amendment starts from the integration branch.
 
 ---
 
+## Deviations — the four ways they are refused
+
+Where the build could not follow the approved text it recorded a deviation in `deviations.md`, and a person
+answers each one before the merge (D-156). `handling-blockers.md` has what a deviation is and how to answer one.
+`sdlc deviations <id>` shows each with where it stands.
+
+### a reopen with deviations unanswered
+
+`sdlc draft approval <id> --reopen` on a cycle whose build recorded deviations nobody answered. A reopen writes
+the accepted ones into the amended plan and gives the declined ones as its reason, so an unanswered one would
+be neither.
+
+**Next:** `sdlc draft approval <id>`, answer each one — decline the ones the reopen is about — and rename it
+into place. Then reopen.
+
+### a deviation unanswered
+
+The pull-request check's *every deviation is answered* failed: a deviation has no answer, or its text moved
+after it was answered, which leaves it unanswered again. `accepted: false` with an empty note is not an answer.
+
+**Next:** `sdlc draft approval <id>`, set `accepted: true` or write why in the note, and rename it into place.
+Under `approval: none` there is nothing to answer: every deviation is accepted and the pull request is the
+review.
+
+### a deviation that does not hold
+
+The check's *the deviations are sound* failed, or `sdlc deviations <id>` exited 1: a deviation quotes text the
+approved document does not hold, quotes the wrong document for its kind, adds a file another open cycle
+claims, replaces a deviation the file does not record, or narrows a criterion you accepted with its successor
+not written.
+
+**Next:** the stage that wrote it corrects it — quote the approved text word for word, or write the successor
+under `.sdlc/successors/`. A file another cycle claims is not a deviation at all: leave it to that cycle, or
+reopen.
+
+### a declined deviation not verified again
+
+The check's *the verdict follows the deviations declined* failed: you declined a deviation after the verify that
+stands, so the passing verdict judged code you turned down.
+
+**Next:** `/sdlc:remediate <id>` redoes that part with your note as its instruction, records the evidence, and
+`/sdlc:verify <id>` runs again.
+
+---
+
 ## Successors — the four ways one is refused
 
 A successor is a slice that waits on another's code, as a file under `.sdlc/successors/` (D-125). Where it
@@ -610,8 +655,8 @@ the next night. Remedy it on that branch and mark the draft ready once it passes
 
 ### escalated
 
-Remediation stopped getting anywhere with blockers still open: either a pass undid what an earlier one
-answered, or two passes in a row reduced nothing. **An escalated cycle never opens a ready pull
+Remediation stopped getting anywhere with blockers still open: a pass undid what an earlier one
+answered, two passes in a row reduced nothing, or a third deviation bent the same approved text. **An escalated cycle never opens a ready pull
 request** — a batch run opens a draft, which the check refuses to merge — and that stopping is the only
 reason an unattended batch is safe to run at all. There is no pass count to run
 out of — the refusal says which of the two stopped it, and they want different things from you: a
@@ -636,7 +681,8 @@ looking at a failed check needs to know what held. The checks are: the cycle exi
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
 passed, every criterion is adjudicated, the verify was judged against this evidence, the changed lines are
 covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
-after a reopen), the change was verified. When the pull request changes the solution's constraints,
+after a reopen), the deviations are sound, every deviation is answered and the verdict follows the deviations
+declined (only where the build recorded any), the change was verified. When the pull request changes the solution's constraints,
 decisions or declared stack, it also says whether that was committed before or after the verify — reported,
 never refused (D-113).
 

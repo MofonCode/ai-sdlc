@@ -473,10 +473,16 @@ decisions:
 ---
 ```
 
-Four decision values: `approved`, `changes_requested`, `denied`, and `reopened` (D-19). A refusal
+Four decisions about the cycle: `approved`, `changes_requested`, `denied`, and `reopened` (D-19). A refusal
 carries a reason, which `CON_10` governs. A reopen supersedes an approval, returning the cycle to
 pre-approval so the documents can be rewritten and re-approved — the recovery path when a plan turns
-out to be wrong.
+out to be wrong about *what* the cycle delivers.
+
+**A fifth value, `deviations`, answers for an approval rather than replacing it** (D-156). Where the build could
+not follow the approved text it records a deviation in `deviations.md`, and the person answers each one in a
+`deviations` entry: its id and hash, `accepted: true`, or `false` with a note saying why. The entry never stands
+in the approval's place, so the gate keeps reading the approval's hashes; the pull request waits until every
+deviation is answered. A reopen is refused until then, and folds the accepted ones into the amended plan.
 
 **A plan already on the integration branch is reopened on its plan branch, not on a build** (D-123). The
 reopen and the re-approval travel by a pull request of their own, so the amended plan reaches the team and the
@@ -789,11 +795,11 @@ rewritten, and nothing has to be run to upgrade.
 | | `refine <id> <artifact>` | `remediate <id>` | Enforced by |
 |---|---|---|---|
 | Runs after | `interrogate` | a blocked `verify` | the skill |
-| May edit | the one named artifact | source and tests | the skill |
+| May edit | the one named artifact | source and tests, and `deviations.md` where the approved text cannot be followed (D-156) | the skill |
 | May never edit `approval.md` | yes | yes | **the hook**, at the tool call |
 | May never edit source or tests | yes | — | the skill |
 | May never edit a planning document | — | yes | the skill, and **the gate** afterwards |
-| Capped | not on rounds; stops when one rule has come back three times | not on passes; stops when a pass undoes earlier work or two reduce nothing | the skill |
+| Capped | not on rounds; stops when one rule has come back three times | not on passes; stops when a pass undoes earlier work, two reduce nothing, or three deviations bend the same approved text | the skill |
 | Also refuses | once the cycle is approved | — | the skill |
 
 **Read the right-hand column before the other three.** Only one row is denied at the tool call, and
@@ -2289,6 +2295,7 @@ they print verbatim.
 | `constraints [--for <artifact>] [--cycle <id>]` | renders the effective set, all tiers. How the rules reach a session. With `--cycle`, this solution's own rules outside the areas the stage touches are rendered by their headline, from the plan on; `constraints show <id>` prints one in full — D-151 |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
+| `deviations <id>` | where the build bent the approved documents: each deviation, whether a person accepted, declined or has yet to answer it, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, an accepted narrowing with no successor. Exits 1 while anything is wrong (D-156) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session adds the dispositions of earlier findings (D-49) — D-117, D-121 |
@@ -7256,6 +7263,67 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-156 — A build that cannot follow the approved text records a deviation, and a person signs each one
+
+**Governs:** §5.2, §6.3, §6.4, §10.3
+
+**Narrows D-19:** a reopen is for a plan wrong about *what* the cycle delivers; a build that has to change *how*,
+or narrow a criterion, deviates instead. **Extends D-65** to deviations, **D-66**'s escalation, and **D-123**: an
+accepted deviation travels with the code. **Keeps D-27:** nothing is waived.
+
+**Decision.**
+
+- **A deviation replaces the approved text a blocker was measured against, and a person signs the replacement.**
+  Build and remediate record one in the cycle's `deviations.md` when the approved text cannot be followed —
+  a file the plan did not declare, a step that cannot be done, a test that has to change, a criterion no finite
+  proof meets, a decision the work cannot keep. Verify never records one: it verifies.
+- **It is defined by what it quotes.** Each quotes, word for word, the approved text it departs from, and the
+  quote decides its kind: `plan` and `proof` quote `plan.md`, `criterion` quotes `spec.md` and may only narrow
+  — what it drops becomes a successor once accepted — and `decision` quotes `decisions.md`. Nothing quoted means
+  nothing deviated from, so a choice the plan left open is never one. It never touches the intent, never widens,
+  and never takes a file another open cycle claims. The binary checks the quote, the kind and the claim.
+- **Every verify reader reads them.** One in force replaces the text it quotes; a declined one replaces nothing.
+  A change departing from the plan with no deviation in force describing it is an undeclared deviation, blocked
+  under `CON_07.2`.
+- **The person answers each one with the same drafter.** On an approved cycle with unanswered deviations,
+  `sdlc draft approval <id>` drafts a `deviations` entry listing each with its hash, `accepted: false` and
+  `note: ""`. True accepts; false with a note declines, the note its reason; false with none is not reviewed.
+  The entry sits beside the approval and never stands in its place, so the gate still reads the approval's hashes.
+  Under `approval: none` every deviation is accepted and the pull request is the review.
+- **A decline means redo.** Remediate redoes that part from the note, and a second attempt names the one it
+  replaces. A reopen stays a separate act, refused until every deviation is answered: it folds the accepted ones
+  into the amended plan and gives the declined ones as its reason. Answers from before the approval that stands
+  are history, kept for mining and checked no more.
+- **The pull request waits on them.** The check refuses a deviation that is unsound or unanswered, and a declined
+  one the latest verify predates.
+- **The third circle escalates.** Three deviations bending the same approved text while the verification still
+  blocks is the loop going round (D-65's halt), and the cycle escalates to a person. It is not a cap.
+- **Mining counts them** per cycle, and tallies the rules their blockers named.
+
+**Why.** The latest MarketSense reopen came after every fix in 0.36–0.39, and its reason ended *"Nothing in the
+intent or the spec changes."* The build had needed one undeclared file and done four things the plan did not
+describe, and the reopen existed only to make the plan say so: re-interrogation, a fresh approval and a plan-only
+pull request, with no decision in any of it. Of eleven reopens on record, four were the build learning how the
+platform or the code really behaves. A deviation keeps the build moving unattended, writes down where it bent
+the approved text, and asks the person once, before the merge — near the loop rather than in it.
+
+**Rejected.**
+
+- *Letting a blocker through when it points at a cycle that will answer it.* A waiver with an IOU: code would
+  merge carrying a claim the record knows is false (D-27).
+- *Stopping at every blocker to ask the person for a remedy.* More interruption than the reopens it replaced;
+  remediate already fixes most verify blockers alone.
+- *A `--deviations` flag on the drafter, or Y/N marks.* The drafter already reads where the cycle stands, and a
+  true or false is the easiest thing in YAML to edit by hand.
+- *Checkboxes in the ledger's body.* The body is free text the binary has never read; the answers belong in the
+  frontmatter beside the hashes that hold them.
+- *An eighth file only a person writes.* The signature is already protected where every other one is; the
+  deviations themselves need no protection, because each answer holds the hash of the text it answered.
+- *An amended-plan pull request per accepted deviation.* D-123 sends a reopen back by its own pull request
+  because the approval on the integration branch is withdrawn; a deviation withdraws nothing.
+- *A threshold on how many deviations a cycle may record.* A number picked by judgement; the quote rule keeps
+  the list to bends of approved text, and mining reads the count as a signal.
 
 ### D-155 — The solution's agent file points at the list of files only a person writes, and holds no copy of it
 

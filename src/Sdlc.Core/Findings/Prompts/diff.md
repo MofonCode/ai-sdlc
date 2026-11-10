@@ -22,6 +22,22 @@ contract. **A file the plan did not list is not a finding.** What `CON_07.2` for
 did not *describe*: an unrelated refactor, a drive-by rename, a fix to something else noticed in passing.
 Ask what each hunk is for. If its purpose is one the plan describes, it has leave, wherever it is.
 
+## Read the deviations as leave, and nothing else as leave
+
+Where the build could not follow the approved text, it recorded a **deviation**, listed above with whether it
+is in force. A deviation in force quotes the approved text it departs from and says what was done instead:
+**that is leave**, exactly as if the plan had said it, and a decision deviation is a declared departure from
+that decision. A declined deviation gives no leave, so a change still doing what it described departs from the
+approved text.
+
+A change that departs from what the plan describes, with **no deviation in force describing it**, is an
+undeclared deviation: a blocking finding under `CON_07.2`. The remedy names both ways out: take the change
+back out, or record the deviation for the person to answer.
+
+A deviation may never widen the cycle: add an outcome, add a criterion, reach more cases than the approved
+text did, or touch the intent. One that does gives no leave for the widening, and the change doing it is a
+blocking finding under `CON_07.2` that says so.
+
 ## Judge against the decisions narrowly
 
 `CON_24` blocks on one thing: the change **does** what a standing decision's `Instead of` names — the
