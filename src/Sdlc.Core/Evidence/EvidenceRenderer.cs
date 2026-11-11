@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Evidence;
 
@@ -84,7 +85,7 @@ public static class EvidenceRenderer
                 : string.Create(CultureInfo.InvariantCulture, $"{Indent}Coverage  the change added no coverable line"));
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}          whole codebase {coverage.Rate:P1}, {(coverage.Baseline is { } baseline ? string.Create(CultureInfo.InvariantCulture, $"baseline {baseline:P1}{(coverage.HeldTheBaseline ? " -- carried forward" : " -- fell, so the baseline stays where it was")}") : "the first measurement, which sets the baseline")}"));
+                $"{Indent}          whole codebase {coverage.Rate:P1}, {Codebase(coverage)}"));
         }
         else
         {
@@ -161,7 +162,21 @@ public static class EvidenceRenderer
         output.AppendLine(Indent + "          criterion's proof is not met.");
     }
 
+    /// <summary>The whole codebase against its baseline and the floor, in the terms the merge judges it (D-157).</summary>
+    private static string Codebase(CoverageSummary coverage) => coverage switch
+    {
+        { Baseline: null } => "the first measurement, which sets the baseline",
+        { HeldTheBaseline: true } => string.Create(CultureInfo.InvariantCulture, $"last recorded {coverage.Baseline:P1} -- held, and carried forward"),
+        { AtTheFloor: true } => string.Create(
+            CultureInfo.InvariantCulture,
+            $"last recorded {coverage.Baseline:P1} -- lower, but at or above the floor of {SolutionDocument.FloorName(coverage.Floor ?? 0)}, so it holds and becomes the baseline"),
+        _ => string.Create(
+            CultureInfo.InvariantCulture,
+            $"last recorded {coverage.Baseline:P1} -- fell, under the floor ({(coverage.Floor is { } floor ? SolutionDocument.FloorName(floor) : "none declared")}), so the merge refuses it and the baseline stays"),
+    };
+
     private static string Count(int number, string noun) => number == 1
+
         ? "1 " + noun
         : string.Create(CultureInfo.InvariantCulture, $"{number} {noun}s");
 }

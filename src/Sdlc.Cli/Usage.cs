@@ -436,8 +436,9 @@ internal static class Usage
             --build-log <path>       A build log to keep alongside.
             --coverage <path>        The run's cobertura report, or the directory holding every one
                                      it wrote. Measures the changed lines and the whole codebase,
-                                     against the baseline at the base commit, and carries the
-                                     baseline forward when it held.
+                                     against the baseline at the base commit and the solution's
+                                     coverage_floor, and carries the rate forward when it holds.
+
 
         Options for cycles
             --stage <artifact>       Only cycles whose furthest document is this one.

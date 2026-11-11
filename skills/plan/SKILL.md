@@ -146,9 +146,10 @@ it has not built yet is not a finding against a plan for a static page.
 ## Plan for coverage
 
 The merge refuses a change where fewer than 70% of the added lines run under a test, or where the whole
-codebase ends up less covered than it was (D-103). So `Proof` is not only one test per criterion: the
-code the change adds has to be reached by tests too, and a plan whose proof touches the criteria and
-leaves the new code behind them unrun is one the build cannot finish. Code no test should run is excluded
+codebase ends up under the solution's `coverage_floor` and less covered than it was (D-103, D-157). So
+`Proof` is not only one test per criterion: the code the change adds has to be reached by tests too, and a
+plan whose proof touches the criteria and leaves the new code behind them unrun is one the build cannot
+finish. Code no test should run is excluded
 in the solution's coverage settings; if this change needs a new exclusion, declare the settings file in
 `Files` and say in `Shape and departures` why that code should not run under a test.
 

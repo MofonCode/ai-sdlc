@@ -170,9 +170,11 @@ this part for you**: it may edit a draft, but placing one is yours.
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it |
 | `approval` | `required`, `none`; `required` when absent | whether a person approves each cycle's intent, spec and plan before it is built. Leave it `required` to start; `running-a-cycle.md`, under *Running without approvals*, says what `none` keeps and what it gives up |
+| `coverage_floor` | a whole percentage; `80%` when absent | the whole-codebase coverage at or above which a cycle need not hold the coverage baseline; under it, the codebase may not fall. An adopted codebase starting low is kept from falling while it climbs; one already high is not refused for drifting a point. `handling-refusals.md` says when to lower it |
 | `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
 
-Once it is placed, `sdlc settings` shows each key, whether it was written or defaulted, and how to change it.
+Once it is placed
+, `sdlc settings` shows each key, whether it was written or defaulted, and how to change it.
 
 **Every plan reads the paragraph for what good looks like here, and `sdlc doctor` fails while it is the
 template's text.** A dice roller adopted with the placeholder left in place, built a cycle later, came out

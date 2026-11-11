@@ -182,6 +182,7 @@ public static class ReadSettings
                 string.IsNullOrWhiteSpace(Frontmatter.Key(yaml, key)) ? SettingSource.Default : SettingSource.Declared;
 
             settings.Add(new Setting(SettingGroup.Solution, "approval", SolutionDocument.NameOf(document.Approval), Source("approval"), "sdlc draft solution"));
+            settings.Add(new Setting(SettingGroup.Solution, "coverage_floor", SolutionDocument.FloorName(document.CoverageFloor), Source("coverage_floor"), "sdlc draft solution"));
             settings.Add(new Setting(SettingGroup.Solution, "origin", SolutionDocument.NameOf(document.Origin), SettingSource.Declared, "fixed once recorded"));
             settings.Add(new Setting(SettingGroup.Solution, "standard", SolutionDocument.NameOf(document.Standard), Source("standard"), "sdlc draft solution --standard <existing|profile>"));
             settings.Add(new Setting(SettingGroup.Solution, "platform", SolutionDocument.NameOf(document.Platform), Source("platform"), "sdlc draft solution"));
@@ -194,6 +195,7 @@ public static class ReadSettings
                 "sdlc draft solution"));
         }
 
-        private static readonly string[] _keys = ["approval", "origin", "standard", "platform", "integration_branch", "telemetry"];
+        private static readonly string[] _keys = ["approval", "coverage_floor", "origin", "standard", "platform", "integration_branch", "telemetry"];
+
     }
 }

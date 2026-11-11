@@ -168,7 +168,9 @@ public static class WriteSolutionDraft
                         document.Platform,
                         document.IntegrationBranch,
                         document.Telemetry,
-                        document.Approval),
+                        document.Approval,
+                        document.CoverageFloor),
+
                     "---",
                     string.Empty,
                     untouched ? Prompt : WithNote(body.TrimEnd()),
