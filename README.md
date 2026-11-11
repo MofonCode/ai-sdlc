@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.40.0** · iteration 4 · .NET 10
+**Version 0.41.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.40.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.41.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -421,6 +421,12 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **The coverage floor has met one solution's numbers and no cycle** (0.41.0). The whole codebase was held to
+  the highest rate it ever reached, with no slack, and MarketSense at 99% refused a cycle that did nothing
+  wrong once its two-host test harness changed how coverage was measured. Now a codebase at or above
+  `coverage_floor` in `solution.md` holds whatever its baseline, and the baseline follows it; under the floor
+  it may still not fall (D-157). The key is new and defaults to 80%, so an existing solution needs no edit.
+  It is a minor: what a cycle is refused for changes, and a person has a key to write.
 - **Deviations have only met the suite** (0.40.0). A build or a remediation that cannot follow the approved
   text now records a deviation in `deviations.md` and keeps going, instead of stopping for a reopen; every
   verify reader judges against it, and a person answers each one with the same approval drafter before the
@@ -563,8 +569,9 @@ What is honest to say about the rest:
 
 ## Not goals
 
-A whole-codebase coverage floor — a change is held to 70% of its own lines and the codebase to its
-baseline instead. Making the local approval unforgeable — it cannot be, and the pull
+A whole-codebase coverage minimum that refuses a cycle for coverage it did not lower — a change is held to
+70% of its own lines, and the codebase to its baseline only under the solution's floor.
+ Making the local approval unforgeable — it cannot be, and the pull
 request is where accountability lives. Governing ai-sdlc with ai-sdlc. Slicing work unattended. A device end-to-end layer. `CONCEPT.md` §18 has the full
 list with reasons.
 

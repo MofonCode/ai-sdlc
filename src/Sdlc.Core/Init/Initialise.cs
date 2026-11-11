@@ -346,7 +346,9 @@ public static class Initialise
                         wantedPlatform,
                         integration,
                         recorded?.Telemetry,
-                        recorded?.Approval ?? ApprovalRequirement.Required))
+                        recorded?.Approval ?? ApprovalRequirement.Required,
+                        recorded?.CoverageFloor ?? SolutionDocument.DefaultCoverageFloor))
+
                     + Environment.NewLine;
             }
 

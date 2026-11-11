@@ -311,8 +311,10 @@ public static class RecordEvidence
         /// <remarks>
         /// <para>The baseline is read <strong>at the base commit</strong>, never from the working tree: a cycle
         /// could otherwise lower the bar it is about to be measured against, and the file lives under
-        /// <c>.sdlc/</c>, which the recorded patch leaves out. The new rate is written back only when it holds
-        /// the baseline, so the bar only rises.</para>
+        /// <c>.sdlc/</c>, which the recorded patch leaves out. The new rate is written back whenever the
+        /// codebase holds its coverage (D-157): under the solution's floor that means it held the baseline, so
+        /// the bar there only rises; at or above the floor the baseline follows the rate, so it stays the last
+        /// rate a merged cycle recorded rather than the highest one ever reached.</para>
         /// <para>Two cycles built at once both move the file, and the second to merge conflicts on it -- which
         /// is right: its rate was measured without the first one's code. <c>resolve-conflict</c> records
         /// the evidence again.</para>
@@ -355,12 +357,16 @@ public static class RecordEvidence
             string baselinePath = Path.Combine(Cycle.SdlcDirectoryName, Evidence.Coverage.BaselineFileName).Replace('\\', '/');
             double? baseline = Evidence.Coverage.ReadBaseline(repository.ReadAt(solution.Path, baseCommit, baselinePath));
 
-            CoverageSummary measured = Evidence.Coverage.Summarise(lines.Value, diff, baseline);
+            CoverageSummary measured = Evidence.Coverage.Summarise(lines.Value, diff, baseline) with
+            {
+                Floor = await SolutionDocument.CoverageFloorOf(solution.Path, cancellationToken).ConfigureAwait(false),
+            };
 
             await Write(cycle, Evidence.Coverage.SummaryFileName, Evidence.Coverage.Write(measured), written, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (measured.HeldTheBaseline)
+            if (measured.HoldsItsCoverage)
+
             {
                 await File.WriteAllTextAsync(
                     Path.Combine(solution.Path, Cycle.SdlcDirectoryName, Evidence.Coverage.BaselineFileName),

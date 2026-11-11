@@ -385,8 +385,10 @@ and diff lines rather than recollection. Where the evidence does not reach, `ver
 **Coverage is measured by the binary and held at the merge** (D-103). `sdlc evidence --coverage` reads the
 run's cobertura reports and records two numbers: the share of the lines the change adds that ran under a
 test, and the whole codebase's rate against the baseline in `.sdlc/coverage.json` as it stood at the base
-commit. `verify-chain` refuses a change under 70% on its added lines, or one that leaves the codebase less
-covered than it was. The baseline is carried forward by each build that held it, so it only rises.
+commit. `verify-chain` refuses a change under 70% on its added lines, or one that leaves the codebase both
+under the solution's `coverage_floor` (80% unless `solution.md` says otherwise) and less covered than it
+was (D-157). At or above the floor a fall holds, and the new rate becomes the baseline: it is the last rate
+a merged cycle recorded, never a target. Under the floor it only rises.
 
 **Evidence is normalised at the boundary** (D-13). `build` writes both what the toolchain produced
 and one framework-defined summary — test name and outcome — and `verify` reads only the summary.
@@ -1262,6 +1264,7 @@ every key's value, whether it was declared or defaulted, and how to change it (D
 | `telemetry` | `operate`, which reads production's errors from it and files them as leads on the platform's tracker. Optional and written only when set; most solutions have none (D-89) |
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
 | `approval` | the gate, which under `none` asks for no ledger and keeps every other check; `verify-chain`, the status panel and the sitrep, which say no person approved. `required` or `none`; absent, and a document that cannot be read, read as `required` (D-137) |
+| `coverage_floor` | `verify-chain` and `evidence`: at or above it the whole codebase need not hold its coverage baseline, and the baseline follows the rate; under it the codebase may not fall. A whole percentage; absent reads as 80%, and a document that cannot be read as no floor at all (D-157) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -2495,7 +2498,9 @@ block, then remediate, then exhaust the budget.
 ## 18. Non-goals
 
 - ~~**Enforcing a coverage percentage.**~~ Reversed by D-103: a change's added lines are held to 70%
-  and the codebase to its baseline. A whole-codebase floor is still not a goal.
+  and the codebase to its baseline under the solution's floor (D-157). A whole-codebase minimum that
+  refuses a cycle for coverage it did not lower is still not a goal.
+
 - **Making local approval unforgeable.** It cannot be; the pull request is where accountability lives.
 - **Governing ai-sdlc with ai-sdlc** — §2.7.
 - ~~**Resolving merge conflicts as the primary strategy.**~~ Reversed by D-86: collisions are resolved at
@@ -7264,7 +7269,68 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-157 — Above the solution's coverage floor the codebase need not hold its baseline, and a person moves the floor
+
+**Governs:** §4.5, §8.3, §18
+
+**Narrows D-103:** the changed-line floor is unchanged; the whole-codebase baseline binds only under a floor the
+solution declares.
+
+**Decision.**
+
+- **`coverage_floor` in `solution.md`**, a whole percentage, 80% when absent. `verify-chain` passes the
+  whole-codebase check when the rate is at or above it, or, under it, no lower than the baseline. A document that
+  cannot be read is no floor, so "could not tell" reads as the stricter check.
+- **The baseline follows the rate whenever the check holds.** `sdlc evidence` writes the new rate back at or
+  above the floor as well as when it held the baseline, so the baseline is the last rate a merged cycle
+  recorded, not the highest one ever reached. Under the floor it still only rises.
+- **The floor is read as it stands**, by `verify-chain` from the working tree and by `sdlc evidence` when it
+  records, as the approval is. Only a person writes the file, so a cycle cannot lower the bar it is held to,
+  and a person lowering it answers a fall without the evidence being recorded again.
+- **The wording says the baseline is not a target.** The refusal names the floor and the baseline, says the
+  baseline is the last recorded rate, and says to find what fell before writing tests for it — naming a change
+  in how coverage is measured, which moves every figure at once — and that the floor is a person's to move.
+  The build skill says the same, and says never to report the baseline as something the build is aiming for.
+
+**Why.** MarketSense's cycle `20261110_2348_02` passed every test and was refused for coverage for most of a day.
+Its baseline was 98.9%: about twenty uncovered lines in 1,920, and D-103 allowed no slack below it, so the
+better the codebase had been covered the less room a cycle had. The cycle was the first to start two web hosts
+in one test process, under which the coverage tool's default dynamic mode dropped counts: 71.1% on a branch
+whose static measurement was 90.6%, against `development`'s 91.2% static. No test could close a gap in how the
+figure was measured, the baseline was read at the base commit so the cycle could not move it, and nothing let a
+person move it either. The agent spent six hours and several two-hour runs chasing it, the refusal's own wording
+— *"something stopped running code it ran before"* — pointing it at missing tests, and the person was shown 98.9%
+so often they asked who had set the target. Nobody had.
+
+**Why a floor and not a tolerance.** A tolerance below the highest rate still leaves a high codebase the least
+room, and still refuses any change to how coverage is measured. A floor says where the codebase stops needing
+the ratchet, which is the question a team can answer.
+
+**Why the ratchet stays under the floor.** That is where D-103's reason for it lives: an adopted solution
+climbing from a low rate, where a deleted or weakened test is the risk. Above the floor a deleted test is still
+in the diff the verify readers judge; the arithmetic no longer catches it, and that is the trade.
+
+**Why 80%.** It sits under what a well-covered solution measures and over where an adopted one starts, so the
+first is not refused for drifting a point and the second keeps its ratchet while it climbs. Below the floor
+nothing changes, so no solution is refused on the upgrade that would have passed before.
+
+**Rejected.**
+
+- *A per-cycle acceptance of a coverage fall, as a deviation.* A deviation is defined by the approved text it
+  quotes (D-156), and a coverage figure quotes none; a new kind would blur what a deviation is. A new entry in
+  `approval.md` would be per-cycle and exact, at the cost of a new ledger shape. The floor is already a person's
+  signature, in a file only a person writes, and lowering it for one cycle and raising it after is two renames.
+- *A fixed floor replacing the baseline.* What the person first asked for, and what D-103 rejected for an adopted
+  solution: one at 40% would be refused every cycle until somebody paid down a backlog no cycle made.
+- *A tolerance on the baseline.* See above.
+- *Letting a cycle re-measure the baseline when it changes how coverage is measured.* A cycle would lower the bar
+  it is measured against. A person may re-measure the integration branch in a pull request of its own.
+- *Reading an absent key as no floor, as D-53 has every other added key keep the old behaviour.* The old
+  behaviour is the defect. Nothing passes under the old behaviour that fails under this one, so no solution is
+  surprised by a refusal.
+
 ### D-156 — A build that cannot follow the approved text records a deviation, and a person signs each one
+
 
 **Governs:** §5.2, §6.3, §6.4, §10.3
 

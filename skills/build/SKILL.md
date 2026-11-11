@@ -196,12 +196,21 @@ dotnet test --coverage --coverage-output-format cobertura --results-directory Te
 Warnings are errors here, enforced by `Directory.Build.props` rather than by instruction. A build that
 warns is a build that failed.
 
-**Coverage is measured, and the merge holds it** (D-103): at least 70% of the lines this change adds must
-run under a test, and the whole codebase must be no less covered than at the base commit. The plan's
-proof is what gets you there; if the count comes up short, add the tests that run the uncovered lines
-rather than recording and hoping. Code no test should run — orchestration wiring, generated code — is
-excluded in the solution's coverage settings, and excluding something new is a change to a rule the plan
-has to declare and justify.
+**Coverage is measured, and the merge holds it** (D-103, D-157): at least 70% of the lines this change adds
+must run under a test, and the whole codebase must stay at or above the solution's `coverage_floor` or,
+under it, no lower than at the base commit. The plan's proof is what gets you there; if the changed lines
+come up short, add the tests that run them rather than recording and hoping. Code no test should run —
+orchestration wiring, generated code — is excluded in the solution's coverage settings, and excluding
+something new is a change to a rule the plan has to declare and justify.
+
+**A whole-codebase fall is diagnosed before it is chased.** The baseline is the last rate a merged cycle
+recorded, not a target, so never tell the person the build is "aiming for" it. When the whole codebase
+falls further than the change could explain, compare this run's report with the base commit's file by
+file before writing a test: a fall spread across code the change never touched is a change in how coverage
+is measured, not missing tests. Stop and tell the person what fell and where, and that the answer is
+theirs: lower `coverage_floor` through `sdlc draft solution`, or re-measure the integration branch and
+commit the rate to `.sdlc/coverage.json` in a pull request of its own.
+
 
 **Check that the suite actually ran.** This is not paranoia: a trial cycle lost its whole verification
 to `dotnet test` exiting zero without running anything, because the runner was not configured. If the

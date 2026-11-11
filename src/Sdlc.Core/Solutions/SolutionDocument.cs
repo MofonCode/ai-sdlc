@@ -97,16 +97,30 @@ public enum ApprovalRequirement
 /// <see cref="ApprovalRequirement.Required"/>, for the reason every added key does (D-53): a solution adopted
 /// before the key existed keeps the gate it had (D-137).
 /// </param>
+/// <param name="CoverageFloor">
+/// The whole-codebase line rate at or above which the codebase need not hold its baseline, as a fraction
+/// (D-157). Absent reads as <see cref="DefaultCoverageFloor"/>. Below it, the codebase may not fall at all.
+/// </param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
     SolutionStandard Standard,
     Platform Platform = Platform.GitHub,
     string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch,
     string? Telemetry = null,
-    ApprovalRequirement Approval = ApprovalRequirement.Required)
+    ApprovalRequirement Approval = ApprovalRequirement.Required,
+    double CoverageFloor = SolutionDocument.DefaultCoverageFloor)
 {
     /// <summary>The integration branch a solution has when it names none. D-83.</summary>
     public const string DefaultIntegrationBranch = "development";
+
+    /// <summary>The coverage floor a solution has when it names none. D-157.</summary>
+    /// <remarks>
+    /// <strong>Absent loosens rather than keeps, unlike the other added keys</strong> (D-53). What it loosens
+    /// is a check that refused cycles which did nothing wrong: a codebase measured at 99% had twenty uncovered
+    /// lines of headroom, and one file the coverage tool cannot see used them up. Nothing a cycle did is
+    /// refused under it that would have passed before, so no solution blocks on the upgrade.
+    /// </remarks>
+    public const double DefaultCoverageFloor = 0.80;
 
     /// <summary>
     /// What the standard is when the key is absent.
@@ -145,6 +159,7 @@ public sealed record SolutionDocument(
     /// Whether a person approves each cycle. Always written, unlike telemetry: the default is the one a team
     /// may want to change, and a key it cannot see is one it does not know it has.
     /// </param>
+    /// <param name="coverageFloor">The coverage floor. Always written, for the reason the approval is.</param>
     /// <returns>One line per key, without the fences.</returns>
     public static string[] Keys(
         SolutionOrigin origin,
@@ -152,13 +167,15 @@ public sealed record SolutionDocument(
         Platform platform,
         string integrationBranch = DefaultIntegrationBranch,
         string? telemetry = null,
-        ApprovalRequirement approval = ApprovalRequirement.Required) =>
+        ApprovalRequirement approval = ApprovalRequirement.Required,
+        double coverageFloor = DefaultCoverageFloor) =>
     [
         "origin: " + NameOf(origin),
         "standard: " + NameOf(standard),
         "platform: " + NameOf(platform),
         "integration_branch: " + integrationBranch,
         "approval: " + NameOf(approval),
+        "coverage_floor: " + FloorName(coverageFloor),
         .. telemetry is null ? Array.Empty<string>() : ["telemetry: " + telemetry],
     ];
 
@@ -246,6 +263,16 @@ public sealed record SolutionDocument(
                 $"{source}: approval is '{shape?.Approval}'. Expected required or none.")));
         }
 
+        // Absent is the default. A value that is not a whole percentage fails rather than reading as either
+        // end: `coverage_floor: 0.8` is most likely 80% meant, and reading it as nothing would switch the
+        // floor off for the codebase it was meant to hold.
+        if (!TryReadFloor(shape?.CoverageFloor, out double floor))
+        {
+            errors.Add(new Error(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: coverage_floor is '{shape?.CoverageFloor}'. Expected a whole percentage from 0 to 100, such as 80%.")));
+        }
+
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
             : Result.Ok(new SolutionDocument(
@@ -254,7 +281,8 @@ public sealed record SolutionDocument(
                 platform,
                 integration,
                 string.IsNullOrWhiteSpace(shape?.Telemetry) ? null : shape.Telemetry.Trim(),
-                approval));
+                approval,
+                floor));
     }
 
     /// <summary>
@@ -363,6 +391,36 @@ public sealed record SolutionDocument(
         return read.IsSuccess ? read.Value.Approval : ApprovalRequirement.Required;
     }
 
+    /// <summary>
+    /// The coverage floor a solution on disk declares, or null when it cannot tell.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Never a failure, and never the default when the file cannot be read.</strong> A floor lets a
+    /// fall through, so "could not tell" reads as no floor at all: the codebase holds its baseline, which is
+    /// the check every solution had before the key existed. A malformed document is reported by
+    /// <c>doctor</c> and by every command that reads the whole file. Read from the working tree, as the
+    /// approval is: only a person writes the file, so a cycle cannot lower the floor it is held to.
+    /// </remarks>
+    /// <param name="solutionRoot">The solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The floor, or null.</returns>
+    public static async Task<double?> CoverageFloorOf(string solutionRoot, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(PathIn(solutionRoot)))
+        {
+            return null;
+        }
+
+        Result<SolutionDocument> read = await ReadFile(solutionRoot, cancellationToken).ConfigureAwait(false);
+        return read.IsSuccess ? read.Value.CoverageFloor : null;
+    }
+
+    /// <summary>How a coverage floor is written in the file.</summary>
+    /// <param name="floor">The floor, as a fraction.</param>
+    /// <returns>It as a whole percentage, such as <c>80%</c>.</returns>
+    public static string FloorName(double floor) =>
+        string.Create(CultureInfo.InvariantCulture, $"{Math.Round(floor * 100):0}%");
+
     /// <summary>Where the solution document lives inside a solution.</summary>
     /// <param name="solutionRoot">The solution's root.</param>
     /// <returns>The path, whether or not the file is there.</returns>
@@ -435,6 +493,32 @@ public sealed record SolutionDocument(
             default:
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Reads the coverage floor key, treating its absence as the default.
+    /// </summary>
+    /// <param name="text">The value, such as <c>80%</c> or <c>80</c>, or null when the key is absent.</param>
+    /// <param name="floor">The floor read, as a fraction.</param>
+    /// <returns>True unless a value was given that is not a whole percentage from 0 to 100.</returns>
+    private static bool TryReadFloor(string? text, out double floor)
+    {
+        floor = DefaultCoverageFloor;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return true;
+        }
+
+        string number = text.Trim().TrimEnd('%').TrimEnd();
+
+        if (!int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out int percent) || percent > 100)
+        {
+            return false;
+        }
+
+        floor = percent / 100.0;
+        return true;
     }
 
     /// <summary>
@@ -562,5 +646,8 @@ public sealed record SolutionDocument(
         public string? Telemetry { get; set; }
 
         public string? Approval { get; set; }
+
+        public string? CoverageFloor { get; set; }
     }
+
 }
