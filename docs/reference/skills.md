@@ -4,7 +4,12 @@ Every skill, one line each, in the order a cycle meets them. Each name links to 
 `../../skills/README.md`, which has the syntax, refusals and reasoning. Every skill is run by an agent;
 *started by* is who decides it should happen.
 
-In Claude Code a skill is `/sdlc:<name> <arguments>`. On a host that loads skills through Agent Plugins
+**A cycle is seven of them**, and a person can name each in a sentence rather than a command: begin an
+intent (`intent`), take it to plan (`to-plan`), change something (`steer`), approve (`draft`), build it
+(`build`, which verifies), fix it (`remediate`), and open the pull request (`pr`). The rest are run by those,
+or are for after a cycle.
+
+In Claude Code a skill is also `/sdlc:<name> <arguments>`. On a host that loads skills through Agent Plugins
 there is no slash form: ask in a sentence, and include the cycle id.
 
 | Skill | Takes | Does | Started by |
@@ -13,9 +18,9 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; hands you the adoption command, and walks the drafts it leaves | a person\* |
 | **The planning chain** | | | |
 | [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
-| [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | a person |
-| [`plan`](../../skills/README.md#plan) | `[<cycle id>]` | decides how, and what will prove each criterion | a person |
-| [`to-plan`](../../skills/README.md#to-plan) | `` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once | a person |
+| [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | `to-plan`, or a person |
+| [`plan`](../../skills/README.md#plan) | `[<cycle id>]` | decides how, and what will prove each criterion | `to-plan`, or a person |
+| [`to-plan`](../../skills/README.md#to-plan) | `[<cycle id>]` | takes an intent to a plan — one cycle, or every one this branch carries — picking up where each stopped, and hands back once with the approvals drafted | a person |
 | [`next`](../../skills/README.md#next) | `` | pulls the next wave from the backlog, plans it in one sandbox, and stops at the approvals | a person |
 | **The loop** | | | |
 | [`interrogate`](../../skills/README.md#interrogate) | `[<cycle id>] <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | a stage skill, or a person |
@@ -25,9 +30,9 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | **The gate** | | | |
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |
-| [`build`](../../skills/README.md#build) | `[<cycle id>]` | implements the approved plan, builds, tests, records the evidence | a person, or `batch-build` |
-| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | a person, or `batch-build` |
-| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification | a person, or `batch-build` |
+| [`build`](../../skills/README.md#build) | `[<cycle id>]` | implements the approved plan, builds, tests, records the evidence, and verifies a green build | a person, or `batch-build` |
+| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | `build`, `remediate` or `batch-build`, or a person |
+| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification and verifies again, going round while it is working and checking in every fourth pass | a person, or `batch-build` |
 | **Pull requests and unattended runs** | | | |
 | [`pr`](../../skills/README.md#pr) | `<cycle id>... [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; asks before every push | a person\*, or `batch-build` |
 | [`batch-build`](../../skills/README.md#batch-build) | `[<cycle id>] [--pr] [--unattended]` | builds and verifies every queued cycle — or the one named — each on its own branch, then reports the sitrep | a person, or the factory |

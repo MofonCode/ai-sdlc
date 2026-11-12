@@ -688,7 +688,10 @@ the next command, so prose around it is noise competing with the only lines wort
 `--brief` when somebody asks for the whole panel; the full form is the same answer with the round
 history and the hashes.
 
-Then stop. The person decides whether to move to the spec. That decision is the human-in-the-loop
+Then stop. The person decides whether to take it to plan. That decision is the human-in-the-loop
 point, and a skill that chained straight into the spec would remove it while appearing to be helpful.
 
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
+**Close with one plain offer**, in a line of your own: when they are happy with it, they can say *take it
+to plan* — or type `/sdlc:to-plan` — and if anything reads wrong, they can just say what, and you will
+change it first. It can carry on in this session: an interview leaves little behind, and the session worth
+starting fresh is the build's (D-158).

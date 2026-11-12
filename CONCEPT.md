@@ -2210,13 +2210,13 @@ which is the ordinary case.
 | `intent` | interviews; classifies the change; writes `intent.md`; runs the loop |
 | `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
 | `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
-| `to-plan` | takes every cycle this branch carries from a clean intent to a plan, spec then plan per cycle, and hands back once — D-142 |
+| `to-plan` | takes an intent to a plan — one cycle, or every one this branch carries — spec then plan, picking up where each stopped, and hands back once with the approvals drafted — D-142, D-158 |
 | `next` | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox, and stops at the approvals — D-147 |
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | applies an artifact's findings to that artifact |
-| `remediate` | applies a blocked verify's unmet criteria and findings to source and tests |
-| `build` | implements the plan; builds; tests; records evidence |
+| `remediate` | applies a blocked verify's unmet criteria and findings to source and tests, and verifies again while it is working — D-159 |
+| `build` | implements the plan; builds; tests; records evidence; verifies a green build — D-159 |
 | `verify` | adjudicates the build against the spec from evidence alone |
 | `batch-build` | completes the queued cycles, each on its own branch and independently, and reports the sitrep — §10.1, D-86 |
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in a fresh verify — D-86 |
@@ -2236,9 +2236,14 @@ each list their own steps and nothing past the hand-back; `batch-build` and `to-
 `sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
 for the person to choose from; nothing picks among several. `draft approval` and `pr` keep the id required — `pr --plan` in a sandbox excepted, which names every cycle it takes (D-144).
 
-**Every stage's hand-back names a new session** for the next stage, and so does `sdlc status` beside the
-next command. A session carried past one stage rebuilds its whole context on every turn after an idle
-wait, and that, not the judging, was most of what one solution's cycles cost (D-122).
+**The hand-back before the build names a new session**, and no other does. A session carried past one
+stage rebuilds its whole context on every turn after an idle wait, and that, not the judging, was most of
+what one solution's cycles cost (D-122); but the planning chain is short and runs as one step, so it is the
+build, which reads the code, that is worth starting clean (D-158).
+
+**Every hand-back closes with one plain offer** of the next step, in words a person can say back — *take it
+to plan*, *build it*, *fix it*, *open the pull request* — with the slash form beside it. The panel names the
+step a person takes, never `interrogate` or `refine`, which each stage runs inside its own loop (D-158).
 
 **Three documents list these, and the suite holds all three against disk.** This inventory,
 [`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
@@ -2254,7 +2259,7 @@ mechanical rather than promised.
 | `intent` | nothing; with `--reslice`, intents with no spec | an intent exists, or the id it was handed is already claimed; with `--reslice`, a named cycle with a spec, approved, abandoned or missing | `intent.md`, into the directory `sdlc new` opened; with `--reslice`, the edited intents, new cycles and successors |
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
-| `to-plan` | a cycle this branch carries ready for a spec or a plan | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle |
+| `to-plan` | a cycle this branch carries with an intent, a plan not yet clean, and no standing approval | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle, and an approval draft for each planned one |
 | `next` | a backlog item ready now | nothing; with nothing ready it shows the backlog and stops | what `intent`, `spec` and `plan` write, per item; removes a parked file |
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
@@ -7268,6 +7273,83 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-159 — A green build verifies itself, and remediation goes round on its own until it passes or needs a person
+
+**Governs:** §6, §15
+
+**Amends D-66:** the stop rules are unchanged; the loop is driven by `remediate` rather than by a person typing
+each pass, and it checks in every fourth pass.
+
+**Decision.**
+
+- **`build` runs `verify` on a green build**, in the same hand-back. A red build still stops there.
+- **`remediate` runs the loop**: a pass, its evidence, then `verify` — whose adjudicator is a fresh process, as
+  ever (D-109) — then `sdlc pr-ready`. It goes on while the outcome is `blocked` and the passes are making
+  progress, and stops on `pass` or `escalated`.
+- **It checks in every fourth pass of a run**: what the passes closed, what is open, and whether to keep going,
+  with a word that a new session is worth it. Nothing stops on the number.
+- **A person still starts remediation.** `verify` closes on *fix it* and never remediates on its own; the step is
+  the person's, and what it no longer asks of them is to come back between passes.
+
+**Why.** Between a green build and its verify, and between a remediation pass and its re-verify, a person was
+asked to decide something with one possible answer. Each pass cost two sessions and two commands, and what the
+person added at those stops was *yes, go on*. The rule that decides whether to go on was already mechanical:
+D-66's progress, regression and stall, read by `pr-ready`.
+
+**Why it keeps the separation.** D-01 is about who judges, not who starts the judging. The verdict is written by
+an adjudicator in a fresh process that never saw the build or the fix, from the evidence alone, and the session
+that wrote the code starts it and reads what it returns, exactly as `batch-build` already did unattended. The
+session never edits `verify.md`, and `refine` never runs on one.
+
+**Why a check-in and not a ceiling.** D-66 rejected a ceiling as a number that gets argued about instead of the
+rule that actually stops the loop, and accepted a tail risk: a loop that closes one finding while opening another
+satisfies *strictly reduces* on alternate passes and never ends. While a person turned the crank, their patience
+caught that. The check-in puts them back in front of a long loop without stopping one that is working.
+
+**Rejected.** *Remediating automatically after a blocked verify* — the person chose remediation as a step of their
+own, and a blocked verdict is the moment they may want to read it first. *A ceiling behind the check-in* — the
+same argument D-66 lost. *Verifying in the remediating session* — the self-grading D-109 removed.
+
+### D-158 — The cycle a person walks is seven steps, and every hand-back offers the next in words
+
+**Governs:** §3, §14, §15
+
+**Amends D-122:** the new session is named once, before the build. **Amends D-142:** `batch-plan` is `to-plan`,
+takes one cycle or every one, and picks a cycle up wherever its planning stopped.
+
+**Decision.**
+
+- **Seven steps are the cycle**: begin an intent, take it to plan, steer, approve, build (which verifies),
+  remediate, and open the pull request. The guides and the cheat sheet walk those; the rest are run by them or
+  come after a cycle, and are documented in the skills reference.
+- **`to-plan` is the step after the intent**, for one cycle or every one the branch carries. `sdlc cycles --here
+  --for to-plan` reads what is ready: an intent, a plan not yet clean, no standing approval. It finishes whichever
+  loop is open, then the spec, then the plan, and hands back once.
+- **The panel names the step a person takes.** Before the gate its next line is `to-plan`, with why — never
+  `interrogate` or `refine`, which each stage runs inside its own loop (D-29).
+- **Every hand-back closes with one plain offer** — *take it to plan*, *build it*, *fix it*, *open the pull
+  request* — with the slash form beside it, so a person can carry on in a sentence on every host.
+- **The agent drafts the approval** at the plan's hand-back, and gives the path and the rename. Drafting is not
+  placing; the rename stays the person's (§5.3).
+- **The new session is named once**, at that hand-back: the build reads the code and is worth starting clean, and
+  the planning chain is short enough to stay where it started.
+
+**Why.** One ordinary cycle cost about seven sessions and seven typed commands, with the panel pointing at the
+loop's machinery and every stage asking for a new session. Most of the stops asked a person nothing, and the
+commands were ones they had to look up. A process meant to facilitate read as ceremony, and the twenty-one skills
+were more than anyone could hold in mind.
+
+**Why not hide the internal skills.** Claude Code can keep a skill out of the slash menu, or out of the model's
+reach, through frontmatter; the Agent Plugins hosts start every skill by matching a sentence and have no slash
+form. Hiding them would make the experience differ by host because the skills differed, which is the one
+difference this framework does not allow (D-46). The surface shrinks in what the guides walk and the hand-backs
+offer, which every host reads alike.
+
+**Rejected.** *Hiding skills by host-specific frontmatter*, above. *A new skill beside `batch-plan`* — two ways to
+do one thing. *Renaming it `plan`* — it reads better, and collides with the single stage of that name. *Chaining
+the intent into the plan* — the person deciding the intent is right is the human-in-the-loop point. *Naming a new
+session at every stage* — D-122's reason holds for the build; at every stage it read as ceremony.
 
 ### D-157 — Above the solution's coverage floor the codebase need not hold its baseline, and a person moves the floor
 

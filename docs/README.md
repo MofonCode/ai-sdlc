@@ -326,15 +326,15 @@ never decides a gate.
 | `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
-| `to-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
+| `to-plan` | takes an intent to a plan — one cycle or every one — spec then plan, picking up where each stopped, and hands back once with the approvals drafted |
 | `next` | pulls the next wave from the backlog — ready successors started, ready parked cycles read again — plans it in one sandbox, and stops at the approvals |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |
 | `steer` | carries a mid-cycle correction, or suggestions taken in or declined, down the chain, editing rather than regenerating |
-| `build` | implements an approved plan, builds, tests, and records the evidence |
+| `build` | implements an approved plan, builds, tests, records the evidence, and verifies a green build |
 | `batch-build` | completes every queued cycle, each on its own branch and independently, and reports the sitrep; `--pr` opens a pull request for each, a draft for one that did not pass |
 | `verify` | adjudicates a build against its spec from the recorded evidence alone, in a fresh process |
-| `remediate` | applies a blocked verification's unmet criteria and findings to source and tests |
+| `remediate` | applies a blocked verification's unmet criteria and findings to source and tests, and verifies again while it is working |
 | `pr` | pushes a cycle's branch and opens its pull request into the integration branch — a verified build, an approved plan with `--plan`, a draft with `--draft`. **The only stage that touches the remote** |
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |

@@ -120,10 +120,13 @@ person told only "blocked" goes looking for them. Then stop.
 adjudication; a hand-back that re-argues it produces a second, shorter verdict with no hash and no
 round, and a reader who disagrees with one cannot tell which one the chain carries.
 
-- **Passed?** The person decides whether to open a pull request. Where the build recorded deviations
-  nobody has answered, the panel lists them and names `sdlc draft approval <id>`: the pull request waits
-  on the person's answer to each.
-- **Blocked?** The person decides whether to remediate. Do not start remediating; you
-  have just finished judging, and the separation is the point.
+- **Passed?** The person decides whether to open a pull request: close with one plain offer — say *open
+  the pull request* (or `/sdlc:pr`). Where the build recorded deviations nobody has answered, the panel
+  lists them and names `sdlc draft approval <id>`: the pull request waits on the person's answer to each.
+- **Blocked?** The person decides whether to remediate: close with one plain offer — say *fix it* (or
+  `/sdlc:remediate`), which works until it passes or needs them. Do not start remediating on your own;
+  the person chooses to, and it is remediate that loops, never this stage.
 
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
+**Run by `build` or `remediate`, this is the same stage with the same fresh adjudicator**, and the hand-back
+is theirs to give: after a build it is this one, below the build's lines; inside remediate's loop, the loop
+reads the outcome and decides whether to go on.

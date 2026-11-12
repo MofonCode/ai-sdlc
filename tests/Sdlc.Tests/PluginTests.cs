@@ -464,15 +464,24 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_stage_that_hands_on_to_another_says_it_runs_in_a_new_session()
+    public void The_hand_back_before_the_build_says_it_runs_in_a_new_session_and_the_planning_chain_does_not()
     {
-        // D-122. The cheapest place to say it is the line a person reads while deciding whether to type
-        // the next command; a session carried past its stage was most of what one solution's cycles cost.
-        foreach (string name in (string[])["intent", "spec", "plan", "build", "verify", "remediate"])
+        // D-122, as D-158 narrowed it. The planning chain stays in one session and the build starts clean, so the
+        // new session is named once, at the approval, rather than at every stage where it read as ceremony.
+        foreach (string name in (string[])["plan", "to-plan"])
         {
             string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
 
-            StringAssert.Contains(text, "new session", name + "'s hand-back does not say the next stage runs in a new session.");
+            StringAssert.Contains(text, "new session", name + "'s hand-back does not say the build runs in a new session.");
+        }
+
+        foreach (string name in (string[])["intent", "spec"])
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+            Assert.IsFalse(
+                text.Contains("**Say that it runs in a new session**", StringComparison.Ordinal),
+                name + " sends the planning chain to a new session at every stage.");
         }
     }
 
@@ -530,17 +539,23 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    [DataRow("intent", "Then stop. The person decides whether to move to the spec.")]
+    [DataRow("intent", "Then stop. The person decides whether to take it to plan.")]
     [DataRow("spec", "then stop. The person decides whether to move to the plan.")]
-    [DataRow("plan", "Approving them is yours to do")]
-    [DataRow("build", "Then stop. The person decides whether to verify.")]
-    [DataRow("verify", "The person decides whether to open a pull request.")]
+    [DataRow("plan", "I can't place the approval myself")]
+    [DataRow("to-plan", "**It stops at the plan.**")]
+    [DataRow("build", "say so plainly and stop there.")]
+    [DataRow("verify", "The person decides whether to open a pull request")]
+    [DataRow("verify", "The person decides whether to remediate")]
     public void The_stage_skills_hand_back_rather_than_chaining_into_the_next_stage(string name, string handBack)
     {
         // The separate commands are where a person decides to proceed. A skill that chained straight on
         // would preserve every constraint and still remove the moment somebody chooses to continue.
         // Held to the sentence that hands back rather than to the word "stop", which every one of these
         // skills uses a dozen times for other reasons and so proved nothing.
+        //
+        // A green build goes straight on to verify (D-159): the verdict is a fresh process's, and the person had
+        // nothing to decide between the two. So build is held to the stop on a red build, and the decision after
+        // a build is verify's: open the pull request, or remediate.
         string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md")).ReplaceLineEndings(" ");
 
         StringAssert.Contains(
@@ -570,6 +585,8 @@ public sealed class PluginTests
     [DataRow("interrogate")]
     [DataRow("verify")]
     [DataRow("mine")]
+    [DataRow("build")]
+    [DataRow("remediate")]
     public void Every_skill_that_judges_starts_a_fresh_process_it_may_run(string skill)
     {
         // D-109. The verdict used to be written by whichever session typed /sdlc:verify, which was usually
