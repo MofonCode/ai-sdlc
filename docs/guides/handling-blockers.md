@@ -26,6 +26,10 @@ is a reader finding something nobody had raised each round with every earlier ob
 a document too wide to prove in one pass, which another refine will not narrow. Blockers that come back
 are the loop the **Loop** line warns about.
 
+**Most of this runs without you.** Taking an intent to plan runs each document's interrogate-and-refine loop
+itself, and fixing a blocked build verifies again after every pass. This guide is what those loops are doing,
+and what to do when one stops and asks you — which is the only time you need to.
+
 **Nothing here can be waived.** There is no field for accepting a blocker, no flag, and no recorded
 override. It is answered, or the cycle does not advance — and that is the design working, because a
 blocker that could be waived would be waived exactly when it mattered.
@@ -34,8 +38,8 @@ blocker that could be waived would be waived exactly when it mattered.
 
 | Loop | Judges | Blocker | Answered by |
 |---|---|---|---|
-| interrogate, then refine | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `/sdlc:refine`, which edits that document |
-| verify, then remediate | the build, from its recorded evidence, against the spec | a `blocked` verification | `/sdlc:remediate`, which edits source and tests |
+| interrogate, then refine — run by each stage, and by `to-plan` | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
+| verify, then remediate — verify run by a green build, then by remediate after each pass | the build, from its recorded evidence, against the spec | a `blocked` verification | `remediate`, which edits source and tests — say *fix it* |
 
 **The two editors have opposite guards, and the asymmetry is the whole design.** Refine edits a
 planning document and never code. Remediate edits code and never a planning document — if a failing test
@@ -66,8 +70,8 @@ runs, or a verify never shows, blocks; a case nobody listed is a suggestion, wha
 it under. Which cases belong on the list is decided once, at the spec, against the intent's own words, and
 you see the list when you approve (D-132).
 
-**The stage skills run this loop for you.** `/sdlc:intent`, `/sdlc:spec` and `/sdlc:plan` each write
-their document, interrogate it, refine it, and repeat until a round raises nothing blocking, then hand
+**The stage skills run this loop for you.** `/sdlc:intent`, and `/sdlc:to-plan` for the spec and the plan,
+each write their document, interrogate it, refine it, and repeat until a round raises nothing blocking, then hand
 back. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
 when a refusal elsewhere names one.
 
@@ -81,9 +85,9 @@ While a blocking finding is open:
 
 ### Answering it
 
-```
-/sdlc:refine <id> <artifact>
-```
+**The stage answers it**: each stage, and `to-plan` across them, runs refine and interrogates again until a
+round is clean. What you meet is the moment it stops and asks. To run a step by hand —
+`/sdlc:refine <id> <artifact>`, then `/sdlc:interrogate <id> <artifact>` — is the same loop.
 
 Refine applies the latest round's findings to that one document and never judges its own work. **Every
 finding leaves by exactly one of three exits**, and there is no fourth:
@@ -206,7 +210,8 @@ sitrep and `sdlc status` on that branch say it was built before the plan was ame
 
 ### What it is
 
-`/sdlc:verify <id>` reads the recorded evidence — `tests.json`, `diff.patch`, `base.sha` — and never
+Verify — which a green build runs, and remediation runs again after each pass — reads the recorded
+evidence — `tests.json`, `diff.patch`, `base.sha` — and never
 runs the tests or reads the source. Per criterion it asks which test the plan named, whether the summary
 says it ran and passed, **whether that test actually establishes the criterion**, and which case it never
 runs or which outcome it never reads. A test that passed but does not reach its criterion is *not met*. Each
@@ -231,23 +236,19 @@ something it was not given leave to:
 | It cites | It means | You |
 |---|---|---|
 | `CON_07.2` | the change does something the plan did not describe: a drive-by refactor, an unrelated fix. Judged by what each change is for, never by which files it touched | take it back out; keep it as a `Noticed:` line for a later cycle |
-| `CON_24` | the change takes what a recorded decision set aside, and neither the intent nor the plan declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — declare the departure in the plan with `/sdlc:steer` and approve it again |
+| `CON_24` | the change takes what a recorded decision set aside, and neither the intent nor the plan declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — remediate records a `decision` deviation quoting it, for you to answer (D-156) |
 
 **These go to `/sdlc:remediate` whatever the outcome reads**, because no adjudication changes the code;
 `sdlc status` names it.
 
 ### Answering it
 
-```
-/sdlc:remediate <id>
-```
-
-Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
+Say *fix it*, or `/sdlc:remediate`. Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
 latest verify round. They are not the same list. A Not met that the verdict's readers agree with raises
 no finding, so a pass that worked only the findings could leave the criterion that blocked the cycle
-untouched. It edits source and tests to fix the **cause**, never a planning document. It does not
-verify its own work — a verification by the session that wrote the fix is the bias the separation exists to remove — so after each pass it builds, tests, records the evidence
-again and commits it, and a fresh verification reads the new evidence.
+untouched. It edits source and tests to fix the **cause**, never a planning document. After each pass it builds,
+tests, records the evidence again and commits it, then **runs verify again** — whose adjudicator is a fresh
+process that never saw the fix, so the session that wrote it never grades it (D-159).
 
 **It runs while each pass reduces what is open, and stops when it is not getting anywhere** (D-66):
 
@@ -257,7 +258,10 @@ again and commits it, and a fresh verification reads the new evidence.
 | two passes in a row reduce nothing | nothing is moving |
 | a third deviation bends the same approved text, and the verification still blocks | the loop is going round, not converging |
 
-There is no pass ceiling. Nothing stops pass nine if pass nine is still making progress.
+There is no pass ceiling. Nothing stops pass nine if pass nine is still making progress. **Every fourth pass
+it checks in** — what closed, what is open — and asks whether to keep going, in a new session. That is not a
+ceiling: it is you back in front of the one loop the progress rule cannot catch, which closes one finding
+while opening another.
 
 ### When the approved text cannot be followed
 

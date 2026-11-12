@@ -58,11 +58,11 @@ started again:
 
 | Where it stopped | What to do |
 |---|---|
-| the intent has no clean round | run the intent's loop — the `intent` skill's loop section — until it is clean, then go on |
+| the intent is not clean — no round yet, a blocker open, or a round that judged an older version | run the intent's loop — the `intent` skill's loop section — until it is clean, then go on |
 | no spec | follow the `spec` skill for that id |
-| a spec with no clean round | run the spec's loop — the `spec` skill's loop section — until it is clean |
+| a spec that is not clean | run the spec's loop — the `spec` skill's loop section — until it is clean |
 | no plan | follow the `plan` skill for that id |
-| a plan with no clean round | run the plan's loop — the `plan` skill's loop section — until it is clean |
+| a plan that is not clean | run the plan's loop — the `plan` skill's loop section — until it is clean |
 
 Follow each stage's skill exactly as it is written — the constraints, the decisions, the perspectives, the
 loop — with three differences:

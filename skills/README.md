@@ -307,7 +307,7 @@ can take eleven.
 
 - [`spec`](#spec) — the next stage, when you are satisfied with the intent
 - [`interrogate`](#interrogate), [`refine`](#refine)
-- [Running a cycle](../docs/guides/running-a-cycle.md), §3
+- [Running a cycle](../docs/guides/running-a-cycle.md), §1
 
 ### `spec`
 
@@ -385,7 +385,7 @@ What it runs, in order:
 
 - [`plan`](#plan) — the next stage
 - [`interrogate`](#interrogate), [`refine`](#refine), [`steer`](#steer)
-- [Running a cycle](../docs/guides/running-a-cycle.md), §3
+- [Running a cycle](../docs/guides/running-a-cycle.md), §2
 
 ### `plan`
 
@@ -486,7 +486,7 @@ What it runs, in order:
 - [`draft`](#draft) — next, a person approves with `/sdlc:draft approval <id>` and a rename
 - [`interrogate`](#interrogate), [`steer`](#steer)
 - [Declaring the stack](../docs/guides/declaring-the-stack.md)
-- [Running a cycle](../docs/guides/running-a-cycle.md), §3
+- [Running a cycle](../docs/guides/running-a-cycle.md), §2
 
 ---
 

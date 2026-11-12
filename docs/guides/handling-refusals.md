@@ -368,7 +368,7 @@ The check's *the verdict follows the deviations declined* failed: you declined a
 stands, so the passing verdict judged code you turned down.
 
 **Next:** `/sdlc:remediate <id>` redoes that part with your note as its instruction, records the evidence, and
-`/sdlc:verify <id>` runs again.
+verifies again itself.
 
 ---
 

@@ -422,9 +422,11 @@ list for the intent:
 sdlc perspective show <name> --for intent --cover
 ```
 
-**Ask it from a file, never from a picker** (D-114). A picker holds a handful of options, so a list
+**Ask it in free text, never from a picker** (D-114). A picker holds a handful of options, so a list
 longer than that gets merged or cut to fit, and whoever does the cutting has decided unseen what the
-person was asked. Run `sdlc suggestions <id>` once first — it lists nothing yet, and it makes sure
+person was asked. **A handful or fewer, ask in chat** — each numbered, with what it means for this change and
+a suggested answer, exactly as the file below would hold them; a file for two items is a step for nothing
+(D-158). **More than a handful, write the file.** Run `sdlc suggestions <id>` once first — it lists nothing yet, and it makes sure
 `.sdlc/reports/` ignores itself, so the file never reaches a build's diff — then write
 `.sdlc/reports/<id>-intent-concerns.md`:
 
@@ -448,7 +450,7 @@ answered — **every one, none merged**. Each says what the item means **for thi
 solution's terms, then a suggested answer with its reason: what it costs now against later, and whether
 anything already asked for depends on it. A suggestion is help with the question, not an answer to it.
 
-**In chat, ask one question in free text**: name the file, give its numbers with one line each, and ask
+**In chat, ask one question in free text**: name the file when there is one, give its numbers with one line each, and ask
 which this piece needs. Then **read back what you will write** — each answer as the wanted outcome or
 fixed decision it becomes, in the person's words — and write it once they confirm. *"Go with the
 suggestions"* is the person adopting your wording, so the read-back is what they are agreeing to.
