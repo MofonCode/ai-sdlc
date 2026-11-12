@@ -731,11 +731,17 @@ public static class StatusRenderer
         {
             ReadCycleStatus.ArtifactState? waiting = status.Blocking;
 
-            if (waiting is not null && waiting.Kind != state.Kind && waiting.Kind is ArtifactKind.Spec or ArtifactKind.Plan)
+            if (waiting is not null && waiting.Kind != state.Kind && waiting.Kind is ArtifactKind.Intent or ArtifactKind.Spec or ArtifactKind.Plan)
             {
                 next.Add((
                     Stage(host, string.Create(CultureInfo.InvariantCulture, $"to-plan {id}")),
                     ToPlanWhy(waiting, Cycle.NameOf(waiting.Kind))));
+            }
+            else if (waiting is not null && waiting.Kind != state.Kind)
+            {
+                next.Add((
+                    Stage(host, string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} {id}")),
+                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next")));
             }
             else if (status.Gate.MayBuild)
             {

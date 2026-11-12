@@ -412,6 +412,22 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    public async Task A_clean_spec_under_an_intent_that_is_not_clean_points_at_to_plan_rather_than_the_approval()
+    {
+        // to-plan finishes whichever loop is open, the intent's included, so the panel never offers an approval
+        // while a document above is still unsettled (D-158).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteBlockingRound(ArtifactKind.Intent, id: "F_03");
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "sdlc to-plan 20260929_1456_32");
+        Assert.IsFalse(panel.Contains("sdlc draft approval", StringComparison.Ordinal), panel);
+    }
+
+    [TestMethod]
     public async Task No_line_exceeds_the_width_a_narrow_console_would_wrap_at()
     {
         using var workspace = CycleWorkspace.Create();
