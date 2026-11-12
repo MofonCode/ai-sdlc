@@ -1,5 +1,5 @@
 ---
-name: batch-plan
+name: to-plan
 description: Take every intent this branch carries to a plan -- write each cycle's spec, then its plan, each with its own interrogation loop -- and hand back once with every panel and one question about suggestions. Use when a person has read their intents and asks to take them, or all of them, to plan.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: ""

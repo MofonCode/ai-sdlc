@@ -125,7 +125,7 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
 **4. Interview each opened piece in turn**, from §2 on, in the sandbox: write each intent under its own
 `.sdlc/cycles/<id>/`, run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
 accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
-same work item — and say in the hand-back that `/sdlc:batch-plan` takes them all to plan, and that what is
+same work item — and say in the hand-back that `/sdlc:to-plan` takes them all to plan, and that what is
 approved goes to the integration branch together by one plan pull request, `/sdlc:pr --plan` in the sandbox.
 
 ## 0a. Re-slice intents already written: `--reslice <id>...`

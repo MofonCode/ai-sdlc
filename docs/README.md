@@ -326,7 +326,7 @@ never decides a gate.
 | `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
-| `batch-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
+| `to-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
 | `next` | pulls the next wave from the backlog — ready successors started, ready parked cycles read again — plans it in one sandbox, and stops at the approvals |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |

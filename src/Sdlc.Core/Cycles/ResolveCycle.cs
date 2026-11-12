@@ -28,6 +28,15 @@ public enum NextStep
 
     /// <summary>Remediating: the verify is blocked.</summary>
     Remediate,
+
+    /// <summary>
+    /// Taking an intent to plan: the intent exists, the plan is not yet clean, and no approval stands. It finishes
+    /// whichever loop is open on the way, so a cycle stopped mid-round is taken up where it stopped.
+    /// </summary>
+    ToPlan,
+
+    /// <summary>Opening the pull request: the verify passed.</summary>
+    Pr,
 }
 
 /// <summary>
@@ -59,7 +68,9 @@ public static class ResolveCycle
     /// <param name="step">The step, when this returns true.</param>
     /// <returns>True when it names one.</returns>
     public static bool TryParseStep(string? text, out NextStep step) =>
-        Enum.TryParse(text, ignoreCase: true, out step) && Enum.IsDefined(step) && !int.TryParse(text, out _);
+        Enum.TryParse(text?.Replace("-", string.Empty, StringComparison.Ordinal), ignoreCase: true, out step)
+        && Enum.IsDefined(step)
+        && !int.TryParse(text, out _);
 
     /// <summary>One cycle this working copy carries.</summary>
     /// <param name="Id">The cycle.</param>
@@ -153,6 +164,10 @@ public static class ResolveCycle
                 NextStep.Build => status.Gate.Refusal == Approvals.ApprovalGate.GateRefusal.None && !status.Built,
                 NextStep.Verify => status.Built && status.Outcome is null,
                 NextStep.Remediate => string.Equals(status.Outcome, "blocked", StringComparison.OrdinalIgnoreCase),
+                NextStep.ToPlan => Of(ArtifactKind.Intent).Exists
+                    && !Of(ArtifactKind.Plan).IsClear
+                    && status.Gate.Ledger?.IsApproved != true,
+                NextStep.Pr => string.Equals(status.Outcome, "pass", StringComparison.OrdinalIgnoreCase),
                 _ => true,
             };
         }

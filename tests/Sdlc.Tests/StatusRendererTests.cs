@@ -41,7 +41,7 @@ public sealed class StatusRendererTests
 
         string full = await Render(workspace, ArtifactKind.Intent);
         StringAssert.Contains(full, "Spent");
-        StringAssert.Contains(after, "spec is next, in a new session", "A stage handed on names a new session (D-122).");
+        StringAssert.Contains(after, "sdlc to-plan 20260929_1456_32", "A clean intent hands on to to-plan (D-158).");
 
         string spec = await RenderBrief(workspace, ArtifactKind.Spec);
         Assert.IsFalse(spec.Contains("Spent", StringComparison.Ordinal), "Another document's rounds are not this one's.");
@@ -279,19 +279,22 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
-    public async Task An_uninterrogated_artifact_is_told_to_interrogate_rather_than_to_approve()
+    public async Task An_uninterrogated_artifact_is_told_to_take_it_to_plan_rather_than_to_approve()
     {
+        // The loop is inside each stage (D-29), so the panel names the step a person takes, never interrogate (D-158).
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
 
         string panel = await Render(workspace, ArtifactKind.Intent);
 
         StringAssert.Contains(panel, "not interrogated");
-        StringAssert.Contains(panel, "sdlc interrogate 20260929_1456_32 intent");
+        StringAssert.Contains(panel, "sdlc to-plan 20260929_1456_32");
+        StringAssert.Contains(panel, "checks the intent first");
+        Assert.IsFalse(panel.Contains("sdlc interrogate", StringComparison.Ordinal), panel);
     }
 
     [TestMethod]
-    public async Task An_artifact_with_an_open_blocker_is_told_to_refine_then_re_check()
+    public async Task An_artifact_with_an_open_blocker_is_told_to_take_it_to_plan_which_answers_it()
     {
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
@@ -299,9 +302,10 @@ public sealed class StatusRendererTests
 
         string panel = await Render(workspace, ArtifactKind.Plan);
 
-        StringAssert.Contains(panel, "sdlc refine 20260929_1456_32 plan");
-        StringAssert.Contains(panel, "apply F_09");
-        StringAssert.Contains(panel, "sdlc interrogate 20260929_1456_32 plan");
+        StringAssert.Contains(panel, "sdlc to-plan 20260929_1456_32");
+        StringAssert.Contains(panel, "answers F_09 first");
+        Assert.IsFalse(panel.Contains("sdlc refine", StringComparison.Ordinal), panel);
+        Assert.IsFalse(panel.Contains("sdlc interrogate", StringComparison.Ordinal), panel);
     }
 
     [TestMethod]
@@ -403,8 +407,8 @@ public sealed class StatusRendererTests
 
         string panel = await Render(workspace, ArtifactKind.Intent);
 
-        StringAssert.Contains(panel, "sdlc spec 20260929_1456_32");
-        StringAssert.Contains(panel, "spec is next");
+        StringAssert.Contains(panel, "sdlc to-plan 20260929_1456_32");
+        StringAssert.Contains(panel, "take it to plan");
     }
 
     [TestMethod]

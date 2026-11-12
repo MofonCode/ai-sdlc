@@ -574,7 +574,7 @@ public static class StatusRenderer
         {
             null when status.Built => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
-                "the build recorded its evidence - in a new session"),
+                "the build recorded its evidence"),
 
             null => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
@@ -588,11 +588,11 @@ public static class StatusRenderer
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"pr {id}")),
-                "verified clean - in a new session"),
+                "verified clean - open the pull request"),
 
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
-                "a criterion is not met - in a new session"),
+                "a criterion is not met - fix it"),
 
             string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
                 string.Create(CultureInfo.InvariantCulture, $"sdlc status {id}"),
@@ -687,15 +687,23 @@ public static class StatusRenderer
         string name = Cycle.NameOf(state.Kind);
         List<(string Command, string Why)> next = [];
 
-        if (!state.Exists)
+        bool planning = state.Kind is ArtifactKind.Intent or ArtifactKind.Spec or ArtifactKind.Plan;
+
+        if (state.Kind == ArtifactKind.Intent && !state.Exists)
         {
-            next.Add((Stage(host, string.Create(CultureInfo.InvariantCulture, $"{name} {id}")), "write it"));
+            next.Add((Stage(host, "intent"), "begin the intent"));
         }
-        else if (state.Rounds == 0)
+        else if (planning && (!state.Exists || state.Rounds == 0 || state.OpenBlockers.Count > 0))
+        {
+            // Never interrogate or refine: each stage runs its own loop (D-29), and to-plan finishes whichever is
+            // open, so the panel names the step a person takes rather than the machinery inside it (D-158).
+            next.Add((Stage(host, string.Create(CultureInfo.InvariantCulture, $"to-plan {id}")), ToPlanWhy(state, name)));
+        }
+        else if (state.Kind == ArtifactKind.Verify && state.Rounds == 0)
         {
             next.Add((
-                Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
-                "nothing has argued with it yet"));
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
+                "nothing has judged the verdict yet"));
         }
         else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Any(Findings.ReaderAnswers.IsAboutTheChange))
         {
@@ -705,7 +713,7 @@ public static class StatusRenderer
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"the change does what it was not given leave to: {string.Join(", ", state.OpenBlockers.Where(Findings.ReaderAnswers.IsAboutTheChange).Select(f => f.Id))} - in a new session")));
+                    $"the change does what it was not given leave to: {string.Join(", ", state.OpenBlockers.Where(Findings.ReaderAnswers.IsAboutTheChange).Select(f => f.Id))}")));
         }
         else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Count > 0)
         {
@@ -716,29 +724,18 @@ public static class StatusRenderer
                 ? (Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
                    string.Create(
                        CultureInfo.InvariantCulture,
-                       $"answer {string.Join(", ", state.OpenBlockers.Select(f => f.Id))} in a fresh adjudication - in a new session"))
+                       $"answer {string.Join(", ", state.OpenBlockers.Select(f => f.Id))} in a fresh adjudication"))
                 : AfterTheGate(status, id, host));
-        }
-        else if (state.OpenBlockers.Count > 0)
-        {
-            next.Add((
-                Stage(host, string.Create(CultureInfo.InvariantCulture, $"refine {id} {name}")),
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"apply {string.Join(", ", state.OpenBlockers.Select(f => f.Id))}")));
-            next.Add((
-                Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
-                "re-check after"));
         }
         else
         {
             ReadCycleStatus.ArtifactState? waiting = status.Blocking;
 
-            if (waiting is not null && waiting.Kind != state.Kind)
+            if (waiting is not null && waiting.Kind != state.Kind && waiting.Kind is ArtifactKind.Spec or ArtifactKind.Plan)
             {
                 next.Add((
-                    Stage(host, string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} {id}")),
-                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next, in a new session")));
+                    Stage(host, string.Create(CultureInfo.InvariantCulture, $"to-plan {id}")),
+                    ToPlanWhy(waiting, Cycle.NameOf(waiting.Kind))));
             }
             else if (status.Gate.MayBuild)
             {
@@ -755,7 +752,7 @@ public static class StatusRenderer
             {
                 next.Add((
                     string.Create(CultureInfo.InvariantCulture, $"sdlc draft approval {id}"),
-                    "all three are clear - approve them"));
+                    "all three are clean - read the draft it writes, and rename it into place"));
             }
         }
 
@@ -768,6 +765,17 @@ public static class StatusRenderer
             first = false;
         }
     }
+
+    /// <summary>Why to-plan is next, in the terms of the document it will take up first.</summary>
+    private static string ToPlanWhy(ReadCycleStatus.ArtifactState state, string name) => state switch
+    {
+        { Exists: false } => "take it to plan - spec, then plan",
+        { Rounds: 0 } => string.Create(CultureInfo.InvariantCulture, $"take it to plan - checks the {name} first"),
+        { OpenBlockers.Count: > 0 } => string.Create(
+            CultureInfo.InvariantCulture,
+            $"take it to plan - answers {string.Join(", ", state.OpenBlockers.Select(f => f.Id))} first"),
+        _ => "take it to plan",
+    };
 
     /// <summary>
     /// A stage, named the way the host this is printed in invokes one.

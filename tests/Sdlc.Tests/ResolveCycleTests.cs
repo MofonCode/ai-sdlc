@@ -92,8 +92,29 @@ public sealed class ResolveCycleTests
     }
 
     [TestMethod]
+    public async Task A_cycle_stopped_mid_loop_is_ready_to_be_taken_to_plan_and_one_whose_plan_is_clean_is_not()
+    {
+        // to-plan takes a cycle up wherever its planning stopped, so a spec with no clean round is ready for it,
+        // where the spec step, which writes a spec, is not (D-158).
+        using CycleWorkspace workspace = ClearIntent();
+        workspace.WriteArtifact(ArtifactKind.Spec);
+        FakeRepository git = new() { Branch = "sandbox/x" };
+
+        Assert.AreEqual(workspace.Cycle.Id, (await Resolve(workspace, git, NextStep.ToPlan)).Only);
+        Assert.IsNull((await Resolve(workspace, git, NextStep.Spec)).Only);
+
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+        workspace.WriteArtifact(ArtifactKind.Plan);
+        workspace.WriteCleanRound(ArtifactKind.Plan);
+
+        Assert.IsNull((await Resolve(workspace, git, NextStep.ToPlan)).Only);
+    }
+
+    [TestMethod]
     [DataRow("spec", NextStep.Spec)]
     [DataRow("Remediate", NextStep.Remediate)]
+    [DataRow("to-plan", NextStep.ToPlan)]
+    [DataRow("pr", NextStep.Pr)]
     public void A_step_is_read_by_its_name(string text, NextStep expected)
     {
         Assert.IsTrue(ResolveCycle.TryParseStep(text, out NextStep step));

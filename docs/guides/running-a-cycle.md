@@ -68,7 +68,7 @@ branch and the folder in one line. Then it interviews you — section 3.
 
 **The work gets a sandbox**, `../<repository>.sandboxes/<id>`, on `sandbox/<id>`, named for its first cycle
 (D-144). Every cycle the work turns into — a slicing, an intent you have it cut in two — opens beside the first,
-in the same folder and on the same branch, so one session sees all of them and `/sdlc:batch-plan` can take
+in the same folder and on the same branch, so one session sees all of them and `/sdlc:to-plan` can take
 them to plan together. Your own checkout is never switched, so uncommitted work there stays where it is. Open a
 session in the sandbox to carry on, and remove it with `git worktree remove` once what it held has merged.
 
@@ -196,7 +196,7 @@ the new intents in one sandbox, and stops at the approvals with the waves still 
 each wave merges and a sliced piece of work reaches completion one wave at a time; merging stays yours.
 
 **Several intents at once.** Once you have read every intent in a working copy and are happy with them,
-`/sdlc:batch-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
+`/sdlc:to-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
 and hands back once: a line per cycle, every plan panel, and one question about every open suggestion across
 them. A cycle that needs you stops alone and the rest carry on. It runs in your session, so read and approve
 the plans in a fresh one (D-142). **The id is optional wherever one cycle is meant**: given none, a skill asks

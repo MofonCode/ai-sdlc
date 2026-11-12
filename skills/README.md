@@ -54,7 +54,7 @@ the hook actually denies today, and what it does not.
 **Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
 each list their own steps and nothing past the hand-back, so the list never shows a stage a person
 has not yet decided to run. `batch-build` lists one line per cycle, ticked only when that cycle
-passed, `batch-plan` one per cycle ticked when its plan is clean, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
+passed, `to-plan` one per cycle ticked when its plan is clean, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
 of a session and never the record — what is done is what is on disk and what `sdlc doctor`, `sdlc
 status` and `sdlc cycles --pr-ready` report — and a host without a task list loses nothing, because
 no step depends on one. `../CONCEPT.md` D-80 has why a stage's list stops at the hand-back, why the
@@ -490,7 +490,7 @@ What it runs, in order:
 
 ---
 
-### `batch-plan`
+### `to-plan`
 
 Takes every intent this branch carries to a plan — each cycle's spec, then its plan, each with its own loop —
 and hands back once, with every panel and one question about suggestions (D-142).
@@ -505,7 +505,7 @@ and hands back once, with every panel and one question about suggestions (D-142)
 #### Syntax
 
 ```
-/sdlc:batch-plan
+/sdlc:to-plan
 ```
 
 #### Parameters
@@ -529,7 +529,7 @@ plan: approving is the person's, one cycle at a time.
 #### Example
 
 ```
-/sdlc:batch-plan
+/sdlc:to-plan
 ```
 
 Expect one line per cycle it will take, then a long run with no questions, then one line per cycle, the plan
@@ -602,7 +602,7 @@ piece of work to completion one wave at a time.
 
 #### See also
 
-- [`batch-plan`](#batch-plan) — what it runs for the intents it opened
+- [`to-plan`](#to-plan) — what it runs for the intents it opened
 - [`intent`](#intent) — `--from successor:<slug>`, what it runs for each successor
 - [Running a cycle](../docs/guides/running-a-cycle.md)
 

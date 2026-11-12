@@ -2210,7 +2210,7 @@ which is the ordinary case.
 | `intent` | interviews; classifies the change; writes `intent.md`; runs the loop |
 | `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
 | `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
-| `batch-plan` | takes every cycle this branch carries from a clean intent to a plan, spec then plan per cycle, and hands back once — D-142 |
+| `to-plan` | takes every cycle this branch carries from a clean intent to a plan, spec then plan per cycle, and hands back once — D-142 |
 | `next` | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox, and stops at the approvals — D-147 |
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
@@ -2229,7 +2229,7 @@ which is the ordinary case.
 | `suggestions` | lists accumulated non-blocking findings |
 
 **Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
-each list their own steps and nothing past the hand-back; `batch-build` and `batch-plan` list one line per cycle
+each list their own steps and nothing past the hand-back; `batch-build` and `to-plan` list one line per cycle
 (D-80).
 
 **A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
@@ -2254,7 +2254,7 @@ mechanical rather than promised.
 | `intent` | nothing; with `--reslice`, intents with no spec | an intent exists, or the id it was handed is already claimed; with `--reslice`, a named cycle with a spec, approved, abandoned or missing | `intent.md`, into the directory `sdlc new` opened; with `--reslice`, the edited intents, new cycles and successors |
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
-| `batch-plan` | a cycle this branch carries ready for a spec or a plan | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle |
+| `to-plan` | a cycle this branch carries ready for a spec or a plan | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle |
 | `next` | a backlog item ready now | nothing; with nothing ready it shows the backlog and stops | what `intent`, `spec` and `plan` write, per item; removes a parked file |
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |

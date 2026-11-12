@@ -367,7 +367,7 @@ public sealed class PluginTests
         //
         // A batch has no hand-back between cycles to protect, and a different way to mislead: four
         // outcomes shown in a tick box with two states. So their two sentences are their own.
-        string[] keeping = ["batch-build", "batch-plan", "build", "init", "intent", "plan", "spec"];
+        string[] keeping = ["batch-build", "build", "init", "intent", "plan", "spec", "to-plan"];
 
         List<string> found = [];
 
@@ -392,7 +392,7 @@ public sealed class PluginTests
                 StringAssert.Contains(text, "**One line per cycle.**", name);
                 StringAssert.Contains(text, "**A tick means `passed`, and nothing else does.**", name);
             }
-            else if (name == "batch-plan")
+            else if (name == "to-plan")
             {
                 StringAssert.Contains(text, "**One line per cycle.**", name);
                 StringAssert.Contains(text, "**A tick means planned, and nothing else does.**", name);
