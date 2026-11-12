@@ -15,8 +15,8 @@ In this tutorial, you:
 
 - make a repository and adopt it
 - place the solution document and the declared stack
-- write the intent, spec and plan, and approve them
-- build the cycle and verify it
+- write the intent, take it to plan, and approve it
+- build the cycle, which verifies it
 - roll the die in a browser
 
 ## What this is, and what it is not
@@ -284,16 +284,21 @@ growing a second page; the third keeps it from shrinking the one it has.
 **Once you answer, the intent is interrogated for you.** The skill writes it, challenges it, fixes what
 comes back, asks once which of the readers' suggestions you want to take in — grouped by theme in a file,
 answered in your own words, and leaving them all is a fine answer — then shows the cycle's status and
-stops. If it stops on a blocker, see
+stops, offering to take it to plan. If it stops on a blocker, see
 [handling blockers](../guides/handling-blockers.md).
 
-## 6. The spec
+## 6. Take it to plan
+
+Say *take it to plan*, or:
 
 ```
-/sdlc:spec <id>
+/sdlc:to-plan
 ```
 
-It reads `intent.md` and nothing else — not the conversation, not the code. Seven criteria is what this
+It writes the spec, then the plan, each interrogated for you, and hands back once with both — the next two
+sections are what each comes to.
+
+**The spec** reads `intent.md` and nothing else — not the conversation, not the code. Seven criteria is what this
 work comes to: three about the roll at the unit layer, one the skeleton already proves, and three about
 the page at the component layer.
 
@@ -335,16 +340,9 @@ One without the other is a failure that is reported correctly and shown to nobod
 without writing it. That is legitimate — what is not is a criterion whose named test never runs the case
 it states.
 
-**The spec is interrogated for you**, the same way. If it stops on a blocker, see
-[handling blockers](../guides/handling-blockers.md).
+## 7. The plan — in the same run
 
-## 7. The plan
-
-```
-/sdlc:plan <id>
-```
-
-Unlike the spec, this one **must** read the code — and there is almost none yet, so what it reads is the
+Unlike the spec, the plan **must** read the code — and there is almost none yet, so what it reads is the
 skeleton it is about to ask for. It runs `sdlc stack` first, which shows the five build settings files
 as declared and missing. Expect it to declare `sdlc scaffold`: the solution file, the skeleton's
 projects, the reference slice and those build settings arrive in this cycle behind an approval like
@@ -398,16 +396,11 @@ file gains four projects, and `ConventionTests.cs` reads `Ui`. A plan that forge
 a build that compiles and an endpoint nothing routes to; one that forgets the third produces projects
 `dotnet test` never builds.
 
-**The plan is interrogated for you**, the same way. If it stops on a blocker, see
-[handling blockers](../guides/handling-blockers.md).
+If either stops on a blocker, see [handling blockers](../guides/handling-blockers.md).
 
 ## 8. Approve
 
-```pwsh
-sdlc draft approval <id>
-```
-
-It writes the complete file beside the ledger and prints the rename that records it:
+The hand-back drafted the approval beside the ledger and printed the rename that records it:
 
 ```pwsh
 Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approval.md
@@ -417,74 +410,34 @@ Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approva
 exception, and a draft nobody renamed records nothing. It refuses to print at all while a blocking
 finding is open: a blocking finding cannot be waived by any mechanism.
 
-## 9. Build
+## 9. Build it
+
+In a new session in the cycle's folder, say *build it*, or:
 
 ```
 /sdlc:build <id>
 ```
 
 The first stage that writes code and the first you are not expected to watch. It asks the gate, stops if
-the gate refuses, and implements what the plan decided and only that.
-
-**It runs these itself.** They are written out because what each records is what verify and the chain
-check later read:
-
-```pwsh
-sdlc scaffold <id>
-```
-
-The skeleton, because the plan declared it — a solution file, its projects, the architecture suite and
-a reference slice written in the shape every operation should have — and the five build settings files
-it compiles under. It refuses unless this cycle is approved, and writes only what is absent. The two
-front-end projects and the component tests are not part of it: the build writes those by hand, from the
-plan's file table.
-
-```pwsh
-dotnet test
-```
-
-Then the code is committed, and the evidence recorded from the commit:
-
-```pwsh
-sdlc evidence <id> --tests <the directory holding the results files> --build-log <path>
-```
-
-**Point `--tests` at the directory, not at one file.** Each test project writes its own results, and a
-summary built from one of them is a verification reading part of the suite.
-
-```pwsh
-git add .sdlc/cycles/<id>/evidence
-```
-
-```pwsh
-git commit -m "Record the build evidence for cycle <id>"
-```
-
-**That second commit is not an afterthought.** Verify and the chain check both read the evidence out of
-the repository, so evidence that exists only in a working tree is evidence the chain cannot see.
+the gate refuses, and implements what the plan decided and only that. The skeleton arrives first, because
+the plan declared it — a solution file, its projects, the architecture suite and a reference slice written
+in the shape every operation should have — and the two front-end projects and the component tests after
+it, from the plan's file table. It runs the tests, records the evidence and commits it; the commands it
+runs are in `../guides/running-a-cycle.md`.
 
 One thing to expect: the scaffold writes a `Greet` reference slice that exists to be copied. The dice
 operation takes its shape, and the slice stays until there is enough real work to delete it — which is
 not this cycle.
 
-## 10. Verify
+## 10. Verify — the build does it
 
-```
-/sdlc:verify <id>
-```
+**A green build goes straight on to verify.** A fresh process reads `tests.json`, `diff.patch` and
+`base.sha` and does **not** run the tests. Per criterion: which test did the plan name, does the summary
+say it ran and passed, and does that test actually establish the criterion? The third is where judgement
+lives — a test that passed but does not reach its criterion is *not met*.
 
-A fresh process, reading `tests.json`, `diff.patch` and `base.sha` and **not** running the tests. Per
-criterion: which test did the plan name, does the summary say it ran and passed, and does that test
-actually establish the criterion? The third is where judgement lives — a test that passed but does not
-reach its criterion is *not met*.
-
-It writes `pass` or `blocked`. On `blocked`:
-
-```
-/sdlc:remediate <id>
-```
-
-Edits source and tests, never a planning document, and runs while each pass reduces what is open.
+It writes `pass` or `blocked`. On `blocked`, say *fix it* (`/sdlc:remediate`): it edits source and tests,
+never a planning document, and verifies again while each pass reduces what is open.
 `../guides/handling-blockers.md` has the rest.
 
 ```pwsh

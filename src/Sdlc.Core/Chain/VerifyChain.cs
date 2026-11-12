@@ -476,15 +476,17 @@ public static class VerifyChain
         }
 
         /// <summary>
-        /// The changed lines are covered, and the whole codebase is no less covered than it was (D-103).
+        /// The changed lines are covered, and the whole codebase holds its coverage (D-103, D-157).
         /// </summary>
         /// <remarks>
-        /// Two checks, because each catches what the other cannot. The changed-line floor is what a cycle
-        /// answers for, and it lets an adopted solution that starts at a low rate merge cycles and climb; a
-        /// whole-codebase floor would refuse every cycle until somebody paid down a backlog no cycle made.
-        /// The baseline catches what changed lines cannot see: a deleted or weakened test uncovers code the
-        /// cycle never touched. Read from the evidence, which the binary computed -- a number here cannot
-        /// be overclaimed.
+        /// <para>Two checks, because each catches what the other cannot. The changed-line floor is what a cycle
+        /// answers for, and it lets an adopted solution that starts at a low rate merge cycles and climb. The
+        /// whole-codebase check catches what changed lines cannot see, a deleted or weakened test uncovering
+        /// code the cycle never touched, but only under the solution's floor: above it, holding the codebase
+        /// to the highest rate it ever reached refused cycles that did nothing wrong.</para>
+        /// <para>The rates are read from the evidence, which the binary computed, so a number here cannot be
+        /// overclaimed. The floor is read from <c>solution.md</c> as it stands, because only a person writes
+        /// it, and lowering it is how a person answers a fall without the evidence being recorded again.</para>
         /// </remarks>
         private static async Task Covered(
             Cycle cycle,
@@ -520,15 +522,39 @@ public static class VerifyChain
                         CultureInfo.InvariantCulture,
                         $"{changed:P1} of the changed lines ran under a test ({summary.ChangedCovered} of {summary.ChangedCoverable}), against a floor of {CoverageSummary.ChangedFloor:P0}{(summary.ChangedMeetsFloor ? string.Empty : ". Add the tests that run them, or, for code no test should run, exclude it in the solution's coverage settings and say why in the plan")}")));
 
+            summary = summary with
+            {
+                Floor = await SolutionDocument.CoverageFloorOf(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false),
+            };
+
             checks.Add(new ChainCheck(
-                "the codebase is no less covered than it was",
-                summary.HeldTheBaseline,
-                summary.Baseline is not { } baseline
-                    ? string.Create(CultureInfo.InvariantCulture, $"{summary.Rate:P1}, the first measurement, which sets the baseline")
-                    : string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{summary.Rate:P1} against a baseline of {baseline:P1}{(summary.HeldTheBaseline ? string.Empty : ". Something stopped running code it ran before -- a test deleted or weakened, or code moved out of reach of one")}")));
+                "the codebase holds its coverage",
+                summary.HoldsItsCoverage,
+                Codebase(summary)));
         }
+
+        /// <summary>What the whole-codebase check says, worded so a fall reads as a fall and never as a target.</summary>
+        /// <param name="summary">The coverage, with the floor in force.</param>
+        /// <returns>The check's detail.</returns>
+        private static string Codebase(CoverageSummary summary)
+        {
+            ArgumentNullException.ThrowIfNull(summary);
+
+            string floor = summary.Floor is { } declared ? SolutionDocument.FloorName(declared) : "none declared";
+
+            return summary switch
+            {
+                { Baseline: null } => string.Create(CultureInfo.InvariantCulture, $"{summary.Rate:P1}, the first measurement, which sets the baseline"),
+                { HeldTheBaseline: true } => string.Create(CultureInfo.InvariantCulture, $"{summary.Rate:P1}, no lower than the last recorded {summary.Baseline:P1}"),
+                { AtTheFloor: true } => string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{summary.Rate:P1}, under the last recorded {summary.Baseline:P1} but at or above the solution's floor of {floor}, so it holds. The new rate becomes the baseline"),
+                _ => string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{summary.Rate:P1}, under the last recorded {summary.Baseline:P1} and under the solution's floor ({floor}). The baseline is the last rate a merged cycle recorded, not a target. First find what fell: a test deleted or weakened, code moved out of a test's reach, or a change in how coverage is measured, which moves every figure at once. Then add the tests that run it, or a person lowers coverage_floor in solution.md ('sdlc draft solution')"),
+            };
+        }
+
 
         /// <summary>
         /// After a reopen, the verification was judged after the approval that now stands.

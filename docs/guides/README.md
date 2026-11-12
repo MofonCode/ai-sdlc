@@ -13,7 +13,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`installing-the-plugin.md`](installing-the-plugin.md) | the plugin and the binary: installing, updating, removing, on each host, and the four things that catch people | once per machine, before anything else |
 | [`adopting-the-framework.md`](adopting-the-framework.md) | adoption, the interview, filling in, placing and committing the drafts it leaves, the first constraints, and the files your solution owns | once per repository |
 | [`declaring-the-stack.md`](declaring-the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them | right after adoption, and whenever a default or a rule is wrong for this solution |
-| [`running-a-cycle.md`](running-a-cycle.md) | one cycle from the rules to a pull request, stage by stage — the happy path | once, front to back, then when you need a stage again |
+| [`running-a-cycle.md`](running-a-cycle.md) | one cycle in seven steps, from an intent to a pull request, each one said in a sentence — the happy path | once, front to back, then when you need a stage again |
 | [`setting-up-the-factory.md`](setting-up-the-factory.md) | the factory from nothing to a watched first run: the agent's credential, the tools on the agent, the integration branch, the pipeline and its permissions, and what to do when a step fails | once per solution, when you are ready to let a pipeline build |
 | [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
 | [`mining-the-cycles.md`](mining-the-cycles.md) | after a cycle finishes: reading what the cycles settled, deciding the rules, decisions, stack rows, areas and successors the solution keeps, answering every open suggestion — taken further, declined or ignored — and deleting the finished cycles' folders | once a verify passes, on the cycle's branch or after the merge, or after several cycles in one sitting |
@@ -64,8 +64,9 @@ It is the one guide you come back to outside a cycle: read the part you need. It
 
 ## `running-a-cycle.md`
 
-**One cycle, every stage, end to end.** Reading the rules, opening the cycle and its branch, the three
-planning documents, the gate, build, verify, the pull request, and what to look at afterwards.
+**One cycle, seven steps, end to end.** Begin an intent, take it to plan, steer the plan, approve, build
+it — which verifies — fix it, and open the pull request, then what to look at afterwards. Each step is
+something a person can say; the slash form is beside it.
 
 It is the happy path on purpose. Where a stage can stop, it says so in a sentence and points at the next
 two guides. It is also solution-agnostic — what to *answer* at each prompt is the sample's job.

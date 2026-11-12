@@ -61,14 +61,14 @@ leave by the same admission as the rest.
 
 ## 5. Plan the new intents
 
-Then follow the `batch-plan` skill for this sandbox: spec then plan for every intent this wave opened, one cycle
+Then follow the `to-plan` skill for this sandbox: spec then plan for every intent this wave opened, one cycle
 at a time, each with its loop and its `sdlc park` check — **a cycle this wave planned may itself be parked**,
 behind one of its siblings, and that is the next wave forming.
 
 ## 6. Hand back once
 
 One line per item: its id, its headline, and where it got to — `planned`, `read again` and unchanged, `read again`
-and changed, `parked` with what it waits on, or stopped and why. Then `batch-plan`'s hand-back — the panels and
+and changed, `parked` with what it waits on, or stopped and why. Then `to-plan`'s hand-back — the panels and
 one question about suggestions — and then:
 
 ```

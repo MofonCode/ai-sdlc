@@ -16,13 +16,20 @@ namespace Sdlc.Core.Evidence;
 /// <param name="Covered">Of those, the ones a test ran.</param>
 /// <param name="Baseline">
 /// The whole-codebase line rate recorded at the base commit, or null when this is the first measurement.
+/// It is the last rate a merged cycle recorded, never a target anybody chose.
+/// </param>
+/// <param name="Floor">
+/// The solution's coverage floor when this was measured, or null when it declares none it could read
+/// (D-157). At or above it the codebase need not hold its baseline. <c>verify-chain</c> reads the floor in
+/// force when it runs, because only a person moves it.
 /// </param>
 public sealed record CoverageSummary(
     [property: JsonPropertyName("changed_coverable")] int ChangedCoverable,
     [property: JsonPropertyName("changed_covered")] int ChangedCovered,
     int Valid,
     int Covered,
-    double? Baseline)
+    double? Baseline,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Floor = null)
 {
     /// <summary>The share of changed coverable lines a test ran: what a cycle answers for.</summary>
     public const double ChangedFloor = 0.70;
@@ -46,7 +53,25 @@ public sealed record CoverageSummary(
     /// <summary>Whether the whole codebase is no less covered than at the base commit.</summary>
     [JsonIgnore]
     public bool HeldTheBaseline => Baseline is not { } baseline || Rate >= baseline - Tolerance;
+
+    /// <summary>Whether the whole codebase is at or above the solution's floor.</summary>
+    [JsonIgnore]
+    public bool AtTheFloor => Floor is { } floor && Rate >= floor - Tolerance;
+
+    /// <summary>
+    /// Whether the whole codebase holds its coverage: at or above the floor, or, under it, no lower than the
+    /// baseline (D-157).
+    /// </summary>
+    /// <remarks>
+    /// The baseline alone held a codebase to the highest rate it ever reached, with no slack, so the better
+    /// its past coverage the less room a cycle had: at 99% one file the coverage tool cannot see refused a
+    /// cycle that did nothing wrong. Under the floor the baseline still catches a deleted or weakened test,
+    /// which is where an adopted solution climbing from a low rate needs it.
+    /// </remarks>
+    [JsonIgnore]
+    public bool HoldsItsCoverage => AtTheFloor || HeldTheBaseline;
 }
+
 
 /// <summary>
 /// Reads coverage reports and the change, and says what is covered.

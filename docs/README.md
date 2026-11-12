@@ -77,6 +77,7 @@ A solution is one governed repository. Everything below lives in it.
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. The one key a person may move: `sdlc draft solution --standard` writes the change to rename into place |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it — or from the default branch while it does not exist |
+| `coverage_floor` | a whole percentage; `80%` when absent | the whole-codebase coverage at or above which a cycle need not hold the baseline. Under it, the codebase may not fall (D-157). A person lowers it to answer a fall no test can close, such as a change in how coverage is measured |
 | `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
 
 **There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one, and nothing reads it: the rules come from the declared stack alone.
@@ -212,7 +213,9 @@ One gate, covering all three planning documents, immediately before the build.
 | **the draft-and-rename pattern** | a drafter writes a complete file *beside* the real one and prints the rename. **Renaming is the decision**; a draft nobody renamed records nothing |
 | **draft file names** | `approval.<decision>.draft.md`, `solution.draft.md`, `techstack.draft.md`, `constraints.draft.md`. The decision is in the name, so a denial and an approval cannot look identical at the moment of the move. The three under `.sdlc/` are what adoption leaves a person, and git ignores them. The options menu written alongside the stack's draft is **not** a draft and is not here: it is a report, nothing renames it, and a declared stack carrying it is something `sdlc doctor` reports |
 | **the gate**, the hash-bound gate | `sdlc gate <id>`: whether the build may run. Exits 1 if not |
-| **`approval: none`** | a solution declaring that no person's approval is required. The gate asks for no ledger and keeps every other refusal, comparing each document with what its latest round judged; every report says no person approved. `required`, the default, is what an absent key reads as | `.sdlc/solution.md` |
+| **the coverage baseline** | `.sdlc/coverage.json`: the whole-codebase line rate the last merged cycle recorded. **Never a target**: under `coverage_floor` a cycle may not fall below it, and at or above the floor it follows the rate. The binary writes it; a person may re-measure it in a pull request of its own after a change to how coverage is measured | `.sdlc/coverage.json` |
+| **`approval: none`** |
+ a solution declaring that no person's approval is required. The gate asks for no ledger and keeps every other refusal, comparing each document with what its latest round judged; every report says no person approved. `required`, the default, is what an absent key reads as | `.sdlc/solution.md` |
 | **the seven files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike. `mechanisms/protected-files.md` is how |
 | **the guard note** | the blockquote at the top of `solution.md`, `techstack.md` and `constraints.md`, and of their drafts, saying only a person changes the file — so a denied agent write is explained by the file a person opens |
 
@@ -323,15 +326,15 @@ never decides a gate.
 | `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
-| `batch-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
+| `to-plan` | takes an intent to a plan — one cycle or every one — spec then plan, picking up where each stopped, and hands back once with the approvals drafted |
 | `next` | pulls the next wave from the backlog — ready successors started, ready parked cycles read again — plans it in one sandbox, and stops at the approvals |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |
 | `steer` | carries a mid-cycle correction, or suggestions taken in or declined, down the chain, editing rather than regenerating |
-| `build` | implements an approved plan, builds, tests, and records the evidence |
+| `build` | implements an approved plan, builds, tests, records the evidence, and verifies a green build |
 | `batch-build` | completes every queued cycle, each on its own branch and independently, and reports the sitrep; `--pr` opens a pull request for each, a draft for one that did not pass |
 | `verify` | adjudicates a build against its spec from the recorded evidence alone, in a fresh process |
-| `remediate` | applies a blocked verification's unmet criteria and findings to source and tests |
+| `remediate` | applies a blocked verification's unmet criteria and findings to source and tests, and verifies again while it is working |
 | `pr` | pushes a cycle's branch and opens its pull request into the integration branch — a verified build, an approved plan with `--plan`, a draft with `--draft`. **The only stage that touches the remote** |
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |

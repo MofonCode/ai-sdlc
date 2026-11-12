@@ -51,8 +51,9 @@ yourself** — the cycle a skill acts on is not a guess.
 sdlc status <cycle id> --stage spec
 ```
 
-No spec, or a spec that is not clean: stop. A plan already there: stop, and name `/sdlc:interrogate
-<id> plan` or `/sdlc:steer <id> "..."`.
+No spec, or a spec that is not clean: stop. A plan already there: stop, and name what the person
+probably meant, in plain words: *take it to plan* (`/sdlc:to-plan <id>`) finishes the plan's check if it
+stopped part way, and to change it they tell you what should be different (`/sdlc:steer <id> "..."`).
 
 ## Keep a task list, if your host has one
 
@@ -146,9 +147,10 @@ it has not built yet is not a finding against a plan for a static page.
 ## Plan for coverage
 
 The merge refuses a change where fewer than 70% of the added lines run under a test, or where the whole
-codebase ends up less covered than it was (D-103). So `Proof` is not only one test per criterion: the
-code the change adds has to be reached by tests too, and a plan whose proof touches the criteria and
-leaves the new code behind them unrun is one the build cannot finish. Code no test should run is excluded
+codebase ends up under the solution's `coverage_floor` and less covered than it was (D-103, D-157). So
+`Proof` is not only one test per criterion: the code the change adds has to be reached by tests too, and a
+plan whose proof touches the criteria and leaves the new code behind them unrun is one the build cannot
+finish. Code no test should run is excluded
 in the solution's coverage settings; if this change needs a new exclusion, declare the settings file in
 `Files` and say in `Shape and departures` why that code should not run under a test.
 
@@ -485,17 +487,29 @@ sdlc status <id> --stage plan --brief
 sdlc gate <id>
 ```
 
-Show the panel verbatim and add nothing to it beyond the paragraph below. The gate will refuse, because
-nobody has approved yet — that is the correct state and worth showing, because it is the moment to
-explain what happens next:
+Show the panel verbatim. The gate will refuse, because nobody has approved yet — that is the correct
+state and worth showing, because it is the moment to explain what happens next. **Draft the approval for
+them** — drafting is not placing, and a person should not have to type a command to be handed a file:
 
-> The three documents are clean. Approving them is yours to do: run `sdlc draft approval <id>`, read
-> the file it writes, and rename it onto `approval.md`. I cannot place that file — every agent write to
-> it is denied, and so is every command that would move anything onto it — and that is what makes a
-> recorded approval mean something.
+```
+sdlc draft approval <id>
+```
 
-Then stop. The build, once they approve, runs in a new session — say so in that same message. A session
-carried past its stage rebuilds its whole context after every pause (D-122).
+It writes the draft beside the ledger and prints the rename that places it. Then add nothing to the panel
+beyond this paragraph, filled in:
+
+> The three documents are clean. I've drafted the approval at `<the draft's path>` — read it, and if you
+> agree, place it with `<the rename it printed>`. If anything should be done differently, tell me and
+> I'll carry it through the documents first. I can't place the approval myself — every agent write to
+> it is denied — and that is what makes a recorded approval mean something. The build runs best in a new
+> session: say *build it* there (or `/sdlc:build`).
+
+Then stop. **This is the one hand-back that names a new session** (D-158): the planning chain stays in
+the session it started in, and the build, which reads the code, starts clean. A session carried past its
+stage rebuilds its whole context after every pause (D-122).
+
+**If the drafter refuses**, show what it printed: it names what is still open, which is the loop not yet
+finished rather than an approval to place.
 
 **When the gate lets the cycle through instead, read why.** If it says the solution declares
 `approval: none`, nobody has to approve: say that the three documents are clean, that the solution runs

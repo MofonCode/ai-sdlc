@@ -38,8 +38,11 @@ and §"Before the spec" below says what that may change (D-141).
   name what it is. A blocking finding is `refine`'s to apply, not a person's to decline. A suggestion
   from another cycle starts a cycle of its own: `/sdlc:intent --from suggestion:<cycle>/<finding>`.
 - **The cycle is approved?** Stop. A standing approval covers the exact bytes of three documents, so
-  editing one breaks the gate rather than satisfying it. Say that the move is
-  `sdlc draft approval <id> --reopen` first, which records why the approval was withdrawn.
+  editing one breaks the gate rather than satisfying it. **Draft the reopen for them** —
+  `sdlc draft approval <id> --reopen`, which records why the approval was withdrawn — and say the sequence
+  once, in order: write the reason in the draft and place it by the rename it printed; tell you the change
+  again, and you carry it through; then approve again from the draft the plan's hand-back gives them.
+  Drafting is not placing: the rename is theirs.
   Once the plan is on the integration branch, that happens on its plan branch — `sdlc branch <id> plan`
   — and the amendment goes back by `/sdlc:pr <id> --plan`, never on a build branch (D-123).
 - **Abandoned?** Stop. Abandonment is terminal.

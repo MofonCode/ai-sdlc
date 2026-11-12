@@ -527,7 +527,7 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
 
         if (line.TryOption("for", out string? forStep) && !ResolveCycle.TryParseStep(forStep, out step))
         {
-            await Console.Error.WriteLineAsync("--for takes spec, plan, build, verify or remediate.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("--for takes to-plan, spec, plan, build, verify, remediate or pr.").ConfigureAwait(false);
             return ExitCode.Usage;
         }
 

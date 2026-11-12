@@ -368,7 +368,7 @@ The check's *the verdict follows the deviations declined* failed: you declined a
 stands, so the passing verdict judged code you turned down.
 
 **Next:** `/sdlc:remediate <id>` redoes that part with your note as its instruction, records the evidence, and
-`/sdlc:verify <id>` runs again.
+verifies again itself.
 
 ---
 
@@ -686,12 +686,23 @@ declined (only where the build recorded any), the change was verified. When the 
 decisions or declared stack, it also says whether that was committed before or after the verify — reported,
 never refused (D-113).
 
-**The two coverage checks are arithmetic** (D-103). At least 70% of the lines the change adds ran under a
-test, and the whole codebase's rate is no lower than the baseline recorded at the base commit in
-`.sdlc/coverage.json`. The first catches a change that arrived untested; the second catches a deleted or
-weakened test uncovering code nobody changed. **Next:** add the tests that run the uncovered lines, build,
-and record again with `--coverage`. Code no test should run is excluded in the solution's coverage
-settings, declared in the plan with its reason.
+**The two coverage checks are arithmetic** (D-103, D-157). At least 70% of the lines the change adds ran
+under a test, and the whole codebase holds its coverage: at or above the solution's `coverage_floor` in
+`solution.md` (80% when it names none), or, under it, no lower than the baseline recorded at the base
+commit in `.sdlc/coverage.json`. The first catches a change that arrived untested; the second catches a
+deleted or weakened test uncovering code nobody changed. **The baseline is the last rate a merged cycle
+recorded, not a target anybody chose.**
+
+**Next,** for the changed lines: add the tests that run them, build, and record again with `--coverage`.
+Code no test should run is excluded in the solution's coverage settings, declared in the plan with its
+reason. For the whole codebase, find what fell before writing tests for it: compare the run's report with
+the base commit's, file by file. A deleted or weakened test shows in one place; **a change in how coverage
+is measured** -- a collector setting, a runner, a test host started in a child process -- moves every
+figure at once, and no number of tests closes it. That one is a person's to answer: lower `coverage_floor`
+through `sdlc draft solution`, or, after the change merges, re-measure the integration branch and commit
+the new rate to `.sdlc/coverage.json` in a pull request of its own. Lowering the floor does not need the
+evidence recorded again: `verify-chain` reads it as it stands.
+
 
 **The two about evidence and reopening are the stale-verdict checks.** Evidence is recorded again after
 each remediation, and a verify round records which run it read, so a verdict judged on the run before

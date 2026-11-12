@@ -574,11 +574,13 @@ internal sealed class CycleWorkspace : IDisposable
     /// still carry. Nothing reads it. Null writes the three keys adoption writes now.
     /// </param>
     /// <param name="approval">An <c>approval</c> line's value, or null to leave the key out.</param>
-    public void WriteSolution(SolutionOrigin origin, string? legacyProfile = null, string? approval = null) => WriteRaw(
+    /// <param name="coverageFloor">A <c>coverage_floor</c> line's value, or null to leave the key out.</param>
+    public void WriteSolution(SolutionOrigin origin, string? legacyProfile = null, string? approval = null, string? coverageFloor = null) => WriteRaw(
         SolutionDocument.PathIn(Root),
         string.Create(
             CultureInfo.InvariantCulture,
-            $"---\n{(legacyProfile is null ? string.Empty : "profile: " + legacyProfile + "\n")}origin: {SolutionDocument.NameOf(origin)}\n{(approval is null ? string.Empty : "approval: " + approval + "\n")}---\n\n# a solution\n"));
+            $"---\n{(legacyProfile is null ? string.Empty : "profile: " + legacyProfile + "\n")}origin: {SolutionDocument.NameOf(origin)}\n{(approval is null ? string.Empty : "approval: " + approval + "\n")}{(coverageFloor is null ? string.Empty : "coverage_floor: " + coverageFloor + "\n")}---\n\n# a solution\n"));
+
 
     /// <summary>
     /// Places a declared stack, as a person would by renaming a draft.

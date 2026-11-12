@@ -29,17 +29,18 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
 | `/sdlc:refine <id> <artifact>` | agent | applies those findings to the document |
-| `/sdlc:spec <id>` | agent | derives `spec.md` from the intent alone |
-| `/sdlc:plan <id>` | agent | decides how, and what proves each criterion, in `plan.md` |
+| `/sdlc:to-plan [<id>]` | agent | takes an intent to a plan — spec, then plan, each with its loop — and drafts the approval. The step a person takes after an intent |
+| `/sdlc:spec <id>` | agent | derives `spec.md` from the intent alone. `/sdlc:to-plan` runs it |
+| `/sdlc:plan <id>` | agent | decides how, and what proves each criterion, in `plan.md`. `/sdlc:to-plan` runs it |
 | `sdlc draft approval <id>` | binary | writes the approval draft. **You rename it** |
 | `sdlc gate <id>` | binary | whether the build may run. Exits 1 if not |
 | `sdlc stack` | binary | what the solution is built from, what this release ships that it never mentions, and the build settings not yet on disk |
 | `sdlc scaffold <id>` | binary | the skeleton on a new solution's first cycle; otherwise the build settings the plan declares |
-| `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence |
-| `sdlc evidence <id>` | binary | records the base commit, the commit the build is at, the test summary and the diff between the two, which is not committed; refuses uncommitted code outside `.sdlc/`; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline | and the platform the tests ran on
+| `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence, and verifies a green build |
+| `sdlc evidence <id>` | binary | records the base commit, the commit the build is at, the test summary and the diff between the two, which is not committed; refuses uncommitted code outside `.sdlc/`; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline and the solution's `coverage_floor` | and the platform the tests ran on
 | `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
-| `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
-| `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open, and records a deviation where the approved text cannot be followed |
+| `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md`. `/sdlc:build` and `/sdlc:remediate` run it |
+| `/sdlc:remediate <id>` | agent | only on `blocked`; verifies again after each pass and goes round while each reduces what is open, checking in every fourth; records a deviation where the approved text cannot be followed |
 | `sdlc deviations <id>` | binary | where the build bent the approved documents: each deviation, whether you accepted, declined or have yet to answer it, and anything wrong with it. Exits 1 while one misquotes the approved text or takes a file another cycle claims |
 | `sdlc draft approval <id>` | binary | on an approved cycle with deviations nobody answered, writes the answer to each, `accepted: false` and an empty note. **You set each, and rename it** |
 | `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not, and always for a test run: a cycle any round of which a local build wrote |

@@ -3,7 +3,7 @@ name: build
 description: Implement an approved plan, build, test, and record the evidence a verification will read. Use after a person has approved a cycle's three planning documents.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
 ---
 
 # Build an approved plan
@@ -196,12 +196,21 @@ dotnet test --coverage --coverage-output-format cobertura --results-directory Te
 Warnings are errors here, enforced by `Directory.Build.props` rather than by instruction. A build that
 warns is a build that failed.
 
-**Coverage is measured, and the merge holds it** (D-103): at least 70% of the lines this change adds must
-run under a test, and the whole codebase must be no less covered than at the base commit. The plan's
-proof is what gets you there; if the count comes up short, add the tests that run the uncovered lines
-rather than recording and hoping. Code no test should run — orchestration wiring, generated code — is
-excluded in the solution's coverage settings, and excluding something new is a change to a rule the plan
-has to declare and justify.
+**Coverage is measured, and the merge holds it** (D-103, D-157): at least 70% of the lines this change adds
+must run under a test, and the whole codebase must stay at or above the solution's `coverage_floor` or,
+under it, no lower than at the base commit. The plan's proof is what gets you there; if the changed lines
+come up short, add the tests that run them rather than recording and hoping. Code no test should run —
+orchestration wiring, generated code — is excluded in the solution's coverage settings, and excluding
+something new is a change to a rule the plan has to declare and justify.
+
+**A whole-codebase fall is diagnosed before it is chased.** The baseline is the last rate a merged cycle
+recorded, not a target, so never tell the person the build is "aiming for" it. When the whole codebase
+falls further than the change could explain, compare this run's report with the base commit's file by
+file before writing a test: a fall spread across code the change never touched is a change in how coverage
+is measured, not missing tests. Stop and tell the person what fell and where, and that the answer is
+theirs: lower `coverage_floor` through `sdlc draft solution`, or re-measure the integration branch and
+commit the rate to `.sdlc/coverage.json` in a pull request of its own.
+
 
 **Check that the suite actually ran.** This is not paranoia: a trial cycle lost its whole verification
 to `dotnet test` exiting zero without running anything, because the runner was not configured. If the
@@ -293,8 +302,12 @@ command.
 act on them will read them. Naming the count is what tells somebody to go and look; repeating the
 contents is how a five-line hand-back becomes a page.
 
-Then stop. The person decides whether to verify.
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
+**Then verify, on a green build** (D-159). A green build always goes to verify next, so stopping to ask
+would ask the person nothing: follow the `verify` skill for this cycle, from its fresh adjudicator on. The
+verdict is not this session's — verify writes it in a fresh process that never saw the build, which is what
+keeps the separation (D-01, D-109) — so carrying on here costs it nothing. Your five lines come first, then
+verify's hand-back, as one message. **Inside a batch, the batch does this**: stop after the evidence, as it
+expects.
 
 **If the build or the tests failed, say so plainly and stop there.** Do not run verify on a red build
 to see what it makes of it, and do not adjust a test to make it pass — that is the inversion the whole

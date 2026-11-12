@@ -3,7 +3,7 @@ name: batch-build
 description: Complete every queued cycle -- build and verify each on its own branch, independently, and report the sitrep. With --pr, open a pull request for each; with --unattended, run as the factory does, asking nothing. Use when several cycles are approved and waiting.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>] [--pr] [--unattended]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
 ---
 
 # Complete the queued cycles
@@ -112,7 +112,9 @@ the variables, and the cap above is what keeps concurrent runs apart.
 
 ## 4. Build and verify each
 
-Per cycle, in its worktree: the build stage, then the verify stage, remediating while it makes progress.
+Per cycle, in its worktree: the build stage, then the verify stage, remediating while it makes progress —
+the same chain a person's `build` runs, with the batch stopping each build after its evidence and running the
+verify itself.
 **Verify as well as build** — a batch that cannot say which cycles succeeded cannot tell a ready pull
 request from a draft.
 
