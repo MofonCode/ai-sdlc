@@ -1,292 +1,144 @@
 # Running a cycle
 
-One governed change, from why it exists to a pull request: every stage, and what each one refuses if
+One governed change, from why it exists to a pull request, in seven steps — and what each one refuses if
 you arrive at it early.
 
 **This assumes the repository is adopted, and the drafts adoption left are placed and committed** —
 `adopting-the-framework.md` and `declaring-the-stack.md` are the steps before, and `sdlc doctor` exits 0
 when they are done. Nothing here is specific to what the change is.
 
-**This is the happy path.** When an interrogation raises a blocking finding or a verification records
-`blocked`, `handling-blockers.md` is the walk back. **If you have done this before**, the cheat sheet,
-`../cheat-sheet.md`, is this same walk as one bullet per step.
+**This is the happy path.** When an interrogation raises a blocking finding the loop cannot clear, or
+remediation stops making progress, `handling-blockers.md` is the walk back. **If you have done this before**,
+the cheat sheet, `../cheat-sheet.md`, is this same walk as one line per step.
 
-## 1. Read the rules before writing anything
+| | Say | Or type |
+|---|---|---|
+| 1 | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
+| 2 | *take it to plan* | `/sdlc:to-plan` |
+| 3 | *in that plan, make it … instead* | `/sdlc:steer` |
+| 4 | — you rename the approval it drafted | — |
+| 5 | *build it* | `/sdlc:build` |
+| 6 | *fix it* | `/sdlc:remediate` |
+| 7 | *open the pull request* | `/sdlc:pr` |
 
-```pwsh
-sdlc constraints
-```
+**You can say each step in a sentence**; the slash form is there if you prefer it, and on a host that loads
+skills through Agent Plugins a sentence is the only form. Every hand-back ends by offering the next step, and
+`sdlc status` names it whenever you lose your place. **You never need a cycle id** where one cycle is meant:
+a skill given none asks `sdlc cycles --here`, and asks you which when the working copy carries several.
 
-The global `CON_` set, the `PRO_` stack rules, then this solution's own `LOC_` — in that order, so a
-solution's rules are the last word. **Constraints live in the framework and are never copied into a
-solution**, so this command is how they reach a session. Every stage skill runs it first, and one that
-did not is working from recollection.
+**The rules are read for you.** Every skill runs `sdlc constraints` before it writes or judges anything —
+the global `CON_` set, the `PRO_` stack rules, then this solution's own `LOC_` — so a session never works from
+recollection. Run it yourself to see them. The middle tier is the one your declared stack decides: the
+framework ships five rules that have to name a framework, and a solution is held to exactly the ones its
+stack file marks `true`; `declaring-the-stack.md` has why.
 
-The middle tier is the one your declared stack decides: the framework ships five rules that have to
-name a framework, and a solution is held to exactly the ones its stack file marks `true`. A stack that
-lists none has no such tier in this output. `declaring-the-stack.md` has why.
+## 1. Begin an intent
 
-## 2. Open the cycle — the intent skill does it
+Say what you want — something new, something broken, or something that should work differently — or
+`/sdlc:intent`. **If you already know which, say so** (*it's a bug*, or `--type bug`, `add` or `change`) and the
+interview asks that kind's questions from the start. If you don't, it works it out from your first answer and
+checks with you in one line.
 
-```
-/sdlc:intent
-```
+**Work bigger than one cycle is sliced first** (D-125). Before any cycle opens, the skill proposes the most
+atomic slicing it can find: pieces that can each be built, verified and merged against the integration branch
+alone. You accept it once, merge pieces back, or keep the work whole; nothing is sliced without you. A piece
+that needs another's code is written as a **successor** — a file, not a cycle — and waits for that one to
+merge. **Once an intent is written you can still cut it** (D-141): while none has a spec,
+`/sdlc:intent --reslice <id>...` proposes a new slicing and applies it once you accept.
 
-**If you already know what kind of change it is, say so** — `--type bug`, `--type add` or
-`--type change` — and the interview asks that kind's questions from the start. Without it the skill works
-the type out: from a lead, from your first answer, or, in a scaffolded solution with no cycle yet
-approved, by recognising the first piece of work in a new solution. There is no sentence to pass; the
-interview's first question is where the work is described.
+**Then it interviews you, one question at a time**, each with a few example answers, the next depending on
+what you said. **_Not sure_ is always an answer.** A request shaped as a solution is turned back into a
+problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you have
+already decided something, say so — it is recorded under `Fixed decisions` with your name on it rather than
+argued with. The skill reads what the solution already decided first, so it does not ask what is settled; if
+you ask for something a recorded decision set aside, it says so, and asks whether to keep the decision or
+depart from it.
 
-**Work bigger than one cycle is sliced first** (D-125). Give the skill something to slice — a lead with
-`--from`, or a description after its name — and before any cycle opens it proposes the most atomic slicing
-it can find: pieces that can each be built, verified and merged against the integration branch alone. You
-accept it once, merge pieces back, or keep the work whole; nothing is sliced without you. Each piece that
-needs nothing unmerged opens as a cycle of its own, in its own folder, and is interviewed in turn. Each
-that needs another's code is written as a **successor**, `.sdlc/successors/<slug>.md` — a file, not a cycle —
-and waits.
+**The last question is the perspectives' concerns** — keyboard use, who may see it, who hears when it fails.
+Answer in your own words: *"anyone may use it, no sign-in; keyboard yes, and the result read out"*. A good
+answer names a person and an outcome, or says plainly that it is not needed and why — *"make it secure"*
+gives the spec nothing to test. It reads your answer back before writing it. What a perspective is, and
+which ones run, is `../mechanisms/perspectives.md`.
 
-**Once an intent is written you can still cut it** (D-141). Reading it back is where you find out it is two
-things, or that two intents are one. While none has a spec, `/sdlc:intent --reslice <id>...` proposes a new
-slicing of everything they hold and applies it once you accept: the first cycle keeps its id, each further piece
-opens as a cycle or waits as a successor, and a cycle left empty is removed. To change what an intent says
-without cutting it, `/sdlc:steer <id> "..."` — before the spec, that may add, drop or reword an outcome.
+**You do not open the cycle or switch branches yourself.** The skill allocates the id, opens a **sandbox** —
+`../<repository>.sandboxes/<id>`, on `sandbox/<id>` — and says the id and the folder in one line (D-144). Every
+cycle the work turns into opens beside the first, so one session sees all of them. Your own checkout is never
+switched; carry on in a session opened in the sandbox.
 
-**A successor starts once what it succeeds has merged.** `sdlc successors` says where each stands, and
-`sdlc status` and the sitrep name one the moment it is ready. Nothing starts it for you:
+The intent is then checked against the rules in a fresh process and revised until a round raises nothing
+blocking, and **it hands back rather than going on** — deciding the intent is right is yours. Read it.
 
-```
-/sdlc:intent --from successor:<slug>
-```
+## 2. Take it to plan
 
-The interview resumes from the outcome and why the slicing left, against the code that merged, and the new
-cycle's plan branch deletes the successor's file.
+Say *take it to plan*, or `/sdlc:to-plan`. It writes the spec, then the plan, each checked by its own readers
+in fresh processes and revised until clean, and hands back **once** (D-158). Given several cycles, it takes
+each in turn; one that needs you stops alone and the rest carry on. Interrupted part way, it picks a cycle up
+where it stopped.
 
-**You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
-id and claims it, then `sdlc branch <id> sandbox` and the `git worktree add` it prints, and says the id, the
-branch and the folder in one line. Then it interviews you — section 3.
+**The spec reads the intent and nothing else** — not the conversation, not the codebase. Every criterion has
+to be able to fail, and its check has to be one this solution's testing layers can actually run. A criterion
+that holds over several cases lists them beneath it under `Cases:`, and that list is all it covers from then
+on: a case left off it is one no later stage will hold the build to (D-132).
 
-**The work gets a sandbox**, `../<repository>.sandboxes/<id>`, on `sandbox/<id>`, named for its first cycle
-(D-144). Every cycle the work turns into — a slicing, an intent you have it cut in two — opens beside the first,
-in the same folder and on the same branch, so one session sees all of them and `/sdlc:batch-plan` can take
-them to plan together. Your own checkout is never switched, so uncommitted work there stays where it is. Open a
-session in the sandbox to carry on, and remove it with `git worktree remove` once what it held has merged.
+**The plan must read the codebase**, because a file table invented from the spec alone is the fastest way to
+a plan that cannot be built. It compares what the solution declares it is built from with what is there.
+Where the shape rests on how a framework behaves and nobody has seen it happen, **it probes first**, and its
+`## Assumptions proven` section quotes what the probe showed. Its `## Areas` section says which part of the
+code each file belongs to (D-150). A plan that needs code another plan has not built yet is **parked** until
+that one merges (D-145).
 
-**What leaves the sandbox is what you approved.** `/sdlc:pr --plan` in the sandbox runs `sdlc admit`, which
-takes the approved cycles' folders, and any successors the sandbox wrote, onto an admission branch —
-`cycle/<id>/plan` for one, `slices/sandbox-<id>/plan` for several — in a folder beside the sandbox. The rest
-stay and go by a later admission. **To throw a sandbox away**, ask `sdlc discard` there first: it says which cycles
-are empty or can go, and which fixed a decision or had readers raise something — worth recording with `sdlc draft
-abandon <id>`, placed by you, so `sdlc admit` takes the record to the integration branch. It prints the removal
-only once nothing worth keeping is left unrecorded (D-146). Ask for one working copy instead and the skill switches this checkout to
-`cycle/<id>/plan`, which refuses uncommitted work: the switch would carry it into the cycle.
+**It is the last document before you approve, so it is the one to read closely** — and the thing to read for
+is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it never read?*
+If either has an answer, the proof is not adequate, and an inadequate proof is worse than none because it
+produces a green verification instead of an obvious gap.
 
-**What the skill runs, for when you need it by hand.** Opening a batch of cycles before interviewing any
-of them is the one ordinary reason:
+**At the hand-back it asks once about suggestions** — concerns a reader raised that the intent did not ask
+for. It writes them to a file under `.sdlc/reports/`, grouped by theme with a suggested answer each, and you
+answer in your own words — *"take A; decline B, it's only for me"*. Leaving them is a fine answer. **A
+suggestion can only sharpen an outcome you already asked for**; one that adds an outcome is offered as a
+successor instead, because every outcome you add is more the spec and plan must prove.
 
-```pwsh
-sdlc new
-sdlc branch 20260929_1456_32 plan
-```
+**Then it drafts the approval** and tells you where it is — step 4.
 
-`sdlc new` prints the id. **Do not type it and then invoke the intent skill** — the skill opens a cycle
-of its own, so that allocates a second id and a second directory, and the claim succeeds both times. The
-work goes into one of them and the id you wrote down names the other. `sdlc branch` prints the one
-command that switches — `git switch --no-track -c cycle/20260929_1456_32/plan origin/development` when
-the integration branch is on the remote, from the local one when it is not — and run twice it prints the
-plain switch to a branch that already exists.
+## 3. Steer the plan
 
-**A cycle's branches sit under `cycle/<id>/`, one per kind of work**: `plan` for the planning documents,
-`build` for a build you run by hand, `build-unattended` for one a batch runs, and `forward` for a release's
-fix carried into the integration branch. The skill for each stage asks `sdlc branch` for its own; it
-knows which base each one starts from.
-
-**The names are not cosmetic.** On a branch that is not a cycle branch the turn-end hook goes silent —
-that is the half with no message: it reads the cycle out of the branch you are on, so you keep building and
-lose the two send-backs it exists for, a recorded suite with a failure in it and code that has moved since
-the evidence was recorded. And the pull-request check reports that there is no chain at all, because it
-reads the cycle out of the pull request's branch the same way.
-
-## 3. Intent, spec, plan
-
-Three artifacts, all required, always. Each one is written, challenged in a **fresh process** against the
-rules in force, and revised until a round raises nothing blocking. Each stage skill runs that loop itself;
-`handling-blockers.md` is what it is doing and what to do when it asks you something. Alongside the rules,
-each document is examined by the cycle's **perspectives** — security, operability and maintainability
-always, others when the change touches what they look at — which is what an id like `security.F_02` in a
-round is; `../mechanisms/perspectives.md` explains them.
-
-**The intent** is the only artifact written by interview. **Nothing happens until you answer the
-questions** — the intent is written from your answers, so there is nothing to interrogate before then.
-Expect **one question at a time**, each with a few example answers under it, and the next depending on
-what you said: a bug is asked for what you saw and the last time it happened, a feature for who it is for
-and how they manage today, a change for who relies on it as it is. **_Not sure_ is always an answer** —
-the skill tells you where it records it. Expect a request shaped as a solution to be turned back into a
-problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you
-have already decided something, say so — it is recorded under `Fixed decisions` with your name on it
-rather than argued with. **The skill reads what the solution already decided first**, so it does not ask
-what is settled; if you ask for something a recorded decision set aside, it says so then, in a sentence,
-and asks whether to keep the decision or depart from it. A departure is recorded with your name and reason,
-and every later stage relies on it instead of reopening it. **The last question is the perspectives' concerns** — keyboard use, who may see
-it, who hears when it fails. The skill writes them to a file under `.sdlc/reports/`, each explained for
-this change with a suggested answer and why, and you answer in your own words: *"anyone may use it, no
-sign-in; keyboard yes, and the result read out"*. A good answer names a person and an outcome, or says
-plainly that it is not needed and why — *"make it secure"* gives the spec nothing to test. It reads your
-answer back before writing it; what you take up becomes an outcome, and what you do not is not written in
-for you.
-
-The skill **hands back rather than continuing into the spec.** That hand-back is the human-in-the-loop
-point; a skill that chained on would remove it while appearing helpful.
-
-**Run the next stage in a new session**, and every stage after it — the hand-back and the panel's `Next`
-line both say so. A session carried past its stage rebuilds its whole context on every turn after a
-pause: over two weeks of one solution's cycles, that was most of what they cost, and a fresh session per
-stage cost a thirtieth of it with the same rounds (D-122). Two habits go with it: never ask an agent to
-wait on a long build or test run — start it, close the session, and come back with `sdlc status` — and
-when a usage limit hits, end the session and start fresh rather than continuing.
+At any point before you approve, tell it what should be different, or `/sdlc:steer`:
 
 ```
-/sdlc:spec 20260929_1456_32
+/sdlc:steer "use the existing cache abstraction rather than a new one"
 ```
 
-Reads `intent.md` and nothing else — not the conversation, not the request that started the cycle, not
-the codebase. Every criterion has to be able to fail, and its check has to be one this solution's testing
-layers can actually run. A criterion that holds over several cases — failures, inputs, roles, devices —
-lists them beneath it under `Cases:`, and that list is all it covers from then on: read it before you
-approve, because a case left off it is one no later stage will hold the build to (D-132).
+It edits the intent, spec and plan rather than regenerating them, records the correction with your name on
+it, and checks again from the highest document it touched down. **Once a spec exists, steering changes
+*how*, not *what*** — a correction that changes the problem is a different cycle, and the skill says so and
+offers one. Before the spec, it may change the intent's outcomes too.
 
-```
-/sdlc:plan 20260929_1456_32
-```
+**After you have approved**, steering starts with a reopen: it drafts one, you place it, and it carries the
+change through and hands you a new approval. `handling-blockers.md`, under *After approval*, has the rest.
 
-Unlike the spec, this one **must** read the codebase: a file table invented from the spec alone is the
-fastest way to a plan that cannot be built. It also runs `sdlc stack`, and compares what the solution
-declares it is built from with what is there. A build settings file the stack takes and the repository
-lacks is closed by this plan only if the intent asked for it; otherwise the plan names it and leaves
-it.
+## 4. Approve
 
-**Where the shape rests on how a framework behaves and nobody has seen it happen, the plan probes it
-first** — a few lines of throwaway code on a `probe/<id>/<slug>` branch, never merged — and its
-`## Assumptions proven` section quotes what the probe showed. Read that section at approval: a behaviour
-the plan assumed without a probe is the one most likely to cost a reopen after the build. Its proof is a
-table, one row per case each criterion states, so you can see what will be tested at a glance.
-
-**The plan's `## Areas` section says which part of the code each declared file belongs to** (D-150): an area
-`.sdlc/areas.md` defines, a name the plan proposes, or `none`. Read the proposed names at approval — they
-become area suggestions, and once three cycles' plans name one, mining proposes it for your `areas.md`.
-Where areas exist, every reader of this cycle gets every decision's headline and, in full, only the ones
-for the areas its files touch (D-151).
-
-**It is the last document before you approve, so it is the one to read closely** — and the thing to
-read for is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it
-never read?* If either has an answer, the proof is not adequate, and an inadequate
-proof is worse than none because it produces a green verification instead of an obvious gap.
-
-**A plan that needs another's unbuilt code is parked** (D-145). Once its round is clean the plan skill runs
-`sdlc park <id>`, which compares its files with every plan not yet built. A file only another plan creates means
-this one cannot be built against the integration branch as it stands: it keeps its spec and plan, waits in
-`parked.md`, and is held out of the build queue. `sdlc backlog` lists it beside the successors, in the wave it
-comes ready in. Once what it waits on has merged, `sdlc unpark <id>` takes it back, and its spec and plan are
-interrogated again against the code that merged — a round that changes nothing leaves an approval standing. A
-file two plans merely both name is only reported: their pull requests may conflict at merge.
-
-**When merges make the next wave ready**, `/sdlc:next` takes all of it: it starts each ready successor with a
-short interview, takes back each parked cycle whose predecessor merged and reads its spec and plan again, plans
-the new intents in one sandbox, and stops at the approvals with the waves still to come (D-147). Run it after
-each wave merges and a sliced piece of work reaches completion one wave at a time; merging stays yours.
-
-**Several intents at once.** Once you have read every intent in a working copy and are happy with them,
-`/sdlc:batch-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
-and hands back once: a line per cycle, every plan panel, and one question about every open suggestion across
-them. A cycle that needs you stops alone and the rest carry on. It runs in your session, so read and approve
-the plans in a fresh one (D-142). **The id is optional wherever one cycle is meant**: given none, a skill asks
-`sdlc cycles --here`, and asks you which when this working copy carries more than one.
-
-**If you change your mind mid-cycle**, do not edit the documents by hand:
-
-```
-/sdlc:steer 20260929_1456_32 "use the existing cache abstraction rather than a new one"
-```
-
-That edits the intent, spec and plan rather than regenerating them, records the correction with your name
-on it, and re-interrogates from the highest document it touched down, one at a time — `sdlc round` refuses
-a spec round until the intent is settled, and a plan round until the spec is. Once a spec exists, steering changes *how*, not
-*what* — a correction that changes the problem is a different cycle, and the skill says so and offers one. Before
-the spec nothing derives from the intent yet, so steering may change its outcomes too.
-
-**Once the verify passes, mine it.** `/sdlc:mine` reads what the cycle settled and argued
-and proposes rules, decisions and stack rows in one file; you mark what you accept, `sdlc draft
-mining` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
-you rename the drafts. It is not a cycle, and what it places binds the next cycle rather than one in flight.
-`/sdlc:pr` offers it on the cycle's branch, as a commit of its own that merges with the code; or do it on
-the integration branch after the merge. Never before the passing verify: rounds after it would read rules
-it placed. The pull-request check reports the order, and leaves keeping it to you (D-111, D-113).
-
-**Once the drafts are placed, record the sitting**: `sdlc mine record <the proposal file>`. Every cycle that
-finished and is on the integration branch becomes a **husk** — what later mining needs from it is kept in
-`.sdlc/mined.json`, and everything else is in git at the merge commit it names (D-152). It prints the
-deletion of the husks' folders for you to run on a branch of its own; the pull request carrying only that,
-the records and the ledger is admitted as mining. A cycle mined before its own pull request merged is not a
-husk yet, and is mined again next time.
-`mining-the-cycles.md` is the sitting step by step, and how each open suggestion is taken further, declined
-or ignored.
-
-**Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
-use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and
-its reader raises it as a suggestion. The intent, spec and plan each ask you once, at hand-back, which to
-take in, which to decline, and which to leave for a later cycle; leaving them is a fine answer. The
-readers can raise twenty at a stage, so the skill writes every one to a file under `.sdlc/reports/`,
-grouped by theme — each theme summarised for this change with a suggested answer, and its findings
-listed beneath so you can check the summary. Answer in your own words — *"take A; decline B, it's only
-for me"* — and the skill reads back which findings that covers before anything is written. What you
-name goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent with your
-name on it. Something you ask for that no reader raised is not taken in there: it is a cycle of its own.
-**A suggestion can only sharpen an outcome you already asked for** — say how, for whom, or what failing
-looks like. One that adds an outcome, or widens one to more states, devices or failure paths, is offered
-as a successor instead: it keeps its finding id and waits for this cycle to merge. Every outcome you add
-is more the spec and plan must prove, which is how a cycle stops converging.
-
-## 4. The gate
-
-One gate, covering all three documents, immediately before the build.
-
-```pwsh
-sdlc draft approval 20260929_1456_32
-```
-
-It writes the complete file — not a fragment — to
-`.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it, written
-to be typed from the repository root. Above the rename it lists, first and on their own, **any recorded
-decisions this cycle departs from** — each in the decision's own words, with what the cycle does instead —
-and then **the decisions the plan says it makes** — the approach, the libraries, the hosting, anything
-built by hand — so a choice you did not ask for is in front of you before you approve rather than found
-after the build. `sdlc status` shows the departures beside the gate too, and the pull request carries them:
+One gate, covering all three documents, immediately before the build. **The skill drafted the approval at the
+plan's hand-back** — `.sdlc/cycles/<id>/approval.approved.draft.md` — and printed the rename that places it,
+written to be typed from the repository root:
 
 ```pwsh
 Move-Item .sdlc/cycles/20260929_1456_32/approval.approved.draft.md .sdlc/cycles/20260929_1456_32/approval.md
 ```
 
-**The rename is the decision, and it is yours.** No tool places that file: the hook denies every agent
-write to the ledger by path and by shell command alike, including every spelling of a move onto it,
-there is no flag and no approve command for an exception to live in, and that is precisely what makes a
-recorded decision mean something. A draft nobody renamed records nothing.
+Above the rename it lists **any recorded decisions this cycle departs from**, each in the decision's own
+words, and then **the decisions the plan says it makes** — the approach, the libraries, the hosting — so a
+choice you did not ask for is in front of you before you approve rather than found after the build.
 
-Where a decision already stands, the draft reproduces it above the new entry, so the rename replaces the
-ledger without losing what it held. The printed instructions say how many it carries.
+**The rename is the decision, and it is yours.** No tool places that file: the hook denies every agent write
+to it by path and by shell command alike, there is no flag and no approve command for an exception to live
+in, and that is precisely what makes a recorded decision mean something. The entry records a hash of each
+of the three documents; **if any of them changes afterwards the gate refuses** until it is approved again.
 
-The entry records a hash of each of the three documents. **If any of them changes afterwards the gate
-refuses** until it is approved again.
-
-It refuses to print at all while a blocking finding is open. **A blocking finding cannot be waived by
-any mechanism** — it is answered, or the cycle does not advance. `handling-blockers.md` is how.
-
-Refusing is drafted on the same terms as approving — `--changes-requested`, `--deny`, `--reopen` — and
-leaves the reason line empty for you, because the gate rejects a refusal that says nothing about why.
-Helping with the easy case while withholding help from the hard one is the asymmetry people resent.
-
-**A reopen after the plan reached the integration branch happens on its plan branch** — `sdlc branch <id>
-plan` — and goes back as an amended plan by `/sdlc:pr <id> --plan`, never with the build.
-`handling-blockers.md`, under *After approval*, has the walk and what happens to a build already made.
+**To send it back instead**, ask for that — `sdlc draft approval <id> --changes-requested`, `--deny` or
+`--reopen` — and write the reason in the draft; the gate rejects a refusal that says nothing about why. It
+refuses to draft at all while a blocking finding is open: **a blocking finding cannot be waived by any
+mechanism**, and `handling-blockers.md` is how it is answered.
 
 ### Running without approvals
 
@@ -300,132 +152,45 @@ The documents built are the documents interrogated clean: one edited after its r
 interrogated again. `verify-chain` still runs on every pull request.
 
 **What you give up:** nobody reads the plan before code is written. The plan's pull request is the first time
-a person sees it, and `verify-chain`, `sdlc status` and the sitrep all say no person approved it. The findings
-history is no longer anchored to a file only a person writes, so git history and review are what protect it.
+a person sees it, and `verify-chain`, `sdlc status` and the sitrep all say no person approved it.
 
-**To turn it back on,** set `approval: required` the same way. A cycle not yet built then waits for an
-approval like any other.
-
-You can still approve a single cycle under `none` with `sdlc draft approval <id>`, and the gate honours what
-you place in full — a `--changes-requested`, `--deny` or `--reopen` stops the build as it always would.
+**To turn it back on,** set `approval: required` the same way. You can still approve a single cycle under
+`none` with `sdlc draft approval <id>`, and the gate honours what you place in full.
 
 ### Admit the plan to the integration branch
 
 When the solution has an integration branch — `development`, unless `solution.md` names another — the
-approved plan goes there by its own pull request before anything is built:
+approved plan goes there by its own pull request before anything is built: `/sdlc:pr <id> --plan`, or, for
+the plans of one slicing together, `/sdlc:pr <id> <id>... --plan`. **It is admission, not a second
+approval**: the rename was the approval. Once it merges, the plan is queued for a build. With no integration
+branch, skip this — one pull request carries the plan and the code together.
 
-```
-/sdlc:pr 20260929_1456_32 --plan
-```
+## 5. Build it
 
-It asks the gate first, pushes `cycle/<id>/plan`, and opens the pull request so that merging it deletes the
-branch. **It is admission, not a second approval**: the rename above was the approval. Its check reads what
-the pull request changes, and a pull request carrying only the cycle's planning documents gets the
-admission check — the documents, the approval and its hashes, no build and no verify. One source file in
-it and the full chain runs instead.
+**In a new session**, say *build it*, or `/sdlc:build`. This is the one step worth a fresh session: the
+planning chain stays where it started, and the build, which reads the code, starts clean (D-122, D-158). Two
+habits go with it: never ask an agent to wait on a long build or test run — start it, close the session, and
+come back with `sdlc status` — and when a usage limit hits, end the session and start fresh.
 
-**The plans of one slicing go together**, with the successors it wrote, once each is approved:
-
-```
-/sdlc:pr 20260929_1456_32 20260929_1456_33 --plan
-```
-
-It composes `slices/<slug>/plan` from their plan branches with `sdlc slices`, and the check gives every plan
-the admission check, the successors a soundness check, and refuses a plan that needs a file only a sibling's
-plan creates — that piece should have been a successor. Each cycle is still built, verified and merged on its
-own.
-
-Once it merges, the plan is queued: `sdlc cycles --queued` lists it, and a batch run or the factory picks it
-up. With no integration branch, skip this — the build starts from the plan branch, and one pull request
-carries the plan and the code together.
-
-## 5. Build
-
-```
-/sdlc:build 20260929_1456_32
-```
-
-The first stage that writes code and the first you are not expected to watch. It asks the gate and stops
-if the gate refuses — eleven things can refuse there, each with a different next step, and
-`handling-refusals.md` lists them all with the remedy for each. Then it puts itself on
-`cycle/<id>/build` with `sdlc branch` — from the integration branch once the plan is admitted there, from
-the plan branch before that. It implements what the plan decided **and only that** — something worth fixing that
-the plan did not describe gets left alone and reported as a suggestion, because creep inside an approved
-file is what reaches review dressed as approved work, where it is least likely to be questioned.
+The first stage that writes code and the first you are not expected to watch. It asks the gate and stops if
+the gate refuses — `handling-refusals.md` lists every reason with its remedy. It implements what the plan
+decided **and only that**: something worth fixing that the plan did not describe is left alone and reported,
+because creep inside an approved file is what reaches review dressed as approved work. On a new solution's
+first cycle, the skeleton the plan declared arrives first.
 
 **Where the plan's approved text cannot be followed, it records a deviation and keeps going** (D-156): a
 file the fix has to touch that the plan did not declare, a test whose name has to change, a decision the
-work cannot keep. Each one quotes the approved text, names what blocked it, and says what was done
-instead, in `deviations.md`. You answer them after verify, below — the build does not stop for a reopen.
+work cannot keep. Each quotes the approved text, names what blocked it, and says what was done instead.
 
-It checks the suite actually ran rather than that the runner exited zero. A trial cycle lost its whole
-verification to `dotnet test` exiting zero without running anything, because the runner was not
-configured.
+It checks the suite actually ran rather than that the runner exited zero, records the evidence — the diff,
+the commit it is measured from, the runner's own output, one normalised test summary — and commits it.
 
-**The two binary commands in this stage are the skill's, not yours.** It runs both itself; they are
-written out here because what each records is what verify and the pull-request check later read, and a
-cycle that lost one of them fails at the gate rather than here.
-
-On a new solution's first cycle, the skeleton arrives first, because the plan declared it. In an
-existing codebase the same command writes no skeleton — only the build settings files the plan declared,
-when it declared any:
-
-```pwsh
-sdlc scaffold 20260929_1456_32
-```
-
-The five build settings files, a solution file, six projects — four under `src/` and two test projects,
-one of them the architecture suite — and a reference slice written in the shape every operation should
-have, including the one conversion every response leaves through, which is what makes the banned
-response factories a rule that can fire rather than a file that looks like one. It refuses unless this
-cycle is approved, so the skeleton is a change like any other, and it writes only what is absent — a
-second run keeps what is there rather than overwriting it. Every cycle after this one writes its own code.
-
-Then the code is committed, and the evidence recorded from it:
-
-```pwsh
-sdlc evidence 20260929_1456_32 --tests <the directory holding the results files> --build-log <path>
-```
-
-Records the commit it is measured from, the commit the build is at, the diff between them, the runner's
-own output, and one normalised test summary into `evidence/`. **It refuses code that is not committed**,
-because the evidence names the commit (D-124); the diff stays out of git and the chain rebuilds it. This exits zero even when tests failed: recording what happened succeeded, and what to
-make of it belongs to verify. A non-zero exit here would make the build step look like the thing that
-refused.
-
-**Point `--tests` at the directory, not at one file.** Each test project writes its own results, and a
-summary built from one of them is a verification reading part of the suite.
-
-**Then the evidence directory is committed too, and that is a second commit rather than an afterthought.**
-Verify and the pull-request check both read the evidence out of the repository, so evidence that exists
-only in a working tree is evidence the chain cannot see — and the failure surfaces two stages later as a
-chain that does not hold.
-
-## 6. Verify
-
-```
-/sdlc:verify 20260929_1456_32
-```
-
-A fresh process again, and the only artifact whose entire value is being derived. The session you
-invoke it in is often the one that built the change, so it does not adjudicate: it starts an
-adjudicator that never saw the build, and records what that returns. **It reads
-`tests.json`, `diff.patch` and `base.sha`, and does not run the tests** — running them would produce new
-evidence instead of adjudicating the build's, and the next reader could not tell which run the verdict
-describes. It does not read the source to decide whether a criterion is met either: reading the
-implementation and concluding it looks correct is the most tempting way to write a claim with no evidence
-behind it.
-
-Per criterion: which test did the plan name, does the summary say it ran and passed, and **does that test
-actually establish the criterion?** The third is where judgement lives, and where a verification may
-disagree with its own plan — a test that passed but does not reach its criterion is *not met*.
-
-It writes `pass` or `blocked`. On `pass`, go on to the pull request. On `blocked`,
-`handling-blockers.md` is the next step: remediation, and what happens when it runs out of progress.
-
-**Every reader judges against the documents as deviated.** Where the build recorded deviations, they are
-read beside the plan and the spec, and a change departing from the plan with no deviation describing it is
-blocked.
+**Then, on a green build, it verifies** (D-159). A fresh process that never saw the build adjudicates it
+from the evidence alone: per criterion, which test did the plan name, did it run and pass, and **does that
+test actually establish the criterion?** A test that passed but does not reach its criterion is *not met*.
+It does not run the tests or read the source to decide — either would be a claim with no evidence behind it.
+The verdict is `pass` or `blocked`, and the hand-back offers the next step for either. A red build stops
+before it, and says so.
 
 ### Answer the deviations
 
@@ -442,89 +207,75 @@ and write why to decline it, and remediation redoes that part. Then rename the d
 `handling-blockers.md` has the rest. Under `approval: none` they are accepted for you, and the pull request
 is where you read them.
 
-## 7. Pull request
+## 6. Fix it
 
-```pwsh
-sdlc pr-ready 20260929_1456_32
-```
+On `blocked`, say *fix it*, or `/sdlc:remediate`. It works the criteria marked Not met and the open
+findings, fixes the cause rather than the symptom, records fresh evidence, and **verifies again in a fresh
+process** — then goes round while each pass reduces what is open (D-159). It stops on `pass`; it stops on
+`escalated` when a pass undoes earlier work or two passes reduce nothing (D-66); and **every fourth pass it
+checks in** with what closed and what is left, and asks whether to keep going — in a new session, since each
+pass has added to this one.
 
-```
-/sdlc:pr 20260929_1456_32
-```
+It never edits the intent, spec or plan to make a failure go away. Where the approved text cannot be
+followed, it records a deviation for you to answer, as the build does. An escalated cycle is waiting for
+you: `handling-blockers.md` is what to read.
 
-The only stage that reaches outside the repository, and it asks before every push. Everything before this
-is local and reversible; a pull request notifies people, appears in a queue, and withdrawing it is
-something somebody has to notice happened.
+## 7. Open the pull request
+
+Say *open the pull request*, or `/sdlc:pr`. The only stage that reaches outside the repository, and **it asks
+before every push**, naming the cycle by id and headline. In the same question it asks whether to **mine** the
+cycle first, on this branch — what it settled, proposed as rules, decisions and stack rows for you to place —
+or after it merges (D-111). Either is right; `mining-the-cycles.md` is the sitting.
 
 It pushes the cycle's own branch and targets the integration branch, or the default branch while there is
-none. **A person merges it**, squashed, one pull request at a time. When the next one conflicts, or goes red
-because an earlier merge broke it, `/sdlc:resolve-conflict <id>` brings it up to date inside the cycle's
-declared files and verifies it again.
-
-**It checks first whether there is anywhere to push.** A solution recorded as `local`, or one whose
-`git remote -v` prints nothing, stops here — the one refusal that is not about the cycle, because the
-work may be perfectly ready and have no destination. The skill walks through creating the remote
-rather than creating it for you, and says the part that is easy to miss: a remote alone installs no
-guarantee, so adoption is re-run afterwards to get the pipeline. This is the cost of adopting before the
-remote existed, and `adopting-the-framework.md` is where it is avoided.
+none. **It checks first whether there is anywhere to push**: a solution recorded as `local`, or with no
+remote, stops here, and the skill walks through creating one — `adopting-the-framework.md` is where that is
+avoided.
 
 The body is the cycle rather than a summary somebody invented: any deviations first, with your answer to
-each, then the problem in the intent's own words, the criteria with the verification's verdict on each, the tier, the risk section, and anything still in an
-`## Open` region — because a reviewer should meet the limits before they approve.
+each, then the problem in the intent's own words, the criteria with the verification's verdict on each, the
+tier, the risk section, and anything still `## Open` — because a reviewer should meet the limits before they
+approve.
 
-**It is not approving the merge.** A code owner does that, and never the agent that wrote the change. The
-local approval defended against an agent that forgets; the review is what defends against a human who did
-not look, and they are different jobs.
+**A person merges it**, squashed, one pull request at a time — a code owner, never the agent that wrote the
+change. When the next one conflicts, or goes red because an earlier merge broke it,
+`/sdlc:resolve-conflict <id>` brings it up to date inside the cycle's declared files and verifies it again.
 
 ## Afterwards
 
-```pwsh
-sdlc suggestions
-```
+**Mine what merged**, if you did not before the pull request: `/sdlc:mine`, then `sdlc mine record <the
+proposal file>` once its drafts are placed — mined cycles become husks you may delete (D-152).
+`mining-the-cycles.md` has the sitting step by step.
 
-What was noticed and not acted on. Non-blocking is not trivial — two real ones from a single trial cycle
-were "the suite did not actually run" and "this criterion's proof rests entirely on a substituted
-source". Both substantive; neither cited a rule that forbade the current state, which is the only thing
-that made them suggestions.
+**What was noticed and not acted on**: `sdlc suggestions`. Non-blocking is not trivial — two real ones from a
+single trial cycle were "the suite did not actually run" and "this criterion's proof rests entirely on a
+substituted source". **What keeps happening**: `sdlc propose constraints`, once a few cycles have run, reports
+the rules cited in three or more distinct cycles. It proposes and never places; adding a rule to
+`.sdlc/constraints.md` is a person's job.
 
-Once a few cycles have run, the other half of the same question:
+**When merges make the next wave ready** — successors, and plans parked behind what merged — `/sdlc:next`
+takes all of it: it starts each ready successor with a short interview, takes back each parked cycle, plans
+them in one sandbox, and stops at the approvals (D-147). `sdlc backlog` lists what is waiting.
 
-```pwsh
-sdlc propose constraints
-```
-
-Not what is outstanding, but what keeps happening. It reads every cycle's findings — including the
-blockers that were answered, which `suggestions` deliberately never shows — and reports the rules cited
-in three or more **distinct** cycles, with the cycles and finding ids behind each. Two is coincidence;
-three is a pattern. On a first cycle it has nothing to say and prints the next free `LOC_` id with its
-four parts empty instead, which is also how a rule gets added by hand before any history exists.
-
-It proposes and never places. Pasting an accepted entry into `.sdlc/constraints.md` is a person's job,
-because a cycle judged by the constraints it is changing is the same deadlock as the framework governing
-itself.
-
-With several cycles queued, `/sdlc:batch-build --pr` completes them all, each on its own
-`cycle/<id>/build-unattended` branch and independently, opens a pull request for each — a draft for one
-that did not pass, its body leading with the criteria marked Not met and each open blocker — reports what
-stopped any cycle that did not pass, and ends with the sitrep:
+**With several cycles approved**, `/sdlc:batch-build --pr` builds, verifies and remediates them all, each on
+its own branch, opens a pull request for each, and ends with the sitrep:
 
 ```pwsh
 sdlc sitrep
 ```
 
-It is the morning's page, and worth running on its own: what is ready to merge and in what order, which
-pull requests are expected to conflict, what needs a person, what was held back and why, and what is
-waiting and going stale. Everything unattended rests on the remediation bound — a cycle that stops making
-progress stops rather than reaching a ready pull request — so the first batch runs are worth watching.
+It is the morning's page: what is ready to merge and in what order, which pull requests are expected to
+conflict, what needs a person, and what is waiting and going stale. Everything unattended rests on the
+remediation bound, so the first batch runs are worth watching.
 
 ## Where to go next
 
 | | |
 |---|---|
 | this same walk with one solution in it, end to end | `../samples/rolling-a-die.md` |
-| a blocking finding, or a blocked verification | `handling-blockers.md` |
+| a blocking finding, a blocked verification, or a deviation | `handling-blockers.md` |
 | what to do when something refuses | `handling-refusals.md` |
-| this walk as one bullet per step | `../cheat-sheet.md` |
+| this walk as one line per step | `../cheat-sheet.md` |
 | every command on one screen | `../reference/commands.md` |
 | what this solution is built from, and how to change it | `declaring-the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |

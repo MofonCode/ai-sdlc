@@ -1,9 +1,9 @@
 ---
 name: remediate
-description: Apply a blocked verification's unmet criteria and findings to source and tests. Edits code, never a planning document, and runs while each pass reduces what is open. Use after verify recorded a blocked outcome.
+description: Fix what a blocked verification found -- apply its unmet criteria and findings to source and tests, verify again in a fresh process, and go round while each pass reduces what is open, checking in every fourth pass. Edits code, never a planning document. Use after verify recorded a blocked outcome, when a person says fix it.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
 ---
 
 # Remediate a blocked verification
@@ -28,7 +28,7 @@ yourself** — the cycle a skill acts on is not a guess.
 |---|---|
 | **May edit** | source, tests, and `deviations.md` where the approved text cannot be followed |
 | **May never edit** | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
-| **Capped** | not on passes. It stops when a pass undoes earlier work, two in a row reduce nothing, or three deviations bend the same approved text |
+| **Capped** | not on passes. It stops when a pass undoes earlier work, two in a row reduce nothing, or three deviations bend the same approved text, and checks in with the person every fourth pass |
 
 **`approval.md` is denied at the tool call. The other three are yours to keep.** The hook sees a tool
 call and not which skill made it, so it cannot tell your edit to `spec.md` from the same edit made by
@@ -151,19 +151,46 @@ Commit the fix before recording: `sdlc evidence` refuses uncommitted code, becau
 commit it was recorded at (D-124). Then commit the evidence on the cycle's branch. The next verification
 reads the new evidence, so evidence left in your working tree is evidence it cannot see.
 
+## Then verify again, and go round while it is working
+
+**You run the loop; you never write the verdict** (D-159). After each pass, follow the `verify` skill for this
+cycle: it starts the adjudicator in a fresh process that never saw your fix, hands it only the evidence, and
+records what it returns. You start that process and read what it decided. You do not adjudicate, you do not
+edit `verify.md`, and you do not argue a Not met back to Met — that is the investment bias the separation
+exists to remove, and it stays removed because the judge is a separate process, not because a person typed
+the next command.
+
+Then read where the loop stands:
+
+```
+sdlc pr-ready <id>
+```
+
+| The outcome | What you do |
+|---|---|
+| `pass` | stop, and hand back |
+| `escalated` — a pass undid earlier work, two passes reduced nothing, or three deviations bend the same text | stop, and hand back |
+| `blocked`, and *making progress* | work the next pass |
+
+**Check in every fourth pass** (D-159). After the fourth pass of this run, and every fourth after it, stop and
+hand back even though it is still making progress: what the passes closed, what is still open, and whether you
+can say what the next pass will fix. Then ask, in one line, whether to keep going. It is not a ceiling — D-66
+rejected one, and nothing here stops the loop on a number — it is the person back in front of a loop that is
+running long, which is the one shape the progress rule cannot catch: a loop that closes one finding while
+opening another. Say in the same line that it is worth carrying on in a new session, because each pass has
+added its build and test output to this one.
+
 ## Report and hand back
 
-**One line per unmet criterion and per finding**, carrying three things: what was wrong, what you
-changed — or the deviation you recorded — and whether you are confident that was the cause. A finding you are not confident about says so in its line — that is the
-most useful thing in the report, and it is the first thing a paragraph hides. Then:
+**One line per pass**, and in it **one line per unmet criterion and per finding** it worked, carrying three
+things: what was wrong, what you changed — or the deviation you recorded — and whether you are confident that
+was the cause. A finding you are not confident about says so in its line — that is the most useful thing in
+the report, and it is the first thing a paragraph hides. Then:
 
 ```
 sdlc status <id>
 ```
 
-Show it verbatim and stop. The person decides whether to verify again.
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
-
-**Do not verify your own remediation.** You have just spent effort on this code; a verification by the
-session that wrote the fix is the investment bias the whole separation exists to remove. Verify runs as
-its own stage, reading only the evidence.
+Show it verbatim and stop. **Close with one plain offer** that fits where it ended: on `pass`, say *open the
+pull request* (or `/sdlc:pr`); at a check-in, say *keep going* (or `/sdlc:remediate`); on `escalated`, what
+the passes did is the hand-back, and the person decides what happens next.

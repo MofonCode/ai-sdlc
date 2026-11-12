@@ -3,7 +3,7 @@ name: build
 description: Implement an approved plan, build, test, and record the evidence a verification will read. Use after a person has approved a cycle's three planning documents.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
 ---
 
 # Build an approved plan
@@ -302,8 +302,12 @@ command.
 act on them will read them. Naming the count is what tells somebody to go and look; repeating the
 contents is how a five-line hand-back becomes a page.
 
-Then stop. The person decides whether to verify.
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
+**Then verify, on a green build** (D-159). A green build always goes to verify next, so stopping to ask
+would ask the person nothing: follow the `verify` skill for this cycle, from its fresh adjudicator on. The
+verdict is not this session's — verify writes it in a fresh process that never saw the build, which is what
+keeps the separation (D-01, D-109) — so carrying on here costs it nothing. Your five lines come first, then
+verify's hand-back, as one message. **Inside a batch, the batch does this**: stop after the evidence, as it
+expects.
 
 **If the build or the tests failed, say so plainly and stop there.** Do not run verify on a red build
 to see what it makes of it, and do not adjust a test to make it pass — that is the inversion the whole

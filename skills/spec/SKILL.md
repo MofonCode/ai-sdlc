@@ -51,8 +51,10 @@ sdlc status <cycle id> --stage intent
 - **No intent?** Say so and stop. There is nothing to derive from.
 - **Intent not clean?** Stop. `CON_16` is coverage of what the intent *states*, so deriving criteria
   from an intent that is still being argued about means deriving them twice.
-- **A spec already exists?** Stop, and name what the person probably meant: `/sdlc:interrogate <id>
-  spec` to challenge it, or `/sdlc:steer <id> "..."` to change it. Do not overwrite a spec.
+- **A spec already exists?** Stop, and name what the person probably meant, in plain words: to carry
+  it on to a plan, *take it to plan* (`/sdlc:to-plan <id>`), which also finishes the spec's check if it
+  stopped part way; to change it, tell you what should be different (`/sdlc:steer <id> "..."`). Do not
+  overwrite a spec.
 
 ## Keep a task list, if your host has one
 
@@ -287,8 +289,9 @@ answer, and the commonest one — skip all of this when nothing is open.
 sdlc status <id> --stage spec --brief
 ```
 
-Show it verbatim, then stop. The person decides whether to move to the plan.
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
+Show it verbatim, then stop. The person decides whether to move to the plan. **Close with one plain
+offer**, in a line of your own: say *take it to plan* (or `/sdlc:to-plan`) to carry on to the plan, or
+say what should change first.
 
 **Say nothing else beyond two sentences.** The panel carries the cycle, the counts, the gate and the next
 command; prose around it competes with the only lines worth reading. Drop `--brief` when somebody asks

@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.41.0** · iteration 4 · .NET 10
+**Version 0.42.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.41.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.42.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -269,8 +269,8 @@ which is why the commit is a step and not a tidy-up.
 ```
 
 The skill opens the cycle and switches to its branch itself, then interviews you into the intent —
-and waits for your answers, because the intent is written from them. `/sdlc:spec` and `/sdlc:plan`
-follow, you approve all three, and then the build runs.
+and waits for your answers, because the intent is written from them. Then *take it to plan* —
+`/sdlc:to-plan` — writes the spec and the plan, you approve all three, and the build runs and verifies itself.
 
 **Want the whole walkthrough, or the variations?**
 [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) is one cycle from the rules to an
@@ -421,6 +421,14 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **The seven-step cycle has only met the suite** (0.42.0). A person walks seven steps — begin an intent,
+  take it to plan, steer, approve, build, fix, open the pull request — and can say each in a sentence; every
+  hand-back offers the next one in words, and the panel names the step rather than `interrogate` or `refine`
+  (D-158). `batch-plan` is now `to-plan`, takes one cycle or every one, picks a cycle up where it stopped, and
+  drafts the approvals. A green build verifies itself, and remediation verifies again after each pass and goes
+  round while it is working, checking in every fourth pass (D-159). The new session is named once, before the
+  build. It is a minor: a person types different things, and `batch-plan` is gone. No cycle has run this way
+  yet, so nobody knows whether the planning chain in one session stays small enough to leave there.
 - **The coverage floor has met one solution's numbers and no cycle** (0.41.0). The whole codebase was held to
   the highest rate it ever reached, with no slack, and MarketSense at 99% refused a cycle that did nothing
   wrong once its two-host test harness changed how coverage was measured. Now a codebase at or above

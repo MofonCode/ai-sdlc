@@ -64,6 +64,8 @@ public static class ResolveRenderer
         NextStep.Build => "build",
         NextStep.Verify => "verify",
         NextStep.Remediate => "remediate",
+        NextStep.ToPlan => "to-plan",
+        NextStep.Pr => "a pull request",
         _ => "anything",
     };
 
@@ -73,6 +75,8 @@ public static class ResolveRenderer
         NextStep.Plan => "A plan needs a spec whose latest round is clean, and no plan yet.",
         NextStep.Build => "A build needs the gate to let it through, and nothing built yet.",
         NextStep.Verify => "A verify needs a build's recorded evidence, and no verify yet.",
+        NextStep.ToPlan => "Taking one to plan needs an intent, a plan not yet clean, and no standing approval.",
+        NextStep.Pr => "A pull request needs a verify that passed.",
         _ => "Remediation needs a blocked verify.",
     };
 

@@ -125,7 +125,7 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
 **4. Interview each opened piece in turn**, from §2 on, in the sandbox: write each intent under its own
 `.sdlc/cycles/<id>/`, run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
 accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
-same work item — and say in the hand-back that `/sdlc:batch-plan` takes them all to plan, and that what is
+same work item — and say in the hand-back that `/sdlc:to-plan` takes them all to plan, and that what is
 approved goes to the integration branch together by one plan pull request, `/sdlc:pr --plan` in the sandbox.
 
 ## 0a. Re-slice intents already written: `--reslice <id>...`
@@ -422,9 +422,11 @@ list for the intent:
 sdlc perspective show <name> --for intent --cover
 ```
 
-**Ask it from a file, never from a picker** (D-114). A picker holds a handful of options, so a list
+**Ask it in free text, never from a picker** (D-114). A picker holds a handful of options, so a list
 longer than that gets merged or cut to fit, and whoever does the cutting has decided unseen what the
-person was asked. Run `sdlc suggestions <id>` once first — it lists nothing yet, and it makes sure
+person was asked. **A handful or fewer, ask in chat** — each numbered, with what it means for this change and
+a suggested answer, exactly as the file below would hold them; a file for two items is a step for nothing
+(D-158). **More than a handful, write the file.** Run `sdlc suggestions <id>` once first — it lists nothing yet, and it makes sure
 `.sdlc/reports/` ignores itself, so the file never reaches a build's diff — then write
 `.sdlc/reports/<id>-intent-concerns.md`:
 
@@ -448,7 +450,7 @@ answered — **every one, none merged**. Each says what the item means **for thi
 solution's terms, then a suggested answer with its reason: what it costs now against later, and whether
 anything already asked for depends on it. A suggestion is help with the question, not an answer to it.
 
-**In chat, ask one question in free text**: name the file, give its numbers with one line each, and ask
+**In chat, ask one question in free text**: name the file when there is one, give its numbers with one line each, and ask
 which this piece needs. Then **read back what you will write** — each answer as the wanted outcome or
 fixed decision it becomes, in the person's words — and write it once they confirm. *"Go with the
 suggestions"* is the person adopting your wording, so the read-back is what they are agreeing to.
@@ -688,7 +690,10 @@ the next command, so prose around it is noise competing with the only lines wort
 `--brief` when somebody asks for the whole panel; the full form is the same answer with the round
 history and the hashes.
 
-Then stop. The person decides whether to move to the spec. That decision is the human-in-the-loop
+Then stop. The person decides whether to take it to plan. That decision is the human-in-the-loop
 point, and a skill that chained straight into the spec would remove it while appearing to be helpful.
 
-**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
+**Close with one plain offer**, in a line of your own: when they are happy with it, they can say *take it
+to plan* — or type `/sdlc:to-plan` — and if anything reads wrong, they can just say what, and you will
+change it first. It can carry on in this session: an interview leaves little behind, and the session worth
+starting fresh is the build's (D-158).
