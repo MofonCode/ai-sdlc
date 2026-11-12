@@ -2234,7 +2234,7 @@ each list their own steps and nothing past the hand-back; `batch-build` and `to-
 
 **A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
 `sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
-for the person to choose from; nothing picks among several. `draft approval` and `pr` keep the id required — `pr --plan` in a sandbox excepted, which names every cycle it takes (D-144).
+for the person to choose from; nothing picks among several. `draft approval` keeps the id required, and so does every form of `pr` that is not a verified build's — `pr --plan` in a sandbox excepted, which names every cycle it takes (D-144). A verified build's `pr` resolves its cycle like the stages, and names it in the one question before the push (D-158).
 
 **The hand-back before the build names a new session**, and no other does. A session carried past one
 stage rebuilds its whole context on every turn after an idle wait, and that, not the judging, was most of

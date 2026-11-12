@@ -347,7 +347,7 @@ entry ends in exactly one of three places — a criterion, `Out of scope` with a
 |---|---|---|
 | there is no intent | refuses | `/sdlc:intent` |
 | the intent is not clean | refuses | `/sdlc:refine <id> intent`, then a fresh interrogation |
-| a spec already exists | refuses, and never overwrites one | `/sdlc:interrogate <id> spec` or `/sdlc:steer`, which it names |
+| a spec already exists | refuses, and never overwrites one | *take it to plan* (`/sdlc:to-plan`), which finishes its check, or `/sdlc:steer` to change it — it names both |
 | the intent is missing something it should have asked for | writes no criterion, and names it in `Out of scope` | `/sdlc:steer <id> <finding id>...` when a reader raised it; a new cycle when nobody did |
 
 #### Example
@@ -424,7 +424,7 @@ confirms each one ran and passed.
 |---|---|---|
 | there is no spec | refuses | `/sdlc:spec <id>` |
 | the spec is not clean | refuses | `/sdlc:refine <id> spec`, then a fresh interrogation |
-| a plan already exists | refuses | `/sdlc:interrogate <id> plan` or `/sdlc:steer`, which it names |
+| a plan already exists | refuses | *take it to plan* (`/sdlc:to-plan`), which finishes its check, or `/sdlc:steer` to change it — it names both |
 | the plan would declare one of the seven files only a person writes | never declares one; the schema refuses a plan that does | — |
 
 #### Example
@@ -492,39 +492,43 @@ What it runs, in order:
 
 ### `to-plan`
 
-Takes every intent this branch carries to a plan — each cycle's spec, then its plan, each with its own loop —
-and hands back once, with every panel and one question about suggestions (D-142).
+Takes an intent to a plan — one cycle, or every one this branch carries — each cycle's spec, then its plan,
+each with its own loop, picking a cycle up wherever its planning stopped. It hands back once, with every
+panel, one question about suggestions, and the approvals drafted (D-142, D-158). **It is the step a person
+takes after an intent**: they never need to run `spec`, `plan`, `interrogate` or `refine` themselves.
 
 | | |
 |---|---|
-| Stage | the planning chain, from clean intents to plans, for several cycles at once |
-| Started by | a person who has read their intents and asks to take them to plan |
-| Reads | `sdlc cycles --here --for spec` and `--for plan` for the work; then what `spec` and `plan` read, per cycle |
-| Writes | what `spec` and `plan` write, for each cycle; one suggestions report under `.sdlc/reports/` |
+| Stage | the planning chain, from an intent to a plan a person can approve |
+| Started by | a person happy with their intent, who says *take it to plan* |
+| Reads | `sdlc cycles --here --for to-plan` for the work, or the cycle named; then what `spec` and `plan` read, per cycle |
+| Writes | what `spec` and `plan` write, for each cycle; one suggestions report under `.sdlc/reports/`; an approval draft for each planned cycle |
 
 #### Syntax
 
 ```
-/sdlc:to-plan
+/sdlc:to-plan [<cycle id>]
 ```
 
 #### Parameters
 
-None. A batch is every cycle this branch carries that is ready for a spec or a plan; one cycle is
-`/sdlc:spec <id>` and `/sdlc:plan <id>`.
+| Parameter | Description |
+|---|---|
+| `<cycle id>` | the one cycle to take to plan. Optional: without it, `sdlc cycles --here --for to-plan` lists every cycle this branch carries with an intent, a plan not yet clean and no standing approval, and it takes them all |
 
 #### Output
 
 One line per cycle — `planned`, or stopped and why — then each planned cycle's plan panel, verbatim, and one
-free-text question about every open suggestion across the cycles, grouped by cycle and theme. It stops at the
-plan: approving is the person's, one cycle at a time.
+free-text question about every open suggestion across the cycles, grouped by cycle and theme, then each
+approval drafted with its path and the rename that places it. It stops at the plan: approving is the person's,
+one cycle at a time, and drafting is not approving.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
-| nothing this branch carries is ready for a spec or a plan | takes nothing, and names each carried cycle with where it stands | finish an intent's loop, or `/sdlc:steer` it |
-| one cycle's loop will not converge, a reader reports a conflict, or a question only the person can answer comes up | stops that cycle where it is and goes on to the next | answer it, then `/sdlc:spec <id>` or `/sdlc:plan <id>` for that cycle |
+| nothing this branch carries is ready to be taken to plan | takes nothing, and names each carried cycle with where it stands | `sdlc status <id>` says where each one is |
+| one cycle's loop will not converge, a reader reports a conflict, or a question only the person can answer comes up | stops that cycle where it is and goes on to the next | answer it, then *take it to plan* again: it picks the cycle up where it stopped |
 
 #### Example
 
@@ -539,7 +543,7 @@ panels, and one question about suggestions.
 
 **It runs in the person's session**, so its context grows with every cycle — the cost D-122 measured. Asked
 once, the person chose that over a fresh session per cycle, to keep the run able to stop and ask; the hand-back
-says the approvals are worth a fresh session.
+says the build is worth a fresh session, and it is the one hand-back that does (D-158).
 
 **Suggestions are asked about once, at the end.** A suggestion taken in at the spec costs one round less than
 the same one taken in after the plan; one question across every cycle is the trade, and the hand-back says so.
@@ -547,7 +551,7 @@ the same one taken in after the plan; one question across every cycle is the tra
 #### See also
 
 - [`spec`](#spec), [`plan`](#plan) — what it runs for each cycle
-- [`draft`](#draft) — next, a person approves each with `/sdlc:draft approval <id>` and a rename
+- [`draft`](#draft) — what drafts each approval, which a person places by the rename
 - [`batch-build`](#batch-build) — the same shape for building
 
 ---
@@ -995,7 +999,8 @@ hook's denial as a configuration problem.
 
 ### `build`
 
-Implements an approved plan, builds, tests, and records the evidence a verification will read.
+Implements an approved plan, builds, tests, records the evidence a verification will read, and on a green
+build goes straight on to verify (D-159).
 
 | | |
 |---|---|
@@ -1045,8 +1050,9 @@ props rather than by instruction.
 /sdlc:build 20261002_1414_12
 ```
 
-Expect commits on the cycle's branch — the change, then the evidence — and a short hand-back saying what
-was implemented, what the build and tests said, and how many `Noticed:` lines the commit carries.
+Expect commits on the cycle's branch — the change, then the evidence — a short hand-back saying what
+was implemented, what the build and tests said, and how many `Noticed:` lines the commit carries, then
+verify's verdict below it.
 
 #### Remarks
 
@@ -1077,13 +1083,16 @@ What it runs, in order:
 4. `dotnet build` and `dotnet test`, reading the test count rather than the exit code
 5. commits the change, with any `Noticed:` lines
 6. `sdlc evidence <id> --tests <directory> --build-log <path>`, then commits the evidence
-7. shows `sdlc status <id> --brief` verbatim with at most five lines of its own, and stops
+7. shows `sdlc status <id> --brief` verbatim with at most five lines of its own
+8. on a green build, runs the `verify` stage — its fresh adjudicator, its round — and hands back once with
+   both
 
-It keeps no task list of its own inside a batch.
+It keeps no task list of its own inside a batch, and inside a batch it stops after the evidence: the batch
+runs verify itself.
 
 #### See also
 
-- [`verify`](#verify) — the next stage
+- [`verify`](#verify) — what it runs next, on a green build
 - [`batch-build`](#batch-build)
 - [Handling refusals](../docs/guides/handling-refusals.md)
 
@@ -1095,7 +1104,7 @@ see the build. Never edits code.
 | | |
 |---|---|
 | Stage | build and verify, after the build has recorded its evidence |
-| Started by | a person, or `batch-build` |
+| Started by | `build` on a green build, `remediate` after each pass, `batch-build`, or a person |
 | Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha` and `build.log` where there is one, all in the adjudicator's prompt |
 | Writes | `.sdlc/cycles/<id>/verify.md` |
 
@@ -1125,7 +1134,7 @@ that every criterion has an entry and that a `pass` rests on named tests that pa
 | Condition | Result | What to do |
 |---|---|---|
 | the evidence is missing | says so and stops — that is a build that did not finish | `/sdlc:build <id>` |
-| the outcome is `blocked` | does not start remediating; you decide | `/sdlc:remediate <id>` |
+| the outcome is `blocked` | does not start remediating; you decide | say *fix it* (`/sdlc:remediate`) |
 
 #### Example
 
@@ -1170,8 +1179,9 @@ may disagree with the plan — a test that passed but does not reach its criteri
 
 ### `remediate`
 
-Applies a blocked verification's unmet criteria and findings to source and tests. Edits code, never a
-planning document.
+Applies a blocked verification's unmet criteria and findings to source and tests, verifies again in a fresh
+process, and goes round while each pass reduces what is open, checking in every fourth pass (D-159). Edits
+code, never a planning document.
 
 | | |
 |---|---|
@@ -1206,6 +1216,7 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 | a regression — a pass that broke what an earlier pass fixed | stops | — |
 | two passes in a row reduce nothing | stops | — |
 | three deviations bend the same approved text and the verification still blocks | stops | — |
+| a fourth pass in this run, still making progress | hands back with what closed and what is open, and asks whether to go on | say *keep going* (`/sdlc:remediate`), in a new session |
 
 #### Example
 
@@ -1213,8 +1224,8 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 /sdlc:remediate 20261002_1414_12
 ```
 
-Expect one line per unmet criterion and per finding — what was wrong, what changed, and whether it is
-confident that was the cause — then the panel. Verify again as its own stage.
+Expect one line per pass, each with a line per unmet criterion and finding — what was wrong, what changed,
+and whether it is confident that was the cause — then the panel, on `pass`, `escalated`, or a check-in.
 
 #### Remarks
 
@@ -1236,12 +1247,18 @@ blockers `sdlc findings <id> --stage verify` prints, then `dotnet build`, `dotne
 `sdlc status <id>` verbatim. A pass is a verify findings round after the first, so progress is read from
 what happened rather than from a counter anybody could edit.
 
-**It does not verify its own remediation.** A verification by the session that wrote the fix is the
-investment bias the whole separation exists to remove.
+**It does not adjudicate its own remediation.** After each pass it runs the `verify` stage, whose adjudicator
+is a fresh process that never saw the fix; the session starts it and reads what it returns, and never edits
+`verify.md`. A verdict written by the session that wrote the fix is the investment bias the separation exists
+to remove, and it stays removed because the judge is a separate process (D-159).
+
+**It checks in every fourth pass**, still making progress: what closed, what is open, keep going? That is not
+a ceiling — nothing stops on the number — but the person back in front of the one loop the progress rule
+cannot catch, which closes one finding while opening another.
 
 #### See also
 
-- [`verify`](#verify) — again, as its own stage
+- [`verify`](#verify) — what it runs after each pass
 - [`refine`](#refine)
 - [Handling blockers](../docs/guides/handling-blockers.md)
 
@@ -1264,7 +1281,7 @@ touches the remote.
 #### Syntax
 
 ```
-/sdlc:pr <cycle id>... [--plan | --draft] | --all
+/sdlc:pr [<cycle id>...] [--plan | --draft] | --all
 /sdlc:pr --plan
 ```
 
@@ -1272,7 +1289,7 @@ touches the remote.
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the verified cycle to push — or, with `--plan`, every cycle of one slicing |
+| `<cycle id>` | the verified cycle to push — optional, and without it `sdlc cycles --here --for pr` names the one whose verify passed, or it asks which, and the question before the push names it (D-158) — or, with `--plan`, every cycle of one slicing |
 | `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125). Given no id, in a sandbox, every approved plan the sandbox carries and the successors it wrote, composed by `sdlc admit` onto `cycle/<id>/plan` or `slices/sandbox-<id>/plan`; what is not approved stays, and each cycle taken is named before the push is asked for (D-144) |
 | `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence, its body leading with the criteria marked Not met and each open blocker's rule, gist, place and fix |
 | `--all` | every cycle that is ready, asking once before the first push |

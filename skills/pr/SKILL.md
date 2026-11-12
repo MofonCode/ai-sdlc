@@ -2,7 +2,7 @@
 name: pr
 description: Push a cycle's branch and open its pull request into the integration branch. The only stage that touches the remote. Use after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>... [--plan | --draft] | --plan | --all"
+argument-hint: "[<cycle id>...] [--plan | --draft] | --plan | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---
 
@@ -21,6 +21,20 @@ happened.
 | `pr <id> <id>... --plan` | every approved plan of one slicing, and the successors it wrote, by one pull request | `sdlc gate <id>` for each, then `sdlc slices` |
 | `pr --plan`, in a sandbox | every approved plan the sandbox carries, and the successors it wrote, by one pull request | `sdlc admit`, which names each before you are asked to push |
 | `pr <id> --draft` | a build that did not pass: `blocked` or `escalated` | `sdlc pr-ready <id>`, which must refuse for exactly that: did not pass, or escalated |
+
+## Which cycle
+
+**For a verified build the id may be left out** (D-158): a person who has just been told *open the pull
+request* should not have to look up a timestamp to do it.
+
+```
+sdlc cycles --here --for pr
+```
+
+It exits 0 printing the one cycle this branch carries whose verify passed, and that is the cycle. Otherwise it
+lists the candidates: ask which, in one question, and **never pick one yourself**. Either way, **the question
+before the push names the cycle**, by id and headline, so the person still says which work goes out. The plan,
+draft and slicing forms keep their ids: each says what it carries, and a guess there pushes the wrong thing.
 
 ## Where it goes
 
@@ -158,8 +172,9 @@ it anyway, so pushing would cost a round trip through CI to learn what you were 
 
 ## Mine now, or after the merge
 
-Once `pr-ready` holds, ask the person once — not in a sweep, which runs with nobody to mark proposals:
-**mine on this branch before the pull request, or after it merges?** (D-111.) Either is right, and
+Once `pr-ready` holds, ask the person once, and make it the only question before the push — not in a sweep,
+which runs with nobody to mark proposals: **open the pull request for `<id>` — `<headline>` — and mine on this
+branch first, or after it merges?** (D-111.) Either is right, and
 skipping it here is an answer: `/sdlc:mine` on the integration branch afterwards is the
 same act.
 
