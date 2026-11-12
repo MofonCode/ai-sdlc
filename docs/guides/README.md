@@ -64,7 +64,7 @@ It is the one guide you come back to outside a cycle: read the part you need. It
 
 ## `running-a-cycle.md`
 
-**One cycle, seven steps, end to end.** Begin an intent, take it to plan, change something, approve, build
+**One cycle, seven steps, end to end.** Begin an intent, take it to plan, steer the plan, approve, build
 it — which verifies — fix it, and open the pull request, then what to look at afterwards. Each step is
 something a person can say; the slash form is beside it.
 

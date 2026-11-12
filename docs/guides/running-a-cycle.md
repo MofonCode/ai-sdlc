@@ -13,9 +13,9 @@ the cheat sheet, `../cheat-sheet.md`, is this same walk as one line per step.
 
 | | Say | Or type |
 |---|---|---|
-| 1 | *I want to change …* | `/sdlc:intent` |
+| 1 | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
 | 2 | *take it to plan* | `/sdlc:to-plan` |
-| 3 | *change … to …* | `/sdlc:steer` |
+| 3 | *in that plan, make it … instead* | `/sdlc:steer` |
 | 4 | — you rename the approval it drafted | — |
 | 5 | *build it* | `/sdlc:build` |
 | 6 | *fix it* | `/sdlc:remediate` |
@@ -34,8 +34,10 @@ stack file marks `true`; `declaring-the-stack.md` has why.
 
 ## 1. Begin an intent
 
-Say what you want to change, or `/sdlc:intent`. **If you already know what kind of change it is, say so** —
-`--type bug`, `--type add` or `--type change` — and the interview asks that kind's questions from the start.
+Say what you want — something new, something broken, or something that should work differently — or
+`/sdlc:intent`. **If you already know which, say so** (*it's a bug*, or `--type bug`, `add` or `change`) and the
+interview asks that kind's questions from the start. If you don't, it works it out from your first answer and
+checks with you in one line.
 
 **Work bigger than one cycle is sliced first** (D-125). Before any cycle opens, the skill proposes the most
 atomic slicing it can find: pieces that can each be built, verified and merged against the integration branch
@@ -98,7 +100,7 @@ successor instead, because every outcome you add is more the spec and plan must 
 
 **Then it drafts the approval** and tells you where it is — step 4.
 
-## 3. Change something
+## 3. Steer the plan
 
 At any point before you approve, tell it what should be different, or `/sdlc:steer`:
 

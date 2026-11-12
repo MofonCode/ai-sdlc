@@ -5,7 +5,7 @@ Every skill, one line each, in the order a cycle meets them. Each name links to 
 *started by* is who decides it should happen.
 
 **A cycle is seven of them**, and a person can name each in a sentence rather than a command: begin an
-intent (`intent`), take it to plan (`to-plan`), change something (`steer`), approve (`draft`), build it
+intent (`intent`), take it to plan (`to-plan`), steer the plan (`steer`), approve (`draft`), build it
 (`build`, which verifies), fix it (`remediate`), and open the pull request (`pr`). The rest are run by those,
 or are for after a cycle.
 
