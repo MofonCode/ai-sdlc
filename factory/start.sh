@@ -6,7 +6,7 @@
 #
 # The registration outlives the job, and is removed only when the container is stopped. Between two jobs
 # the next container is still starting, and a pool with no agent registered fails a queued job at once
-# rather than holding it: MarketSense's merge queued its integration build in that gap and lost it. An
+# rather than holding it: one solution's merge queued its integration build in that gap and lost it. An
 # agent that is registered and offline makes the job wait, and the next container's --replace takes the
 # registration over.
 set -euo pipefail

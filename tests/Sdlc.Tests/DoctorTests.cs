@@ -140,7 +140,7 @@ public sealed class DoctorTests
     [TestMethod]
     public async Task A_scheduled_factory_on_its_own_pool_is_told_the_rewrite_replaces_that_pool()
     {
-        // MarketSense: its factory runs on agents carrying the browsers, and 'sdlc factory' writes a hosted pool.
+        // A real solution: its factory runs on agents carrying the browsers, and 'sdlc factory' writes a hosted pool.
         using var solution = Scratch.Create();
         await Adopt(solution, Platform.AzureDevOps);
 
@@ -818,10 +818,10 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
-    [DataRow("https://dev.azure.com/org/Project/_git/MarketSense", "MarketSense")]
-    [DataRow("https://org@dev.azure.com/org/Project/_git/Market%20Sense", "Market Sense")]
-    [DataRow("https://org.visualstudio.com/Project/_git/MarketSense/", "MarketSense")]
-    [DataRow("git@ssh.dev.azure.com:v3/org/Project/MarketSense", "MarketSense")]
+    [DataRow("https://dev.azure.com/org/Project/_git/StockLedger", "StockLedger")]
+    [DataRow("https://org@dev.azure.com/org/Project/_git/Stock%20Ledger", "Stock Ledger")]
+    [DataRow("https://org.visualstudio.com/Project/_git/StockLedger/", "StockLedger")]
+    [DataRow("git@ssh.dev.azure.com:v3/org/Project/StockLedger", "StockLedger")]
     [DataRow("https://github.com/MofonCode/ai-sdlc.git", null)]
     public void An_azure_repos_remote_names_its_repository(string remote, string? expected) =>
         Assert.AreEqual(expected, CliBranchPolicies.RepositoryName(remote));

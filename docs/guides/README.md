@@ -15,7 +15,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`declaring-the-stack.md`](declaring-the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them | right after adoption, and whenever a default or a rule is wrong for this solution |
 | [`running-a-cycle.md`](running-a-cycle.md) | one cycle in seven steps, from an intent to a pull request, each one said in a sentence — the happy path | once, front to back, then when you need a stage again |
 | [`setting-up-the-factory.md`](setting-up-the-factory.md) | the factory from nothing to a watched first run: the agent's credential, the tools on the agent, the integration branch, the pipeline and its permissions, and what to do when a step fails | once per solution, when you are ready to let a pipeline build |
-| [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
+| [`running-the-factory.md`](running-the-factory.md) | many cycles built unattended, whenever you start the factory: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
 | [`mining-the-cycles.md`](mining-the-cycles.md) | after a cycle finishes: reading what the cycles settled, deciding the rules, decisions, stack rows, areas and successors the solution keeps, answering every open suggestion — taken further, declined or ignored — and deleting the finished cycles' folders | once a verify passes, on the cycle's branch or after the merge, or after several cycles in one sitting |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
 | [`handling-refusals.md`](handling-refusals.md) | every refusal, hook denial and turn sent back, with the remedy for each | when something stops |
@@ -84,7 +84,7 @@ What it does not cover: the daily routine once it runs, which is `running-the-fa
 
 ## `running-the-factory.md`
 
-**Many cycles, built overnight.** The integration branch, admitting a plan to it with `pr --plan`, what
+**Many cycles, built unattended.** The integration branch, admitting a plan to it with `pr --plan`, what
 the factory's pipeline does, and the morning: reading the sitrep, merging one pull request at a time, resolving a conflict with
 `resolve-conflict`, picking up a draft. It closes with a fix found on a release.
 

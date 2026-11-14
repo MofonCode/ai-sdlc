@@ -133,11 +133,11 @@ the work cannot keep. Do the work, and write down where you bent the plan, in
 
 Kind: plan
 Departs from: plan.md, Files
-> src/MarketSense.MassiveStandIn/StandInHost.cs
+> src/Quotes.FeedStandIn/StandInHost.cs
 Blocker: Credential_never_reaches_a_trader fails 2 runs in 3 with ObjectDisposedException (tests.json)
 Deviation: StreamSocket.cs is also changed; DropSockets no longer aborts a disposed connection.
 Why: the race is in StreamSocket, and no fix inside StandInHost reaches it.
-Files: `src/MarketSense.MassiveStandIn/StreamSocket.cs`
+Files: `src/Quotes.FeedStandIn/StreamSocket.cs`
 ```
 
 - **The quote decides the kind.** `plan` and `proof` quote `plan.md`; `criterion` quotes `spec.md` and may

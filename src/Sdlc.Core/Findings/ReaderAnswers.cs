@@ -153,7 +153,7 @@ public static class ReaderAnswers
     /// Whether this round leaves the perspectives out: a verify round once the cycle has recorded one (D-164).
     /// </summary>
     /// <remarks>
-    /// In six MarketSense cycles no perspective blocked at verify, and a perspective's suggestion there can only
+    /// In six real cycles no perspective blocked at verify, and a perspective's suggestion there can only
     /// become a successor. A later verify round re-reads a verdict moved to answer the rules or the diff reader,
     /// so the perspectives' look at the built change is taken once, in the first.
     /// </remarks>

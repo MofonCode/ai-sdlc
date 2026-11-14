@@ -10,7 +10,7 @@ namespace Sdlc.Tests;
 /// The mining report's reading of how each cycle went (D-112): what the findings alone never held.
 /// </summary>
 /// <remarks>
-/// MarketSense's second cycle is the case. Its findings showed a verify that argued about wording; what
+/// One real solution's second cycle is the case. Its findings showed a verify that argued about wording; what
 /// they did not show was criterion 15 failing six verdicts in a row, or the five reopens in which a person
 /// had already decided something and written down what they refused. Both were in the repository -- one
 /// in git's history of <c>verify.md</c>, one in the approval ledger -- and the report read neither.

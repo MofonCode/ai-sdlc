@@ -1,4 +1,4 @@
-# Adapted from MarketSense's .editorconfig, which is the house style across these repositories.
+# Adapted from an earlier repository's .editorconfig, which is the house style across these repositories.
 #
 # Three changes from the base, each explained where it appears below: private methods are PascalCase
 # rather than camelCase, because every helper here already is and that is the platform guideline;

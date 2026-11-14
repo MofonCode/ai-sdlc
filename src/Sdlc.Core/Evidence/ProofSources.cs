@@ -155,7 +155,7 @@ public static class ProofSources
     /// line included. Ranges that overlap are merged.
     /// </summary>
     /// <remarks>
-    /// A test's body, not its file. One MarketSense cycle's proofs reached nine files, 186 KB handed to every
+    /// A test's body, not its file. One real cycle's proofs reached nine files, 186 KB handed to every
     /// reader, for about a hundred lines of assertions. Indentation rather than a parser, because the framework
     /// names no language outside a profile: a method in C#, a function in Python and a test in TypeScript all
     /// indent their bodies. A helper the block calls is not followed; a plan names its file to have it whole.

@@ -1,8 +1,8 @@
 {
   "name": "sdlc",
   "displayName": "ai-sdlc",
-  "version": "0.46.0",
-  "description": "A constraint-governed lifecycle. An intent becomes a spec, a plan, a build and a verification, each challenged against a fixed set of rules before it advances. A person approves all three planning documents before any code exists, and nothing merges unless the chain is complete, approved and hash-matched.",
+  "version": "0.47.0",
+  "description": "Holds an AI coding agent, and the people directing it, to what was written down. Every change is planned before any code exists, challenged by a reader that never saw it written, approved by a person against the exact text, and proved from recorded evidence; a pull-request check refuses anything missing a link. The solution's rules and decisions live in the repository and carry from one cycle to the next, and whatever contradicts them is brought into the open.",
   "author": {
     "name": "MofonCode"
   },

@@ -82,7 +82,7 @@ public static class ApprovalText
     /// The choices a plan lists at the head of <c>Shape and departures</c>, one line each.
     /// </summary>
     /// <remarks>
-    /// Both of MarketSense's reopens were a decision the person found in the plan only after approving
+    /// Both of one real solution's reopens were a decision the person found in the plan only after approving
     /// it -- Aspire left out, the chart tables drawn by hand -- because the plan was a hundred kilobytes
     /// and the choice was a clause in it. The list is what the approval draft puts in front of them, so
     /// the choices are read before the rename rather than discovered after it.

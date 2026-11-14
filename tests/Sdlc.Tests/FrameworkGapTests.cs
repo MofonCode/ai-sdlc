@@ -28,7 +28,7 @@ public sealed class FrameworkGapTests
     [TestMethod]
     public async Task Mining_lists_every_successor_marked_as_a_framework_gap_and_no_other()
     {
-        // MarketSense filed two framework defects as its own successors, and they sat beside its real work.
+        // One solution filed two framework defects as its own successors, and they sat beside its real work.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
         string directory = Successor.DirectoryOf(workspace.Root);

@@ -362,7 +362,7 @@ public static class VerifyChain
         /// person changes them inside a cycle for reasons that are not mining: the stack row the
         /// plan calls for, a decision amended mid-build, the last cycle's decisions placed before this
         /// one's first round. Git says that a file changed before the verify; it cannot say why. Refused,
-        /// MarketSense's second cycle -- which did exactly the first two -- would have failed a chain it
+        /// a real cycle -- which did exactly the first two -- would have failed a chain it
         /// rightly passed (D-113). The order stays the skills' to keep.</para>
         /// <para>Silent when the pull request changes none of the three, and when nothing said what it
         /// changes.</para>

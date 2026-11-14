@@ -546,7 +546,7 @@ public sealed class VerifyChainTests
     {
         // A person changes these files inside a cycle for reasons that are not mining -- the stack
         // row a plan calls for, a decision amended mid-build -- and git cannot tell the two apart. So the
-        // order is said, and the chain holds either way (D-113). MarketSense's second cycle did both.
+        // order is said, and the chain holds either way (D-113). One real solution's second cycle did both.
         using CycleWorkspace workspace = Sound();
         FakeRepository repository = Mining(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
 

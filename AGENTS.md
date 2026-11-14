@@ -47,6 +47,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the nineteen global constraints, each with what it forbids and why |
 | `src/Sdlc.Core/Constraints/Profiles/` | the stack rules, one document per profile: `PRO_` ids, the only tier where a rule may name a language, framework or package. Embedded in the binary; a solution is held to the ones its declared stack marks `true`, so an id is unique across every document here |
 | `src/Sdlc.Core/Perspectives/` | the perspectives, one document each: a method, what an author covers and a reader asks at every stage, the rules it may block on, and its evidence (D-90). Embedded in the binary and read through `sdlc perspective show` |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each release changed, newest first, and what moving to it asks of a solution. The README's Where it stands is the present; this is the history |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
@@ -127,7 +128,7 @@ a backstop, not the inner loop.
 ## Releasing
 
 **A release is a merge.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
-are moved together and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
+are moved together, with the release's entry in [`CHANGELOG.md`](CHANGELOG.md), and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
 tests, packs, checks the packed tool answers with the version it will be published as, and waits for a reviewer
 on the `nuget` environment before it pushes and tags the commit `v<that version>`. A merge whose version is
 already published and that changes nothing that ships publishes nothing; one that does change what ships is
@@ -238,7 +239,18 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
 | adds or removes a supported host, or changes what one supports | the hosts table in [`README.md`](README.md), and `CONCEPT.md` D-46 if the reasoning moves |
 | changes the layout, the build, the enforced properties, or what to keep current | this file |
-| changes where the project stands, its version, or what is not done | the Where it stands section of [`README.md`](README.md) |
+| changes where the project stands, its version, or what is not done | the Where it stands table in [`README.md`](README.md) — one row per capability, saying what has proved it — and the release's entry in [`CHANGELOG.md`](CHANGELOG.md) |
+| changes what the framework is, or what it is for | the definition, whose first sentence a test holds in every place the framework introduces itself: the opening of [`README.md`](README.md), `CONCEPT.md` §1, the `description` of both plugin manifests and of `marketplace.json`, and the package's [`src/Sdlc.Cli/README.md`](src/Sdlc.Cli/README.md) and `<Description>`. The paragraph after it is word for word in the first three and no test holds that, so change every place together |
+| changes a skill count, the protected files, a feature, or what the binary is for | [`src/Sdlc.Cli/README.md`](src/Sdlc.Cli/README.md), which is the page nuget.org shows. Its counts are held by the suite; its feature list and wording are not |
+
+### No solution is named
+
+**This repository stands on its own.** No document, comment, test, fixture or commit message you write here names
+a solution that adopted the framework, or any repository other than this one. Evidence a decision or a release
+rests on is **described, not attributed** — *one real plan round*, *a governed solution's pipeline*, *a real cycle
+of 88 rounds* — with its numbers kept, so the reasoning stays argued and nobody needs to know whose it was. A test
+that wants a realistic name uses an invented one. No test holds this, because a test could only check for a name
+by containing it; a reviewer does.
 
 ### Who owns what
 

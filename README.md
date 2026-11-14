@@ -6,52 +6,176 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.46.0** · iteration 4 · .NET 10
+**Version 0.47.0** · .NET 10 · [changelog](CHANGELOG.md)
 
-**A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
-is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
-keeps a ledger of what was decided**, so the next session, and the next model, builds on those decisions
-rather than quietly undoing them.
+**ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
-Most agent workflows go from a sentence straight to a diff. This one does not. A change moves through six
-stages, each producing a file the next stage reads, and **each file is challenged by a fresh reader
-against a fixed set of rules before it advances.** Nothing advances because something said it was fine.
+Every change is planned before any code exists, challenged by a reader that never saw it written, approved by a
+person against the exact text, and proved from recorded evidence. A pull-request check refuses anything missing a
+link. The solution's rules and decisions live in the repository beside its code and carry from one cycle to the
+next, so every stage of every change is read against everything settled before it. Whatever contradicts them is
+brought into the open, for the person and the model alike, rather than slipping through.
 
 > **Is this for me?** If what you want is an agent that moves faster, no. If you have ever read an
 > agent's pull request and been unable to tell what it was asked for, what it decided by itself, and
 > what proves it works — yes.
 
-## Why use it
+## Why choose it
 
-An agent can take a sentence to a merged diff in minutes, and nothing along the way records what the change
-was for, what *done* meant, what the agent decided by itself, or who agreed to any of it. The code may well
-be good. **The trouble is that nobody can tell**, and a reviewer reading the diff afterwards is
-reconstructing intent from its result.
+An agent can take a sentence to a merged diff in minutes, and nothing along the way records what the change was
+for, what *done* meant, what the agent decided by itself, or who agreed to any of it. The code may well be good.
+**The trouble is that nobody can tell**, and the next session cannot either. These are what ai-sdlc does about
+it, most important first.
 
-ai-sdlc makes the agent write those things down *before* the code, has each one challenged by a reader with
-no stake in it, has a person sign off on them, and refuses to merge anything that lacks them. **Everything
-that can be decided by a program is decided by one** — the `sdlc` binary, called from the agent's hooks and
-from CI — because an instruction the agent reads is advisory, and the agent will talk its way past it.
+### 1. Decisions that outlive the conversation
 
-**The decisions are what AI development loses first.** A choice settled in one conversation is gone by the
-next session; a different thread, or a different model, argues it again from nothing, or simply takes the
-alternative somebody already weighed and rejected, and nothing in the diff says so. ai-sdlc keeps
-those choices in a ledger rather than in anybody's memory: `decisions.md`, the solution's standing record of
-what it chose and what it chose *instead of*, which a person keeps. **Every stage works from it.** The
-intent interview reads it before asking anything, so it does not re-ask what is settled, and when you ask
-for something a decision set aside it tells you then, in a sentence, and asks whether to keep the decision
-or depart from it. The spec, the plan and the build read it too, and **a fresh reader holds each of them,
-and the code itself, against it**: anything that contradicts a decision is questioned, not let through. A
-cycle may depart from a decision, but it declares the departure once, where it arises, with a name and a
-reason on it — and you are told, at the approval, beside the gate and in the pull request. Once the cycle
-is approved, `/sdlc:propose` offers each departure as an update to the record, and the choices the cycle
-settled as new entries, so the ledger keeps saying what the solution does. What was decided three sessions
-ago, in another thread, by another model, is still what the code does — or the change says plainly why
-not.
+A choice settled in one conversation is gone by the next; a different thread, or a different model, argues it
+again from nothing, or quietly takes the alternative somebody already weighed and rejected. **`decisions.md`
+keeps those choices in the repository**: what the solution chose, and what it chose *instead of*, written by a
+person and versioned with the code. Every stage of every cycle works from it. The intent interview reads it
+before asking anything, so it does not re-ask what is settled, and every reader is handed it — the intent's, the
+spec's, the plan's, and the one that reads the finished code at verify.
+
+### 2. Rules the agent cannot bend
+
+A rule written into a prompt is forgotten next session and bent when it is inconvenient. Here **a constraint is
+a record, not an instruction**: an id, four clauses, and always one saying what it *forbids*. Three tiers — the
+framework's global rules, the stack's, and the solution's own in `constraints.md` — are resolved and rendered
+fresh into every reading, never copied into a document where they go stale, and every finding cites one by id.
+Like the decisions, they live in the repository and bind every cycle until a person changes them.
+
+### 3. Accountability runs both ways
+
+When something contradicts a decision or a rule, it is brought up — to whoever is doing the contradicting.
+
+- **The model.** A reader questions anything that contradicts a recorded decision. A cycle may depart from one,
+  but it declares the departure where it arises, with a reason, and the person is shown it at the approval, in
+  `sdlc status` and in the pull request. A build that cannot follow the approved plan records a **deviation**
+  and a person answers each one before the pull request. And the agent cannot edit what it is judged by: seven
+  files — the approval, the rules, the decisions and the rest — are written only by a person, and every agent
+  write to them is denied at the tool call.
+- **The person.** Ask for something a decision set aside and the interview says so, in a sentence, and asks
+  whether to keep the decision or depart from it. The approval is yours, recorded against a hash of the exact
+  text, and void the moment that text changes. A team may run without approvals, and then every report says
+  that no person approved.
+- **Neither** can waive a blocking finding. It is answered, or the cycle does not advance.
+
+### 4. Nothing grades its own work
+
+The agent that wrote a document agrees with itself. **Every planning document is read by a fresh process that
+never saw it being written** — no memory of writing it, no tools, nothing to defend — and judging and editing are
+separate acts: the reader never edits, and the editor never judges. The verification runs the same way, in a
+process that never saw the build.
+
+### 5. A definition of done, fixed before the code, and proof that traces back to it
+
+**Why it exists.** An agent reviewing an agent can always find one more thing. With no fixed line for *done*,
+review becomes a loop: each round imagines a new case, the build chases it, and the next round imagines another.
+The change either never finishes or finishes when somebody gives up, and neither says whether it was good
+enough. ai-sdlc settles *good enough for this cycle* up front, in writing, and holds everything after it to that
+line.
+
+**That line is what separates a blocker from a suggestion.** A finding blocks only when it breaks a criterion, a
+case the spec listed, or a rule it can cite by id. Anything else is a **suggestion** — kept, never lost, free to
+start the next cycle, and unable to hold this one hostage. A case nobody listed stays a suggestion at every later
+stage, so the target does not move once the work is underway.
+
+**How the line is drawn, and how it is proved:**
+
+- **The intent** says what outcome the change exists for.
+- **The spec** turns each outcome into criteria that can fail. A spec that leaves out an outcome, or part of one,
+  is blocked, and so is one that adds scope nobody asked for. A criterion ranging over cases lists them, and that
+  list *is* the definition of done.
+- **The plan** names the test that proves each criterion. A reader blocks a proof that would pass without ever
+  exercising what the criterion claims — not one that misses a case somebody merely imagined. Where the plan rests
+  on how a platform behaves, a throwaway probe makes that behaviour happen first, and the plan quotes what it
+  showed.
+- **The build** writes those tests and records the evidence: the diff, a normalised test summary and coverage.
+  The turn cannot end on a red build or on missing evidence.
+- **The verification**, in a process that never saw the build, goes criterion by criterion: did the named test
+  run, did it pass, and does it actually establish the criterion? When it blocks, remediation goes round only
+  while each pass reduces what is still unmet; a pass that undoes an earlier fix, or two that reduce nothing,
+  hand the cycle to a person.
+
+So every test that decides the verdict traces back through a criterion to a line in the intent, the loop has an
+end you can name in advance, and what did not make this cycle is waiting for the next one rather than forgotten.
+
+### 6. Enforcement that does not depend on the agent's goodwill
+
+An instruction the agent reads is advisory, and an agent will talk its way past it. **Everything a program can
+decide is decided by one** — the `sdlc` binary, called from the agent's hooks and from CI — and the guarantee is a
+pull-request check that refuses any change whose chain is not complete, approved and hash-matched. It depends on
+no agent host, so it governs the merge whichever agent wrote the code. [What stops an agent talking its way past
+it](#what-stops-an-agent-talking-its-way-past-it) has the three layers.
+
+### 7. A record that learns from itself
+
+The same mistake recurring across cycles should become a rule, and a choice a cycle settled should become a
+decision. **`/sdlc:mine` and `/sdlc:propose` read the record for both** — the rule the findings keep reaching for,
+the choices approved cycles settled, the suggestions nobody has answered — and argue each as an entry a person
+may adopt. They propose and never place, so the rules and decisions grow from the solution's own history and
+stay a person's.
+
+### 8. An audit trail you can read months later
+
+The pull-request body is the cycle itself: the problem in the intent's words, each criterion with its verdict,
+and anything still open. Each document's rounds of findings are one ledger chained by hash, and the approval
+records a hash of what it approved, so **the argument behind a merge cannot be quietly rewritten** afterwards.
+*Why does this code exist, and who agreed to it?* is answered from the repository, not from anybody's memory.
+
+**And it says plainly what it has not proved.** A thing that appears enforced and is not is worse than one that
+never pretended, so [Where it stands](#where-it-stands) lists which capabilities have met real use and which only
+the test suite.
+
+## How it works
+
+**A person walks seven steps, and can say each in a sentence.** Every hand-back offers the next one in words;
+the slash form is there if you prefer it.
+
+| | Step | Say | Or type |
+|---|---|---|---|
+| 1 | **Begin an intent** | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
+| 2 | **Take it to plan** | *take it to plan* | `/sdlc:to-plan` |
+| 3 | **Steer the plan** | *in that plan, make it … instead* | `/sdlc:steer` |
+| 4 | **Approve** | — you rename the approval it drafted | — |
+| 5 | **Build it** | *build it*, in a new session | `/sdlc:build` |
+| 6 | **Fix it** | *fix it*, when verification blocks | `/sdlc:remediate` |
+| 7 | **Open the pull request** | *open the pull request* | `/sdlc:pr` |
+
+Underneath, each step produces a file the next one reads:
+
+```
++----- steer -----+
+v                 |
+intent -> spec -> plan -> build -> verify -> pr
+                            ^         |
+                            +- remediate (while it progresses) -+
+```
+
+| Stage | Produces | The question it answers |
+|---|---|---|
+| **intent** | `intent.md` | why does this change exist? |
+| **spec** | `spec.md` | what does done mean, in criteria that can fail? |
+| **plan** | `plan.md` | how will it be met, and what will prove each criterion? |
+| **build** | code, and recorded evidence | the plan implemented, with the diff and the test output saved |
+| **verify** | `verify.md` | does that evidence actually show each criterion met? |
+| **pr** | a pull request | a person reviews it and merges |
+
+**The three planning documents are always required**, and a stage will not run until the document before it
+has had a reading that raised nothing blocking. **There is exactly one gate**: a person approves all three
+documents together, immediately before the build. A team may declare that no approval is required —
+`approval: none` in `solution.md`, which only a person writes; every other check stays
+([running a cycle](docs/guides/running-a-cycle.md), under *Running without approvals*).
+
+**Two loops, one on each side of that gate, and neither is open-ended.** `/sdlc:steer` carries a correction
+down the chain before you approve, editing the intent, spec and plan rather than regenerating them; it changes
+**how, not what**, and a correction that changes the problem is a different cycle. `/sdlc:remediate` fixes code
+and tests against a verification that blocked, and runs **while each pass reduces what is open** — the bound is
+on progress, not on passes (D-66), which is the only reason an unattended run is safe to start.
 
 ## Features
 
-Each one names the problem it exists for. [Where it stands](#where-it-stands) says which have met real
+The whole catalogue, each feature with the problem it exists for. [Where it stands](#where-it-stands) says which have met real
 cycles and which only fixtures.
 
 ### Planning the change
@@ -112,49 +236,6 @@ ones included, and each planning document is read until a reading raises nothing
 on in earnest. If you want an agent that moves faster, this is the wrong tool. If you want to be able to
 trust and audit what an agent merged, that cost is the point.
 
-## How it works
-
-```
-+----- steer -----+
-v                 |
-intent -> spec -> plan -> build -> verify -> pr
-                            ^         |
-                            +- remediate (while it progresses) -+
-```
-
-| Stage | Produces | The question it answers |
-|---|---|---|
-| **intent** | `intent.md` | why does this change exist? |
-| **spec** | `spec.md` | what does done mean, in criteria that can fail? |
-| **plan** | `plan.md` | how will it be met, and what will prove each criterion? |
-| **build** | code, and recorded evidence | the plan implemented, with the diff and the test output saved |
-| **verify** | `verify.md` | does that evidence actually show each criterion met? |
-| **pr** | a pull request | a person reviews it and merges |
-
-**The three planning documents are always required.** Each is written, then read by a **fresh process
-that never saw it being made** — so it has nothing to defend — and revised until a reading raises nothing
-blocking. A stage will not run until the document before it has had such a reading.
-
-**There is exactly one gate.** A person approves all three documents together, immediately before the
-build, and the approval records a hash of each. Change any of them afterwards and the gate refuses until
-they are approved again. **A team may declare that no approval is required** — `approval: none` in
-`solution.md`, which only a person writes. The gate then keeps every other check, a blocking finding still
-stops the build, and every report says no person approved; the default is `required`
-([running a cycle](docs/guides/running-a-cycle.md), under *Running without approvals*).
-
-**Two loops, one on each side of that gate.** Neither is open-ended:
-
-- **`/sdlc:steer`** carries a correction you make mid-cycle back down the chain — *use the existing cache
-  abstraction rather than a new one* — editing the intent, spec and plan rather than regenerating them,
-  and re-reading everything downstream of what it touched. It changes **how, not what**: a correction that
-  changes the problem is a different cycle, and it will tell you so. It refuses once you have approved,
-  because the plan is hash-locked from that moment.
-- **`/sdlc:remediate`** fixes code and tests against a verification that failed, and runs **while each
-  pass reduces what is open**. It stops when a pass undoes what an earlier one answered, or when two in
-  a row reduce nothing — then the cycle escalates rather than thrashing, which is the only reason an
-  unattended run is safe to start. **The bound is on progress, not on passes** (D-66): a blind count of
-  three failed an honest cycle that needed a fourth and spent all three on one that was going nowhere.
-
 ## What stops an agent talking its way past it
 
 Three layers, and only the last is a guarantee:
@@ -202,8 +283,8 @@ this `sdlc` hands each command on to it:
 dotnet tool install --global MofonCode.Sdlc.Cli
 ```
 
-Until the first release reaches nuget.org, pack it from a clone instead —
-[the install guide](docs/guides/installing-the-plugin.md#the-binary) has the three commands.
+To install a build of your own instead, [the install guide](docs/guides/installing-the-plugin.md#the-binary)
+has the commands.
 
 **2. Install the plugin.** Claude Code shown:
 
@@ -219,7 +300,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.46.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.47.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -295,7 +376,7 @@ refusal with its remedy.
 | [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them |
 | [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) | one cycle end to end, stage by stage |
 | [`docs/guides/setting-up-the-factory.md`](docs/guides/setting-up-the-factory.md) | the factory set up once, step by step, to a watched first run |
-| [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built overnight: the integration branch, the factory, and the morning |
+| [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built unattended, whenever you start the factory: the integration branch, the factory, and its sitrep |
 | [`docs/guides/mining-the-cycles.md`](docs/guides/mining-the-cycles.md) | after a cycle finishes: what the solution keeps from it, every open suggestion answered, and the finished cycles' folders cleared |
 | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
 | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
@@ -321,6 +402,7 @@ travels with your code.
 | | |
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each release changed, and what moving to it asks of a solution |
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the nineteen global constraints, each with what it forbids and why |
 | [`AGENTS.md`](AGENTS.md) | how to work in this repository, written for an agent — and the repository map |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, and where a new thing goes |
@@ -351,265 +433,53 @@ Antigravity's turn end is deliberately left ungoverned.
 
 ## Where it stands
 
-**The planning half is complete and exercised end to end**: adoption, a cycle, the three documents,
-interrogation rounds, a placed approval, recorded evidence, a verification, the chain, and the
-pull-request decision.
+**The planning half is complete and exercised end to end on real cycles**: adoption, a cycle, the three
+documents, interrogation rounds, a placed approval, recorded evidence, a verification, the chain, and the
+pull-request decision. Everything else is below, one row per capability, with how far it has been proved.
+**Real use** means a governed solution's own cycles, pipeline or factory; **suite** means the test suite and
+fixtures, and nothing live. What each release changed is in the [changelog](CHANGELOG.md).
 
-What is honest to say about the rest:
+| Capability | Has met | Not yet |
+|---|---|---|
+| **Bounded remediation** | the suite, far more than real use | enough real escalations to trust an unattended batch without watching the first ones |
+| **The factory** | real use: one unattended run that built a cycle and opened its pull request | a morning spent on a sitrep of more than one cycle |
+| **The Azure DevOps pipeline** | real use: one server, checking every pull request on the factory's agent image. It runs only once a person adds a build validation branch policy, which the file, the adoption guide and `sdlc doctor` all say | the branch-policy commands `sdlc branch-policy` prints for Azure DevOps |
+| **Round cost** | real use: one plan round's blind readers, from about $0.79 to $0.33 | a verify round measured; which readers run on which model (`CONCEPT.md` §19) |
+| **The reader prompts** | prompts generated against a real cycle, and the launch line measured on Windows PowerShell and Git Bash | a reader judging from them in a live cycle; whether answering row by row brings a plan's rounds down |
+| **The findings ledger** | a copy of one real cycle: 17 MB of round files to 1.9 MB of ledger, with the same findings standing | a live cycle |
+| **Planning in a sandbox** | real use: one sandbox carried two approved plans to a pull request, composed by hand after `sdlc admit` crashed, fixed in 0.39.3 | `sdlc admit` composing one for real |
+| **The coverage floor** | one real solution's numbers | a cycle refused or passed by it |
+| **The decisions through every stage, and departures** | the suite | a cycle judged this way: how often the change's reader blocks, and whether it adds rounds |
+| **Deviations** | the suite | a recorded deviation: how often a build bends where it used to stop |
+| **The seven-step cycle** | the suite | a cycle run this way, and whether one session holds the whole planning chain |
+| **Steering before the spec, and reslicing** | the suite | either done for real |
+| **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
+| **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |
+| **Mining, areas and husks** | the suite, and one solution's history for reading a cycle's record | an area, a husk or a mined ledger in any solution; mining on a cycle's branch before its pull request |
+| **Amending a plan after admission** | the suite | an amended plan through a real pull request |
+| **The rebuilt patch** | a real git repository in the suite | a pull-request check rebuilding one |
+| **The upgrade check** | a refused real upgrade, replayed and passing in a copy of the repository | a real upgrade pull request passing it |
+| **Dependency moves without a cycle** | the suite, and a real security fix checked locally | one merged that way |
+| **A test run on a local build** | the suite | a whole test run through `SDLC_DEV_BUILD` |
+| **Running without approvals** | the suite | a real cycle. Under it nothing local anchors a findings ledger; git history and the pull request are what remain (`CONCEPT.md` D-137) |
+| **Declaring the stack after adoption** | its author | a real adoption walked through it in order, by somebody new |
+| **Taking the build settings into an existing codebase** | the suite: `sdlc scaffold` writes what the plan names, and `sdlc stack` reports the gap | the cycle that switches warnings-as-errors on over real code and fixes what it broke |
+| **The stack rules** | — five `PRO_` rules, .NET only, a solution held to the ones its declared stack marks `true` | judging a real plan. Three came from convictions rather than findings; `PRO_04` and `PRO_05` came from trial and real plans and have not yet refused one |
+| **Perspectives** | security, operability, maintainability and accessibility, written as methods that steer every stage; operability's reader may block on `CON_20` | proof that a perspective's reader catches what it should; UI/UX and the four others are not written |
+| **Leads and Operate** | fakes only: `sdlc lead show` through `az` and `gh`, `sdlc operate` reading Application Insights | a real tracker or telemetry store. Jira is not read |
+| **The task lists** | the suite holds the wording (`CONCEPT.md` D-80) | watched on any host |
+| **Pushing** | the refusal, in the binary and tested | a command behind the push: `pr` and `batch-build` use the platform's own CLI |
 
-- **Bounded remediation is implemented and tested, but exercised in fixtures far more than in anger.**
-  Everything unattended rests on it, so the first batch runs are worth watching.
-- **The stack rules are .NET only and have never judged a real plan.** The framework ships five
-  `PRO_` rules, and a solution is held to the ones its declared stack marks `true`. None is written for
-  another stack — nothing has been built on one, so a rule there would be a guess with the authority of
-  a constraint. The first three were written from convictions this framework has paid for rather than
-  from findings a cycle raised, which is the weaker provenance and worth saying. `PRO_04`, an Aspire
-  AppHost once a solution runs more than one process, came from a trial cycle that argued its way out
-  of one; nothing has yet watched it refuse a plan. **It reaches no solution adopted before 0.28.0**
-  until a person adds its row to that solution's `techstack.md`. `PRO_05`, which asks a plan adding
-  script to a Blazor page what Blazor already does, came from a real plan whose page script a person
-  replaced with the framework's own mechanisms; nothing has yet watched it refuse one either. **It
-  reaches no solution adopted before 0.35.0** until its row is added the same way.
-- **The upgrade check has not yet passed a real pull request.** A pull request that moves the pin merges
-  without a cycle when every framework file is what the pinned release writes, a pipeline compared step by
-  step. MarketSense's move to 0.36.4 was refused by 0.36.4's word-for-word pipeline comparison and merged on
-  a policy override; 0.36.5's step comparison passes that same change replayed in a copy of the repository,
-  and refuses an edited step of its own. Its next upgrade is the first real one.
-- **Dependency moves need no cycle, and none has merged that way yet** (0.36.6). A pull request that only moves
-  versions in `Directory.Packages.props`, `global.json` or the tool manifest is checked by comparing everything
-  else; a package added or removed is still a cycle's. Held by the suite and by MarketSense's ASP.NET Core
-  security fix, checked locally and not yet merged.
-- **The decisions run through the whole cycle, and nothing real has run that way yet** (0.37.0). Every reader
-  of an intent, a spec, a plan and a verify is handed the decision record, a departure is declared where it
-  arises and reported at the gate, and a new reader at verify holds the change itself to the plan and the
-  decisions. The suite holds each piece. No cycle has been judged this way, so nobody yet knows how often the
-  change's reader blocks, or whether its narrow trigger keeps it from adding rounds. A solution receives it when
-  it moves its pin, and it is a minor because a round may now block what it passed before: the
-  rule against changes outside the plan's purpose reached no reader until this.
-- **An intent can be changed and cut after it is written, and nobody has done either for real yet** (0.38.0).
-  Before the spec, `/sdlc:steer` takes a correction in words that may add, drop or reword an outcome, and
-  `/sdlc:intent --reslice` splits an intent or joins several. Both are skill text; the binary already refused
-  the rounds that would let a changed intent leave a stale spec behind. A skill acting on one cycle takes its
-  id as optional, and `sdlc cycles --here` names the cycle or lists the ones to ask about.
-- **Planning in a sandbox has only met the suite** (0.38.0). The intent skill opens one worktree on
-  `sandbox/<id>` for every cycle a piece of work turns into, and `sdlc admit` composes what is approved onto an
-  admission branch the check already knows. The commands it prints are held as strings. The first sandbox taken
-  through to a pull request, MarketSense's, carried two approved plans, and `sdlc admit` crashed sorting them
-  until 0.39.3, so that one was composed by hand from the steps it prints; and `sdlc new` no longer refuses uncommitted work, which the plan
-  switch refuses instead. `sdlc discard` says what throwing a sandbox away would lose, and an abandoned cycle now
-  reaches the integration branch as a record by `sdlc admit`.
-- **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
-  park` runs at the plan and keeps the spec and plan; `sdlc backlog` shows the parked and the successors in the
-  waves they come ready in; `sdlc unpark` takes one back once its predecessor merged. The re-reading on unpark is
-  where a plan written before its code existed meets that code, and nobody has watched one yet. `/sdlc:next`
-  takes whatever the last merges made ready, plans it in one sandbox, and stops at the approvals; it is skill
-  text, and no piece of work has been carried through it wave by wave yet.
-- **The factory is started by a person and has not been started that way yet** (0.38.0). Its pipeline has no
-  schedule and no Operate step, takes one optional cycle to build alone, and builds the cycle the most
-  successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule
-  until somebody runs `sdlc factory` again and commits it; `sdlc doctor` names it a problem until then, and
-  names the solution's own pool that the rewrite replaces. Since 0.39.2 an upgrade pull request may keep that
-  pool while taking the release's other sections; it has passed MarketSense's file in the suite, not on its server.
-  `sdlc operate` is a command a person runs.
-- **Mining, areas and husks have only met the suite** (0.39.0). Reading the record across cycles is now
-  `/sdlc:mine`; `converge` means only a document's rounds settling. A recorded entry's title is its
-  headline, held to fifteen words and each clause to sixty. A solution may name the parts of its code in
-  `areas.md`, built up from what plans propose, and every reader then gets every headline but in full only
-  what its change reaches. `sdlc mine record` turns mined cycles into husks whose folders a person deletes
-  through a pull request the check admits as mining. No solution has an area, a husk or a mined ledger yet,
-  so nobody knows how much narrowing saves or whether a reader shown a headline misses what it needed. It
-  is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
-  report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
-  one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
-- **Four design gaps mining MarketSense found are closed, and have met only the suite** (0.46.0). A criterion
-  only the run as a whole could show, such as how long the suite takes, now breaks `CON_12` at spec, and the
-  spec readers are told what the evidence is (D-167). A proof living in code the change did not touch is handed
-  to the verify as that test's block, or a file the proof names (D-168); on one MarketSense cycle that is 98 KB
-  per reader, cached with the shared block. A run keeps its timings in `timings.json`, which no reader sees
-  (D-169). `sdlc upgrade` prints everything an upgrade moves, in order (D-170), and `sdlc suggestions <id>
-  --renumber` mends an id a merge recorded twice (D-171). In an adopted solution the plugin's hooks step aside
-  for the ones adoption wrote, so each check speaks once (D-172), and a successor can be marked as a gap in the
-  framework, which mining lists to be filed there (D-173). It is a minor because the widened rule can block a
-  spec that passed before.
-- **A round costs about half, measured on one plan round; the rest has met only the suite** (0.45.0). The
-  block every reader shares is handed over as a system prompt with one reader started first, so the host caches
-  it, and readers start outside the checkout, so they are no longer handed the project's memory and git status
-  (D-163). On one MarketSense plan round the blind readers went from about $0.79 to $0.33; a verify round has
-  not been measured. Perspectives read a cycle's first verify round only (D-164), a verdict conceding on
-  evidence a round already judged goes to remediate without another round (D-165), and `sdlc mine --cycles`
-  mines a backlog in batches (D-166). It is a minor because the prompt files changed shape: a 0.44 skill
-  driving this binary would hand its readers only their own part.
-- **The binary does the hand work mining MarketSense found, and has met only the suite** (0.44.1). A session
-  settles earlier findings with `round collect --answered/--withdrawn` instead of editing the round file. A
-  person's answers to deviations are drafted in with `draft approval --accept/--decline`, `draft solution` moves
-  the approval and the coverage floor, and the approval rename uses absolute paths, so it works from any worktree.
-  `sdlc branch <id> build` finds a plan on an admission branch. `sdlc tidy` prints the removal of what has merged,
-  and the panel stops offering a pull request after the merge (D-162). Nothing a cycle passed before blocks now, so
-  it is a patch.
-- **What mining MarketSense found in the plumbing is fixed, and has met only the suite** (0.44.0). The
-  adjudicator now reads the coverage, so a criterion about the floor can be met. `verify-chain` fails when git
-  would leave an evidence file out of the commit, and a new cycle's ignore file keeps them in. Recording a new
-  run retires a blocked verdict instead of refusing at the end of the run. A fenced verdict is taken, a plan's
-  areas are checked before its readers run, and the status panel stops listing every successor (D-161). It is a
-  minor: the chain has a check it did not have.
-- **No artifact declares a format version** (0.43.0). Every file a cycle wrote said `framework_version: 1.0.0`,
-  which read as the framework's release and was never true, and nothing read it; the format moved twice
-  without it. It is no longer written or required, and a file written before carries it harmlessly: an older
-  cycle reads, verifies and stays signed as it was (D-160). The release a round ran on is in its findings
-  ledger, as before. It is a minor because what a stage writes changed; nothing that passed now blocks.
-- **The seven-step cycle has only met the suite** (0.42.0). A person walks seven steps — begin an intent,
-  take it to plan, steer, approve, build, fix, open the pull request — and can say each in a sentence; every
-  hand-back offers the next one in words, and the panel names the step rather than `interrogate` or `refine`
-  (D-158). `batch-plan` is now `to-plan`, takes one cycle or every one, picks a cycle up where it stopped, and
-  drafts the approvals. A green build verifies itself, and remediation verifies again after each pass and goes
-  round while it is working, checking in every fourth pass (D-159). The new session is named once, before the
-  build. It is a minor: a person types different things, and `batch-plan` is gone. No cycle has run this way
-  yet, so nobody knows whether the planning chain in one session stays small enough to leave there.
-- **The coverage floor has met one solution's numbers and no cycle** (0.41.0). The whole codebase was held to
-  the highest rate it ever reached, with no slack, and MarketSense at 99% refused a cycle that did nothing
-  wrong once its two-host test harness changed how coverage was measured. Now a codebase at or above
-  `coverage_floor` in `solution.md` holds whatever its baseline, and the baseline follows it; under the floor
-  it may still not fall (D-157). The key is new and defaults to 80%, so an existing solution needs no edit.
-  It is a minor: what a cycle is refused for changes, and a person has a key to write.
-- **Deviations have only met the suite** (0.40.0). A build or a remediation that cannot follow the approved
-  text now records a deviation in `deviations.md` and keeps going, instead of stopping for a reopen; every
-  verify reader judges against it, and a person answers each one with the same approval drafter before the
-  pull request. It is a minor: build and remediate write a new file, the verify readers read it, a change
-  departing from the plan with no deviation describing it is blocked, a reopen is refused while a deviation
-  is unanswered, and the pull-request check waits on the answers. No cycle has recorded one yet, so nobody
-  knows how often a build deviates where it used to stop, or whether readers hold a deviation to its quote.
-- **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
-  longer writes the declared stack or the .NET build settings: a person places the first from a draft,
-  and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
-  them in order yet.
-- **Taking the build settings into an existing codebase has never been done for real.** They are rows
-  in the declared stack now, switched off on a repository that held code, and a cycle whose plan
-  declares one brings it. The suite holds that `sdlc scaffold` writes exactly what the plan names and
-  that `sdlc stack` reports the gap. Nobody has yet run the cycle that switches warnings-as-errors on
-  over real code and fixed what it broke, which is the whole of what the route is for.
-- **`standard: profile` is named after something no solution records any more.** The key still means
-  what it meant — new work follows the framework's conventions rather than the surrounding code — and
-  the value was left alone because every existing `solution.md` is protected and already says it.
-- **Running without approvals has not met a real cycle** (0.36.10). `approval: none` in `solution.md` lets a
-  cycle build once its rounds are clean, and the suite holds that a blocker, an uninterrogated document and a
-  document edited after its round still refuse. No solution has run that way yet. Under it, nothing local
-  anchors a findings ledger: an agent could rewrite one, and git history and the pull request are what remain
-  (`CONCEPT.md` D-137).
-- **A local solution has no mechanical check over a merge, and nothing checks a push anywhere.** The
-  pre-push hook is gone (`CONCEPT.md` D-78): it was written and never installed, and where it ran it
-  refused a push of work in progress. A solution adopted before 0.18.0 still has the file, and a clone
-  that set `core.hooksPath` still runs it until somebody deletes the file or unsets the key.
-- **A solution adopted before 0.16.0 that never listed its stack rules is held to none from 0.20.0.**
-  Its old `profile:` line in `solution.md` is no longer read (`CONCEPT.md` D-81). `sdlc doctor` says
-  so; `sdlc draft techstack` and a rename put the rules back.
-- **Mining on a cycle's branch has not been walked.** The report's new reading of a cycle's record
-  was checked against one solution's history, and `verify-chain` reports the order rather than refusing
-  it (D-113); no cycle has yet been mined before its pull request. **A cycle opened before 0.32.0 keeps its committed `.trx`
-  and `build.log` tracked**: the ignore patterns stop new ones only, and `git rm --cached` removes the old.
-- **Adoption drafting all three files and creating the integration branch has been read by its author
-  and by nobody else.** The suite holds the drafts, the renames the report names, the commit, the branch
-  and the refusal over uncommitted work; no adoption has been walked through it by somebody new.
-- **The task lists have not been watched on any host.** `init`, `intent`, `spec`, `plan` and `build`
-  each ask the agent to keep a list of the stage's steps where its host has one, and `batch-build` one
-  line per cycle (`CONCEPT.md` D-80). The suite holds the wording; whether each host's agent opens
-  one, stops a stage's at the hand-back, and leaves an escalated cycle unticked is something only a
-  session shows.
-- **`pr` and `batch-build` have no command behind the push.** The refusal is in the binary and tested;
-  the push itself uses the platform's own CLI.
+**Three gaps are the hosts' and the design's rather than a test's.**
+
 - **The Copilot install has never been run**, though nothing is guessed any more: the package conforms to
   [Agent Plugins 1.0](https://agent-plugins.org/specification) and the suite asserts that it does, so the
   skills should be discoverable — but nobody has watched them load.
 - **The Antigravity adapter has never been run either**, and two of its gaps are the host's: its turn end
   is not governed at all, and its workspace configuration loads only in a folder marked trusted, so on a
   fresh clone the local layer is off until somebody marks it.
-- **The Azure DevOps pipeline runs on one real server: MarketSense's.** It checks every pull request
-  there, on the factory's agent image. It runs only once a person adds a build validation branch policy —
-  Azure Repos ignores a YAML pull-request trigger — and the file, the adoption guide and `sdlc doctor` all
-  say so.
-- **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
-  most improve a teammate's first hour. CI installs the packed tool to a temporary path on every pull
-  request; `--global` on a clean machine has not been tried.
-- **The factory has run against one solution, MarketSense**, on the agent image in `factory/`
-  under a local VM. Its first run built one cycle unattended and opened its pull request, and found
-  0.28.1's fix: the verify went uninterrogated because the `claude` the agent starts had no credential.
-  Nobody has yet spent a morning on a sitrep of more than one cycle (`CONCEPT.md` §10.4, §10.5).
-- **Slicing has not met a real piece of work.** `intent` proposes how to cut work into atomic cycles
-  before any opens, and a piece that needs another's code waits as a successor under
-  `.sdlc/successors/` (`CONCEPT.md` D-125). The suite holds the successor's readiness, the sibling
-  comparison and a slicing's admission check; no slicing has yet been accepted, composed into
-  `slices/<slug>/plan` and merged, and nobody has started a successor the morning it came ready. Readiness
-  is read from the working copy and the integration branch, so a successor already started in another
-  worktree reads `ready` until that cycle's plan merges.
-- **The rebuilt patch has not met a real cycle.** `diff.patch` is no longer committed: `sdlc evidence`
-  refuses uncommitted code, records `head.sha`, and the chain rebuilds the patch from the two commits
-  (`CONCEPT.md` D-124). A real git repository in the suite holds that the rebuilt patch is the recorded
-  one; no pull-request check has rebuilt one yet. **A solution's cycles directory gets the ignore line
-  the next time a cycle opens**, and a cycle that committed its patch before keeps it.
-- **Amending a plan after admission has not met a real cycle.** A reopen once the plan is on the
-  integration branch now goes back by a plan pull request of its own, and a build made before it is
-  named by the queue, the sitrep and `sdlc status` until a person keeps or deletes it (`CONCEPT.md`
-  D-123). The suite holds the comparison and both refusals; no amended plan has gone through a real
-  pull request yet, and nothing records which reopens were made the old way, on a build branch.
-- **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
-  `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
-  touched a real tracker or a real telemetry store. Jira is not read yet.
-- **0.29.0 changes what a solution has to do, and none of it has met a real cycle yet.** It came from
-  reviewing MarketSense's first cycle. A round is written by `sdlc round`, which refuses one out of the
-  chain's order, and the hook denies writing one any other way (D-101). `verify-chain` refuses a change
-  whose added lines are under 70% covered or that lowers the codebase's coverage, so a build records
-  `--coverage` (D-103). The run mode `batch` is now `test`: an AppHost reading `SDLC_RUN_MODE=batch` has
-  to read `test`, and the architecture suite a solution was scaffolded with before 0.29.0 does not carry
-  the launch-profile test (D-102). Convergence, now `/sdlc:mine` and `sdlc draft mining` (D-148), is new
-  (D-104), and `/sdlc:intent` plans each cycle in a worktree of its own (D-105). The .NET profile's new
-  *fake data and seeding* row reaches no existing stack until a person answers it. 0.30.0 adds host tests
-  to the skeleton, which a solution scaffolded earlier does not have, and `doctor` asks the platform
-  whether branch policy requires the check (D-106), which has been run against one Azure DevOps
-  repository and no GitHub one.
-- **The findings ledger has been run on a copy of one real cycle and on nothing live.** From 0.31.0 an
-  artifact's rounds are one file, `findings/<artifact>.json`: each finding stored once, each round chained
-  by hash, and an approval anchoring the round each ledger had reached (D-107). A cycle still holding round
-  files is converted by its next round, with nothing to run. On a copy of MarketSense's first cycle that
-  took the planning documents from 17 MB of round files to 1.9 MB of ledger, with the same findings
-  standing.
-- **One perspective has a rule, and nothing proves a perspective's reader catches what it should.**
-  Security, operability and maintainability are written as methods and steer every stage, and
-  accessibility does the same for any change touching a user interface. Operability's reader may block on
-  `CON_20`, earned on two trial cycles; everything else they find is a suggestion (`CONCEPT.md` §6.5).
-  UI/UX and the four others are not written.
-- **The readers' prompts are the binary's now, and no live cycle has run through them yet.** `sdlc round
-  prompt` writes every reader's prompt and `sdlc round collect` drafts the round from their answers
-  (D-117); each reader starts with no tools, no MCP servers and no session file (D-118). Each prompt was
-  generated against a real MarketSense cycle and the launch line measured on Windows PowerShell and Git
-  Bash, but no reader has judged from them in a cycle. `CON_03`, `CON_21`, `CON_22`, `CON_23` and `CON_16` are
-  answered a row per criterion or outcome (D-119), which is meant to bring a plan's rounds down and has
-  not been measured doing so. `findings/usage.json` records what each round's readers cost (D-121), and
-  `tools/Sdlc.UsageReport` reads whole sessions; which readers run on which rounds, and on which model,
-  waits for what they record (`CONCEPT.md` §19).
-- **The convergence changes are unreleased and have not run a cycle.** The proof rules block what a
-  test never reaches rather than what a reader can imagine (`CON_21` and `CON_22` supersede `CON_06` and
-  `CON_08`, D-127); a suggestion may only sharpen an outcome (D-128); a plan probes the platform
-  behaviour it rests on (D-129), proves in a table, and a verify is rewritten in place (D-130); each
-  round records the release that wrote it (D-131); a criterion lists the cases it covers, so a case nobody
-  listed is a suggestion at every later stage (`CON_23`, D-132). They were drawn from one MarketSense cycle of 88
-  rounds and six reopens, and the claim that they shorten a cycle is untested. D-128's, D-129's and D-132's shape
-  rules hold only cycles opened under them.
-- **A cycle runs on the release it opened on.** A solution pins the
-  binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release. The
-  release carries its own skills and hooks, and `sdlc claude` starts a session with them; plain `claude`
-  loads the installed plugin, and a session-start hook says when that is another release (D-131).
-  `.github/workflows/ci.yml` publishes to nuget.org: a preview from each merge into development that ships, one per patch from
-  `0.36.1-preview` on, and a release from each merge to main once a reviewer approves it (D-135).
-- **A cycle can run on a change to the framework nobody has published, and stops at the pull request**
-  (0.36.7). `SDLC_DEV_BUILD` hands every `sdlc` in a terminal to a local build, which calls itself
-  `-local`; a cycle any round of which it wrote is a test run, and `pr-ready` and the pull-request check refuse
-  it (D-135). Nobody has run a whole test run through it yet.
-- **Branch policy has a default, printed rather than applied, on both platforms** (0.36.8). Pull requests only
-  into the integration and default branches, nobody bypassing, the check required on both, squash into one and
-  merge commits into the other, and only the integration branch or a `release/*` branch promoting, which the
-  pipeline's `sdlc promotion` decides. `sdlc branch-policy` prints the commands and `doctor` reads them back
-  (D-136); `--approvals`, `--owner` and `--self-approve` add reviewers, a required approver, and an author
-  standing in for one. This repository runs under the GitHub half. **The Azure DevOps commands have never been run**, like the
-  rest of that platform's path.
+- **A local solution has no mechanical check over a merge, and nothing checks a push anywhere.** The pull-request
+  check is the guarantee (`CONCEPT.md` D-78).
 
 ## Not goals
 

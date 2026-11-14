@@ -441,7 +441,7 @@ public static class ReaderPrompts
             }
 
             // A verdict that concedes on the evidence the last round judged goes to remediate whatever a round says,
-            // and the next run's evidence gets a full one (D-165). One MarketSense verify spent 1.1M tokens four
+            // and the next run's evidence gets a full one (D-165). One real verify spent 1.1M tokens four
             // minutes after the last, on the same evidence, to confirm a concession.
             if (request.Artifact == ArtifactKind.Verify
                 && !adjudicating

@@ -26,7 +26,7 @@ namespace Sdlc.Core.Findings;
 /// </param>
 /// <param name="Returned">
 /// The findings that came back each time it scored, in round order. A count over a rule cannot say
-/// whether one objection kept returning or several different ones were raised under it -- MarketSense's
+/// whether one objection kept returning or several different ones were raised under it -- one real cycle's
 /// verify was "stuck on CON_08" three times over three unrelated slips of wording -- and the two call for
 /// different things.
 /// </param>

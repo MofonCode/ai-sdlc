@@ -21,7 +21,7 @@ namespace Sdlc.Core.Proposals;
 /// report (D-104).
 /// </summary>
 /// <remarks>
-/// <para><strong>The two reports it replaces were unreadable for opposite reasons.</strong> MarketSense's
+/// <para><strong>The two reports it replaces were unreadable for opposite reasons.</strong> One solution's
 /// constraints report was 431 KB: 754 findings that rested on no rule, listed raw. Its decisions report was
 /// 36 passages copied verbatim. Clustering and wording were done by hand, by a person and an agent re-reading
 /// both. This counts and groups -- what a binary can decide -- and leaves the wording to the skill, which
@@ -167,7 +167,7 @@ public static class ProposeMining
 
         // Below the bar for a rule, and often exactly where a decision is missing: a rule argued over
         // dozens of findings inside one cycle is an argument the cycle settled and nothing recorded, so the
-        // next cycle has it again. In MarketSense's first cycle the proof rule drew 36 plan blockers and the
+        // next cycle has it again. In one solution's first cycle the proof rule drew 36 plan blockers and the
         // failure-record rule a dozen, and both ended in choices that belonged in the decision record.
         foreach (Recurrence argued in (response.Rules.Cited ?? [])
             .Where(recurrence => recurrence.Cycles.Count < ProposeConstraints.Bar)

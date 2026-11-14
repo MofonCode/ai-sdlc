@@ -2,7 +2,8 @@
 
 **Iteration 4.** Rewritten 2026-10-02 from a reconciliation of the previous draft against the
 implementation, which closed twenty-four contradictions. That working-through is commit `adf15cc`
-and is not carried forward as a file.
+and is not carried forward as a file. Every decision since has been folded into the section it governs as it
+merged, and §1 was restated on 2026-11-14 as the definition the README and the plugin manifests carry.
 
 The original longhand draft is preserved unedited in [`CONCEPT.raw.md`](CONCEPT.raw.md).
 
@@ -22,15 +23,35 @@ Where this document says a thing already exists, that is where it exists.
 
 ## 1. What this is
 
-A host-agnostic plugin that governs a team's software lifecycle. A change does not travel from a
-request to a diff. It moves through phases, each producing a file the next phase reads, and each
-file is challenged against a fixed set of rules before it advances. Nothing advances on assertion.
+**ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
-Two things it exists to make possible:
+Every change is planned before any code exists, challenged by a reader that never saw it written, approved by
+a person against the exact text, and proved from recorded evidence. A pull-request check refuses anything
+missing a link. The solution's rules and decisions live in the repository beside its code and carry from one
+cycle to the next, so every stage of every change is read against everything settled before it. Whatever
+contradicts them is brought into the open, for the person and the model alike, rather than slipping through.
+
+That statement is carried word for word by the README and both plugin manifests. This document is the
+argument for each part of it. Three things it exists to make possible:
 
 - **A person approves a plan before code exists**, and the approval is recorded against the exact
-  bytes that were approved.
-- **Approved plans build unattended**, one or many at a time.
+  bytes that were approved (§5).
+- **Done is fixed before the code, and the verdict traces back to it.** A spec's criteria, and the cases
+  each lists, close what *done* means for the cycle; the plan names the test that proves each one; a process
+  that never saw the build adjudicates from the recorded evidence. Only what breaks that line, or a rule
+  cited by id, blocks — everything else is a suggestion, which is what lets the loops end (§4, §6, D-127,
+  D-132).
+- **What was settled carries forward.** The solution's constraints and decisions are files in its
+  repository, every reader of every cycle is handed them, and a departure from one is declared where it
+  arises and answered by a person rather than made silently (§7, §8.1, D-139, D-156).
+
+**Approved plans can then build unattended**, one or many at a time (§10). That is a capability the three
+make safe rather than a reason of its own: a cycle that cannot be made to pass stops and escalates instead of
+opening a pull request.
+
+The change moves through phases, each producing a file the next phase reads, and each file is challenged
+against a fixed set of rules before it advances. Nothing advances on assertion. It is host-agnostic: the hooks
+speak to more than one agent, and the merge check depends on none.
 
 It has a strong opinion about the stack it scaffolds, and that opinion is swappable. The rules are
 stack-neutral and travel to any stack; **the tool itself needs .NET**, so host-agnostic is not
@@ -119,7 +140,9 @@ makes it affordable — never a shortcut around it (D-17).
 
 ai-sdlc is not an ai-sdlc solution. If it were, a change to a constraint would be judged by the
 constraint it changes, and a defect that blocks the pull request would also block the fix for that defect.
-The process is exercised by running cycles in `dice-trial`.
+The process is exercised by solutions that adopted it, and the worked example in `docs/samples/` walks one end
+to end; no cycle runs here. **This repository names none of them** — evidence a decision rests on is described,
+not attributed.
 
 ---
 
@@ -265,7 +288,7 @@ binary never holds a token, and reads suggestions and files; `intent --from` int
 `lead:` in the intent's frontmatter. `sdlc operate` reads Application Insights through `az`, ranks by
 frequency, scrubs, deduplicates against what it filed before — an open item, or one a person dismissed,
 stops a signature being filed again; one closed as done and recurring is filed again as a regression — and
-files bugs on the platform's tracker; the factory runs it before it builds. Jira, and telemetry stores
+files bugs on the platform's tracker. Jira, and telemetry stores
 other than Application Insights, are not built yet.
 
 ---
@@ -1128,7 +1151,7 @@ file holding a rule the change is judged by — an architecture test, a build pr
 `BannedSymbols.txt`, a hook, the pipeline, `techstack.md`, `constraints.md`. It reports a **declared**
 file as readily as an undeclared one, because the architecture suite is the only mechanical
 enforcement of shape the framework has and a cycle may amend it as ordinary declared work. The
-dice-roller cycle did exactly that, correctly, and the edit reached review as one row among thirty-nine
+trial cycle that built a dice roller did exactly that, correctly, and the edit reached review as one row among thirty-nine
 in a file table. The set is what the framework writes or scaffolds, for D-40's reason — it can name
 those with confidence, and a guess at what else a team treats as a rule is a list that is wrong
 somewhere and trusted everywhere. A signal like the other two, under D-15: it refuses nothing.
@@ -1603,8 +1626,8 @@ factory bundle in `factory/` holds.
 
 **What is built and what is not.** The queue, the branches, the admission check, the sitrep, `batch-build`
 and `pr` working this way, the factory's pipeline template (`sdlc factory`: the lock, the headless run,
-the one cycle asked for) and its agent image are built, and both run MarketSense's: the factory's pipeline,
-which ran nightly before D-143, and every pull request's check, on a local VM through an image of MarketSense's own built on
+the one cycle asked for) and its agent image are built, and both run a real solution's: the factory's pipeline,
+which ran nightly before D-143, and every pull request's check, on a local VM through an image of that solution's own built on
 this one.
 
 ---
@@ -2144,16 +2167,6 @@ promotion, which has no cycle. A release branch's own policy is the team's.
 Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
 wrapping one command.
 
-### 13.1 `dice-trial`
-
-The trial repository — cleared and re-run as often as needed, and where cycles are exercised against
-the real skills. It has a GitHub remote with the trial cycle's branch pushed and a pull request open,
-so the GitHub adapter has a real exercise path.
-
-**Before clearing it the first time, keep the existing cycle.** The `20260929_4e1a` artifacts are the
-best worked example of what good output looks like, and they are the calibration target for the
-skills being written.
-
 ---
 
 ## 14. The experience
@@ -2338,7 +2351,7 @@ they print verbatim.
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
 | `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162) |
-| `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
+| `factory` | writes the factory's pipeline for the recorded platform: `batch-build --pr --unattended` against the integration branch, started by a person and never on a schedule, with one optional cycle to build alone, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84, D-143) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
@@ -2494,7 +2507,28 @@ and a person keeps a line, with its reason, only to decline that suggestion outr
 
 ---
 
-## 17. What iteration 3 proved, and what it did not
+## 17. What real use has proved, and what it has not
+
+**Where each capability stands today is the README's** — one row each under *Where it stands*, saying whether
+real use or only the suite has met it. This section keeps what that table cannot: what real use has taught the
+design.
+
+- **The planning half holds end to end.** Real cycles have gone from adoption through the three documents,
+  their rounds, a placed approval, recorded evidence and a verification to the pull-request decision.
+- **An undefined *done* is what makes a cycle expensive.** One real cycle ran 88 rounds and six reopens, its
+  readers raising one more imagined case each round. The closed definition of done — proof rules that block
+  what a test never reaches, suggestions that may only sharpen an outcome, criteria that list their cases —
+  came from it (D-127..D-132), and so did measuring what rounds cost (D-121, D-122).
+- **Reading the record across cycles finds what no single cycle shows.** Mining one solution's finished
+  cycles found gaps in the plumbing, the hand work and the design, closed as D-161..D-173.
+- **Each first real run found something the suite could not.** The factory's first unattended run built a
+  cycle and opened its pull request, and found that a verify run unattended went uninterrogated without a
+  credential. The first real upgrade was refused by a comparison that should have passed it (D-133). The
+  first real sandbox crashed `sdlc admit` and was composed by hand.
+- **Not yet proved by real use:** remediation escalating often enough to trust an unattended batch without
+  watching it, a morning's sitrep of more than one cycle, any host but Claude Code, and any stack but .NET.
+
+### 17.1 What iteration 3 proved, and what it did not
 
 **Exercised by a real cycle:** `init`, `intent`, `interrogate` (six rounds across three artifacts),
 `spec`, `plan`, `build`, `verify`, and the diff-to-plan comparison. `CON_07` raised two real findings
@@ -2581,7 +2615,7 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    a reversal of D-15, which §20 says needs a new id and an argument, or it is already covered. It is
    recorded here rather than dropped because deciding which is a person's call; what is not open is
    that it may not quietly become a rule.
-3. **The cross-cycle learning loop, half closed.** v02 built `retro` and `absorb-retro` with a
+3. **The cross-cycle learning loop, mostly closed.** v02 built `retro` and `absorb-retro` with a
    corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
    v03 removed them and recorded the cost — *"nothing aggregates automatically."* `propose
    constraints` closes the half that pays for itself (D-69): the findings rounds are aggregated
@@ -2593,12 +2627,11 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    `caused-at-stage` is how the process would learn **which stage leaks**, and nothing records it:
    this reports which *rule* recurs, which is a different question. The private/public boundary is
    untouched and stays untouched while nothing leaves the solution — a report is local and read by
-   nothing, so no corpus exists to have a boundary. What is newly visible is that **a decision cannot
-   be mined**: a colour, a layout convention or a code-style choice never collides with a constraint,
-   so it produces no finding and no amount of history review will surface it. Constraints are mined
-   backward from findings; decisions would have to be captured forward at the moment of choice, from
-   an intent's `Fixed decisions` and a plan's `Shape and departures`. That is a second mechanism and
-   it is not built.
+   nothing, so no corpus exists to have a boundary. **A decision cannot be mined backward**: a colour, a layout
+   convention or a code-style choice never collides with a constraint, so it produces no finding. It is
+   captured forward instead, from what an approved cycle fixed and departed from (D-70), and `/sdlc:mine`
+   reads every finished cycle for rules, decisions and stack rows in one sitting (D-104, D-148). What
+   remains open is `caused-by`.
 4. **The coverage delta against the target branch.** §13 described this as taken and nothing reported
    it. It is cheap only in the sense that it breaks no rule: a delta needs the target branch's own
    coverage to compare against, so it is a second run or a stored artifact rather than one more step
@@ -2612,7 +2645,7 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    a run journal rather than an index of cycles, which is a different thing in a different place.
 6. **An intent's bounds are read by nothing.** A fixed decision like *"keep it very simple — nothing
    fancy"* is recorded with attribution, survives every gate, and no stage acts on it. That is half of
-   what the dice-roller cycle got wrong: a project-reference rule produced roughly 3,100 lines across
+   what a trial cycle that built a dice roller got wrong: a project-reference rule produced roughly 3,100 lines across
    nine projects for one button, and `CON_18` now makes a plan argue about a rule it changes — but
    nothing asks whether a shape is proportionate to what was actually wanted. The hard part is that
    proportion has no bright line, so a constraint about it would fire inconsistently; the narrower
@@ -2654,7 +2687,7 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
     anything that is **not** a criterion, and whether that wants a rule is undecided — nobody has seen
     it abused.
 
-11. **Which readers run on which rounds, on which model, and with what evidence.** Every reader runs on
+11. **Which readers run on which rounds, on which model, and with what evidence.** **Partly answered:** a perspective reads a cycle's first verify round and no later one (D-164), and the block every reader shares is cached (D-163); the model and the effort still wait for what `usage.json` records. Every reader runs on
     every round at the session's model and effort, and every verify reader gets the whole diff. In one
     solution the perspective readers cost two thirds of the readers' spend and raised two blockers in
     about 560 findings. Three narrowings are candidates: perspectives on the first and the
@@ -3240,12 +3273,12 @@ reason a reader could reconstruct.
 
 **Governs:** §13
 
-**Amended by D-161:** the `az repos pr create` path has since run, on MarketSense, and the pr skill says what it
+**Amended by D-161:** the `az repos pr create` path has since run, on a real solution, and the pr skill says what it
 needed rather than that it is untried.
 
 **Decision.** The Azure Pipelines template and the `az repos pr create` path ship without ever having
 run against a real Azure DevOps server. The template itself carries a note saying so, and §13 and the
-README say it too. No second trial repository is created and `dice-trial` gets no Azure DevOps remote.
+README say it too. No second trial repository is created and the trial repository gets no Azure DevOps remote.
 
 **Why.** It is one pipeline file and one command invocation, the failure is loud and immediate, and
 nothing else in the framework depends on either. Against that, a second trial repository is a thing to
@@ -3257,7 +3290,7 @@ concept. §2.1's rule is that a thing which appears enforced and is not is worse
 pretended, and a pipeline nobody has run is exactly that shape: it looks like a gate. So the first
 person to adopt on Azure DevOps reads, in their own repository, that this path is untried.
 
-**Rejected.** Giving `dice-trial` an Azure DevOps remote as well as its GitHub one — declined once
+**Rejected.** Giving the trial repository an Azure DevOps remote as well as its GitHub one — declined once
 already, and it makes the trial repository answer to two platforms when its job is exercising the
 cycle. A throwaway Azure DevOps project — the same maintenance in a form nobody owns. Dropping the
 Azure DevOps template until it can be tested, which would make the private half of the stack, where
@@ -6881,7 +6914,7 @@ ran and how it ended, and the raw output only for what the summary does not hold
 
 **How it holds.** The cycles directory's ignore file carries the two patterns, and opening a cycle
 appends any block an older file lacks, because the file was written only when absent and every solution
-that had opened a cycle went on committing both — MarketSense did, for two cycles, after this was decided.
+that had opened a cycle went on committing both — the first governed solution did, for two cycles, after this was decided.
 The verify round's evidence hash covers `tests.json` and `diff.patch` only: the pull-request check
 recomputes it on a clean checkout, where the log is not, and a round recorded under the old hash, which
 carried the log, is recomputed that way. The pull-request pipeline reports its own run with
@@ -7317,7 +7350,7 @@ report lists every such successor under *Gaps in the framework*, and the mine sk
 `## For the framework` for a person to carry to ai-sdlc. The remediate skill marks the successor a deviation
 names when what could not be followed was the framework's gap. Nothing about it blocks.
 
-**Why.** MarketSense filed two framework defects as its own successors — the adjudicator never handed the
+**Why.** A governed solution filed two framework defects as its own successors — the adjudicator never handed the
 coverage, and an ignore file dropping evidence. Both sat in the solution's backlog beside its real work, and the
 framework heard of them only because somebody read the threads. Mining already has a place for what belongs to
 the framework; nothing pointed a successor at it.
@@ -7342,7 +7375,7 @@ is unchanged.
 
 **Why.** Claude Code merges identical hooks across settings files but never a plugin's with a settings file's,
 so in every adopted solution with the plugin loaded each check ran twice. D-40 accepted that because both copies
-were meant to answer with silence; the turn-end hook is not silent when it sends a turn back, and in MarketSense
+were meant to answer with silence; the turn-end hook is not silent when it sends a turn back, and in one governed solution
 every one of those messages appeared twice. Adoption still cannot tell whether the plugin is installed, so the
 copy that can tell — the plugin's, by reading the solution — is the one that steps aside.
 
@@ -7367,7 +7400,7 @@ unchanged.
 
 **Why.** Two branches of one cycle each number a new suggestion past the ledger they started from, and a merge
 keeps both. The refusal then asked for the later one to be renumbered by hand in a file the hook keeps every
-agent out of, so it fell to a person editing JSON, and in the one MarketSense case an agent renumbered at the
+agent out of, so it fell to a person editing JSON, and in the one real case an agent renumbered at the
 merge. Which id moves, and to what, is decided by the file alone, so by §15.2 the binary does it.
 
 **Rejected.** *Ids that cannot collide* — derived from a suggestion's content, or carrying the branch. It fixes
@@ -7390,7 +7423,7 @@ machine runs. When this machine runs an older release than the target, the check
 asking again, because the release being moved to is the one that knows what it changed. A local build is no
 release to move to, and is refused. It runs nothing, as `tidy` does.
 
-**Why.** Upgrading MarketSense touched six places by hand, four times in four days: the solution's pin, the
+**Why.** Upgrading one governed solution touched six places by hand, four times in four days: the solution's pin, the
 global tool, the plugin, adoption, two agent images and the branches already in flight. Each had a page saying
 how; none said which came first or which applied, and the person asked "what do we need to do". Every fact the
 answer needs — the pin, this machine's release, whether a factory pipeline exists, what each cycle branch pins
@@ -7416,12 +7449,12 @@ and the five slowest after recording. The file is committed — the cycles direc
 so cycles can be compared after the results files are gone. **No reader is handed it, and the evidence hash
 leaves it out.** A run whose results files carry no times leaves none, and removes one an earlier run left.
 
-**Why.** MarketSense's suite reached two and a half hours and nobody could say where the time went. A session
+**Why.** One governed solution's suite reached two and a half hours and nobody could say where the time went. A session
 spent two to three hours measuring it and wrote a baseline script by hand, while every results file the
 framework had read and thrown away carried each test's duration and the run's start and finish.
 
 **Why apart from the summary.** `tests.json` is in every verify reader's prompt. A duration on each test adds
-about 25 KB per reader on MarketSense's suite, and hands the readers durations D-167 keeps out of every proof:
+about 25 KB per reader on that suite, and hands the readers durations D-167 keeps out of every proof:
 a duration is a fact about the machine as much as about the change.
 
 **Rejected.** *Each test's duration inside `tests.json`.* One file and the simplest change, at the cost above.
@@ -7446,8 +7479,8 @@ quotes from the patch. The evidence hash covers it as rebuilt; a cycle whose pro
 as before, and a round recorded before this is accepted under the reading it was recorded with. The cycles
 directory's ignore file keeps it out of git.
 
-**Why.** Verify reads the diff, so a proof living outside it was judged not shown however good it was. MarketSense
-cycle `20261109_1844_59` guarded behaviour the change must not break with a test the change never touched; its
+**Why.** Verify reads the diff, so a proof living outside it was judged not shown however good it was. A real
+cycle, `20261109_1844_59`, guarded behaviour the change must not break with a test the change never touched; its
 Met could quote nothing, the reader blocked under `CON_22`, and the cycle spent about seven hours on a reopen, two
 plan rounds and a 2.5-hour rerun. Another spent 4.7M tokens over three verify rounds on an assertion inside an
 unchanged helper. Both proofs were sound. The evidence lacked the file that showed it.
@@ -7481,7 +7514,7 @@ not lost: it stays a wanted outcome in the intent, and the spec's `Out of scope`
 cycle. The intent interview asks, of an outcome measured over a whole run, whether the person will judge it
 themselves.
 
-**Why.** Two MarketSense cycles wrote "a full Linux run takes under 30 minutes, checked by start and finish
+**Why.** Two cycles of one governed solution wrote "a full Linux run takes under 30 minutes, checked by start and finish
 times" and "a run with two workers passes". Both specs passed review clean at round 1: neither criterion is a
 person observing, so `CON_12` did not reach them. Only the plan's author found that the evidence records one
 serial run of names and outcomes and could show neither. The person was asked four times across two sessions
@@ -7512,7 +7545,7 @@ record` records the cycles it lists and leaves every other finished one for a la
 the section records every finished cycle, as before. Naming a cycle that is mined already, in flight, or
 not there is refused.
 
-**Why.** Mining MarketSense found 2,315 open suggestions across a solution never mined, and a first sitting
+**Why.** Mining one governed solution found 2,315 open suggestions across a record never mined, and a first sitting
 that reads every finished cycle at once, one reader per cycle and document, would cost several million
 tokens. `mine` had no way to take part of the history, so the first sitting was all or nothing.
 
@@ -7537,7 +7570,7 @@ which concerns a reader may raise.
 and the reconciler's are still written. A verdict claiming a pass on that evidence is interrogated as before,
 and the run remediate records changes the evidence, so it gets a full round.
 
-**Why.** One MarketSense verify ran a round of every reader, about 1.1M tokens, four minutes after the one
+**Why.** One real verify ran a round of every reader, about 1.1M tokens, four minutes after the one
 before and on the same evidence. Between them the adjudicator had conceded the blocker — a criterion marked
 Met on a helper whose body the evidence did not hold — so the verdict read blocked, and the round could only
 confirm what the outcome already decided: the cycle went to remediate, and the blocker was answered by the next
@@ -7560,7 +7593,7 @@ to the binary, which refuses before anything is paid for; the skill says why.
 has no verify round recorded. Once it has one, a verify round runs the rules and diff readers alone, and
 `round prompt` names the perspectives it leaves out. Intent, spec and plan rounds are unchanged.
 
-**Why.** In six MarketSense cycles the perspective readers at verify used about 4.2M tokens, 31% of every
+**Why.** In six cycles of one governed solution the perspective readers at verify used about 4.2M tokens, 31% of every
 reader's, and blocked nothing: every blocker at verify was the rules reader's or the diff reader's. A perspective's
 suggestion at verify can only become a successor, since the cycle has been built, and the 82 they raised there each
 cost the session a disposition. A later verify round re-reads a verdict moved to answer the rules or the diff
@@ -7590,10 +7623,10 @@ no way to take a system prompt from a file pipes `shared.md` and the prompt in t
 one file held before. **Every reader — these, the reconciler, the adjudicator, `mine`'s — is started from a
 directory outside the repository**, the round's own where it has one.
 
-**Why.** Mining MarketSense's sessions found every reader writing about its whole prompt to the cache and reading
+**Why.** Mining one governed solution's sessions found every reader writing about its whole prompt to the cache and reading
 back 0.5–2k tokens. D-117 put the shared block first so a host could cache it, but caching is per marked point: the
 host marks the end of the system prompt and the end of the message, and a prefix inside one piped message is never
-an entry of its own. Measured on one MarketSense plan round, four readers, prompts of 40–60 KB sharing their first
+an entry of its own. Measured on one real plan round, four readers, prompts of 40–60 KB sharing their first
 36 KB, nothing collected:
 
 | How the readers were started | Each perspective: written to the cache / read from it | Round |
@@ -7656,7 +7689,7 @@ the approval and the coverage floor as well as the standard.
 - **A suggestion id recorded twice names where each was raised**, and the usual cause: two branches of one cycle each
   numbering past the ledger they started from.
 
-**Why.** Mining MarketSense's sessions found agents doing by hand what is a lookup. To settle earlier findings
+**Why.** Mining one governed solution's sessions found agents doing by hand what is a lookup. To settle earlier findings
 they wrote `settle.py` and `round.sh` scripts, which crashed, mismatched entries and were refused for retyping, and
 one deleted findings with a filter the binary cannot tell from settling them. Placing approvals failed for the person:
 "cannot stat" twice because the draft was in a sandbox worktree and the rename was relative to the root, a PowerShell
@@ -7700,7 +7733,7 @@ Azure DevOps pull-request path has run.
 - **A status panel names at most two ready or stuck successors whichever cycle it is about** (D-125). Past two it
   names those its own cycle's merge brought and counts the rest.
 
-**Why.** Mining MarketSense's last six cycles for the framework rather than the solution. Coverage: §4.5 said
+**Why.** Mining one governed solution's last six cycles for the framework rather than the solution. Coverage: §4.5 said
 `verify` reads the coverage, the prompt never carried it, and a cycle whose criterion was the whole-codebase rate
 at or above the floor could meet it only by a deviation narrowing it. Its evidence said 91.9% against 80%. The same
 solution's Visual Studio ignore file matched `coverage*.json`, so two cycles merged with no coverage committed: the
@@ -7739,7 +7772,7 @@ version` prints two numbers, the binary's and the plugin's.
 was present, and the ledger copied it forward. The format did move under it — rounds went from a file each
 to one ledger per document (D-107), and a citation from a string to a line of its own (D-63) — and each time
 the move was made readable by the binary and the number stayed put, so it never told a reader anything. On
-MarketSense it was read as the framework's release, which is what the name says, and was never true; D-131
+one governed solution it was read as the framework's release, which is what the name says, and was never true; D-131
 added `release` to a round because of exactly that misreading. A field that misleads the one person who reads
 it, and that no code reads, is the decoration D-31 forbids in the body.
 
@@ -7857,7 +7890,7 @@ solution declares.
   in how coverage is measured, which moves every figure at once — and that the floor is a person's to move.
   The build skill says the same, and says never to report the baseline as something the build is aiming for.
 
-**Why.** MarketSense's cycle `20261110_2348_02` passed every test and was refused for coverage for most of a day.
+**Why.** A real cycle, `20261110_2348_02`, passed every test and was refused for coverage for most of a day.
 Its baseline was 98.9%: about twenty uncovered lines in 1,920, and D-103 allowed no slack below it, so the
 better the codebase had been covered the less room a cycle had. The cycle was the first to start two web hosts
 in one test process, under which the coverage tool's default dynamic mode dropped counts: 71.1% on a branch
@@ -7934,7 +7967,7 @@ accepted deviation travels with the code. **Keeps D-27:** nothing is waived.
   blocks is the loop going round (D-65's halt), and the cycle escalates to a person. It is not a cap.
 - **Mining counts them** per cycle, and tallies the rules their blockers named.
 
-**Why.** The latest MarketSense reopen came after every fix in 0.36–0.39, and its reason ended *"Nothing in the
+**Why.** The latest reopen in one governed solution came after every fix in 0.36–0.39, and its reason ended *"Nothing in the
 intent or the spec changes."* The build had needed one undeclared file and done four things the plan did not
 describe, and the reopen existed only to make the plan say so: re-interrogation, a fresh approval and a plan-only
 pull request, with no decision in any of it. Of eleven reopens on record, four were the build learning how the
@@ -7969,7 +8002,7 @@ them is denied, that `.sdlc/README.md` lists them, and that the denial names the
 belongs in one. It names no count and lists no file.
 
 **Why.** Adoption writes `AGENTS.md` once, and an upgrade may not touch it (D-133), so whatever it says is fixed at
-the release that adopted. MarketSense's said six files after 0.39.0 made it seven, and only a cycle could correct
+the release that adopted. One governed solution's said six files after 0.39.0 made it seven, and only a cycle could correct
 it. `.sdlc/README.md` is rewritten by every release and held to the hook's list by the suite, so it is right
 wherever the agent file points at it. Nothing is lost at the moment of a write: the denial already names the
 command for the file it refused.
@@ -7996,7 +8029,7 @@ may be left out and one it dropped may be kept. With no base copy, outside the s
 The refusal names the section. `sdlc doctor`, where it tells a person to run `sdlc factory`, first names a pool of
 the file's own that the rewrite would replace, and says to put it back with any step of the team's own.
 
-**Why.** 0.38's factory dropped its schedule and gained a parameter. MarketSense's factory runs on its own pool,
+**Why.** 0.38's factory dropped its schedule and gained a parameter. One governed solution's factory runs on its own pool,
 whose agents carry the browsers, so no file passed: the release's frame moved its pool to a hosted agent and the
 base's kept the schedule. D-133 had already rejected comparing a pipeline as text for this reason and given the
 steps their own rule; the frame was left whole and met the same case one release later. Doctor's remedy, run
@@ -8077,7 +8110,7 @@ reads the ledger once it is gone**: a rule's count toward three cycles, the area
 whether a successor or a parked cycle waiting on it is ready. The husk is deleted outright — no stub.
 
 **Why.** The person wanted cycles consumed rather than kept forever: the context they hold lives in git history,
-not in the working tree, and MarketSense's cycles directory had reached 21 MB four cycles in, 19 MB of it one
+not in the working tree, and one governed solution's cycles directory had reached 21 MB four cycles in, 19 MB of it one
 cycle's rounds. The argument for keeping them was that later mining reads them; the ledger keeps exactly what it
 reads, and the merge commit recovers the rest.
 
@@ -8186,7 +8219,7 @@ reworded entry over either, naming the entry and its overrun. An entry already o
 rule or a `supersede` with the shorter wording for a decision. `sdlc decisions show <id>` prints one entry in full,
 standing or superseded.
 
-**Why.** The person found the decision record already hard to read four cycles in: MarketSense's
+**Why.** The person found the decision record already hard to read four cycles in: one solution's
 `decisions.md` held 15 entries in 17.5 KB, its first entry about 350 words with a 30-word title. Mining more out
 of cycles makes the record grow, and the next change hands each reader every headline but only some bodies, so a
 title is what most readers get of most entries. It is already there as the entry's heading; it only has to be
@@ -8594,7 +8627,7 @@ plan and the diff.
 short form, about a hundred tokens each. Past a hundred standing entries the cost is attention rather than
 context, and `sdlc doctor` says so. Selecting by the paths a decision covers is the remedy, deferred because it
 changes the shape of a person's file and no solution is near the line. **Evidence on the loops is partial**: in
-the cycles still in MarketSense's history the plan rule raised at most one blocker per cycle, and the long plan
+the cycles still in one governed solution's history the plan rule raised at most one blocker per cycle, and the long plan
 loops were proof adequacy — cases the spec never listed, which D-132 answered. This decision is for correctness,
 and its narrow trigger is so it adds no loops of its own.
 
@@ -8856,7 +8889,7 @@ moves or a framework file changes, because a version move reads the same whichev
 **Why.** Intent, spec and plan exist so a person approves a decision before code is written. A version move
 that needs no code change carries no decision the documents could argue: the build and the tests are its whole
 proof, and the pipeline runs both on every pull request. One that does need a code change brings a source file
-with it, and a source file is a cycle's. MarketSense's first security fix - an ASP.NET Core advisory that
+with it, and a source file is a cycle's. One governed solution's first security fix - an ASP.NET Core advisory that
 failed every build on the integration branch - would otherwise have needed a cycle about a version number, or
 a policy override that reads the same as an ungoverned change.
 
@@ -8921,7 +8954,7 @@ holds when:
 The pin may move forward, stay put (a refresh) or move back (a rollback), and the check says which. A pull
 request that only answers rows, with the pin unmoved, is the same check.
 
-**Why.** MarketSense moved through five releases in a week, and every move had the same choice: open a cycle
+**Why.** One governed solution moved through five releases in a week, and every move had the same choice: open a cycle
 whose intent, spec and plan argued about nothing, or exempt a branch pattern, which accepts every change made
 on a branch of that name. Neither is right for a change in which nothing is a judgement. Every file in an
 upgrade is either written by a tool or answers a question a tool asked, and both are decidable: the check can
@@ -8955,7 +8988,7 @@ release and the new rows when it merges the integration branch, as D-131 already
 - *Including the solution's own dependency bumps.* A package bump changes how the code behaves, and nothing
   can reproduce that. §3.1 and D-45 still send it through the chain.
 - *Comparing a pipeline with its template as text* (0.36.4). On Azure DevOps adoption writes the CI pipeline
-  once and never again, and `sdlc factory` drops what a solution added, so a customised pipeline - MarketSense's
+  once and never again, and `sdlc factory` drops what a solution added, so a customised pipeline - one governed solution's
   first upgrade through this check - could never pass and every upgrade went back to a policy override. What
   the step comparison lets through is a team's own step dropped in the upgrade: that weakens the team's own
   pipeline and none of the framework's steps, and it shows in the diff.
@@ -9001,7 +9034,7 @@ row per case a criterion states. Neither says where a criterion's cases end, so 
 *Focus from only one starting place* is a starting state; *never checks the 429 has no body* is a response
 the criterion did not mention. A criterion that does not say which cases it covers lets each reader bring
 their own list, each fresh reader thinks of a case the last one had not, and nothing in the document says
-where the list ends. D-127 stopped one form of this at the plan, the proof a reader imagines fooled. The same open end remained in any rule that ranges over cases. MarketSense's own constraint on
+where the list ends. D-127 stopped one form of this at the plan, the proof a reader imagines fooled. The same open end remained in any rule that ranges over cases. One governed solution's own constraint on
 recorded failures is one: "every failure a user can meet" grows with whoever is reading. With the cases
 listed, "wrong" means a listed case is unmet, which a reader can point to, and "better" means a case not
 listed, which a reader can only propose.
@@ -9072,7 +9105,7 @@ hooks, the copy's, not five. The session saw the marked description and all eigh
 session-start hook read its own manifest through `${CLAUDE_PLUGIN_ROOT}`, and the mismatch reached the
 model word for word.
 
-**Why.** MarketSense's hosting cycle (`20261027_2358_17`) stayed open while five releases shipped, from
+**Why.** One governed solution's hosting cycle (`20261027_2358_17`) stayed open while five releases shipped, from
 0.32.1 to 0.36.0. The binary and the plugin were installed once for the whole machine, so a bump moved every
 solution and every cycle in flight at once. Bumping therefore looked like it meant abandoning a cycle. The
 steer session found an interrogate skill newer than its 0.34 binary, which had no `round prompt` and no
@@ -9311,7 +9344,7 @@ stopped — `verify` on `blocked`, `batch-build`, a `pr --draft` body — name e
 and each open blocker by its gist, never a count; `refine` names the place it changed; `propose` gives
 each finding id it cites a line of what it objected to.
 
-**Why.** On MarketSense a verify blocked for eight rounds, and what the person saw was three findings
+**Why.** In one governed solution a verify blocked for eight rounds, and what the person saw was three findings
 each printed under the same rule's line, with a gist and a fix and no way to find the sentence objected
 to. Every reader had written a precise locus — the criterion, the bullet, the diff lines — and no renderer
 printed it. The full statement was one command away and nothing named the command; that command printed
@@ -9387,7 +9420,7 @@ builds from the same base, alone, into a pull request of its own, and the factor
 
 **Why.**
 
-- **Size predicted convergence.** In MarketSense's first four cycles, the one with 14 criteria closed in 19
+- **Size predicted convergence.** In one governed solution's first four cycles, the one with 14 criteria closed in 19
   rounds with no reopen. Those with 17–22 criteria took 61–76 rounds and 2–5 reopens each, because readers found
   one uncovered case per round across a matrix that grew with every criterion.
 - **A size threshold was weighed and set aside.** "Large" cannot be defined without a judgement, and a check
@@ -9398,7 +9431,7 @@ builds from the same base, alone, into a pull request of its own, and the factor
   are not cycles, so `status`, `batch-build` and the factory still see only cycles meant to move.
 - **A successor holds an intent's substance, not a plan's.** An intent states a problem, which survives its
   predecessor's build. A plan written now would describe code that does not exist yet, which is the failure
-  behind three of MarketSense's reopens.
+  behind three of one governed solution's reopens.
 - **The slicing reaches the team through review.** Successors ride the plan pull request, so the rest of the
   work is reviewed beside its first plans.
 
@@ -9454,7 +9487,7 @@ rewritten, so a cycle whose patch is committed keeps it and is checked the old w
   opens, the way D-92's patterns arrived.
 
 **Why.** The patch was a copy of what git already holds, the largest file a cycle committed — 56 KB to 892 KB
-in MarketSense's — and the only file in a finished cycle nothing reads after the merge. Rebuilding it also ties
+in one governed solution's — and the only file in a finished cycle nothing reads after the merge. Rebuilding it also ties
 the verify to commits rather than to a file anyone could rewrite beside them: the chain now checks that the
 verify judged the code at `head.sha`, not only that two files still hash the same.
 
@@ -9504,7 +9537,7 @@ builds approved cycles with no verify, and any `cycle/<id>/` branch on the remot
   not hold the approval standing on the integration branch, with both choices.
 
 **Why.** The integration branch is what the team and the factory read. A reopen made on a build branch left
-MarketSense's hosting plan three reopens out of date on `development` for three days, with nothing there
+one governed solution's hosting plan three reopens out of date on `development` for three days, with nothing there
 saying so, and the amended plan reached reviewers only inside a code pull request. Its own pull request puts
 each reopen's reason in front of a reviewer when it happens, and merging it is what queues the amended plan
 (D-83).
@@ -9741,7 +9774,7 @@ module collocated with one component and loaded from `OnAfterRenderAsync` names,
 script meets, the Blazor mechanism that covers it and why it falls short — or the spec criterion no
 Blazor mechanism can meet. It asks for an argument; it does not forbid a script.
 
-**Why.** MarketSense's first prerendered page planned a page-wide script that started Blazor by hand,
+**Why.** One governed solution's first prerendered page planned a page-wide script that started Blazor by hand,
 rewrote the address of `blazor.web.js`, held a pick made before the page was live, kept focus across
 going live and reported a browser copy that failed, with a CSS-revealed fallback that recorded itself
 through an image request. The plan argued the script against `DEC_07`, which allowed one interop
@@ -9760,7 +9793,7 @@ first round rather than the sixteenth. A global rule could not name Blazor (§7.
   nothing a reader can check a plan against, so it would block on taste. If a second stack shows the
   same habit, a rule of its own there is the evidence for generalising.
 - *Forbidding page-wide script outright.* Some needs only a script meets, and the solution that wants
-  "never" says so in its own decisions, as MarketSense did.
+  "never" says so in its own decisions, as one governed solution did.
 - *A declared-default row, "browser scripting".* A row buys an argument under `CON_15`, and the plan
   that prompted this argued well against what it departed from. What was missing was the comparison
   with the framework's mechanism, which a row does not ask for.
@@ -9850,7 +9883,7 @@ suggestions ledgers written before this hold.
 **The listing shows what is open.** `sdlc suggestions` lists the open ones, as it always has; `--all`
 lists every status, with where each was decided.
 
-**Why one ledger and not one per artifact.** MarketSense's first cycle lists 1,489 open suggestions. Most
+**Why one ledger and not one per artifact.** One governed solution's first cycle lists 1,489 open suggestions. Most
 are a handful of concerns raised again by every round of every document under fresh ids, so the earlier
 copies stay open: nothing mentions them again, and silence clears nothing (D-49). An id that belongs to
 the artifact cannot be reused across artifacts, and the intent, spec and plan readers raise the same
@@ -9870,8 +9903,8 @@ abandoned cycle's acceptances lapse with no step to forget, and the listing says
 not merge them. A suggestion already in a document's ledger stays there, and a later round that moves it
 moves it there. Its id belonged to that document, so a person's `taking in security.F_05` is applied only
 where one document of the cycle holds `security.F_05`; where several do, nobody can tell which was meant,
-and claiming all of them marked unrelated concerns decided — 48 of MarketSense's, read the first time.
-MarketSense's existing count stands; its next cycle starts clean.
+and claiming all of them marked unrelated concerns decided — 48 of that solution's, read the first time.
+That solution's existing count stands; its next cycle starts clean.
 
 **Rejected.**
 
@@ -9965,7 +9998,7 @@ convergence only after the passing verify, and `resolve-conflict` takes a conver
 the verify again.
 
 **Why.** The check could see that a file changed and never why. All three are a person's, and a person
-changes them inside a cycle for reasons that are not a convergence. Run against MarketSense the day it
+changes them inside a cycle for reasons that are not a convergence. Run against a governed solution the day it
 shipped, it failed two chains that were right: its second cycle, merged and correct, had a stack row the
 plan called for and two decisions the person amended mid-build; and the cycle then opening carried the
 last cycle's decisions, placed before its first round so it would be judged against them from the start.
@@ -10000,7 +10033,7 @@ file — a proposal, *already recorded*, a note under `## For the framework`, or
 `## Not proposed` — and a second fresh process, handed the report and the file, names any item without
 one.
 
-**Why.** Asked to make sure convergence was thorough, a look at MarketSense's record found the report
+**Why.** Asked to make sure convergence was thorough, a look at one governed solution's record found the report
 throwing away most of what it held. Each finding was collapsed to its last mention, so a blocker argued
 for nineteen rounds read like one answered at once. Samples were the shortest five, which picks the
 vaguest. Reopen reasons, in which the person had already decided and named what they refused, were read
@@ -10035,7 +10068,7 @@ wrote the cycle's `verify.md`. `/sdlc:pr` asks once, outside a sweep, whether to
 argued. After the passing verify nothing in the cycle is judged again, so that cost is gone, and three
 things are gained: the step is not forgotten after the merge; the decisions merge with the code they
 describe, and go with it if the pull request is abandoned; and the record is complete, every round and
-every verify, which is when convergence has most to read. The person asked for it on MarketSense's
+every verify, which is when convergence has most to read. The person asked for it on one governed solution's
 second cycle, which converged on the integration branch after the fact.
 
 **What holds it.** Order, asked of git, because none of the three files records when it changed. A
@@ -10063,7 +10096,7 @@ refusal show each open blocker as its rule, its gist (its statement where it has
 `Fix:`. `sdlc findings` keeps the statement in full. The `Loop` line lists what came back under a stuck
 rule, by round and finding, and says whether it was one finding each time.
 
-**Why.** On MarketSense a blocker reached the person as an id, a rule and a statement of five hundred to
+**Why.** In one governed solution a blocker reached the person as an id, a rule and a statement of five hundred to
 eighteen hundred characters, and what they came away with was "CON_15 is blocking". Every one carried a
 remedy nothing displayed. And verify's `Loop` line said "stuck on CON_08 -- 3 times" over three unrelated
 slips of wording: a count over a rule cannot tell one objection returning from several raised under it,
@@ -10093,7 +10126,7 @@ review — is started with `SDLC_READER=1`, and the turn-end gate lets such a tu
 
 **Why the verdict.** D-01 put evaluation in a new process and the interrogation obeyed it, but the verdict
 itself was written wherever `/sdlc:verify` was typed, and that is usually the session that built the
-change: the build hands straight to verify, and `batch-build` runs both in one agent. On MarketSense's
+change: the build hands straight to verify, and `batch-build` runs both in one agent. On one governed solution's
 cycle `20261024_1205_42` the building session wrote every one of 22 criteria met, and the verify document's
 interrogation then found four whose tests asserted less than the criterion asked. It also moved a criterion
 from not met to met by refining the verdict's argument, with no change to the code, which is the
@@ -10136,7 +10169,7 @@ at and in the ledger's words, which records nothing (D-107). A finding the recon
 new. A new finding takes an id past every one the ledger holds under its prefix, and `sdlc round`,
 refusing a known id in other words, names the next free one.
 
-**Why.** On MarketSense's second cycle a steer edited three sections of an intent, and the next round's
+**Why.** On one governed solution's second cycle a steer edited three sections of an intent, and the next round's
 perspective readers, who have no history by design, raised the objections already standing in those
 sections again under ids of their own. Seven of round six's eleven findings repeated suggestions still open
 from rounds one to five, and all eleven came with ids the ledger already held for other objections. D-107's
@@ -10197,7 +10230,7 @@ and its `entry_sha256`. `draft approval` prints it, so nobody computes a hash. T
 anchored round's entry no longer hashes to what was approved. Rounds after the anchor are allowed, and a
 blocker raised in one refuses the build exactly as it did before.
 
-**Why.** MarketSense's plan ran twenty-six rounds, and its round files came to 17 MB. The 26th held 798
+**Why.** One governed solution's plan ran twenty-six rounds, and its round files came to 17 MB. The 26th held 798
 findings, 764 of them copied from earlier rounds, because the session restated every finding every round
 and nothing stopped it. The fold never needed the restatement, since the latest mention already wins.
 Each round only needed what it raised and what it moved. Stored once each, the same history is about 870
@@ -10347,7 +10380,7 @@ back and refuses one missing any id or row the file held. A fresh process then r
 against the proposals and `solution.md` and says *in alignment* or *deviates*, advisory. The person renames
 the drafts. Convergence is not a cycle and not part of one, and what it places binds the next cycle.
 
-**Why.** After MarketSense's first cycle, converging took a person and an agent re-reading a 431 KB
+**Why.** After one governed solution's first cycle, converging took a person and an agent re-reading a 431 KB
 constraints report — 754 findings listed raw — and 36 decision passages copied verbatim, then hand-writing
 eight decisions, two rules and two stack rows. Twelve arguments the cycle had settled were nowhere in the
 record, and adopting rules mid-cycle cost about twenty blockers on documents already argued. The person
@@ -10396,7 +10429,7 @@ until somebody paid down a backlog no cycle made. Induction has one hole: a dele
 uncovers code nobody changed, which a changed-lines check cannot see. The baseline closes it.
 
 **Why the binary.** Whether a changed line ran is arithmetic over a report and a patch, so §2.3 puts it here,
-and a number computed here cannot be overclaimed — the defect behind every verify blocker in MarketSense's
+and a number computed here cannot be overclaimed — the defect behind every verify blocker in one governed solution's
 first cycle.
 
 **Why the baseline is a file read at the base commit.** The person chose a committed baseline over re-running
@@ -10435,11 +10468,11 @@ scaffold's architecture suite fails an AppHost missing either profile, and one t
 without `com.docker.compose.project` and `com.docker.compose.config-hash`. The .NET profile's
 orchestration row says so, and a new row declares Bogus, with a fixed seed, for fake data and seeding.
 
-**Why.** The person had asked for this repeatedly across MarketSense's earlier versions, which carried it:
-a stable `marketsense` group with pinned names and ports for a developer, and a `marketsense-mocked-<8
+**Why.** The person had asked for this repeatedly across one governed solution's earlier versions, which carried it:
+a stable group named for the solution with pinned names and ports for a developer, and a `<solution>-mocked-<8
 hex>` group with Aspire's random suffixes for tests, so the two ran side by side. The framework had the
 contract in §10.2 and nothing that held it, keyed on a variable a person pressing run never sees, and the
-current MarketSense AppHost half-implemented it. The same person asked for Bogus in the first cycle and
+current AppHost there half-implemented it. The same person asked for Bogus in the first cycle and
 got hand-committed JSON, because no row said what fake data is made with.
 
 **Why `test` and not `batch`.** `batch` named the runner rather than the purpose. Tests run the AppHost
@@ -10474,7 +10507,7 @@ carry a `note`, which a steer uses to say what moved above the document and what
 it. `sdlc round --changed` lists the sections moved since the last round, and perspective readers raise
 suggestions about those sections alone after the first round.
 
-**Why.** MarketSense's first cycle ran its readers from a harness of its own and wrote the rounds itself,
+**Why.** One governed solution's first cycle ran its readers from a harness of its own and wrote the rounds itself,
 dispositions included. During its first steer it edited the intent, the spec and the plan in one pass and
 interrogated all three at once: intent, spec and plan rounds carry the same second, and plan rounds 7 to
 13 each judged a different spec, none of them the one later approved. The person caught it by asking

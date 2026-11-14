@@ -347,7 +347,7 @@ public sealed class StatusRendererTests
     [DataRow("escalated", "sdlc status 20260929_1456_32", "needs a person")]
     public async Task A_verify_document_with_an_open_blocker_is_never_told_to_refine(string outcome, string command, string why)
     {
-        // A blocked MarketSense cycle at verify round 8 was told to refine its verdict, which the verify
+        // A blocked real cycle at verify round 8 was told to refine its verdict, which the verify
         // skill forbids: the generic blocker rule ran before anything knew a verify document is different.
         using CycleWorkspace workspace = Approved();
         workspace.WriteVerify(outcome);

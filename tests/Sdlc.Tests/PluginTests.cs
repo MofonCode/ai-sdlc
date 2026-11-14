@@ -1157,6 +1157,43 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_package_readme_counts_what_the_repository_actually_ships()
+    {
+        // The readme nuget.org shows is the one a stranger reads first, and nothing read it: it said twenty
+        // skills and six protected files for releases after both had moved. Held to the same counts as the
+        // root readme, from the same sources.
+        string package = File.ReadAllText(Path.Combine(Root, "src", "Sdlc.Cli", "README.md"));
+
+        Assert.AreEqual(21, Skills().Count(), "The package readme says twenty-one skills.");
+        Assert.AreEqual(7, ProtectedPaths.Names.Count, "The package readme says seven files are a person's alone.");
+
+        StringAssert.Contains(package, "twenty-one skills");
+        StringAssert.Contains(package, "Seven files are a person's alone");
+    }
+
+    [TestMethod]
+    [DataRow("README.md")]
+    [DataRow("CONCEPT.md")]
+    [DataRow("plugin.json")]
+    [DataRow(".claude-plugin/plugin.json")]
+    [DataRow(".claude-plugin/marketplace.json")]
+    [DataRow("src/Sdlc.Cli/README.md")]
+    [DataRow("src/Sdlc.Cli/Sdlc.Cli.csproj")]
+    public void Every_place_the_framework_introduces_itself_states_the_same_definition(string relative)
+    {
+        // The framework said what it was four different ways at once -- a lifecycle, a careful team, a
+        // ledger, a supervised chain -- because each place was written when it was and none was read
+        // against the others. The definition is one sentence, so it is asserted wherever a person or a
+        // feed first meets the project; the paragraph after it is AGENTS.md's to keep together. Case is
+        // ignored because a manifest has no subject to put before the verb, so it opens "Holds".
+        Assert.IsTrue(
+            File.ReadAllText(Path.Combine(Root, relative)).Contains(
+                "holds an AI coding agent, and the people directing it, to what was written down",
+                StringComparison.OrdinalIgnoreCase),
+            relative + " no longer states the framework's definition. Change every place together.");
+    }
+
+    [TestMethod]
     public void Every_document_stating_how_many_rules_a_profile_ships_states_the_right_number()
     {
         // The documents got this wrong for three iterations in the other direction: three of them said

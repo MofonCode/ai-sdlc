@@ -335,7 +335,7 @@ public sealed class ReaderPromptsTests
     [TestMethod]
     public async Task The_perspectives_read_a_cycles_first_verify_round_and_a_later_one_is_the_rules_and_diff_readers()
     {
-        // D-164. No perspective blocked at verify in six MarketSense cycles, and a suggestion there can only become
+        // D-164. No perspective blocked at verify in six real cycles, and a suggestion there can only become
         // a successor; a later verify round re-reads a verdict moved to answer the rules or the diff reader.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSpec(criteria: 1);
@@ -364,7 +364,7 @@ public sealed class ReaderPromptsTests
     [TestMethod]
     public async Task A_verdict_that_concedes_on_the_evidence_the_last_round_judged_goes_to_remediate_without_a_round()
     {
-        // D-165. The outcome sends the cycle to remediate whatever a round says; one MarketSense verify spent 1.1M
+        // D-165. The outcome sends the cycle to remediate whatever a round says; one real verify spent 1.1M
         // tokens to confirm a concession on the evidence judged four minutes before.
         const string clean = """{ "findings": [] }""";
         using var workspace = CycleWorkspace.Create();

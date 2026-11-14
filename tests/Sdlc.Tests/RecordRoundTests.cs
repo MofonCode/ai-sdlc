@@ -151,7 +151,7 @@ public sealed class RecordRoundTests
     [TestMethod]
     public async Task A_spec_round_is_refused_when_the_intent_moved_after_its_clean_round()
     {
-        // The MarketSense case: the intent, the spec and the plan edited in one pass and judged at once.
+        // The real case: the intent, the spec and the plan edited in one pass and judged at once.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteArtifact(ArtifactKind.Intent);
         workspace.WriteArtifact(ArtifactKind.Spec);

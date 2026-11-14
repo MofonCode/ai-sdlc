@@ -239,7 +239,7 @@ public static class Diagnose
             }
 
             // 'sdlc factory' writes the template over the file, so the remedy says what that loses before it says to
-            // run it: told only to rewrite, MarketSense would have lost the pool its browsers live on.
+            // run it: told only to rewrite, one solution would have lost the pool its browsers live on.
             Result<SolutionDocument> read = await SolutionDocument.ReadFile(solution.Path, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<string> pools = read.IsSuccess
                 ? VerifyUpgrade.OwnPools(FactoryPipeline.Text(platform, read.Value.IntegrationBranch), text)
