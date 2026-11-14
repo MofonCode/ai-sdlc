@@ -937,17 +937,19 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public void The_solution_readme_shows_the_format_version_being_stamped()
+    public void The_solution_readme_shows_the_envelope_an_artifact_is_validated_against()
     {
-        // The readme's example envelope is the shape a person checks their own artifact against, so a
-        // version it hardcodes is a version that is right until the format moves and wrong everywhere
-        // afterwards -- in a file already written into every solution that adopted before the change.
-        // It was a literal '1.0.0' for exactly as long as that was also the constant's value.
-        StringAssert.Contains(
-            Templates.Readme(),
-            "framework_version: " + Cycle.FrameworkVersion,
-            "The solution readme's example envelope does not show the version being stamped into "
-            + "artifacts. Interpolate Cycle.FrameworkVersion rather than writing the number.");
+        // The readme's example envelope is the shape a person checks their own artifact against, so it shows
+        // exactly the keys the schema requires -- D-160 retired framework_version, and an example still
+        // carrying it would teach every adopting solution to write a field nothing reads.
+        foreach (string key in ArtifactSchema.EnvelopeKeys)
+        {
+            StringAssert.Contains(Templates.Readme(), key + ": ");
+        }
+
+        Assert.IsFalse(
+            Templates.Readme().Contains("framework_version", StringComparison.Ordinal),
+            "The solution readme's example envelope still shows the retired framework_version.");
     }
 
     [TestMethod]

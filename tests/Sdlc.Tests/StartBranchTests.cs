@@ -207,7 +207,7 @@ public sealed class StartBranchTests
         {
             CycleWorkspace.WriteRaw(
                 workspace.Cycle.PathOf(ArtifactKind.Intent),
-                "---\nframework_version: 1.0.0\ncycle: " + Id + "\ntype: bug fix\nrelease: " + release + "\n---\n\n# A fix\n");
+                "---\ncycle: " + Id + "\ntype: bug fix\nrelease: " + release + "\n---\n\n# A fix\n");
         }
 
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));

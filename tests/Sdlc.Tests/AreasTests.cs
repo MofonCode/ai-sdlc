@@ -320,7 +320,7 @@ public sealed class AreasTests
         CycleWorkspace.WriteRaw(workspace.Cycle.PathOf(ArtifactKind.Plan), Plan(areaLines, workspace.Cycle.Id.ToString()));
 
     private static string Plan(string? areaLines, string cycle = "20260929_1456_32") =>
-        "---\nframework_version: " + Cycle.FrameworkVersion + "\ncycle: " + cycle + "\ntier: local\n---\n\n# plan\n\n"
+        "---\ncycle: " + cycle + "\ntier: local\n---\n\n# plan\n\n"
         + "## Shape and departures\n\nOne importer.\n\n"
         + "## Files\n\n| File | Change |\n|---|---|\n| `src/Brokers/Import.cs` | new |\n| `src/MarketData/Feed.cs` | changed |\n\n"
         + "## Proof\n\n| Criterion | Proof |\n|---|---|\n\n"

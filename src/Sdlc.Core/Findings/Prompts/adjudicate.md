@@ -149,7 +149,6 @@ reasoning of.
 
 ```markdown
 ---
-framework_version: 1.0.0
 cycle: <id>
 outcome: pass
 ---

@@ -85,7 +85,6 @@ public sealed class EvidenceTests
         // Everything downstream reads this rather than the runner's own output, so the two have to agree
         // after a write and a read.
         TestSummary written = new(
-            Cycle.FrameworkVersion,
             "20260929_1456_32",
             DateTimeOffset.Parse("2026-10-02T09:00:00Z", null),
             [new RecordedTest("A_test", TestOutcome.Passed), new RecordedTest("B_test", TestOutcome.Failed, "why")]);
@@ -108,7 +107,6 @@ public sealed class EvidenceTests
         TestSummary summary = new(
             null,
             null,
-            null,
             [new RecordedTest("Dice.Tests.RollTests.Rolls_within_one_and_six", TestOutcome.Passed)]);
 
         Assert.IsTrue(summary.DidPass("Rolls_within_one_and_six"));
@@ -119,7 +117,7 @@ public sealed class EvidenceTests
     [TestMethod]
     public void A_failing_test_does_not_count_as_passing_under_any_spelling()
     {
-        TestSummary summary = new(null, null, null, [new RecordedTest("A.B.C_test", TestOutcome.Failed)]);
+        TestSummary summary = new(null, null, [new RecordedTest("A.B.C_test", TestOutcome.Failed)]);
 
         Assert.IsFalse(summary.DidPass("C_test"));
         Assert.IsFalse(summary.DidPass("A.B.C_test"));
@@ -133,7 +131,6 @@ public sealed class EvidenceTests
         // pushed a trial cycle into collapsing two browser engines into a loop inside one test, which cost
         // the per-engine result the verify document was citing.
         TestSummary summary = new(
-            null,
             null,
             null,
             [
@@ -152,7 +149,6 @@ public sealed class EvidenceTests
         TestSummary summary = new(
             null,
             null,
-            null,
             [
                 new RecordedTest("Page_shows_a_face (\"chromium\")", TestOutcome.Passed),
                 new RecordedTest("Page_shows_a_face (\"webkit\")", TestOutcome.Failed, "the face was blank"),
@@ -169,7 +165,6 @@ public sealed class EvidenceTests
         TestSummary summary = new(
             null,
             null,
-            null,
             [new RecordedTest("Dice.Tests.DicePageTests.Page_shows_a_face(engine: \"webkit\")", TestOutcome.Passed)]);
 
         Assert.IsTrue(summary.DidPass("Page_shows_a_face"));
@@ -182,7 +177,6 @@ public sealed class EvidenceTests
         // A skipped case is not evidence of anything, and a proof whose second engine never ran is a proof
         // of one engine. TestOutcome keeps the value distinct precisely so this can be refused.
         TestSummary summary = new(
-            null,
             null,
             null,
             [

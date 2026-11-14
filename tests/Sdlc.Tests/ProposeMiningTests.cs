@@ -161,7 +161,7 @@ public sealed class ProposeMiningTests
     }
 
     private static string Verdict(string outcome, params string[] criteria) =>
-        "---\nframework_version: 1.0.0\ncycle: c\noutcome: " + outcome + "\n---\n\n# A verify\n\n## Criteria\n\n"
+        "---\ncycle: c\noutcome: " + outcome + "\n---\n\n# A verify\n\n## Criteria\n\n"
         + string.Join("\n", criteria) + "\n";
 
     private static async Task<string> Render(CycleWorkspace workspace, FakeRepository git)

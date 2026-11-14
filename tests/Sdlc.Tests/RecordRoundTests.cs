@@ -67,7 +67,7 @@ public sealed class RecordRoundTests
     [TestMethod]
     public async Task A_round_records_its_release_and_holds_its_cycle_to_the_suggestion_fence_while_an_older_one_does_not()
     {
-        // D-131: framework_version is the envelope's format and never moved, so nothing said a cycle's rules
+        // D-131: the retired framework_version was the envelope's format and never moved, so nothing said a cycle's rules
         // had changed under it. D-128: the fence is for cycles that open under it -- an intent approved in the
         // old shape is not refused by a rule written after it.
         using var fresh = CycleWorkspace.Create();

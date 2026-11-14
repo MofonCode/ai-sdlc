@@ -421,6 +421,17 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **What mining MarketSense found in the plumbing is fixed, and has met only the suite** (0.44.0). The
+  adjudicator now reads the coverage, so a criterion about the floor can be met. `verify-chain` fails when git
+  would leave an evidence file out of the commit, and a new cycle's ignore file keeps them in. Recording a new
+  run retires a blocked verdict instead of refusing at the end of the run. A fenced verdict is taken, a plan's
+  areas are checked before its readers run, and the status panel stops listing every successor (D-161). It is a
+  minor: the chain has a check it did not have.
+- **No artifact declares a format version** (0.43.0). Every file a cycle wrote said `framework_version: 1.0.0`,
+  which read as the framework's release and was never true, and nothing read it; the format moved twice
+  without it. It is no longer written or required, and a file written before carries it harmlessly: an older
+  cycle reads, verifies and stays signed as it was (D-160). The release a round ran on is in its findings
+  ledger, as before. It is a minor because what a stage writes changed; nothing that passed now blocks.
 - **The seven-step cycle has only met the suite** (0.42.0). A person walks seven steps — begin an intent,
   take it to plan, steer, approve, build, fix, open the pull request — and can say each in a sentence; every
   hand-back offers the next one in words, and the panel names the step rather than `interrogate` or `refine`
@@ -429,12 +440,6 @@ What is honest to say about the rest:
   round while it is working, checking in every fourth pass (D-159). The new session is named once, before the
   build. It is a minor: a person types different things, and `batch-plan` is gone. No cycle has run this way
   yet, so nobody knows whether the planning chain in one session stays small enough to leave there.
-- **What mining MarketSense found in the plumbing is fixed, and has met only the suite** (0.44.0). The
-  adjudicator now reads the coverage, so a criterion about the floor can be met. `verify-chain` fails when git
-  would leave an evidence file out of the commit, and a new cycle's ignore file keeps them in. Recording a new
-  run retires a blocked verdict instead of refusing at the end of the run. A fenced verdict is taken, a plan's
-  areas are checked before its readers run, and the status panel stops listing every successor (D-161). It is a
-  minor: the chain has a check it did not have.
 - **The coverage floor has met one solution's numbers and no cycle** (0.41.0). The whole codebase was held to
   the highest rate it ever reached, with no slack, and MarketSense at 99% refused a cycle that did nothing
   wrong once its two-host test harness changed how coverage was measured. Now a codebase at or above

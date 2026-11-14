@@ -87,12 +87,10 @@ the escape hatch: point it at a `CONSTRAINTS.md` and that file binds instead, wh
 running a build of the gate against a library you are editing. Pointed at a file that is not there, every
 command refuses and says so rather than falling back — a person who named a rule set meant it.
 
-**The package and the plugin carry the same number, and the artifact format does not.**
+**The package and the plugin carry the same number.**
 `VersionPrefix` in `Directory.Build.props` is the one place the release version is set, and the suite
 asserts it matches `plugin.json`, so the package version and the plugin version always tell you the same
-thing. The third version, stamped into every artifact's `framework_version`, tracks the file envelope
-rather than the release and is meant to stay put across releases that change no format. `sdlc version`
-prints all three and says which is which. If a reinstall has to pin one, `dotnet tool install --version`
+thing. `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
 takes it.
 
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the

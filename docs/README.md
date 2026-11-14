@@ -38,12 +38,11 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 | **the Claude Code manifest** | what Claude Code reads. Both point at the same `skills/`, so there is no second copy | `.claude-plugin/plugin.json` |
 | **the marketplace catalogue** | what a `plugin marketplace add` resolves | `.claude-plugin/marketplace.json` |
 
-**Three versions, and only two of them are meant to match.** `sdlc version` prints all three.
+**Two versions, and they are meant to match.** `sdlc version` prints both.
 
 | | What it tracks |
 |---|---|
 | the release version | the binary and the plugin. Set once in `Directory.Build.props`; the suite asserts it matches `plugin.json` |
-| the artifact format version | the file envelope, written into every artifact as `framework_version`. Stays put across releases that change no format |
 
 **See also:** [Installing the plugin](guides/installing-the-plugin.md)
 
@@ -132,7 +131,7 @@ One governed change, from why it exists to a pull request.
 
 | | What it is |
 |---|---|
-| **frontmatter** | the keys above the document: `framework_version`, `cycle`, and one body key per kind |
+| **frontmatter** | the keys above the document: `cycle`, and one body key per kind |
 | **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome. Settled before the interview's first question, because it decides the questions: from `/sdlc:intent --type bug\|add\|change`, from a lead, or — a new solution, which has no flag — detected in a scaffolded solution with no cycle yet approved (D-95) |
 | **`tier`** (plan) | blast radius, most to least reversible: `local`, `contract`, `data` |
 | **`outcome`** (verify) | `pass`, `blocked`, `escalated` |

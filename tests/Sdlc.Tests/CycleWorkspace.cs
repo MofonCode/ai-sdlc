@@ -56,7 +56,6 @@ internal sealed class CycleWorkspace : IDisposable
         List<string> lines =
         [
             "---",
-            "framework_version: " + Cycle.FrameworkVersion,
             "cycle: " + Cycle.Id,
         ];
 
@@ -92,7 +91,6 @@ internal sealed class CycleWorkspace : IDisposable
         List<string> lines =
         [
             "---",
-            "framework_version: " + Cycle.FrameworkVersion,
             "cycle: " + Cycle.Id,
             "---",
             string.Empty,
@@ -129,7 +127,6 @@ internal sealed class CycleWorkspace : IDisposable
         List<string> lines =
         [
             "---",
-            "framework_version: " + Cycle.FrameworkVersion,
             "cycle: " + Cycle.Id,
             "tier: local",
             "---",
@@ -194,7 +191,6 @@ internal sealed class CycleWorkspace : IDisposable
         WriteRaw(
             Path.Combine(Cycle.EvidenceDirectory, "tests.json"),
             TestSummaryReader.Write(new TestSummary(
-                Cycle.FrameworkVersion,
                 Cycle.Id.ToString(),
                 DateTimeOffset.UnixEpoch,
                 tests)));
@@ -229,7 +225,6 @@ internal sealed class CycleWorkspace : IDisposable
         List<string> lines =
         [
             "---",
-            "framework_version: " + Cycle.FrameworkVersion,
             "cycle: " + Cycle.Id,
             .. alsoInFrontmatter,
             "outcome: " + outcome,
@@ -271,7 +266,6 @@ internal sealed class CycleWorkspace : IDisposable
         List<string> lines =
         [
             "---",
-            "framework_version: " + Cycle.FrameworkVersion,
             "cycle: " + Cycle.Id,
             "outcome: " + outcome,
             "---",
@@ -523,7 +517,6 @@ internal sealed class CycleWorkspace : IDisposable
         [
             "---",
             string.Create(CultureInfo.InvariantCulture, $"cycle: {Cycle.Id}"),
-            "framework_version: 1.0.0",
             "decisions:",
             string.Create(CultureInfo.InvariantCulture, $"  - decision: {decision}"),
             "    by: Peter Almanzar",

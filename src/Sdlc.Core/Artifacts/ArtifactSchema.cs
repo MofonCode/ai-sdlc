@@ -23,8 +23,8 @@ public sealed record ArtifactValidation(ArtifactKind Kind, IReadOnlyList<SchemaV
 /// The shape every artifact has to have: an envelope, a body, and nothing else.
 /// </summary>
 /// <remarks>
-/// <para><strong>The envelope is an allowlist of two keys plus one section.</strong>
-/// <c>framework_version</c> and <c>cycle</c> in the frontmatter, and a <c>## Open</c> section.
+/// <para><strong>The envelope is an allowlist of one key plus one section.</strong>
+/// <c>cycle</c> in the frontmatter, and a <c>## Open</c> section.
 /// Everything else in the file -- any other key, any other section -- is body. Stated as an allowlist
 /// rather than a list of body parts because the point is that a claim cannot hide in the envelope: the
 /// constraints bind the body, so a field that escaped into the envelope would escape them.
@@ -39,11 +39,18 @@ public sealed record ArtifactValidation(ArtifactKind Kind, IReadOnlyList<SchemaV
 /// validates against that declaration. Until then, extra is wrong rather than tolerated, because a
 /// field nothing declared is a field nothing reads.
 /// </para>
+/// <para><strong>A retired key is accepted and never required.</strong> Every artifact written before
+/// 0.43.0 carries <c>framework_version</c>, and those files are signed by approvals and anchored by
+/// rounds, so they are read as they stand rather than rewritten (D-160).
+/// </para>
 /// </remarks>
 public static partial class ArtifactSchema
 {
     /// <summary>The frontmatter keys that belong to the envelope, on every artifact alike.</summary>
-    public static IReadOnlyList<string> EnvelopeKeys { get; } = ["framework_version", "cycle"];
+    public static IReadOnlyList<string> EnvelopeKeys { get; } = ["cycle"];
+
+    /// <summary>The keys an artifact written by an earlier release may still carry, which nothing reads.</summary>
+    public static IReadOnlyList<string> RetiredKeys { get; } = ["framework_version"];
 
     /// <summary>The section that holds what an artifact deliberately does not assert.</summary>
     public const string OpenSection = "Open";
@@ -544,6 +551,7 @@ public static partial class ArtifactSchema
         foreach (string key in keys.Keys)
         {
             if (!EnvelopeKeys.Contains(key, StringComparer.Ordinal)
+                && !RetiredKeys.Contains(key, StringComparer.Ordinal)
                 && !BodyKeysOf(kind).Contains(key, StringComparer.Ordinal)
                 && !OptionalKeysOf(kind).Contains(key, StringComparer.Ordinal))
             {

@@ -110,11 +110,11 @@ public sealed class LeadTests
 
         ArtifactValidation sound = ArtifactSchema.Validate(
             ArtifactKind.Intent,
-            "---\nframework_version: " + Cycle.FrameworkVersion + "\ncycle: 20260929_1456_32\ntype: bug fix\nlead: azuredevops:1234\nrelease: release/1.4\n---\n" + Body,
+            "---\ncycle: 20260929_1456_32\ntype: bug fix\nlead: azuredevops:1234\nrelease: release/1.4\n---\n" + Body,
             id.Value);
         ArtifactValidation malformed = ArtifactSchema.Validate(
             ArtifactKind.Intent,
-            "---\nframework_version: " + Cycle.FrameworkVersion + "\ncycle: 20260929_1456_32\ntype: bug fix\nlead: github:abc\n---\n" + Body,
+            "---\ncycle: 20260929_1456_32\ntype: bug fix\nlead: github:abc\n---\n" + Body,
             id.Value);
 
         Assert.IsFalse(sound.Violations.Any(v => v.Where is "lead" or "release"), string.Join("; ", sound.Violations.Select(v => v.Where + " " + v.Problem)));
