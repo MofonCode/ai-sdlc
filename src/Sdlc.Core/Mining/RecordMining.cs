@@ -53,13 +53,15 @@ public static class RecordMining
     /// <param name="Watched">How many concerns the ledger now watches.</param>
     /// <param name="IntegrationBranch">The branch the husks' pull request goes to.</param>
     /// <param name="Ignored">The concerns the ledger has seen ignored, and how many cycles each was ignored in.</param>
+    /// <param name="Later">Finished cycles the proposal file's <c>## Cycles</c> did not name: a later sitting's (D-166).</param>
     public sealed record Response(
         IReadOnlyList<MinedCycle> Recorded,
         IReadOnlyList<CycleId> Unmerged,
         IReadOnlyList<CycleId> Unfinished,
         int Watched,
         string IntegrationBranch,
-        IReadOnlyList<Watched>? Ignored = null);
+        IReadOnlyList<Watched>? Ignored = null,
+        IReadOnlyList<CycleId>? Later = null);
 
     /// <summary>The drafts mining writes, which must be placed or thrown away before a sitting is recorded.</summary>
     public static IReadOnlyList<string> Drafts { get; } =
@@ -99,6 +101,26 @@ public static class RecordMining
             .Select(line => line[7..].Trim())];
 
         return (Concerns(sections, "Watch"), declined, accepted, Concerns(sections, "Ignored"));
+    }
+
+    /// <summary>
+    /// Reads the proposal file's <c>## Cycles</c> section: the cycles the sitting read, one <c>- &lt;id&gt;</c>
+    /// each (D-166).
+    /// </summary>
+    /// <param name="markdown">The proposal file.</param>
+    /// <returns>The cycles named, or null when the file has no such section, which records every finished one.</returns>
+    public static IReadOnlyList<CycleId>? Sitting(string markdown)
+    {
+        ArgumentNullException.ThrowIfNull(markdown);
+
+        IReadOnlyDictionary<string, IReadOnlyList<string>> sections = ArtifactSections.Read(markdown);
+
+        return sections.ContainsKey("Cycles")
+            ? [.. Bullets(sections, "Cycles")
+                .Select(line => CycleId.TryParse(line.Trim('`'), out CycleId? id) ? id : null)
+                .Where(id => id is not null)
+                .Select(id => id!.Value)]
+            : null;
     }
 
     // A concern and the cycles it was seen in: "- <gist> — <cycle>, <cycle>".
@@ -184,8 +206,13 @@ public static class RecordMining
                 return ledger.ToResult<Response>();
             }
 
+            // A sitting limited to some cycles records those alone, and every other finished one waits for a later
+            // sitting rather than becoming a husk nobody read (D-166).
+            string proposal = await File.ReadAllTextAsync(request.From, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<CycleId>? sitting = Sitting(proposal);
+
             Result<ProposeMining.Response> report = await mediator
-                .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query(), cancellationToken)
+                .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query(sitting), cancellationToken)
                 .ConfigureAwait(false);
 
             if (report.IsFailed)
@@ -200,6 +227,7 @@ public static class RecordMining
             List<MinedCycle> recorded = [];
             List<CycleId> unmerged = [];
             List<CycleId> unfinished = [];
+            List<CycleId> later = [];
 
             foreach (Cycle cycle in CycleIndex.All(solution.Path))
             {
@@ -211,6 +239,12 @@ public static class RecordMining
                 if (!await IsFinished(cycle, cancellationToken).ConfigureAwait(false))
                 {
                     unfinished.Add(cycle.Id);
+                    continue;
+                }
+
+                if (sitting is not null && !sitting.Contains(cycle.Id))
+                {
+                    later.Add(cycle.Id);
                     continue;
                 }
 
@@ -227,7 +261,7 @@ public static class RecordMining
             }
 
             (IReadOnlyList<Watched> watch, IReadOnlyList<MinedDecline> declined, IReadOnlyList<string> accepted, IReadOnlyList<Watched> ignored) =
-                Read(await File.ReadAllTextAsync(request.From, cancellationToken).ConfigureAwait(false));
+                Read(proposal);
 
             MinedLedger written = ledger.Value.With(
                 recorded,
@@ -237,7 +271,7 @@ public static class RecordMining
 
             await File.WriteAllTextAsync(MinedLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new Response(recorded, unmerged, unfinished, written.Watch.Count, integration, written.Ignored));
+            return Result.Ok(new Response(recorded, unmerged, unfinished, written.Watch.Count, integration, written.Ignored, later));
         }
 
         private static async Task<MinedCycle> Mined(Cycle cycle, string merge, DateTimeOffset now, ProposeMining.Response report, CancellationToken cancellationToken)

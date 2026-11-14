@@ -9,10 +9,17 @@ allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git show *)
 # Mine the cycles
 
 ```
-sdlc mine
+sdlc mine [--cycles <id>,<id>]
 sdlc draft mining <the proposal file>
 sdlc mine record <the proposal file>
 ```
+
+**A long backlog is mined a few cycles at a time** (D-166). A first sitting over a solution's whole history
+hands its readers every finished cycle's findings and suggestions at once, which runs to millions of tokens.
+When the person names cycles, or `sdlc cycles` lists more finished cycles than one sitting can read with care,
+run `sdlc mine --cycles <id>,<id>`: the report's findings, record and suggestions are those cycles' alone, the
+rule counts stay the whole record's, and the cycles not named stay unmined for the next sitting. Say which
+cycles this sitting reads, and which it leaves.
 
 **Mining is reading the record across cycles; converging is a document's rounds settling.** The two
 were once both called convergence, and this skill was `/sdlc:propose convergence` (D-148).
@@ -45,7 +52,9 @@ hundreds of findings, which no single reading holds. So the reading is split:
 
 1. **One fresh process per cycle and document with findings**, concurrently, started as
    `SDLC_READER=1 claude -p --output-format text --tools= --strict-mcp-config --no-session-persistence`
-   with the prompt piped in — no tools, because everything it reads is in its prompt (D-118). Hand each `sdlc findings <id> --stage <artifact>` and nothing else,
+   with the prompt piped in, from a directory outside the repository — no tools, because everything it reads
+   is in its prompt (D-118), and not from the checkout, whose memory and git status the host would hand it too
+   (D-163). Hand each `sdlc findings <id> --stage <artifact>` and nothing else,
    and ask: *group these findings by the problem underneath, not by their wording — one plan raised the
    same missing log level twenty times in twenty wordings. For each group: the finding ids, one sentence
    naming the problem, how many rounds its longest finding stood, and the remedy the readers agreed
@@ -171,7 +180,15 @@ each a bold label and a colon, exactly as constraints.md writes them, so the dra
 ## Ignored
 
 - <the concern, in one sentence, worded as the report's ignored-before line when it is one> — <cycle>, <cycle>
+
+## Cycles
+
+- <each cycle the report's ## Cycles line lists, copied as written>
 ```
+
+**Copy `## Cycles` exactly as the report prints it.** `sdlc mine record` records the cycles listed there and
+no others, so a finished cycle this sitting did not read waits for a later one rather than becoming a husk
+nobody mined (D-166).
 
 **There is no remove.** A rule out of force is superseded and keeps its place; a reversed decision takes a
 new id; a stack concern no longer used is set to `none`. A `reword` keeps the `Forbids` — if what is

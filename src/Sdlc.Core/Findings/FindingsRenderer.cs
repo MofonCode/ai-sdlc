@@ -408,6 +408,11 @@ public static class FindingsRenderer
             text.AppendLine("  " + reader);
         }
 
+        foreach (string rested in response.Rested ?? [])
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {rested} -- read this cycle's first verify round, and a later one is the rules and diff readers' alone (D-164)."));
+        }
+
         foreach (string missing in response.Unwritten)
         {
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {missing} -- active, and not written yet, so it has nothing to run. A gap, not a pass."));
@@ -417,6 +422,13 @@ public static class FindingsRenderer
         {
             text.AppendLine();
             text.AppendLine("Written:");
+
+            if (response.Shared is { } shared)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {shared.Path}  ({shared.Bytes:N0} bytes) -> the block {string.Join(", ", response.Prompts.Select(prompt => prompt.Reader).Where(ReaderAnswers.OpensWithShared))} open with, handed over as a system prompt"));
+            }
 
             foreach (ReaderPrompts.Written prompt in response.Prompts)
             {

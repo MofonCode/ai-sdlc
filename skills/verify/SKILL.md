@@ -36,13 +36,14 @@ the verdict once it is challenged.
 
 ```bash
 sdlc round prompt <id> verify --dir <scratch>/verdict --reader adjudicate
-SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
-  < <scratch>/verdict/adjudicate.prompt.md > <scratch>/verdict/adjudicate.json
+( cd <scratch>/verdict && SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config \
+  --no-session-persistence < adjudicate.prompt.md > adjudicate.json )
 ```
 
 The process is started the way `interrogate` starts a reader, for the same reasons: a new process rather
 than a subagent, so every host runs one path; the same line, flag for flag, so it has no tools and
-reads only what the binary put in its prompt (D-118); the prompt piped in, never passed as an argument; and
+reads only what the binary put in its prompt (D-118); started from the verdict's directory, so the host hands
+it nothing it knows about the checkout (D-163); the prompt piped in, never passed as an argument; and
 `SDLC_READER=1`, so a red build's turn-end hook lets the adjudicator's turn end with its verdict (in
 PowerShell, `$env:SDLC_READER = '1'` before the call). **Never switch the hooks off to get it through.**
 
@@ -84,7 +85,8 @@ Interrogate the verify document like any other artifact — `CON_22` applies to 
 accumulates are also what counts remediation passes.
 
 **The verify round has one reader no other round has: the diff reader** (D-139). `sdlc round prompt
---list` names it beside the rules reader and the perspectives, and it is started like them. It reads the
+--list` names it beside the rules reader and the perspectives, and it is started like them. The perspectives
+read the cycle's first verify round only; a later one is the rules and diff readers' (D-164). It reads the
 change itself — not the verdict — against the intent, the plan and the decisions, and holds it to `CON_07.2`
 (nothing the plan did not describe) and `CON_24` (nothing a decision set aside without a declared
 departure). **Its findings are about the code, so no adjudication answers them**: their ids start
@@ -102,7 +104,10 @@ recorded and that file removed, the last one committed — with any blockers sti
 **rewrite in place** (D-130): copy every entry as it stands unless a finding names its criterion, its test
 no longer passed, or the lines it quotes are gone from `diff.patch`, and answer each finding from the
 evidence — standing by a claim and citing why is an answer, as is changing it. A verdict rewritten whole
-each pass brings new sentences for every round to object to; one rewritten in place converges. Record what it returns, as above. Do not run `refine` on a verify document: a
+each pass brings new sentences for every round to object to; one rewritten in place converges. Record what it returns, as above.
+**When the new verdict reads `blocked`, do not interrogate it**: on the evidence the last round judged, the
+outcome sends the cycle to remediate whatever a round says, and `sdlc round prompt` refuses it, naming
+`/sdlc:remediate` (D-165). Hand back as on any blocked outcome. Do not run `refine` on a verify document: a
 criterion moved from Not met to Met by this session's argument is the self-grading this skill exists to
 prevent, however good the argument.
 

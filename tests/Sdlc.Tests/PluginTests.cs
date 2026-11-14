@@ -634,6 +634,34 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_interrogate_skill_hands_the_shared_block_over_as_a_system_prompt_one_reader_first()
+    {
+        // D-163. Piped in with the rest, the shared block was written to the cache by every reader and read back
+        // by none; started together, no reader finds another's copy. Measured, the two together halve a round,
+        // and either alone saves almost nothing.
+        string text = File.ReadAllText(Path.Combine(Root, "skills", "interrogate", "SKILL.md"));
+
+        StringAssert.Contains(text, "--append-system-prompt-file shared.md < rules.prompt.md", "The rules reader is not handed the shared block.");
+        StringAssert.Contains(text, "sleep 5", "Every reader starts at once, so none finds the cache warm.");
+        StringAssert.Contains(text, "--append-system-prompt-file shared.md < \"$p\"", "A perspective is not handed the shared block.");
+        StringAssert.Contains(text, "diff) SDLC_READER=1 claude -p", "The diff reader, whose prompt is whole, has no launch of its own.");
+    }
+
+    [TestMethod]
+    public void Every_reader_a_skill_starts_from_a_round_is_started_from_the_rounds_directory()
+    {
+        // D-163. Started in the checkout, the host hands a reader the project's memory, its git status and its
+        // latest commit messages: the author's context, measured at about 4,800 tokens a reader on one solution.
+        foreach ((string skill, string directory) in new[] { ("interrogate", "<scratch>/round"), ("verify", "<scratch>/verdict") })
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", skill, "SKILL.md"));
+
+            StringAssert.Contains(text, "( cd " + directory, $"{skill} starts a reader from the checkout.");
+            Assert.IsFalse(text.Contains("< " + directory + "/", StringComparison.Ordinal), $"{skill} pipes a prompt in from the checkout's working directory.");
+        }
+    }
+
+    [TestMethod]
     public void The_verify_skill_has_a_fresh_process_write_the_verdict_and_answer_its_findings()
     {
         string text = File.ReadAllText(Path.Combine(Root, "skills", "verify", "SKILL.md"));

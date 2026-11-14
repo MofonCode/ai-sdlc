@@ -654,7 +654,8 @@ rounds. Restating one where it already stands records nothing, and restating one
 refused, naming the next free id. The reconciling reader is also shown what is still open and names each
 finding that restates it, so a perspective raising a standing objection again keeps its id (D-108). Each finding cites exactly one rule by id and by that rule's own heading. A reader that finds two rules whose remedies
 exclude each other reports a conflict rather than picking a side. After the first round, perspective
-readers raise suggestions only about the sections that changed.
+readers raise suggestions only about the sections that changed, and on a verify they read the cycle's first
+round alone (D-164).
 
 **It never edits the artifact**, and it does not recommend whether to run another round.
 
@@ -700,9 +701,10 @@ a rule entirely about conformance to the stack file, so a reader without `techst
 object to a departure the plan had already admitted to (D-58).
 
 **The binary assembles and collects; the readers judge** (D-117). `sdlc round prompt` writes every
-reader's prompt — the block they share first, the same bytes for each, and each reader's own part last —
-and the skill starts one fresh non-interactive process per prompt with no tools, no MCP servers and no
-session file (D-118). `sdlc round collect` reads the answers, applies the reconciler, numbers new ids and
+reader's prompt — the block they share once, as `shared.md`, and each reader's own part in a file of its
+own — and the skill starts one fresh non-interactive process per prompt with no tools, no MCP servers and
+no session file (D-118), from the round's directory rather than the checkout, handing `shared.md` over as
+the system prompt and starting the rules reader a few seconds ahead, so the others find it cached (D-163). `sdlc round collect` reads the answers, applies the reconciler, numbers new ids and
 drafts the round, with each reader's usage beside it; the skill decides the dispositions of what no reader
 raised again and collects once more with `--answered`/`--withdrawn`, which copy them in from the ledger,
 records with `sdlc round`, and shows `sdlc status <id> --stage <artifact>` verbatim with at
@@ -1823,6 +1825,11 @@ cycle, never one in flight.
 plans name it, renames, merges, removes, re-globs and tags entries; `## Successors` turns a suggestion worth
 doing into a successor of the cycle it came from, its text copied in. Entries over the word budget are
 proposed for rewording (D-149).
+
+**A long backlog is mined a few cycles at a time** (D-166). When the person names cycles, the skill runs
+`sdlc mine --cycles <id>,<id>`: the findings, record and suggestions are those cycles' alone, the rule counts
+the whole record's, and the proposal file's `## Cycles` limits what `sdlc mine record` makes husks of, so
+the cycles not read wait for a later sitting.
 
 **Then the sitting is recorded and the husks named** (D-152). Once the drafts are placed, `sdlc mine record`
 writes `.sdlc/mined.json`: every finished cycle on the integration branch becomes a husk, with what later

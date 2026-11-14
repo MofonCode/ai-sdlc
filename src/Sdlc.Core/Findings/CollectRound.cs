@@ -117,7 +117,14 @@ public static class CollectRound
                 return active.ToResult<Response>();
             }
 
-            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name));
+            Result<bool> verifiedBefore = await ReaderAnswers.VerifiedBefore(mediator, request.Id, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (verifiedBefore.IsFailed)
+            {
+                return verifiedBefore.ToResult<Response>();
+            }
+
+            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name), verifiedBefore.Value);
             List<Finding> raised = [];
             List<Conflict> conflicts = [];
             List<string> demoted = [];

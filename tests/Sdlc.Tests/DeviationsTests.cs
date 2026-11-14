@@ -374,11 +374,12 @@ public sealed class DeviationsTests
 
         Assert.IsTrue(written.IsSuccess, string.Join("; ", written.Errors.Select(error => error.Message)));
 
-        foreach (string prompt in Directory.GetFiles(directory, "*.prompt.md").Where(path => !path.EndsWith("reconcile.prompt.md", StringComparison.Ordinal)))
+        for (int index = 0; index < written.Value.Prompts.Count; index++)
         {
-            string text = await File.ReadAllTextAsync(prompt);
-            StringAssert.Contains(text, "DEV_01 — The socket file is changed to fix a race (plan) -- in force, awaiting the person's answer", Path.GetFileName(prompt));
-            StringAssert.Contains(text, "<file name=\"deviations.md\">", Path.GetFileName(prompt));
+            string text = ReaderPromptsTests.Whole(written.Value, index);
+            string reader = written.Value.Prompts[index].Reader;
+            StringAssert.Contains(text, "DEV_01 — The socket file is changed to fix a race (plan) -- in force, awaiting the person's answer", reader);
+            StringAssert.Contains(text, "<file name=\"deviations.md\">", reader);
         }
     }
 

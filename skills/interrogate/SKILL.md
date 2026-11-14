@@ -32,16 +32,43 @@ readers and nothing else:
 
 ```bash
 sdlc round prompt <id> <artifact> --dir <scratch>/round
-for p in <scratch>/round/*.prompt.md; do
+( cd <scratch>/round
   SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
-    < "$p" > "${p%.prompt.md}.json" &
-done; wait
+    --append-system-prompt-file shared.md < rules.prompt.md > rules.json &
+  sleep 5
+  for p in *.prompt.md; do
+    r=${p%.prompt.md}
+    case $r in
+      rules) ;;
+      diff) SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
+              < "$p" > "$r.json" & ;;
+      *) SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
+           --append-system-prompt-file shared.md < "$p" > "$r.json" & ;;
+    esac
+  done; wait )
 ```
 
 `<scratch>` is any directory outside the repository that your host gives you to write in. What the
 command prints names every reader the round runs — the rules reader, the diff reader on a verify, then one
 per active perspective — and
-the path each answer goes to. They run concurrently, because they share nothing.
+the path each answer goes to. They run concurrently, because none sees another's answer.
+
+**`shared.md` is the block the rules reader and every perspective open with** — the document and what it
+is judged against — and each of their prompt files is only what that reader is asked. **Hand it over as
+the system prompt, and start the rules reader five seconds before the rest** (D-163). A host caches a
+prompt only up to a point it marks, and it marks the end of the system prompt: piped in with the rest, the
+shared block was paid for in full by every reader, and started together, no reader finds another's copy
+warm. Measured on one plan round, the two together halved what it cost. **The diff reader's prompt is
+whole** — it is composed from what its question needs, not from the shared block — so it takes no system
+prompt. A host with no way to take a system prompt from a file pipes `shared.md` and the prompt in that
+order, which is the same bytes one file used to hold.
+
+**Start every reader from the round's directory, never from the repository** (D-163). A host started in a
+checkout hands its process what it knows about that checkout before the prompt: Claude Code adds the
+project's memory — the notes earlier sessions kept about this solution — its git status and its latest commit
+messages, about 4,800 tokens measured on one solution, to every reader. That is the author's context the
+fresh process exists to leave out, paid for again by each reader. The parentheses keep the `cd` to the
+readers, so this session stays in the checkout and `sdlc round collect` still finds the solution.
 
 **The launch line is fixed, flag for flag** (D-118). **`--tools=`** — no tools, because everything a
 reader may read is in its prompt, and a reader that could open a file could read past what the round
@@ -96,6 +123,9 @@ so a document is judged against what the solution already settled and not only a
 what a person on call could tell at 3 a.m. — each in a fresh process of its own (`CONCEPT.md` §6.5, D-90).
 Its prompt carries its method, its questions for this artifact and the rules it may block on, and after
 the first round the sections changed since, with the instruction to raise suggestions about those alone.
+**On a verify, the perspectives read the cycle's first round only** (D-164): a later verify round is the rules
+and diff readers', and `sdlc round prompt` names the perspectives it leaves out. Say so in one line of the
+report; it is the design, not a gap.
 
 > **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
 > method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
@@ -105,8 +135,8 @@ Then **one reconciling reader**, in a fresh process of its own, once every other
 
 ```bash
 sdlc round prompt <id> <artifact> --dir <scratch>/round --reader reconcile
-SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
-  < <scratch>/round/reconcile.prompt.md > <scratch>/round/reconcile.json
+( cd <scratch>/round && SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config \
+  --no-session-persistence < reconcile.prompt.md > reconcile.json )
 ```
 
 Its prompt carries the artifact, every finding this round's readers raised, the findings still open on
