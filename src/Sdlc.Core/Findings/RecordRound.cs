@@ -216,6 +216,7 @@ public static class RecordRound
     /// and one with a stale copy both reach the hash of the commits the build was recorded at.
     /// </param>
     /// <param name="root">The repository's root, for <paramref name="repository"/>.</param>
+    /// <param name="withSources">Whether to include the files the proofs rest on outside the change, as rounds recorded before 0.46.0 did not (D-168).</param>
     /// <returns>The hash, or null when nothing has been recorded.</returns>
     public static async Task<string?> EvidenceHash(
         Cycle cycle,
@@ -223,7 +224,8 @@ public static class RecordRound
         bool withBuildLog = false,
         IRepository? repository = null,
         string? root = null,
-        bool withCoverage = true)
+        bool withCoverage = true,
+        bool withSources = true)
     {
         ArgumentNullException.ThrowIfNull(cycle);
 
@@ -255,6 +257,14 @@ public static class RecordRound
                 string hash = await ContentHash.OfFile(path, cancellationToken).ConfigureAwait(false);
                 listing.Append(name).Append(' ').Append(hash).Append('\n');
             }
+        }
+
+        // The files a proof rests on outside the change, as rebuilt (D-168). Nothing when every proof is in the
+        // patch, so a cycle that needs none hashes as it did before.
+        if (withSources && repository is not null && root is not null && EvidenceDiff.IsRebuilt(cycle)
+            && await ProofSources.Rebuild(cycle, repository, root, cancellationToken).ConfigureAwait(false) is { } sources)
+        {
+            listing.Append(ProofSources.FileName).Append(' ').Append(ContentHash.Of(sources)).Append('\n');
         }
 
         return listing.Length == 0

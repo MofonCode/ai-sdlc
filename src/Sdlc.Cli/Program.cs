@@ -104,6 +104,7 @@ try
         "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
         "discard" => await Workspace.Run(line, DiscardCommand).ConfigureAwait(false),
         "tidy" => await Workspace.Run(line, TidyCommand).ConfigureAwait(false),
+        "upgrade" => await Workspace.Run(line, w => UpgradeCommand(w, line)).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -1179,6 +1180,21 @@ static async Task<int> DiscardCommand(Workspace workspace)
 
 // The worktrees and branches whose work has reached the integration branch, and their removal (D-162).
 // A view: it prints the commands and runs none.
+static async Task<int> UpgradeCommand(Workspace workspace, CommandLine line)
+{
+    Result<UpgradeChecklist.Response> result = await workspace
+        .Send<UpgradeChecklist.Query, UpgradeChecklist.Response>(new UpgradeChecklist.Query(line.Arguments.Count > 0 ? line.Arguments[0] : null, Release.Version))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(UpgradeRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 static async Task<int> TidyCommand(Workspace workspace)
 {
     Result<TidyCycles.Response> result = await workspace
@@ -2044,6 +2060,28 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
         id = parsed.Value;
     }
 
+    // A merge that kept two branches' new suggestions under one id is mended here, not by hand (D-171).
+    if (line.HasOption("renumber"))
+    {
+        if (id is not { } cycle)
+        {
+            await Console.Error.WriteLineAsync("Which cycle? 'sdlc suggestions <id> --renumber'.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        Result<RenumberSuggestions.Response> renumbered = await workspace
+            .Send<RenumberSuggestions.Command, RenumberSuggestions.Response>(new RenumberSuggestions.Command(cycle))
+            .ConfigureAwait(false);
+
+        if (renumbered.IsFailed)
+        {
+            return await Report(renumbered, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(RenumberSuggestions.Render(renumbered.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
     Result<Suggestions.Response> result = await workspace
         .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(id, line.HasOption("all")))
         .ConfigureAwait(false);
@@ -2475,6 +2513,23 @@ static async Task<int> Hook(CommandLine line)
             $"'{namedEvent}' is not a hook event. Pass --event pre-tool-use, --event turn-end or --event session-start, or leave it off for pre-tool-use.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
+    }
+
+    // The plugin's copy of a hook steps aside where the solution's own configuration runs the same one, so each
+    // check speaks once (D-172). It reads its payload regardless, so the host never sees a closed pipe.
+    if (hookEvent != HookEvent.SessionStart
+        && line.TryOption(PluginHooks.SourceOption, out string? source)
+        && string.Equals(source, PluginHooks.PluginSource, StringComparison.Ordinal)
+        && PluginHooks.AnsweredBySettings(
+            Environment.GetEnvironmentVariable("CLAUDE_PROJECT_DIR") is { Length: > 0 } project ? project : Directory.GetCurrentDirectory(),
+            host.Value,
+            hookEvent == HookEvent.TurnEnd))
+    {
+        _ = await Console.In.ReadToEndAsync().ConfigureAwait(false);
+        await Console.Out.WriteAsync(hookEvent == HookEvent.TurnEnd
+            ? HookProtocol.WriteTurnEndDecision(host.Value, HookDecision.Allow, null)
+            : HookProtocol.WriteDecision(host.Value, HookDecision.Allow, null)).ConfigureAwait(false);
+        return ExitCode.Ok;
     }
 
     if (hookEvent == HookEvent.SessionStart)

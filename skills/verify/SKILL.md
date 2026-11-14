@@ -49,7 +49,7 @@ PowerShell, `$env:SDLC_READER = '1'` before the call). **Never switch the hooks 
 
 **The prompt is the binary's, and you neither edit it nor add to it** (D-117). It carries the plan, the
 spec and the evidence — `tests.json`, `base.sha`, `build.log` where this checkout has one,
-`diff.patch`, and `coverage.json` with the rates and floors the binary worked out (D-161) — then the constraints for a verify, each active perspective's questions for this stage, and
+`diff.patch`, `proof-sources.txt` when a proof lives in code the change did not touch (D-168), and `coverage.json` with the rates and floors the binary worked out (D-161) — then the constraints for a verify, each active perspective's questions for this stage, and
 the method: read the evidence and nothing else, adjudicate criterion by criterion, quote the assertion
 every Met rests on, cite everything, choose the outcome, and write the document. Nothing else — not the
 conversation, not what the build set out to do, not this session's view of how it went. Every one of
@@ -73,13 +73,17 @@ sdlc evidence check <id>
 ```
 
 A string match of the verdict against the evidence (D-120): every name `verify.md` cites in backticks
-that appears in none of the evidence — `tests.json`, `diff.patch`, `coverage.json`, and the build log where there is one — and every test it says passed that `tests.json`
+that appears in none of the evidence — `tests.json`, `diff.patch`, `proof-sources.txt` where there is one, `coverage.json`, and the build log where there is one — and every test it says passed that `tests.json`
 does not record as passed. **It reports and refuses nothing**, and you act on nothing it lists — a
 backticked name may be a type or a log line, and whether a claim rests on its evidence is the round's
 reader's to judge. Show what it prints verbatim before the round, so the person sees it beside what the
 round finds.
 
 ## Then run the loop, and stop
+
+**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
+person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
+how one person ended up asking "what is dev 1 - 5?".
 
 Interrogate the verify document like any other artifact — `CON_22` applies to it, and the rounds it
 accumulates are also what counts remediation passes.

@@ -51,6 +51,13 @@ internal static class Handoff
             return await Start(["exec", dev.Value, .. args], toStandardError: false).ConfigureAwait(false);
         }
 
+        // The one command this machine's release answers itself: asked inside a solution, the pinned release would
+        // describe an upgrade to itself (D-170).
+        if (args is [var verb, ..] && string.Equals(verb, "upgrade", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         string? pinned = PinnedRelease.Find(Directory.GetCurrentDirectory());
 
         if (pinned is null || string.Equals(pinned, Release.Version, StringComparison.OrdinalIgnoreCase))

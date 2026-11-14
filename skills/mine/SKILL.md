@@ -79,7 +79,9 @@ more**, and every entry the report lists **over the word budget** gets one of:
 - a proposal, by the heading it will have in the file
 - *already recorded*, naming the entry — `DEC_04`, `LOC_02`, a stack row
 - *a note for the framework* — a framework rule's cost, which no local entry can change; written under
-  `## For the framework` in the proposal file, with its evidence, for the person to carry to ai-sdlc
+  `## For the framework` in the proposal file, with its evidence, for the person to carry to ai-sdlc. Every
+  successor the report lists under *Gaps in the framework* goes there too, by its slug and its `framework:`
+  line (D-173)
 - *no proposal, because* — one line, and a real reason: a one-off, a mistake the rule caught correctly,
   a choice already in the code that nothing will revisit
 

@@ -172,7 +172,14 @@ end-to-end in a browser engine. A criterion whose only check is a person looking
 admissible — it belongs in the intent as a bound, verified outside the cycle, which is honest about
 not being governed.
 
-Four traps worth naming:
+**Nor is one that only the run as a whole could show** (D-167). The evidence verify reads is one
+recorded run: each test's name and outcome, the assertions in the diff, coverage and the build log. A
+criterion is shown by an assertion some test in that run makes, so ask of each one: *which test is in a
+position to observe this?* "A test times the import and asserts it is under 2 seconds" has an answer.
+"The full suite finishes in under 30 minutes" and "a run with two workers passes" do not — no test in
+the run can see either. Put such an outcome in `Out of scope`, naming who checks it outside the cycle.
+
+Five traps worth naming:
 
 - **A criterion about what happens *in* the browser cannot be proven by parsing a response.** The
   response is the input to the behaviour, not the behaviour.
@@ -181,6 +188,10 @@ Four traps worth naming:
 - **A failure has two audiences, and each gets a criterion.** `CON_17` is the person who met it, `CON_20`
   is whoever investigates afterwards. Write the second one's check as causing the failure and reading
   what it left: a log line no test reads is one a refactor deletes for free.
+- **A criterion about the run is not a criterion about the code.** How long the suite takes, whether
+  it passes again in another mode or on another machine, whether it is free of flakes: real outcomes,
+  each judged by a person reading a run, never by an assertion in one. Two real specs passed review
+  with one of these, and only the plan's author found that nothing could prove it.
 - **Number the criteria.** The plan's proof entries cite them by number, and `verify-chain` compares
   the two sets. A criterion deleted from the middle must not renumber the ones after it.
 
@@ -249,6 +260,10 @@ A spec carries no `Fixed decisions` section and needs none: its criteria derive 
 decision appearing here would derive from nothing.
 
 ## Run the loop, then hand back
+
+**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
+person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
+how one person ended up asking "what is dev 1 - 5?".
 
 Interrogate, refine, interrogate again until a round is clean, a reader reports a conflict, or the
 panel's `Loop` line says the loop is stuck. The three exits for a finding are the same as the intent's —

@@ -544,6 +544,46 @@ public static class FindingsReader
     }
 
     /// <summary>
+    /// Reads a suggestions ledger that may record one id twice, renumbers it, and checks what results as
+    /// <see cref="ReadSuggestions(string, string)"/> does (D-171).
+    /// </summary>
+    /// <param name="json">The ledger's JSON.</param>
+    /// <param name="source">What to call it in an error message.</param>
+    /// <returns>The renumbered ledger and what moved, or a failure naming what else is wrong with the file.</returns>
+    public static Result<(SuggestionLedger Ledger, IReadOnlyList<RenumberedSuggestion> Moved)> Renumber(string json, string source)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        SuggestionLedger? ledger;
+
+        try
+        {
+            ledger = JsonSerializer.Deserialize<SuggestionLedger>(json, _options);
+        }
+        catch (JsonException error)
+        {
+            return Result.Fail<(SuggestionLedger, IReadOnlyList<RenumberedSuggestion>)>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not valid JSON. {error.Message}"));
+        }
+
+        if (ledger?.Suggestions is null)
+        {
+            return Result.Fail<(SuggestionLedger, IReadOnlyList<RenumberedSuggestion>)>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not a suggestions ledger. It holds a suggestions list, and every suggestion's history."));
+        }
+
+        (SuggestionLedger renumbered, IReadOnlyList<RenumberedSuggestion> moved) = ledger.Renumbered();
+        Result<SuggestionLedger> checkedLedger = ReadSuggestions(Write(renumbered), source);
+
+        return checkedLedger.IsFailed
+            ? checkedLedger.ToResult<(SuggestionLedger, IReadOnlyList<RenumberedSuggestion>)>()
+            : Result.Ok((checkedLedger.Value, moved));
+    }
+
+    /// <summary>
     /// Reads a cycle's suggestions ledger, or an empty one when it has none yet.
     /// </summary>
     /// <param name="cycle">The cycle to read.</param>

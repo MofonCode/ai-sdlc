@@ -57,7 +57,7 @@ branch. The sitting says so, and the next one picks it up.
 | `## Watch` | a concern seen in fewer than three cycles, with the cycles | the ledger, at the record |
 | `## Declined` | a suggestion decided against, with why | the ledger, at the record |
 | `## Ignored` | a suggestion let go, as its concern and the cycles | the ledger's tally, at the record |
-| `## For the framework` | a framework rule's cost here, for somebody to carry to ai-sdlc | nothing: it is a note |
+| `## For the framework` | a framework rule's cost here, and every successor marked `framework:` — the report lists them under *Gaps in the framework* — for somebody to carry to ai-sdlc (D-173) | nothing: it is a note |
 | `## Not proposed` | every other item the record raised, with why it gets no proposal | nothing: it shows the reading was complete |
 
 **There is no remove** for a rule or a decision. One out of force is superseded and keeps its place; a reversed

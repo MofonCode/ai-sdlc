@@ -118,7 +118,8 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
 
   `succeeds:` names what it waits for: the cycle id of a piece you just opened, or `successor:<slug>` for
   one that is itself a successor. `sliced_from:` is the lead, when there was one; `mirror:` may name a
-  work item standing for it on a board. **Nothing else** — no spec, no plan, no criteria: those would
+  work item standing for it on a board; `framework:` says, in a line, what in the framework itself fell
+  short, when the work exists because of a gap there rather than in this solution (D-173). **Nothing else** — no spec, no plan, no criteria: those would
   describe code that does not exist yet. Then `sdlc successor check` in the sandbox, and correct what it
   refuses.
 
@@ -332,6 +333,13 @@ takes fourteen seconds and people stop opening it" is an intent.
 **Do not discard their solution.** A decision already taken is legitimate — record it under **Fixed
 decisions** with who decided it and when. That keeps the intent a problem statement while letting the
 plan honour the decision, and six months later it distinguishes a requirement from an assumption.
+
+**When an outcome is measured over a whole run, ask who will judge it.** *"The full suite runs in under
+half an hour"*, *"it passes with two workers"*, *"no flaky tests"* are real outcomes, but no test in a
+recorded run can observe them, so the spec cannot make them criteria (`CON_12`, D-167). Ask once: *"that
+is a property of the whole run, which no test can check — will you judge it yourself, from a run?"* Record
+the answer with the outcome, so the spec puts it in `Out of scope` naming who checks it, rather than a
+reader finding it there or the plan's author after the spec was approved.
 
 ### *Not sure* is an answer
 
@@ -564,6 +572,12 @@ unconfirmed. `CON_02` forbids stating it as settled fact — and it also forbids
 like a fix: rewording "fourteen seconds" into "slow" removes the problem from the page while leaving
 the belief in it.
 
+**Before the first round, read the draft once for every claim stated as fact.** Each number, cause, current
+behaviour and "users do X": did the person say it from what they saw, did you read it in the repository,
+or is it a belief? Every belief goes to `Fixed decisions` marked unconfirmed, or to `## Open` when nobody can
+settle it yet, in this one pass. One real intent took four rounds because each round's reader found one
+more unknown stated as fact; a reader finds them one at a time, and you can find them all at once.
+
 ## 5. Run the loop
 
 You are not done when the file is written. Interrogate it, apply what comes back, and interrogate
@@ -607,6 +621,10 @@ declared one: the count cannot tell a genuine conflict from a refiner repeating 
 a person.
 
 ## 6. Report and hand back
+
+**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
+person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
+how one person ended up asking "what is dev 1 - 5?".
 
 **First, the suggestions the intent's rounds left open, if there are any.** Ask once, from a file, in
 free text (D-114). Leaving them is an answer, and the commonest one — skip all of this when nothing is

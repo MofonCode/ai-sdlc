@@ -92,6 +92,22 @@ public static class EvidenceRenderer
                 $"{Indent}          whole codebase {coverage.Rate:P1}, {Codebase(coverage)}"));
         }
 
+        // Where the time went, for diagnosis: no reader is handed it (D-169).
+        if (report.Timings is { } timings)
+        {
+            output.AppendLine();
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}Timing    {(timings.Wall is { } wall ? "the run took " + RunTimings.Say(wall) : "the results files give no start and finish")}, across {Count(timings.Files.Count, "results file")}. Kept in {RunTimings.FileName}; no reader is handed it"));
+
+            foreach (TimedTest slow in timings.Slowest.Take(5))
+            {
+                output.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Indent}          {RunTimings.Say(TimeSpan.FromSeconds(slow.Seconds)),8}  {slow.Name}"));
+            }
+        }
+
         if (report.RetiredVerdict)
         {
             output.AppendLine();

@@ -143,6 +143,13 @@ internal static class Usage
                                      a slicing or sandbox once every cycle it carries is, anything
                                      of an abandoned cycle. Prints the removal for a person to run.
                                      Deletes nothing, and leaves remote branches alone.
+            upgrade [<release>]      Everything that moves to take a release, in order, with what
+                                     each is on now: this machine's tool, the plugin, this
+                                     solution's pin and what 'sdlc init' writes, the factory's
+                                     images when it has one, and the open cycles still pinning an
+                                     older release. Without a release, the one this machine runs.
+                                     Always answered by this machine's release, never the pinned
+                                     one. Runs nothing.
             park <id>                Compare a cycle's plan with every plan not yet built. A file
                                      only another creates parks it: writes parked.md with what it
                                      waits on, keeping its spec and plan. A file two plans both
@@ -292,6 +299,10 @@ internal static class Usage
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --
                                      with the cycle that decided it.
+            suggestions <id> --renumber
+                                     Give every suggestion id the cycle's ledger records twice --
+                                     two branches each numbering a new one, and a merge keeping
+                                     both -- the next free id, the first keeping its own (D-171).
             decisions                The choices this solution has already settled, so a cycle reads
                                      what was argued rather than arguing it again. CON_24 asks a cycle
                                      departing from one to declare it where it arises. Names

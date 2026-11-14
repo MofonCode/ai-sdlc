@@ -25,6 +25,12 @@ public enum SuggestionEventKind
     Withdrawn,
 }
 
+/// <summary>A suggestion whose id was recorded twice, and the id it moved to (D-171).</summary>
+/// <param name="From">The id it shared.</param>
+/// <param name="To">The id it has now.</param>
+/// <param name="Raised">Where it was first raised, for a person.</param>
+public sealed record RenumberedSuggestion(string From, string To, string Raised);
+
 /// <summary>One line of a suggestion's history: one document, one round, one event (D-115).</summary>
 /// <param name="Artifact">The document's name: <c>intent</c>, <c>spec</c>, <c>plan</c> or <c>verify</c>.</param>
 /// <param name="Round">That document's round.</param>
@@ -192,7 +198,7 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
             // merge keeps both: the usual way one id comes to be recorded twice (D-162).
             if (!ids.TryAdd(suggestion.Id, suggestion))
             {
-                return Fail(source, $"{suggestion.Id} is recorded twice, {Raised(ids[suggestion.Id])} and {Raised(suggestion)}. One id is one concern. Two branches of the cycle each numbering a new suggestion, and a merge keeping both, is the usual cause: give the later one the next free id here and wherever its round carries it.");
+                return Fail(source, $"{suggestion.Id} is recorded twice, {Raised(ids[suggestion.Id])} and {Raised(suggestion)}. One id is one concern. Two branches of the cycle each numbering a new suggestion, and a merge keeping both, is the usual cause: 'sdlc suggestions {Cycle} --renumber' gives the later one the next free id.");
             }
 
             if (suggestion.History.Count == 0)
@@ -314,6 +320,38 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
         }
 
         return Result.Ok(this with { Suggestions = suggestions });
+    }
+
+    /// <summary>
+    /// Gives every id recorded more than once, after its first, the next free id under its prefix (D-171).
+    /// </summary>
+    /// <remarks>
+    /// Two branches of one cycle each number a new suggestion past the ledger they started from, and a merge keeps
+    /// both. The first in the file keeps the id, so a person who already read it under that id still finds it;
+    /// nothing else holds a suggestion's id, so the ledger is the one place it moves.
+    /// </remarks>
+    /// <returns>The ledger with every id once, and each id that moved.</returns>
+    public (SuggestionLedger Ledger, IReadOnlyList<RenumberedSuggestion> Moved) Renumbered()
+    {
+        HashSet<string> seen = new(StringComparer.Ordinal);
+        List<LedgerSuggestion> suggestions = [];
+        List<RenumberedSuggestion> moved = [];
+
+        foreach (LedgerSuggestion suggestion in Suggestions)
+        {
+            if (seen.Add(suggestion.Id))
+            {
+                suggestions.Add(suggestion);
+                continue;
+            }
+
+            string next = NextId([.. Suggestions, .. suggestions], suggestion.Id);
+            seen.Add(next);
+            suggestions.Add(suggestion with { Id = next });
+            moved.Add(new RenumberedSuggestion(suggestion.Id, next, Raised(suggestion)));
+        }
+
+        return (this with { Suggestions = suggestions }, moved);
     }
 
     /// <summary>The ledger as the file holds it.</summary>

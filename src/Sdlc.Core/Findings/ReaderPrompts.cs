@@ -179,6 +179,15 @@ public static class ReaderPrompts
                 await File(block, "evidence/" + name, path, "It was not recorded.", cancellationToken).ConfigureAwait(false);
             }
 
+            // A proof resting on code the change never touched is quoted from here, or it could be quoted from
+            // nowhere (D-168). Only when there is one.
+            string sources = Path.Combine(cycle.EvidenceDirectory, ProofSources.FileName);
+
+            if (System.IO.File.Exists(sources))
+            {
+                await File(block, "evidence/" + ProofSources.FileName, sources, "It was not recorded.", cancellationToken).ConfigureAwait(false);
+            }
+
             await Covered(block, cycle, cancellationToken).ConfigureAwait(false);
             await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
         }
@@ -403,6 +412,7 @@ public static class ReaderPrompts
             if (request.Artifact == ArtifactKind.Verify)
             {
                 await EvidenceDiff.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
+                await ProofSources.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
             }
 
             if (adjudicating && request.Artifact != ArtifactKind.Verify)
@@ -604,14 +614,18 @@ public static class ReaderPrompts
                 await JudgedItems.In(new Cycle(request.Id, solution.Path), set.Value, cancellationToken).ConfigureAwait(false));
 
             // A Met is checked by finding its quote in the diff, and a reader without that instruction
-            // only checks that something was named.
-            string verify = request.Artifact == ArtifactKind.Verify
-                ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is not in the diff, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n"
-                : string.Empty;
+            // only checks that something was named. A spec reader is told what the evidence will be, or a
+            // criterion only the run as a whole could show passes spec and is found by the plan's author (D-167).
+            string stage = request.Artifact switch
+            {
+                ArtifactKind.Verify => "\nEach Met quotes the assertion it rests on from `diff.patch`, or from `proof-sources.txt` when the proof lives\nin code the change did not touch. Find each quote where it says it is, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is in neither file, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n",
+                ArtifactKind.Spec => "\nThe evidence each criterion will be judged on is one recorded run: each test's name and outcome, the\nassertions in the diff, coverage and the build log. A criterion is shown only by an assertion some test in\nthat run makes. One whose check is a property of the run itself -- how long the whole run or suite takes,\nwhether a run in another mode, with other workers or on another machine passes, whether repeated runs are\nfree of flakes -- has nothing in the evidence to show it, and breaks `CON_12`. A test that times one\noperation, or runs the code two ways, and asserts the result is admissible.\n",
+                _ => string.Empty,
+            };
 
             return Result.Ok(Template("rules")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal)
-                .Replace("{{verify}}", verify, StringComparison.Ordinal)
+                .Replace("{{stage}}", stage, StringComparison.Ordinal)
                 .Replace("{{rows}}", rows, StringComparison.Ordinal)
                 .Replace("{{rowsShape}}", rowsShape, StringComparison.Ordinal));
         }

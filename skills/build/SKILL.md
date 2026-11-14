@@ -256,6 +256,10 @@ This writes the diff, the two commits it is measured between, every results file
 normalised test summary merged from all of them. **Verify reads only these files.** A verdict derived
 from your recollection of the build is a verdict nobody can check, which is what `CON_22` forbids.
 
+It also keeps `timings.json` — how long the run took and its 25 slowest tests — and prints the wall time
+and the five slowest (D-169). Commit it with the evidence. No reader is handed it: it is there for whoever
+asks where the time goes, never as a criterion's proof.
+
 **Point `--tests` at the directory, not at one file.** Every test project a run covers writes its own
 results file, so a single path records one project and silently drops the rest — a cycle recorded 14 of
 26 results that way, and the 12 that vanished were the architecture tests. The command prints how many
@@ -290,6 +294,10 @@ defect rather than a step to work around — it means git cannot see the change 
 `git status --short` is where to look.
 
 ## Report and hand back
+
+**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
+person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
+how one person ended up asking "what is dev 1 - 5?".
 
 ```
 sdlc status <id> --brief

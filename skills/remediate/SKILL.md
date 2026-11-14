@@ -44,7 +44,10 @@ a cycle that would have opened a pull request into one that cannot.**
 So when the honest conclusion is "the approved text cannot be followed", **record a deviation** rather
 than editing the document or stopping (D-156). Do not make the code satisfy a criterion you believe is
 mistaken, and do not edit the criterion: a `criterion` deviation narrows it, quoting it word for word, and
-names the successor the dropped part becomes. A person answers every deviation before the merge.
+names the successor the dropped part becomes. A person answers every deviation before the merge. **When
+what could not be followed is a gap in the framework itself** — the verify was never handed a file, the
+evidence drops one — give that successor `framework:` and a line saying what fell short, so mining hands it
+to the framework rather than leaving it in the solution's backlog (D-173).
 
 A deviation is a section appended to `.sdlc/cycles/<id>/deviations.md`:
 
@@ -182,6 +185,10 @@ opening another. Say in the same line that it is worth carrying on in a new sess
 added its build and test output to this one.
 
 ## Report and hand back
+
+**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
+person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
+how one person ended up asking "what is dev 1 - 5?".
 
 **One line per pass**, and in it **one line per unmet criterion and per finding** it worked, carrying three
 things: what was wrong, what you changed — or the deviation you recorded — and whether you are confident that

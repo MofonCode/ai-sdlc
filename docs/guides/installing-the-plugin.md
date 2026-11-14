@@ -19,6 +19,8 @@ Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code re
 twenty-one skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
+Claude Code runs both copies, so the plugin's steps aside wherever the repository's `.claude/settings.json`
+already runs the same hook, and each check speaks once; before adoption the plugin's copy is the guard (D-172).
 
 **All three hosts are governed, and adoption writes every configuration regardless of which one you
 use.** That is deliberate: a file is inert on a machine without that host, and a teammate who opens the
@@ -323,6 +325,12 @@ dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.C
 reinstall took, look at the file's timestamp or run a command only the newer build has.
 
 ### Then each governed repository
+
+**Start with `sdlc upgrade` in the solution.** It prints every step below that applies there, in order, with the
+release each piece is on now: this machine's tool, the plugin, the pin and adoption on a branch, the factory's
+images when the solution has a factory, and the open cycles still pinning an older release. It runs nothing, and
+it is answered by this machine's release rather than the one the solution pins (D-170). The rest of this section
+is why each step is there.
 
 **Reinstalling updates this machine and no repository on it.** Every governed solution still pins the
 release it pinned, and has the hook configuration, the pipeline and the `.sdlc/README.md` that release wrote.

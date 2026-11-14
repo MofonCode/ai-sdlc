@@ -8,7 +8,7 @@ Here are the rules in force. Each has an `Applies to`, a `Forbids` and a `Why`:
 <rules>
 {{constraints}}
 </rules>
-{{verify}}
+{{stage}}
 For each rule, decide whether the document to judge breaks it. Report only what you can point at in the
 document. Do not report style, wording you would have chosen differently, or anything the rules do not
 forbid.

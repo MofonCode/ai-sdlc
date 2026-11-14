@@ -519,6 +519,16 @@ lists what the release asks.
 
 ---
 
+## `sdlc upgrade` — the one way the checklist is refused
+
+### no release to move to
+
+`sdlc upgrade` is refused when the release it would move to is a local build — this machine runs one through
+`SDLC_DEV_BUILD` and no release was named — or when the word given is not a release. A local build is never
+pinned or published (D-135), so a checklist moving a solution to one would end in a pin no feed can restore.
+
+**Next:** name the release: `sdlc upgrade 0.46.0`, as nuget.org lists `MofonCode.Sdlc.Cli`.
+
 ## A promotion's pull request — the one way it is refused
 
 A pull request into a branch that is neither the integration branch nor a `release/*` branch — main, usually —

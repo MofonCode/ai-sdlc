@@ -64,6 +64,10 @@ public sealed record SuccessorReference(CycleId? Cycle, string? Slug)
 /// <param name="Mirror">A work item standing for it on a board, when somebody filed one.</param>
 /// <param name="Outcome">What it should make possible, as the interview left it.</param>
 /// <param name="Why">Why that matters.</param>
+/// <param name="Framework">
+/// What in the framework fell short, when the work exists because of a gap there rather than in the solution
+/// (D-173). Mining lists these for a person to take to the framework.
+/// </param>
 public sealed record Successor(
     string Slug,
     string? Headline,
@@ -71,7 +75,8 @@ public sealed record Successor(
     string? SlicedFrom,
     string? Mirror,
     string Outcome,
-    string Why)
+    string Why,
+    string? Framework = null)
 {
     /// <summary>The directory under <c>.sdlc/</c> that holds the successors.</summary>
     public const string DirectoryName = "successors";
@@ -81,7 +86,7 @@ public sealed record Successor(
         RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(1));
 
-    private static readonly string[] _keys = ["succeeds", "sliced_from", "mirror"];
+    private static readonly string[] _keys = ["succeeds", "sliced_from", "mirror", "framework"];
 
     /// <summary>
     /// Where a solution's successors live, relative to its root and forward-slashed.
@@ -165,7 +170,7 @@ public sealed record Successor(
         {
             problems.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"'{key}' is not a key a successor carries. It carries succeeds:, sliced_from: and mirror:."));
+                $"'{key}' is not a key a successor carries. It carries succeeds:, sliced_from:, mirror: and framework:."));
         }
 
         List<SuccessorReference> succeeds = [];
@@ -222,7 +227,8 @@ public sealed record Successor(
                 slicedFrom,
                 mirror,
                 outcome,
-                why));
+                why,
+                Value(keys.Value, "framework")));
     }
 
     private static string? Value(IReadOnlyDictionary<string, string?> keys, string key) =>
