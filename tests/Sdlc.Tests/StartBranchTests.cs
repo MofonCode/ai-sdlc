@@ -97,6 +97,38 @@ public sealed class StartBranchTests
     }
 
     [TestMethod]
+    public async Task A_build_starts_from_the_admission_branch_that_carries_its_plan()
+    {
+        // D-162. An admission of several cycles is named for the sandbox, so looking for this cycle's own
+        // plan branch never found it.
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.Refs.Add("slices/sandbox-20260929-1400-00/plan");
+        git.PathsAt.Add("slices/sandbox-20260929-1400-00/plan:" + Plan);
+
+        StartBranch.Response start = await Ask(git, CycleBranchKind.Build);
+
+        Assert.AreEqual("git switch --no-track -c cycle/" + Id + "/build slices/sandbox-20260929-1400-00/plan", start.Command);
+    }
+
+    [TestMethod]
+    public async Task A_plan_only_in_a_sandbox_names_admit_and_builds_from_it_only_with_nothing_to_admit_to()
+    {
+        FakeRepository git = new();
+        git.Refs.Add("sandbox/20260929_1400_00");
+        git.PathsAt.Add("sandbox/20260929_1400_00:" + Plan);
+
+        StartBranch.Response start = await Ask(git, CycleBranchKind.Build);
+        Assert.AreEqual("git switch --no-track -c cycle/" + Id + "/build sandbox/20260929_1400_00", start.Command, "Admit says so when there is no integration branch.");
+
+        git.Refs.Add("origin/development");
+        Result<StartBranch.Response> refused = await Send(git, CycleBranchKind.Build);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "sdlc admit");
+    }
+
+    [TestMethod]
     public async Task A_fix_for_a_release_builds_from_the_release_and_takes_its_documents_from_the_plan()
     {
         // D-88: the intent names the release; the code starts there and the cycle's documents come along.

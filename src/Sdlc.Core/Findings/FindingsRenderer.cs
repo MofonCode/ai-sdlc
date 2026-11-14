@@ -332,7 +332,7 @@ public static class FindingsRenderer
         {
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {finding.Id,-28} {(finding.Severity == Severity.Blocking ? "blocking" : "suggestion"),-10} {Shorten(finding.Headline)}"));
+                $"  {finding.Id,-28} {Label(finding),-10} {Shorten(finding.Headline)}"));
         }
 
         foreach ((string reader, string standing) in response.Restated)
@@ -348,8 +348,8 @@ public static class FindingsRenderer
         if (response.NotRaised.Count > 0)
         {
             text.AppendLine();
-            text.AppendLine("No reader raised these again. Add each to the draft as answered or withdrawn, as the refiner's report says,");
-            text.AppendLine("or leave it out and it stays open (D-49):");
+            text.AppendLine("No reader raised these again. Settle each as the refiner's report says, by collecting again with");
+            text.AppendLine("--answered <ids> or --withdrawn <ids>, or leave it and it stays open (D-49):");
 
             foreach (Finding finding in response.NotRaised)
             {
@@ -364,6 +364,13 @@ public static class FindingsRenderer
 
         return text.ToString();
     }
+
+    private static string Label(Finding finding) => finding.Disposition switch
+    {
+        Disposition.Answered => "answered",
+        Disposition.Withdrawn => "withdrawn",
+        _ => finding.Severity == Severity.Blocking ? "blocking" : "suggestion",
+    };
 
     /// <summary>What <c>sdlc round verdict</c> prints.</summary>
     /// <param name="response">The verdict written.</param>

@@ -2309,7 +2309,7 @@ they print verbatim.
 | `deviations <id>` | where the build bent the approved documents: each deviation, whether a person accepted, declined or has yet to answer it, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, an accepted narrowing with no successor. Exits 1 while anything is wrong (D-156) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
-| `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session adds the dispositions of earlier findings (D-49) — D-117, D-121 |
+| `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session decides the dispositions of earlier findings (D-49), and `--answered`/`--withdrawn` copy the ones it settles in from the ledger word for word — D-117, D-121, D-162 |
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
@@ -2323,7 +2323,7 @@ they print verbatim.
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
-| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144) |
+| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162) |
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
@@ -2335,6 +2335,7 @@ they print verbatim.
 | `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
 | `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
+| `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
@@ -6156,6 +6157,8 @@ for a word. Worth doing with the next change to that file's keys, not for its ow
 
 **Governs:** §8.2, §8.3, §9, §11.3, §15.2, §18
 
+**Amended by D-162.** `draft solution` moves the approval and the coverage floor too, each only when asked by name.
+
 **Superseded in part by D-81.** `--adopt-standard` is no longer answered with a sentence; it is refused
 as an option `init` does not take. Everything else stands.
 
@@ -7284,6 +7287,56 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-162 — The binary copies what a person or session decided, and says what has merged
+
+**Governs:** §5.2, §6.1, §10.3, §15.2
+
+**Amends D-117:** `round collect` settles the earlier findings the session names. **Amends D-144:** `sdlc branch
+<id> build` finds a plan on an admission branch, and in a sandbox only when there is nothing to admit it to.
+**Amends D-156:** the deviation answers a person gives can be drafted in. **Amends D-77:** `draft solution` moves
+the approval and the coverage floor as well as the standard.
+
+**Decision.**
+
+- **`round collect --answered <ids> --withdrawn <ids>`** copies each named finding from the ledger word for word,
+  with only its disposition moved. Which disposition is still the session's (D-49), and anything unnamed stays open.
+  It refuses an id not open on the document, one a reader raised again, and one named both ways.
+- **`draft approval --accept <ids> --decline <ids> --note <why>`** drafts the person's answers to deviations in. One
+  note covers every decline; any deviation not named stays unanswered; the rename is still the person's act.
+- **`draft solution --approval required|none --coverage-floor <percent>`** moves those keys and says so.
+- **The approval rename is printed with absolute paths**, once for bash and once for PowerShell, so it works from any
+  directory and from the main checkout when the draft is in a worktree.
+- **`sdlc branch <id> build` finds the plan on a slicing's admission branch.** A plan only in a sandbox is refused,
+  naming `sdlc admit`, unless the solution has no integration branch, which is when admit itself says to build from
+  the sandbox. The build skill switches branch before it asks the gate.
+- **`sdlc tidy`** prints the removal of every worktree and local branch whose work has reached the integration
+  branch: a plan branch once its plan is there, another cycle branch once its verification passes there, a slicing
+  or a sandbox once every cycle it changed is, every branch of an abandoned cycle. It runs nothing, removes a worktree
+  without `--force`, and leaves remote branches alone.
+- **A status panel offers `sdlc tidy`, not a pull request, once the cycle's verification passes on the integration
+  branch.**
+- **A suggestion id recorded twice names where each was raised**, and the usual cause: two branches of one cycle each
+  numbering past the ledger they started from.
+
+**Why.** Mining MarketSense's sessions found agents doing by hand what is a lookup. To settle earlier findings
+they wrote `settle.py` and `round.sh` scripts, which crashed, mismatched entries and were refused for retyping, and
+one deleted findings with a filter the binary cannot tell from settling them. Placing approvals failed for the person:
+"cannot stat" twice because the draft was in a sandbox worktree and the rename was relative to the root, a PowerShell
+rename pasted into bash, and "give me the mv command" five or six times. An agent's `sed` left two `approval:` keys.
+The person switched to `approval: none` the day after, which reads as tiredness with placing approvals rather than a
+judgement against them. Building from an admission of several cycles needed a hand-made branch, while admit's own
+refusal promised building from the sandbox worked. One cleanup removed twelve worktrees and fifteen branches by hand,
+because after a squash merge git calls every branch unmerged. And the panel kept offering `/sdlc:pr` after the merge.
+
+**Rejected.** *`round collect` writing every unraised finding with a blank disposition for the session to fill.* A
+blank would need a refusal of its own, which changes how a round blocks, and silence keeping a finding open (D-49)
+already covers what is left unnamed. *Building straight from a sandbox whenever its plan is there.* A sandbox is
+planned in and never merged (D-144), so it would skip the admission and its pull request. *One rename line for both
+shells.* The overwriting flag is `-f` in one and `-Force` in the other. *A repeated `--decline` with a note each.* The
+command line keeps one value per option; a second reason is an edit to the note, which the person can make.
+*Numbering suggestions per document so two branches cannot collide.* It changes an id other files parse, and the
+collision has happened once; the refusal now says where both were raised and what to do.
+
 ### D-161 — The adjudicator reads the coverage, evidence git would drop breaks the chain, and a new run retires a blocked verdict
 
 **Governs:** §4.5, §6
@@ -7507,6 +7560,8 @@ nothing changes, so no solution is refused on the upgrade that would have passed
 
 
 **Governs:** §5.2, §6.3, §6.4, §10.3
+
+**Amended by D-162.** `draft approval --accept` and `--decline --note` draft the person's answers in; the rename is still theirs.
 
 **Narrows D-19:** a reopen is for a plan wrong about *what* the cycle delivers; a build that has to change *how*,
 or narrow a criterion, deviates instead. **Extends D-65** to deviations, **D-66**'s escalation, and **D-123**: an
@@ -7944,6 +7999,8 @@ is where that is answered, by reading the plan again against what merged rather 
 ### D-144 — Work is planned in a sandbox, one worktree holding every cycle it turns into, and only what is approved leaves it
 
 **Governs:** §3.1, §15.2
+
+**Amended by D-162.** `sdlc branch <id> build` finds a plan on a slicing's admission branch, and refuses one only in a sandbox, naming `sdlc admit`, unless there is no integration branch to admit it to.
 
 **Revisits D-105 and D-94; extends D-125.** D-105 gave each cycle a worktree and a plan branch of its own from its
 first question, and left D-94's refusal of uncommitted work in `sdlc new` because the person's checkout was still
@@ -9286,6 +9343,8 @@ fix for that, and one result object is what collect reads.
 ### D-117 — The binary composes every reader's prompt and collects every reader's answer
 
 **Governs:** §2.5, §6, §6.5
+
+**Amended by D-162.** `round collect --answered` and `--withdrawn` copy the earlier findings the session settles in from the ledger word for word; the session still decides which.
 
 **Decision.** `sdlc round prompt <id> <artifact>` writes each reader's prompt for a round into a
 directory — the rules reader's, one per active perspective, and once those have answered the

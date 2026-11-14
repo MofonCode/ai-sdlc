@@ -61,8 +61,19 @@ public static class ApprovalText
     /// person does when they are least inclined to look a format up, and giving help to the easy case
     /// while withholding it from the hard one is the asymmetry people resent.
     /// </param>
-    public sealed record Query(CycleId Id, string By, GateDecision Decision = GateDecision.Approved)
+    /// <param name="Answers">Deviations to draft already answered, or null to draft every one unanswered.</param>
+    public sealed record Query(CycleId Id, string By, GateDecision Decision = GateDecision.Approved, DeviationAnswers? Answers = null)
         : IRequest<Response>;
+
+    /// <summary>
+    /// The deviations a draft carries already answered (D-162): the person said which, and copying that into
+    /// the draft by hand is what an agent kept getting wrong. The rename still records it, and only a person
+    /// makes that.
+    /// </summary>
+    /// <param name="Accept">The deviations drafted with <c>accepted: true</c>.</param>
+    /// <param name="Decline">The deviations drafted declined, each with the note.</param>
+    /// <param name="Note">Why the declined ones are declined.</param>
+    public sealed record DeviationAnswers(IReadOnlyList<string> Accept, IReadOnlyList<string> Decline, string? Note);
 
     /// <summary>The label a plan's list of the choices it makes opens with.</summary>
     public const string DecisionsLabel = "Decisions this plan makes:";
@@ -185,7 +196,14 @@ public static class ApprovalText
                 && status.Gate.Ledger?.IsApproved == true
                 && (deviations.Pending.Count > 0 || (deviations.Recorded && deviations.States.Count == 0 && deviations.Problems.Count > 0)))
             {
-                return await Deviations(status, deviations, request.By, cancellationToken).ConfigureAwait(false);
+                return await Deviations(status, deviations, request.By, request.Answers, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (request.Answers is { } answers && (answers.Accept.Count > 0 || answers.Decline.Count > 0))
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {status.Cycle.Id} has no deviation waiting for an answer, so there is nothing to accept or decline."));
             }
 
             // D-123: once the plan is on the integration branch, a reopen is an amendment to what the team and
@@ -275,6 +293,7 @@ public static class ApprovalText
             ReadCycleStatus.Response status,
             DeviationsState deviations,
             string by,
+            DeviationAnswers? answers,
             CancellationToken cancellationToken)
         {
             if (deviations.States.Count == 0)
@@ -289,7 +308,27 @@ public static class ApprovalText
                 ]), GateDecision.Deviations);
             }
 
-            string entry = DeviationsEntry(by, clock.GetUtcNow(), deviations.Pending);
+            DeviationAnswers given = answers ?? new DeviationAnswers([], [], null);
+            HashSet<string> pending = [.. deviations.Pending.Select(state => state.Deviation.Id)];
+
+            if (given.Accept.Intersect(given.Decline, StringComparer.Ordinal).FirstOrDefault() is { } both)
+            {
+                return Result.Fail<Response>(string.Create(CultureInfo.InvariantCulture, $"{both} is named both accepted and declined. Name it once."));
+            }
+
+            if (given.Accept.Concat(given.Decline).FirstOrDefault(id => !pending.Contains(id)) is { } unknown)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{unknown} is not a deviation waiting for an answer. Those waiting: {string.Join(", ", pending.Order(StringComparer.Ordinal))}."));
+            }
+
+            if (given.Decline.Count > 0 && string.IsNullOrWhiteSpace(given.Note))
+            {
+                return Result.Fail<Response>("A declined deviation is redone, and the note is what the build redoes it from. Say why with --note.");
+            }
+
+            string entry = DeviationsEntry(by, clock.GetUtcNow(), deviations.Pending, given);
 
             Result<LedgerFile> file = await Compose(status, entry, cancellationToken).ConfigureAwait(false);
 
@@ -348,7 +387,7 @@ public static class ApprovalText
         }
 
         /// <summary>The deviations entry: who, when, and each deviation with its hash, unanswered.</summary>
-        private static string DeviationsEntry(string by, DateTimeOffset at, IReadOnlyList<DeviationState> pending)
+        private static string DeviationsEntry(string by, DateTimeOffset at, IReadOnlyList<DeviationState> pending, DeviationAnswers answers)
         {
             StringBuilder entry = new();
 
@@ -366,8 +405,9 @@ public static class ApprovalText
                 entry.AppendLine(CultureInfo.InvariantCulture, $"        gist: {Quoted(deviation.Gist)}");
                 entry.AppendLine(CultureInfo.InvariantCulture, $"        kind: {Deviation.NameOf(deviation.Kind)}");
                 entry.AppendLine(CultureInfo.InvariantCulture, $"        sha256: {deviation.Sha256}");
-                entry.AppendLine("        accepted: false");
-                entry.AppendLine("        note: \"\"");
+                bool declined = answers.Decline.Contains(deviation.Id, StringComparer.Ordinal);
+                entry.AppendLine(answers.Accept.Contains(deviation.Id, StringComparer.Ordinal) ? "        accepted: true" : "        accepted: false");
+                entry.AppendLine("        note: " + (declined ? Quoted(answers.Note!.Trim()) : "\"\""));
             }
 
             return entry.ToString();
@@ -684,8 +724,8 @@ public static class ApprovalText
             IReadOnlyList<string>? decisions,
             IReadOnlyList<string> departing)
         {
-            string draft = FromRoot(status.Cycle, draftPath);
-            string target = FromRoot(status.Cycle, status.Cycle.ApprovalPath);
+            string draft = Absolute(draftPath);
+            string target = Absolute(status.Cycle.ApprovalPath);
             string ledger = Path.GetFileName(status.Cycle.ApprovalPath);
             bool overwriting = file.CarriesForward > 0 || file.Replacing;
 
@@ -721,11 +761,14 @@ public static class ApprovalText
             [
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Written to {draft}. Rename it, from the repository root, to record the decision:"),
+                    $"Written to {draft}. Rename it, from any directory, to record the decision. In bash or zsh:"),
                 string.Empty,
                 overwriting
                     ? string.Create(CultureInfo.InvariantCulture, $"    mv -f {draft} {target}")
                     : string.Create(CultureInfo.InvariantCulture, $"    mv {draft} {target}"),
+                string.Empty,
+                "In PowerShell:",
+                string.Empty,
                 overwriting
                     ? string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {draft} {target}")
                     : string.Create(CultureInfo.InvariantCulture, $"    Move-Item {draft} {target}"),
@@ -777,8 +820,13 @@ public static class ApprovalText
             return string.Join(Environment.NewLine, lines);
         }
 
-        // Forward slashes, because both shells the rename is written for accept them.
-        private static string FromRoot(Cycle cycle, string path) =>
-            Path.GetRelativePath(cycle.SolutionRoot, path).Replace('\\', '/');
+        // Absolute, because the draft is often in another worktree than the one the person's shell is in, and
+        // a path from the root ran from the wrong root (D-162). Forward slashes, because both shells the rename
+        // is written for accept them; quoted when a space would split it.
+        private static string Absolute(string path)
+        {
+            string full = Path.GetFullPath(path).Replace('\\', '/');
+            return full.Contains(' ', StringComparison.Ordinal) ? "\"" + full + "\"" : full;
+        }
     }
 }

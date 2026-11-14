@@ -170,6 +170,11 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
             .Select(suggestion.AsFinding)),
     ];
 
+    private static string Raised(LedgerSuggestion suggestion) =>
+        suggestion.History.Count == 0
+            ? "with no history"
+            : string.Create(CultureInfo.InvariantCulture, $"raised in {suggestion.History[0].Artifact} round {suggestion.History[0].Round}");
+
     /// <summary>
     /// Checks every history: a document it names, a round from one, and events that alternate per document.
     /// </summary>
@@ -179,13 +184,15 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
 
-        HashSet<string> ids = new(StringComparer.Ordinal);
+        Dictionary<string, LedgerSuggestion> ids = new(StringComparer.Ordinal);
 
         foreach (LedgerSuggestion suggestion in Suggestions)
         {
-            if (!ids.Add(suggestion.Id))
+            // Two branches of one cycle each number a new suggestion past the ledger they started from, and a
+            // merge keeps both: the usual way one id comes to be recorded twice (D-162).
+            if (!ids.TryAdd(suggestion.Id, suggestion))
             {
-                return Fail(source, $"{suggestion.Id} is recorded twice. One id is one concern.");
+                return Fail(source, $"{suggestion.Id} is recorded twice, {Raised(ids[suggestion.Id])} and {Raised(suggestion)}. One id is one concern. Two branches of the cycle each numbering a new suggestion, and a merge keeping both, is the usual cause: give the later one the next free id here and wherever its round carries it.");
             }
 
             if (suggestion.History.Count == 0)

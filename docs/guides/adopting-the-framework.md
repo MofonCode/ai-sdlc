@@ -166,11 +166,11 @@ this part for you**: it may edit a draft, but placing one is yours.
 | Key | Values | What it decides |
 |---|---|---|
 | `origin` | `scaffolded`, `adopted` | where the code came from. **A historical fact that never changes** |
-| `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. Every plan reads it. **The one key you may change**, here before you place it or later with `sdlc draft solution --standard profile` |
+| `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. Every plan reads it. Yours to change, here before you place it or later with `sdlc draft solution --standard profile` |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it |
-| `approval` | `required`, `none`; `required` when absent | whether a person approves each cycle's intent, spec and plan before it is built. Leave it `required` to start; `running-a-cycle.md`, under *Running without approvals*, says what `none` keeps and what it gives up |
-| `coverage_floor` | a whole percentage; `80%` when absent | the whole-codebase coverage at or above which a cycle need not hold the coverage baseline; under it, the codebase may not fall. An adopted codebase starting low is kept from falling while it climbs; one already high is not refused for drifting a point. `handling-refusals.md` says when to lower it |
+| `approval` | `required`, `none`; `required` when absent | whether a person approves each cycle's intent, spec and plan before it is built. Leave it `required` to start; `running-a-cycle.md`, under *Running without approvals*, says what `none` keeps and what it gives up. Change it later with `sdlc draft solution --approval none` |
+| `coverage_floor` | a whole percentage; `80%` when absent | the whole-codebase coverage at or above which a cycle need not hold the coverage baseline; under it, the codebase may not fall. An adopted codebase starting low is kept from falling while it climbs; one already high is not refused for drifting a point. `handling-refusals.md` says when to lower it, and `sdlc draft solution --coverage-floor 70%` how |
 | `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
 
 Once it is placed

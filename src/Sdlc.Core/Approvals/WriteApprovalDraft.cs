@@ -34,7 +34,8 @@ public static class WriteApprovalDraft
     /// <param name="Id">The cycle the decision is about.</param>
     /// <param name="By">Who is deciding, from the git identity.</param>
     /// <param name="Decision">What is being recorded.</param>
-    public sealed record Command(CycleId Id, string By, GateDecision Decision = GateDecision.Approved)
+    /// <param name="Answers">Deviations to draft already answered.</param>
+    public sealed record Command(CycleId Id, string By, GateDecision Decision = GateDecision.Approved, ApprovalText.DeviationAnswers? Answers = null)
         : IRequest<ApprovalText.Response>;
 
     /// <summary>
@@ -52,7 +53,7 @@ public static class WriteApprovalDraft
 
             Result<ApprovalText.Response> composed = await mediator
                 .Send<ApprovalText.Query, ApprovalText.Response>(
-                    new ApprovalText.Query(request.Id, request.By, request.Decision),
+                    new ApprovalText.Query(request.Id, request.By, request.Decision, request.Answers),
                     cancellationToken)
                 .ConfigureAwait(false);
 

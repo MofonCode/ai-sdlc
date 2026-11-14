@@ -101,7 +101,9 @@ internal static class Usage
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
-                                     it, the plan's own branch before that. 'sandbox' opens a
+                                     it, before that the plan's own branch or the admission
+                                     branch carrying it. A plan only in a sandbox is refused
+                                     until 'sdlc admit' takes it out. 'sandbox' opens a
                                      worktree on sandbox/<id> beside the repository, where every
                                      cycle the work turns into is planned. 'plan --worktree'
                                      opens the one cycle in a folder of its own. 'plan' without a
@@ -135,6 +137,12 @@ internal static class Usage
                                      Prints the removal for a person to run once nothing worth
                                      recording is unrecorded, and exits 1 until then. Deletes
                                      nothing.
+            tidy                     The worktrees and local branches the framework opened whose
+                                     work has reached the integration branch: a plan branch once
+                                     its plan is there, a build once its verification passes there,
+                                     a slicing or sandbox once every cycle it carries is, anything
+                                     of an abandoned cycle. Prints the removal for a person to run.
+                                     Deletes nothing, and leaves remote branches alone.
             park <id>                Compare a cycle's plan with every plan not yet built. A file
                                      only another creates parks it: writes parked.md with what it
                                      waits on, keeping its spec and plan. A file two plans both
@@ -271,7 +279,9 @@ internal static class Usage
                                      the reconciler's restatements carried under the standing id,
                                      each reader's usage carried for 'round --from' to record.
                                      Lists the open findings no reader raised, whose dispositions
-                                     are yours to add. --host names the host the readers ran on.
+                                     are yours: --answered <ids> and --withdrawn <ids> copy them
+                                     in from the ledger word for word, and anything unnamed stays
+                                     open. --host names the host the readers ran on.
             round verdict <id> --from <file>
                                      Write verify.md from the adjudicator's answer, byte for byte.
                                      Refuses an answer that is not a verify document.
@@ -374,8 +384,12 @@ internal static class Usage
                                      from, no stack rule in force, every plan choosing freely.
 
         Options for draft solution
+            --approval <setting>     Change whether a cycle waits for a person's approval before its
+                                     build: required, or none.
+            --coverage-floor <n>     Change the whole-codebase coverage floor: a whole percentage
+                                     from 0 to 100, such as 80%.
             --standard <name>        Change which conventions new work follows: profile, or existing.
-                                     The one key a draft may move, and only when asked. profile makes
+                                     Like the two above, moved only when asked. profile makes
                                      the framework's patterns the default a plan departs from;
                                      existing makes it the surrounding code. Neither says anything
                                      about the code already there, and neither writes a file -- the
@@ -498,6 +512,8 @@ internal static class Usage
         each one instead: accepted: false and an empty note per deviation, beside the approval that
         stands. Set accepted to true to accept one, or leave it false and write why to decline it.
         False with no note is not reviewed. A reopen is refused until every deviation is answered.
+        --accept <ids> drafts those accepted, and --decline <ids> --note <why> drafts those declined
+        with that note; any not named stays unanswered. The rename is still the person's.
 
         The draft is a complete file named for its decision -- approval.approved.draft.md and so on
         -- written beside the ledger and never onto it. Renaming it is what records the decision,

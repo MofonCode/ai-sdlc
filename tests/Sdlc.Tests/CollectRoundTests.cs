@@ -161,6 +161,32 @@ public sealed class CollectRoundTests
         Assert.IsTrue((await Verdict(workspace, from)).IsFailed, "Prose beside the fence is still prose.");
     }
 
+    [TestMethod]
+    public async Task A_finding_settled_by_name_is_copied_from_the_ledger_and_records()
+    {
+        // D-162. Sessions retyped earlier findings into round.json by hand, and the ledger refused the retyping.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteBlockingRound(ArtifactKind.Intent, id: "F_01", cites: "CON_01", heading: "An intent states the problem, not the solution");
+        string directory = await Answers(workspace);
+
+        Assert.IsTrue((await Collect(workspace, directory, answered: ["F_01"], withdrawn: ["F_01"])).IsFailed, "One finding, one disposition.");
+        StringAssert.Contains((await Collect(workspace, directory, withdrawn: ["F_07"])).Errors[0].Message, "F_01");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory, answered: ["F_01"])).Value;
+
+        Finding settled = drafted.Raised.Single();
+        Assert.AreEqual(Disposition.Answered, settled.Disposition);
+        Assert.AreEqual("something that must be answered.", settled.Statement, "The ledger's words, not retyped.");
+        Assert.AreEqual(0, drafted.NotRaised.Count);
+        StringAssert.Contains(FindingsRenderer.RenderCollected(drafted), "answered");
+
+        using var gate = Gate.For(workspace.Root);
+        Result<RecordRound.Response> recorded = await gate.Send<RecordRound.Command, RecordRound.Response>(
+            new RecordRound.Command(workspace.Cycle.Id, ArtifactKind.Intent, drafted.Path));
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
+    }
+
     private static async Task<string> Answers(
         CycleWorkspace workspace,
         string rules = Silent,
@@ -182,11 +208,15 @@ public sealed class CollectRoundTests
     private static Task Answer(string directory, string reader, string body) =>
         File.WriteAllTextAsync(ReaderAnswers.AnswerPath(directory, reader), ReaderPromptsTests.Envelope(body));
 
-    private static async Task<Result<CollectRound.Response>> Collect(CycleWorkspace workspace, string directory)
+    private static async Task<Result<CollectRound.Response>> Collect(
+        CycleWorkspace workspace,
+        string directory,
+        string[]? answered = null,
+        string[]? withdrawn = null)
     {
         using var gate = Gate.For(workspace.Root);
         return await gate.Send<CollectRound.Command, CollectRound.Response>(
-            new CollectRound.Command(workspace.Cycle.Id, ArtifactKind.Intent, directory, "claude"));
+            new CollectRound.Command(workspace.Cycle.Id, ArtifactKind.Intent, directory, "claude", answered, withdrawn));
     }
 
     private static async Task<Result<WriteVerdict.Response>> Verdict(CycleWorkspace workspace, string from)

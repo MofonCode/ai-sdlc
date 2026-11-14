@@ -866,6 +866,39 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    public async Task A_pass_that_has_merged_offers_tidy_rather_than_the_pull_request_that_merged_it()
+    {
+        // D-162. The panel kept offering /sdlc:pr after the pull request had merged.
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteVerify("pass");
+        workspace.WriteCleanRound(ArtifactKind.Verify);
+
+        ReadCycleStatus.Response status = (await Read(workspace)) with { MergedOn = "origin/development" };
+        string panel = StatusRenderer.RenderBrief(status, await Panel(status.PanelFor(null).Value), SupportedHosts.Of(HookHost.Claude));
+
+        StringAssert.Contains(panel, "sdlc tidy", panel);
+        StringAssert.Contains(panel, "merged into origin/development", panel);
+        Assert.IsFalse(panel.Contains("/sdlc:pr", StringComparison.Ordinal), panel);
+    }
+
+    [TestMethod]
+    public async Task A_verification_that_passes_on_the_integration_branch_is_merged()
+    {
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        Assert.IsNull(await MergedCycle.On(git, Path.GetTempPath(), Id(), CancellationToken.None), "Not there yet.");
+
+        git.Files["origin/development:.sdlc/cycles/20260929_1456_32/verify.md"] = "---\ncycle: 20260929_1456_32\noutcome: pass\n---\n";
+        Assert.AreEqual("origin/development", await MergedCycle.On(git, Path.GetTempPath(), Id(), CancellationToken.None));
+    }
+
+    private static CycleId Id()
+    {
+        Assert.IsTrue(CycleId.TryParse("20260929_1456_32", out CycleId? id));
+        return id.Value;
+    }
+
+    [TestMethod]
     public async Task Inside_claude_code_a_stage_is_named_the_way_a_person_invokes_it()
     {
         // cycle-02's panel said 'sdlc pr' at the end of the cycle, and typing it was answered with

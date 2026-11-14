@@ -602,6 +602,11 @@ public static class StatusRenderer
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
                 "the gate is satisfied - in a new session"),
 
+            string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase)
+                && status.MergedOn is { } merged => (
+                "sdlc tidy",
+                string.Create(CultureInfo.InvariantCulture, $"merged into {merged} - done")),
+
             // The reason stays short enough for the column; verify-chain names the check that failed.
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase)
                 && status.Chain is { Holds: false } => (

@@ -29,7 +29,7 @@ the next one.
 - **A blocking finding** the loop could not clear, or **remediation escalated** — `guides/handling-blockers.md`
 - **The intent is two things**, or two are one, before a spec — `/sdlc:intent --reslice <id>...`
 - **The plan is wrong** after approval — answer every deviation, then *steer the plan*: it drafts the reopen and walks the rest
-- **After the merge** — `/sdlc:mine`, if not mined before; `sdlc mine record <file>` once its drafts are placed
+- **After the merge** — `/sdlc:mine`, if not mined before; `sdlc mine record <file>` once its drafts are placed; `sdlc tidy` for the worktrees and branches left over
 - **A successor is ready** — `/sdlc:intent --from successor:<slug>`; `sdlc backlog` lists them, with parked cycles
 - **Merges landed** — `/sdlc:next` starts what they made ready, plans it in one sandbox, and stops at the approvals
 - **A plan was parked** — it waits on another's code; `sdlc unpark <id>` once that merged, then *take it to plan* again
