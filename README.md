@@ -41,7 +41,7 @@ spec's, the plan's, and the one that reads the finished code at verify.
 A rule written into a prompt is forgotten next session and bent when it is inconvenient. Here **a constraint is
 a record, not an instruction**: an id, four clauses, and always one saying what it *forbids*. Three tiers — the
 framework's global rules, the stack's, and the solution's own in `constraints.md` — are resolved and rendered
-fresh into every reading, never copied into a document where they go stale, and every finding cites one by id.
+fresh into every reading, never copied into a document where they go stale, and every blocking finding cites one by id.
 Like the decisions, they live in the repository and bind every cycle until a person changes them.
 
 ### 3. Accountability runs both ways
@@ -137,10 +137,15 @@ the slash form is there if you prefer it.
 | 1 | **Begin an intent** | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
 | 2 | **Take it to plan** | *take it to plan* | `/sdlc:to-plan` |
 | 3 | **Steer the plan** | *in that plan, make it … instead* | `/sdlc:steer` |
-| 4 | **Approve** | — you rename the approval it drafted | — |
+| 4 | **Approve** | — you rename the approval it drafted, then *admit it* | `/sdlc:pr --plan` |
 | 5 | **Build it** | *build it*, in a new session | `/sdlc:build` |
 | 6 | **Fix it** | *fix it*, when verification blocks | `/sdlc:remediate` |
 | 7 | **Open the pull request** | *open the pull request* | `/sdlc:pr` |
+
+**Step 4 has two halves.** The rename is the approval. Admitting it takes the approved plan out of the sandbox it
+was planned in and onto the integration branch, by a pull request of its own — `/sdlc:pr --plan` in the sandbox,
+or `sdlc admit` in a solution with no remote. It approves nothing a second time, and the build refuses a plan
+that has not left the sandbox.
 
 Underneath, each step produces a file the next one reads:
 
@@ -193,7 +198,7 @@ cycles and which only fixtures.
 | Feature | The problem | What it does |
 |---|---|---|
 | **Interrogator** | The agent that wrote a document reviews it, and agrees with itself | `/sdlc:interrogate` has a fresh process — no memory of writing it, no tools — read the document against the rules in force. It judges and never edits; `/sdlc:refine` edits and never judges. The loop runs until a round raises nothing blocking, and a rule answered then raised again is reported as going backwards |
-| **Findings** | Review comments are vague, cite nothing, and quietly get dismissed | Every finding cites one rule by id and says where, what and the remedy. **A blocking one cannot be waived by any mechanism** — it is answered, or the cycle does not advance. Each artifact's rounds are one ledger chained by hash, so the argument behind an approval cannot be rewritten |
+| **Findings** | Review comments are vague, cite nothing, and quietly get dismissed | Every blocking finding cites one rule by id, and every finding says where, what and the remedy. **A blocking one cannot be waived by any mechanism** — it is answered, or the cycle does not advance. Each artifact's rounds are one ledger chained by hash, so the argument behind an approval cannot be rewritten |
 | **Suggestions** | Good observations that block nothing are lost the moment the session ends | Non-blocking findings go to a ledger, each concern once. `/sdlc:suggestions` lists what is still open across the solution, what became of each, and any of them can start the next cycle |
 | **Perspectives** | Security, operability, maintainability and accessibility are considered only if somebody happens to think of them | Each perspective steers the author with a short list at every stage and judges in a reader of its own. Only a finding citing a rule it lists blocks; the rest arrive as suggestions under its name |
 
@@ -349,9 +354,12 @@ which is why the commit is a step and not a tidy-up.
 /sdlc:intent
 ```
 
-The skill opens the cycle and switches to its branch itself, then interviews you into the intent —
-and waits for your answers, because the intent is written from them. Then *take it to plan* —
-`/sdlc:to-plan` — writes the spec and the plan, you approve all three, and the build runs and verifies itself.
+The skill opens the cycle in a **sandbox** — a folder of its own beside your clone, on `sandbox/<id>` — and
+never switches your own checkout; carry on in a session opened there. It interviews you into the intent and
+waits for your answers, because the intent is written from them. Then *take it to plan* — `/sdlc:to-plan` —
+writes the spec and the plan, and you approve all three. **The approved plan then leaves the sandbox by
+admission** — `/sdlc:pr --plan`, or `sdlc admit` in a solution with no remote — and the build, in a new session,
+runs and verifies itself.
 
 **Want the whole walkthrough, or the variations?**
 [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) is one cycle from the rules to an

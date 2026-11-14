@@ -603,6 +603,27 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    [DataRow("intent")]
+    [DataRow("spec")]
+    [DataRow("plan")]
+    [DataRow("to-plan")]
+    [DataRow("steer")]
+    [DataRow("next")]
+    public void Every_skill_that_runs_a_round_may_start_its_readers(string skill)
+    {
+        // A stage runs its own interrogation loop (D-29), so it starts the readers the interrogate skill
+        // describes, each a `claude -p` process. Only the judging skills were listed above, so these six ran
+        // their rounds behind a permission prompt per reader -- and an unattended planning run behind one it
+        // could not answer.
+        string path = Path.Combine(Root, "skills", skill, "SKILL.md");
+
+        StringAssert.Contains(
+            Value(Frontmatter(path), "allowed-tools", path),
+            "Bash(claude *)",
+            $"{skill} runs interrogation rounds, and its allowed-tools do not let it start the readers.");
+    }
+
+    [TestMethod]
     public void Every_fresh_process_a_skill_starts_is_marked_as_a_reader()
     {
         // D-109. An unmarked reader on a red build has its turn refused by the turn-end gate, and its last

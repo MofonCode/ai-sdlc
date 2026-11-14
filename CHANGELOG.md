@@ -16,7 +16,10 @@ cycle block, or changes what a person or a stage writes, is announced.
 steps a person walks; Where it stands is one row per capability; and this file holds the release history the
 README used to. The package page nuget.org shows is rewritten in the same voice, with its skill and
 protected-file counts corrected and held by the suite, and the definition's first sentence is held in every place
-the framework introduces itself. No solution that adopted the framework is named anywhere in the repository:
+the framework introduces itself. The documents, guides, skills and the binary's own help were read against each
+other and brought into agreement: among them, the admission a sandbox's approved plan needs before its build is
+now step 4's second half everywhere the steps are given, and the six skills that run interrogation rounds may
+start their readers without a prompt. No solution that adopted the framework is named anywhere in the repository:
 evidence a release rests on is described, not attributed. Nothing a cycle does changed. It is a minor as a planned milestone, not
 because anything blocks that passed before.
 

@@ -20,7 +20,6 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the theme](../README.md) | `.sdlc/theme.json` | `sdlc theme` | a cycle that declares it |
 | [the perspectives a cycle gets](../mechanisms/perspectives.md) | worked out from the intent and the plan's files | `sdlc perspectives <id>`; one: `sdlc perspective show <name> --for <stage>` | — |
 | [the coverage baseline](../guides/handling-refusals.md) | `.sdlc/coverage.json` | `sdlc evidence <id> --coverage <path>` reports against it, and against `coverage_floor` (`sdlc settings`) | the binary; a person may re-measure it |
-
 | **One cycle** | | | |
 | [the intent, spec, plan and verify](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/` | `sdlc status <id>` | each stage |
 | [the approvals](../mechanisms/protected-files.md) | `.sdlc/cycles/<id>/approval.md` | `sdlc status <id>`, `sdlc gate <id>` | a person |
@@ -34,7 +33,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [whether it holds, end to end](../guides/handling-refusals.md) | worked out from all of the above | `sdlc verify-chain <id>` | — |
 | **Across cycles** | | | |
 | [every cycle and where each stands](../guides/running-a-cycle.md) | `.sdlc/cycles/` | `sdlc cycles` | — |
-| [what may be built together](../guides/running-a-cycle.md) | worked out from the plans' files | `sdlc cycles --claims` | — |
+| [which pull requests will likely conflict, and the order to merge them](../guides/running-the-factory.md) | worked out from the plans' files | `sdlc cycles --claims` | — |
 | [what is ready to merge and what needs a person](../guides/setting-up-the-factory.md) | worked out from the cycles and the remote | `sdlc sitrep` | — |
 | [work waiting on other work](../guides/running-a-cycle.md) | `.sdlc/successors/<slug>.md`, and the parked cycles | `sdlc backlog`, `sdlc successors` | the intent stage, or `sdlc draft mining` |
 | [the open suggestions, every cycle](../guides/running-a-cycle.md) | each cycle's `suggestions.json` | `sdlc suggestions` | the binary |

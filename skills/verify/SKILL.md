@@ -125,8 +125,8 @@ On `blocked`, add each criterion `verify.md` marks Not met, by its number and th
 reason, quoted: they are why the outcome is blocked, the panel lists findings rather than criteria, and a
 person told only "blocked" goes looking for them. Then stop.
 
-**Nothing that is not already in `verify.md`.** You have just written the document that is the
-adjudication; a hand-back that re-argues it produces a second, shorter verdict with no hash and no
+**Nothing that is not already in `verify.md`.** You have just recorded the document that is the
+adjudication — the adjudicator's, not yours; a hand-back that re-argues it produces a second, shorter verdict with no hash and no
 round, and a reader who disagrees with one cannot tell which one the chain carries.
 
 - **Passed?** The person decides whether to open a pull request: close with one plain offer — say *open

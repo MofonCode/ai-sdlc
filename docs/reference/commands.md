@@ -38,7 +38,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc stack` | binary | what the solution is built from, what this release ships that it never mentions, and the build settings not yet on disk |
 | `sdlc scaffold <id>` | binary | the skeleton on a new solution's first cycle; otherwise the build settings the plan declares |
 | `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence, and verifies a green build |
-| `sdlc evidence <id>` | binary | records the base commit, the commit the build is at, the test summary and the diff between the two, which is not committed; refuses uncommitted code outside `.sdlc/`; retires a blocked `verify.md` and refuses under any other; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline and the solution's `coverage_floor` | and the platform the tests ran on
+| `sdlc evidence <id>` | binary | records the base commit, the commit the build is at, the test summary and the diff between the two, which is not committed; refuses uncommitted code outside `.sdlc/`; retires a blocked `verify.md` and refuses under any other; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline and the solution's `coverage_floor`; and the platform the tests ran on |
 | `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md`. `/sdlc:build` and `/sdlc:remediate` run it |
 | `/sdlc:remediate <id>` | agent | only on `blocked`; verifies again after each pass and goes round while each reduces what is open, checking in every fourth; records a deviation where the approved text cannot be followed |
@@ -95,6 +95,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc propose decisions` | binary | choices approved cycles settled, as entries to adopt |
 | `sdlc theme` | binary | the roles and values the solution's surfaces use |
 | `sdlc propose theme` | binary | the roles a theme declares, for you to fill |
+| `sdlc hook --host <name>` | binary, from a hook | judges a tool call, a turn that is ending, or a session starting on another release's skills, in the host's own shape. The plugin's copy passes `--source plugin`, and steps aside wherever the solution's own hooks answer the same event, so each check speaks once (D-172) |
 | `sdlc settings` | binary | how this solution is set to run: each `solution.md` key, written or defaulted, and how to change it — `approval` among them; what this machine overrides; what this release fixes and the decision that fixes it. Points at `constraints`, `stack` and `decisions`. Writes nothing; exits 1 when `solution.md` cannot be read |
 | **Stopping** | | |
 | `sdlc draft approval <id> --reopen` | binary | withdraw an approval, with a reason, to change the documents. Once the plan is on the integration branch, refused on a build branch: reopen on `cycle/<id>/plan` |
@@ -111,6 +112,8 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
     spec.md
     plan.md
     approval.md            <- only a person writes this
+    deviations.md          <- where the build bent the approved text, when it did (D-156)
+    parked.md              <- a plan parked behind another's unbuilt code, while it is (D-145)
     verify.md
     findings/              <- one ledger per artifact, every round in it
         intent.json
@@ -118,6 +121,7 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
         plan.json
         verify.json
         suggestions.json   <- the cycle's suggestions, each concern once
+        usage.json         <- what each round's readers cost (D-121)
     evidence/
         base.sha
         head.sha           <- the commit the build was recorded at
@@ -125,7 +129,8 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
         proof-sources.txt  <- not committed: the files a proof rests on outside the change, when there are any (D-168)
         tests.json         <- the normalised summary. The only one verify reads
         timings.json       <- how long the run took and its slowest tests. No reader is handed it (D-169)
-        tests.1.trx        <- one per test project, as the runner wrote them. Not committed
+        coverage.json      <- the changed lines' and the whole codebase's coverage, with --coverage
+        tests.trx          <- the runner's own results; tests.1.trx and on when there are several. Not committed
         build.log          <- not committed: the pipeline publishes its own (D-92)
 ```
 

@@ -222,10 +222,11 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft mining <file>      Write drafts of constraints.md, decisions.md and techstack.md
-                                     from the proposals marked [x] in a mining proposal file:
-                                     each a copy of the file as it stands with only those lines
-                                     applied, refused if any entry or row would go missing.
+            draft mining <file>      Write drafts of constraints.md, decisions.md, techstack.md and
+                                     areas.md from the proposals marked [x] in a mining proposal
+                                     file: each a copy of the file as it stands with only those
+                                     lines applied, refused if any rule, decision or stack row
+                                     would go missing. An area may be renamed, merged or removed.
             draft techstack          Write the declared stack beside itself, for an edit a person
                                      renames into place: a copy of it, or the framework's default
                                      where there is none yet, with every stack rule listed and on.
@@ -239,10 +240,11 @@ internal static class Usage
                                      settings file does and costs. The menu is never renamed into
                                      place.
             draft solution           Write the whole solution.md beside itself, for a person
-                                     to rename onto it. Carries the four keys through as
+                                     to rename onto it. Carries every key through as
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
-                                     wrote. --standard changes that one key, and says so.
+                                     wrote. --approval, --coverage-floor and --standard each
+                                     change their one key when asked, and say so.
             evidence <id>            Record what a build produced: its base commit, the commit it is
                                      at, the diff between them, a normalised test summary and the
                                      coverage. Verify reads only this. The summary records the
@@ -453,6 +455,10 @@ internal static class Usage
                                      given a check that cannot run.
             --plugin <path>          With session-start: the plugin's directory, whose release is
                                      compared with this binary's. Never refuses.
+            --source plugin          Says the plugin registered this hook rather than the solution's
+                                     own settings. Where adoption's configuration runs the same
+                                     check, the plugin's copy answers with nothing, so each check
+                                     speaks once (D-172).
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
@@ -479,8 +485,9 @@ internal static class Usage
             --approved               Only cycles a person has approved.
             --verified               Only cycles whose verification passed.
             --pr-ready               Every cycle, saying which may open one and why not.
-            --claims                 The claim graph: which cycles may be built together, in groups,
-                                     and what collides.
+            --claims                 The claim graph: which cycles' pull requests are likely to
+                                     conflict over a file, and a merge order. It advises; every
+                                     cycle builds independently (D-86).
 
         Newest first, always. The order a person scans is the order the work happened in, and a
         second order would be a second way to read one answer.

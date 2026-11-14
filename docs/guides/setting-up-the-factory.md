@@ -114,26 +114,31 @@ git push -u origin development
 A solution adopted before adoption created it has no `development` yet, and `sdlc doctor` says so; there,
 `git switch -c development` from your default branch first.
 
-## 4. Write the factory's pipeline, and commit it
+## 4. Write the factory's pipeline, and merge it by pull request
 
-Still on `development`:
+Nothing is pushed straight to `development` — adoption's step 8 made it pull requests only — so the pipeline
+arrives on a branch of its own:
+
+```pwsh
+git switch -c add-factory-pipeline development
+```
 
 ```pwsh
 sdlc factory
 ```
 
 It writes `azure-pipelines.factory.yml` — or `.github/workflows/sdlc-factory.yml` on GitHub — and prints
-what step 6 sets up. Commit it, and push:
+what step 6 sets up. Commit it, push the branch, and open its pull request into `development`:
 
 ```pwsh
 git add azure-pipelines.factory.yml
 git commit -m "Add the factory's pipeline"
-git push
+git push -u origin add-factory-pipeline
 ```
 
-**Do this before step 5.** Once `development` requires the pull-request check, a change that is not a
-cycle cannot merge into it: the check refuses a branch with no intent, spec and plan behind it. If your
-`development` already has that policy, add the file as a short cycle instead.
+**It needs no cycle.** The pull-request check passes a change that carries only what `sdlc factory` writes,
+by writing the file again and comparing (`CONCEPT.md` D-133), so the file merges like an upgrade rather than as
+work somebody has to plan.
 
 ## 5. Protect the integration branch
 

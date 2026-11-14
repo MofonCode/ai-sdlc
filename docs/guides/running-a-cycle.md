@@ -16,7 +16,7 @@ the cheat sheet, `../cheat-sheet.md`, is this same walk as one line per step.
 | 1 | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
 | 2 | *take it to plan* | `/sdlc:to-plan` |
 | 3 | *in that plan, make it … instead* | `/sdlc:steer` |
-| 4 | — you rename the approval it drafted | — |
+| 4 | — you rename the approval it drafted, then admit the plan | `/sdlc:pr --plan`, or `sdlc admit` with no remote |
 | 5 | *build it* | `/sdlc:build` |
 | 6 | *fix it* | `/sdlc:remediate` |
 | 7 | *open the pull request* | `/sdlc:pr` |
@@ -63,7 +63,7 @@ which ones run, is `../mechanisms/perspectives.md`.
 **You do not open the cycle or switch branches yourself.** The skill allocates the id, opens a **sandbox** —
 `../<repository>.sandboxes/<id>`, on `sandbox/<id>` — and says the id and the folder in one line (D-144). Every
 cycle the work turns into opens beside the first, so one session sees all of them. Your own checkout is never
-switched; carry on in a session opened in the sandbox.
+switched: the cycle's documents are written in the sandbox, so work on it from that folder.
 
 The intent is then checked against the rules in a fresh process and revised until a round raises nothing
 blocking, and **it hands back rather than going on** — deciding the intent is right is yours. Read it.
@@ -160,11 +160,19 @@ a person sees it, and `verify-chain`, `sdlc status` and the sitrep all say no pe
 
 ### Admit the plan to the integration branch
 
-When the solution has an integration branch — `development`, unless `solution.md` names another — the
-approved plan goes there by its own pull request before anything is built: `/sdlc:pr <id> --plan`, or, for
-the plans of one slicing together, `/sdlc:pr <id> <id>... --plan`. **It is admission, not a second
-approval**: the rename was the approval. Once it merges, the plan is queued for a build. With no integration
-branch, skip this — one pull request carries the plan and the code together.
+**An approved plan leaves the sandbox before anything is built** (D-144). The build refuses a plan that is only
+in a sandbox, because a sandbox is planned in and never merged. Adoption creates the integration branch —
+`development`, unless the solution's settings name another — so this is a step of every cycle:
+
+- **With a remote:** in the sandbox, say *admit the plan*, or `/sdlc:pr --plan` with no id. It takes every
+  approved cycle the sandbox carries onto one admission branch, names each before asking to push, and opens its
+  pull request into the integration branch. Once that merges, the plan is queued for a build.
+- **With no remote** — a `local` solution: in the sandbox, run `sdlc admit` and the one git command it prints.
+  It opens the admission branch beside the sandbox, and the build starts from it.
+
+**It is admission, not a second approval**: the rename was the approval. A cycle still being planned stays in
+the sandbox for a later admission. A solution adopted before the integration branch existed has none; its
+build starts from the sandbox, and one pull request carries the plan and the code together.
 
 ## 5. Build it
 

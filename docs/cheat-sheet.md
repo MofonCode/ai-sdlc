@@ -16,7 +16,7 @@ the next one.
 1. **Begin an intent** — say what you want to add, fix or change, or `/sdlc:intent`. It slices bigger work into atomic cycles once you accept, then interviews you one question at a time
 2. **Take it to plan** — *take it to plan*, or `/sdlc:to-plan`. Spec, then plan, each checked by its own readers, and one hand-back. **Read the plan closely**
 3. **Steer the plan** — *in that plan, make it … instead*, or `/sdlc:steer`. Carried through the intent, spec and plan, before you approve
-4. **Approve** — it drafts the approval; read it and **rename it into place yourself**. That rename is the approval. Skipped when the solution declares `approval: none`
+4. **Approve, then admit** — it drafts the approval; read it and **rename it into place yourself**. That rename is the approval, skipped when the solution declares `approval: none`. Then admit the plan from the sandbox: *admit the plan*, or `/sdlc:pr --plan`; with no remote, `sdlc admit`
 5. **Build it** — in a new session, *build it*, or `/sdlc:build`. Implements, tests, records the evidence, and verifies from the evidence alone
 6. **Fix it** — on `blocked`, *fix it*, or `/sdlc:remediate`. Goes round until it passes, checking in every fourth pass
 7. **Open the pull request** — *open the pull request*, or `/sdlc:pr`. Asks first, and whether to mine the cycle now or after the merge
@@ -24,7 +24,6 @@ the next one.
 ## When it stops
 
 - **Where am I?** `sdlc status <id>` — names the next step
-- **With an integration branch** — admit the approved plan before building: `/sdlc:pr <id> --plan`; a slicing's plans together with `/sdlc:pr <id> <id>... --plan`
 - **The build bent the plan** — `sdlc deviations <id>`, then answer each with `sdlc draft approval <id>`; `guides/handling-blockers.md`
 - **A blocking finding** the loop could not clear, or **remediation escalated** — `guides/handling-blockers.md`
 - **The intent is two things**, or two are one, before a spec — `/sdlc:intent --reslice <id>...`

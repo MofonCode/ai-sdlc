@@ -57,7 +57,7 @@ A deviation is a section appended to `.sdlc/cycles/<id>/deviations.md`:
 Kind: criterion
 Departs from: spec.md, Acceptance criteria
 > 7. The same implementation serves both hosts.
-Blocker: verify.F_04 under CON_08 — the framework gives each host its own implementation, so no test can show one
+Blocker: verify.F_04 under CON_22 — the framework gives each host its own implementation, so no test can show one
 Deviation: criterion 7 holds for the server host; the browser host's half becomes a successor.
 Why: no finite proof reaches the criterion as written.
 Successor: browser-host-parity — the browser host serves the same implementation
@@ -181,8 +181,7 @@ hand back even though it is still making progress: what the passes closed, what 
 can say what the next pass will fix. Then ask, in one line, whether to keep going. It is not a ceiling — D-66
 rejected one, and nothing here stops the loop on a number — it is the person back in front of a loop that is
 running long, which is the one shape the progress rule cannot catch: a loop that closes one finding while
-opening another. Say in the same line that it is worth carrying on in a new session, because each pass has
-added its build and test output to this one.
+opening another. Name no new session: the build's hand-back is the one place that does (D-158).
 
 ## Report and hand back
 

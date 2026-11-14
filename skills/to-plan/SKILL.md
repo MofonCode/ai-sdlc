@@ -3,7 +3,7 @@ name: to-plan
 description: Take an intent to a plan -- one cycle, or every one this branch carries -- writing each cycle's spec, then its plan, each with its own interrogation loop, picking up wherever a cycle stopped, and hand back once with every panel, one question about suggestions, and the approvals drafted. Use when a person is happy with their intent and says take it to plan.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Take the intent to plan
@@ -102,11 +102,14 @@ so a person is handed the file rather than told to make it. Then one paragraph, 
 > The plans are clean. I've drafted each approval — `<path>` for `<id>`, one line each — read each, and
 > place the ones you agree with by the rename it printed. If anything should be done differently, tell me
 > and I'll carry it through the documents first. I can't place an approval myself — every agent write to
-> one is denied — and that is what makes it mean something. The build runs best in a new session: say
-> *build it* there (or `/sdlc:build`).
+> one is denied — and that is what makes it mean something. Once they are placed, say *admit them* (or
+> `/sdlc:pr --plan`) and I'll take every approved plan out of this sandbox to the integration branch by one
+> pull request; with no remote, `sdlc admit` here does it. The build runs best in a new session after that:
+> say *build it* there (or `/sdlc:build`).
 
-When the solution declares `approval: none` (D-137), draft nothing: say the plans are clean, that the plan's
-pull request is the first time a person reads them, and that the build runs in a new session.
+When the solution declares `approval: none` (D-137), draft nothing: say the plans are clean, that they leave
+the sandbox the same way — *admit them*, or `/sdlc:pr --plan` — that the plan's pull request is the first time
+a person reads them, and that the build runs in a new session.
 
 **Then stop.** This run stayed in one session, which grew with every cycle; the build is the step worth a fresh
 one, and the paragraph above is the one place that says so (D-158).

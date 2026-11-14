@@ -197,7 +197,7 @@ solution it is about a line:
 **`.sdlc/techstack.draft.md`.** The draft is the framework's default, and for a die on a page it needs
 nothing changed. The rows that matter here are MSTest on Microsoft.Testing.Platform for the unit layer,
 bUnit for the component layer, ASP.NET Core for the api, Blazor for web and MudBlazor for the components.
-The three stack rules under `## Rules` are all marked `true` — `PRO_01` is the one this work will meet,
+The five stack rules under `## Rules` are all marked `true` — `PRO_01` is the one this work will meet,
 at the plan — and so are the five files under `## Build settings`, because this repository held no code
 and nothing predates them. Read `## Notes worth keeping` before you rename it: its first four paragraphs
 are about exactly the two projects this cycle adds. What is in that file once it is placed is exactly
@@ -250,11 +250,9 @@ because a binary cannot ask a host what it loaded. It exits 0 and ends by naming
 
 **No `--type`.** This is a scaffolded solution with no cycle yet approved, so the skill recognises the
 first piece of work in a new solution and says so in a line. With nothing typed after the skill's name there is nothing
-to slice, so it opens one cycle. **The skill opens the cycle in a folder of
-its own, on its branch**, and says the id, the branch and the folder in one line — run neither `sdlc new`
-nor `sdlc branch` yourself, and carry on with the cycle in that folder. The branch is
-`cycle/<id>/plan`, and the name matters: the turn-end hook reads the cycle out of the current branch and
-silently governs nothing when it cannot parse one.
+to slice, so it opens one cycle. **The skill opens the cycle in a sandbox** — a folder of its own beside
+the repository, on `sandbox/<id>` — and says the id and the folder in one line. Run neither `sdlc new` nor
+`sdlc branch` yourself, and carry on with the cycle in that folder; your own checkout is never switched.
 
 **Then it waits for your answers.** The intent is written from them, so until you reply there is no
 intent, and an interrogation asked for now finds nothing to read. It asks **one question at a time**,
@@ -410,9 +408,19 @@ Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approva
 exception, and a draft nobody renamed records nothing. It refuses to print at all while a blocking
 finding is open: a blocking finding cannot be waived by any mechanism.
 
+**Then admit the plan.** It is still only in the sandbox, and the build refuses a plan there. This solution has
+no remote, so in the sandbox run:
+
+```pwsh
+sdlc admit
+```
+
+and the one git command it prints. [Running a cycle](../guides/running-a-cycle.md), under *Admit the plan*,
+says why, and what a solution with a remote does instead.
+
 ## 9. Build it
 
-In a new session in the cycle's folder, say *build it*, or:
+In a new session in the repository's own folder, say *build it*, or:
 
 ```
 /sdlc:build <id>
@@ -422,8 +430,8 @@ The first stage that writes code and the first you are not expected to watch. It
 the gate refuses, and implements what the plan decided and only that. The skeleton arrives first, because
 the plan declared it — a solution file, its projects, the architecture suite and a reference slice written
 in the shape every operation should have — and the two front-end projects and the component tests after
-it, from the plan's file table. It runs the tests, records the evidence and commits it; the commands it
-runs are in `../guides/running-a-cycle.md`.
+it, from the plan's file table. It runs the tests, records the evidence and commits it; what it records, and
+why, is in `../guides/running-a-cycle.md`.
 
 One thing to expect: the scaffold writes a `Greet` reference slice that exists to be copied. The dice
 operation takes its shape, and the slice stays until there is enough real work to delete it — which is
@@ -484,7 +492,7 @@ gh repo create dice-trial --private --source . --remote origin
 ```
 
 ```pwsh
-git push -u origin main
+git push -u origin main development
 ```
 
 **A remote alone installs no guarantee.** Adoption wrote no pipeline for a local solution, so re-run it

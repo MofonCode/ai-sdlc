@@ -23,8 +23,9 @@ adding the row it wanted instead of arguing for it, or drop a stack rule by swit
 **Adoption drafts it and does not place it.** `sdlc init` decides nothing about the stack and takes no
 option that would: it writes `.sdlc/techstack.draft.md`, the framework's default, beside where the file
 goes. The file comes from a person editing that draft and renaming it, and **no cycle opens until it is
-there** — `sdlc new` refuses and names the draft. Commit it once it is placed: a cycle does not open over
-uncommitted work either.
+there** — `sdlc new` refuses and names the draft. Commit it once it is placed: a cycle is planned in a
+sandbox that starts from what the integration branch committed, so a placed file nobody committed is not
+there.
 
 **What is in the file is exactly what binds.** Nothing about the stack is selected from anywhere else:
 no solution records a profile, and `solution.md` says nothing about what the code is built from.

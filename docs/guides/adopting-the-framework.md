@@ -308,8 +308,9 @@ marked `elsewhere`.
 /sdlc:intent
 ```
 
-**The skill opens the cycle and switches to its branch itself** — you do not run `sdlc new` or `sdlc
-branch`. Then it interviews you, and **nothing more happens until you answer**: the intent is written
+**The skill opens the cycle in a sandbox itself** — a folder of its own beside the repository, on
+`sandbox/<id>` — and you do not run `sdlc new` or `sdlc branch`. Your own checkout is never switched, so carry
+on with the cycle in that folder. Then it interviews you, and **nothing more happens until you answer**: the intent is written
 from your answers, so there is nothing for an interrogation to read before then. `running-a-cycle.md`
 takes it from there.
 

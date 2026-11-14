@@ -56,8 +56,8 @@ back to you when they do.
 
 `/sdlc:interrogate <id> <artifact>` reads one document in a fresh process — a reader that never saw it
 being written, so it has nothing to defend — and adds a findings round to the artifact's ledger,
-`findings/<artifact>.json`. Each finding has an id kept across rounds, the one rule it cites, what is
-wrong, where, and the remedy. `sdlc findings <id>` prints each one where it stands.
+`findings/<artifact>.json`. Each finding has an id kept across rounds, the rule it cites — every blocking finding cites one, and a
+suggestion may cite none — what is wrong, where, and the remedy. `sdlc findings <id>` prints each one where it stands.
 
 | Severity | Means |
 |---|---|
@@ -239,6 +239,9 @@ something it was not given leave to:
 |---|---|---|
 | `CON_07.2` | the change does something the plan did not describe: a drive-by refactor, an unrelated fix. Judged by what each change is for, never by which files it touched | take it back out; keep it as a `Noticed:` line for a later cycle |
 | `CON_24` | the change takes what a recorded decision set aside, and neither the intent nor the plan declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — remediate records a `decision` deviation quoting it, for you to answer (D-156) |
+
+It is handed two more rules, as every reader of a change is — `CON_09`, which applies to every artifact, and
+`CON_11`, which judges a change adding a rule — and a cycle's change rarely meets either.
 
 **These go to `/sdlc:remediate` whatever the outcome reads**, because no adjudication changes the code;
 `sdlc status` names it.

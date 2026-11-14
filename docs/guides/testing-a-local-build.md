@@ -92,8 +92,9 @@ Remove-Item Env:SDLC_DEV_BUILD
 
 ## 6. Ship it, and run the work for real
 
-1. **Publish the change.** Move the patch in `Directory.Build.props` and both plugin manifests, and push your
-   branch of ai-sdlc. `ci.yml` publishes `<release>-preview`.
+1. **Publish the change.** Move the patch in `Directory.Build.props` and both plugin manifests, and open a pull
+   request from your branch of ai-sdlc into `development`. A branch's own pushes publish nothing; when the pull
+   request is squashed into `development`, `ci.yml` publishes `<release>-preview`.
 2. **Pin the solution to it.** On the solution's integration branch:
 
    ```pwsh

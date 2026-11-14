@@ -31,7 +31,8 @@ sdlc branch <id> build
 Run the one command it prints. It puts the working copy on `cycle/<id>/build` — created from the
 integration branch once the plan has been admitted to it, or before that from the plan's own branch or the
 admission branch carrying it — or on the bare `cycle/<id>` of an older cycle. A plan only in a sandbox is
-refused with what to do: admit it first. Inside a batch, `batch-build` has already put you on
+refused with what to do — admit it first, by `/sdlc:pr --plan` or `sdlc admit` — unless the solution has no
+integration branch to admit it to, when the build starts from the sandbox. Inside a batch, `batch-build` has already put you on
 `cycle/<id>/build-unattended`; stay there. Everything below measures the change from where this branch
 diverged, so building on the integration or default branch directly makes the diff meaningless.
 
@@ -47,9 +48,11 @@ sdlc gate <cycle id>
 If it refuses, stop and show what it said. Do not work around it and do not ask the person to approve
 so you can continue — the refusal names what is missing, and the next step belongs to them.
 
-There are eight ways it refuses, and each has a different next step: no cycle, abandoned, a missing
-document, nobody approved, a refusal standing, a document changed since it was approved, a blocking
-finding still open, or a round that judged a document which has moved since. Read which one. In a
+There are twelve ways it refuses, and each has a different next step: no cycle, abandoned, a missing
+document, nobody approved, an approval ledger it cannot read, a refusal standing, a findings round it cannot
+read, a document never interrogated, a document changed since it was approved, a blocking finding still open,
+a round that judged a document which has moved since, or a findings round the approval anchored that has
+been rewritten. Read which one. In a
 solution that declares `approval: none` the gate asks for no approval, and every other refusal stands.
 
 **A blocking finding cannot be waived.** If that is the refusal, there is no flag and no override. The

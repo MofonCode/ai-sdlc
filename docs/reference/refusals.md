@@ -21,7 +21,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Adopting — `sdlc init`** | |
 | [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform` and `--integration-branch` only; the stack is the draft it writes |
 | [an integration branch the record disagrees with](../guides/handling-refusals.md#an-integration-branch-the-record-disagrees-with) | leave the option out, or change the key with `sdlc draft solution` and a rename |
-| **Opening a cycle — `sdlc new`** | |
+| **Opening a cycle — `sdlc new`, and `sdlc branch <id> plan`** | |
 | [no declared stack](../guides/handling-refusals.md#no-declared-stack) | fill in `techstack.draft.md`, rename it into place, commit it |
 | [uncommitted work](../guides/handling-refusals.md#uncommitted-work) | commit, stash or discard the files it names and switch again, or plan in a sandbox, which switches nothing |
 | **Before a build — `sdlc gate`** | |
@@ -81,7 +81,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
 | [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | a verdict that did not block: delete `verify.md`, record again, verify again. A blocked one is retired by the recording |
-| [git cannot say where the branch diverged](../guides/handling-refusals.md#git-cannot-say-where-the-branch-diverged) | read the branch name in the message; rename yours to `cycle/<id>` |
+| [git cannot say where the branch diverged](../guides/handling-refusals.md#git-cannot-say-where-the-branch-diverged) | `git fetch origin` and ask again; if it still refuses, work on the branch `sdlc branch <id> build` prints |
 | [an empty patch beside a changed file](../guides/handling-refusals.md#an-empty-patch-beside-a-changed-file) | `git status --short`; the evidence is wrong, not the code |
 | [no results file](../guides/handling-refusals.md#no-results-file) | point `--tests` at the directory holding the `.trx` files |
 | [one test name with two outcomes](../guides/handling-refusals.md#one-test-name-with-two-outcomes) | rename one test, or run the projects separately |
@@ -107,7 +107,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the working tree has moved since the evidence](../guides/handling-refusals.md#the-working-tree-has-moved-since-the-evidence) | build and test what is there now, and record it |
 | [when it says nothing](../guides/handling-refusals.md#when-it-says-nothing) | expected off a `cycle/` branch and before a plan; the pipeline check is the guarantee |
 
-\* **The pre-tool hook's eight denials are absolute: no mode, no flag.** Run the command the denial
+\* **The pre-tool hook's nine denials are absolute: no mode, no flag.** Run the command the denial
 names, and place what it produces yourself. A command that only *mentions* one of these files beside a
 write verb is denied too — for a commit message, use `git commit -F` with the message in a file. The pre-tool hook section of
 `../guides/handling-refusals.md` has why each is a person's.

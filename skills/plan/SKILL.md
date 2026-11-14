@@ -3,7 +3,7 @@ name: plan
 description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author a plan
@@ -518,8 +518,10 @@ beyond this paragraph, filled in:
 > The three documents are clean. I've drafted the approval at `<the draft's path>` — read it, and if you
 > agree, place it with `<the rename it printed>`. If anything should be done differently, tell me and
 > I'll carry it through the documents first. I can't place the approval myself — every agent write to
-> it is denied — and that is what makes a recorded approval mean something. The build runs best in a new
-> session: say *build it* there (or `/sdlc:build`).
+> it is denied — and that is what makes a recorded approval mean something. Once it is placed, say
+> *admit it* (or `/sdlc:pr --plan`) and I'll take the plan out of this sandbox to the integration branch by
+> its own pull request; with no remote, `sdlc admit` here does it. The build runs best in a new session
+> after that: say *build it* there (or `/sdlc:build`).
 
 Then stop. **This is the one hand-back that names a new session** (D-158): the planning chain stays in
 the session it started in, and the build, which reads the code, starts clean. A session carried past its

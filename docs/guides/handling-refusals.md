@@ -28,9 +28,11 @@ cycle does not advance.
 
 ---
 
-## `sdlc new` — the two ways a cycle is refused
+## Opening a cycle — `sdlc new`, and `sdlc branch <id> plan`
 
-**Both refuse before an id is spent**, so nothing is left behind to clean up.
+**`sdlc new` refuses one way, and before an id is spent**, so nothing is left behind to clean up. The second
+refusal here is `sdlc branch <id> plan`'s, met only when you ask to plan in this checkout rather than a
+sandbox.
 
 ### no declared stack
 
@@ -681,9 +683,9 @@ Remediation stopped getting anywhere with blockers still open: a pass undid what
 answered, two passes in a row reduced nothing, or a third deviation bent the same approved text. **An escalated cycle never opens a ready pull
 request** — a batch run opens a draft, which the check refuses to merge — and that stopping is the only
 reason an unattended batch is safe to run at all. There is no pass count to run
-out of — the refusal says which of the two stopped it, and they want different things from you: a
-regression means looking at what the last pass actually did, and a stall means asking whether the finding
-is answerable. `handling-blockers.md` has what to do with an escalated cycle.
+out of — the refusal says which of the three stopped it, and they want different things from you: a
+regression means looking at what the last pass actually did, a stall means asking whether the finding
+is answerable, and a third deviation on the same text means the approved text itself is what needs changing. `handling-blockers.md` has what to do with an escalated cycle.
 
 **Next:** a person decides. Either the criterion is wrong, in which case
 `sdlc draft approval <id> --reopen` withdraws the approval with a recorded reason and the documents can be
@@ -813,7 +815,7 @@ a draft, or a file whose longer name ends in one of them, is not mistaken for th
 deliberately broad rather than a parser: a false refusal costs you a rephrasing, and a miss costs the
 guarantee.
 
-**Eight is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
+**Nine is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
 made it, so it cannot deny an edit that is wrong only because of where it came from — `remediate`
 touching `spec.md`, or `refine` touching source. Those rules are real and the skills state them, but
 they are the skill's own discipline rather than something denied at the call. What catches a breach is

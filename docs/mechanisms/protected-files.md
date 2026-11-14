@@ -68,7 +68,7 @@ denied.
 | | |
 |---|---|
 | **reading them** | `cat approval.md` is allowed. Refusing it would make the gate obstructive without making it safer |
-| **the drafts beside them** | `solution.draft.md`, `techstack.draft.md`, `constraints.draft.md`, `approval.<decision>.draft.md`. An agent may write and edit these freely; only the rename onto the real file is denied |
+| **the drafts beside them** | `solution.draft.md`, `techstack.draft.md`, `constraints.draft.md`, `decisions.draft.md`, `areas.draft.md`, `approval.<decision>.draft.md`. An agent may write and edit these freely; only the rename onto the real file is denied |
 | **the theme** | `.sdlc/theme.json`. Nobody is judged against a colour, so a cycle may declare it and change a value like any other file |
 | **you** | the hook runs on an agent's tool calls. A command you type in your own terminal, or on Claude Code a line you run with a leading `!`, is yours and is never asked about |
 

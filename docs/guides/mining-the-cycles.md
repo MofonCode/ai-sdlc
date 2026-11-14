@@ -97,7 +97,7 @@ about still gets seen when it keeps coming back.
 | `sdlc draft mining` refuses an entry naming an area nobody defines | add the area in the same file, or take the tag off |
 | `sdlc mine record` refuses while a draft is beside its file | rename it into place or delete it, then record |
 
-`handling-refusals.md` has every refusal the framework produces.
+`handling-refusals.md` has the refusals every other command produces; the ones above are mining's own.
 
 ## Where to go next
 

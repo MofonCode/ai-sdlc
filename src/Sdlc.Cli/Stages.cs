@@ -29,7 +29,7 @@ internal static class Stages
         ["verify"] = "adjudicates the build against the spec, from the evidence alone",
         ["remediate"] = "applies a blocked verification's findings to source and tests",
         ["pr"] = "pushes, opens the pull request, and links the work item",
-        ["batch-build"] = "completes every approved cycle, concurrently where the claims allow",
+        ["batch-build"] = "completes every approved cycle, each on its own branch and independently",
         ["resolve-conflict"] = "resolves a collision on a file no cycle can claim exclusively",
     };
 

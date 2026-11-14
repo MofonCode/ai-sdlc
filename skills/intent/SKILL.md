@@ -3,7 +3,7 @@ name: intent
 description: Interview a person into a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[--type bug|add|change] [--from <lead>] | --reslice <cycle id>..."
-allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author an intent
@@ -581,7 +581,8 @@ more unknown stated as fact; a reader finds them one at a time, and you can find
 ## 5. Run the loop
 
 You are not done when the file is written. Interrogate it, apply what comes back, and interrogate
-again until a round raises nothing blocking or nothing further can be settled:
+again until a round raises nothing blocking, a reader reports a conflict, or the panel's `Loop` line says
+the loop is stuck — whether nothing further can be settled is not this session's call:
 
 ```
 sdlc constraints --for intent

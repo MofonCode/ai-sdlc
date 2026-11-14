@@ -152,6 +152,6 @@ and nothing the scan cannot see. That gap was closed in the perspective's method
 | | |
 |---|---|
 | a blocking finding, and how a suggestion differs | `../guides/handling-blockers.md` |
-| the stages a perspective steers and judges, as a person walks them | `../guides/running-a-cycle.md`, §3 |
+| the stages a perspective steers and judges, as a person walks them | `../guides/running-a-cycle.md`, §1 and §2 |
 | the interrogate, build and propose skills in depth — what each reader is handed | `../../skills/README.md` |
 | the two commands as one line each | `../reference/commands.md` |

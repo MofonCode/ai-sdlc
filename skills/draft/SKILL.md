@@ -43,8 +43,8 @@ do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
 
-Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md` and
-`techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
+Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `areas.md`, `solution.md`
+and `techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
 for an exception to be carved out of, which is why the rule can be stated in one sentence and has
 nowhere for a bypass to live.
 

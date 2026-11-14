@@ -45,7 +45,7 @@ the code is bad; it is that nobody can tell**, and the next session cannot eithe
    handed it — including the one that reads the finished code.
 2. **Rules the agent cannot bend.** A constraint is a record, not an instruction: an id, four clauses, one saying
    what it *forbids*. Three tiers — global, the stack's, the solution's own — are rendered fresh into every
-   reading, and every finding cites one by id.
+   reading, and every blocking finding cites one by id.
 3. **Accountability runs both ways.** A departure from a decision is declared where it arises and shown to the
    person at the approval and in the pull request; a build that bends the plan records a deviation a person
    answers; and the agent cannot edit what it is judged by. Ask for something a decision set aside and you are

@@ -182,6 +182,9 @@ These are properties, not style preferences, and each is a named test in `tests/
 - `Sdlc.Core` references no other project — it stays a leaf, because everything else depends on it
 - every class is sealed, static or abstract
 - every request `Sdlc.Core` declares has a registered handler
+- every private field is `_camelCase` and every constant `PascalCase`
+- the public surface of `Sdlc.Core` is exactly the approved list, so a type made public by accident fails
+- every grant of internal access names an assembly this repository builds
 - every directory holding projects is scanned by the checks above
 
 If one of these is in your way, the conversation is about the property, not about the test.

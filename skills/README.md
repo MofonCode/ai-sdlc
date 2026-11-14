@@ -58,7 +58,7 @@ passed, `to-plan` one per cycle ticked when its plan is clean, and `build` keeps
 of a session and never the record — what is done is what is on disk and what `sdlc doctor`, `sdlc
 status` and `sdlc cycles --pr-ready` report — and a host without a task list loses nothing, because
 no step depends on one. `../CONCEPT.md` D-80 has why a stage's list stops at the hand-back, why the
-batch's is shaped differently, and why the other twelve have none.
+batch's is shaped differently, and why the other fourteen have none.
 
 **Two words are kept apart throughout.** A **refusal** is a command or a hook declining to proceed —
 `sdlc gate`, `sdlc pr-ready`, a stage skill's early check, the hook denying a write. A **blocker** is a
@@ -435,7 +435,8 @@ confirms each one ran and passed.
 ```
 
 Expect it to read the code before it writes, then the loop, then a panel and a gate refusal naming
-approval as the missing piece.
+approval as the missing piece, the approval drafted for a person to rename, and the admission that follows
+it — `/sdlc:pr --plan` from the sandbox — before *build it* in a new session.
 
 #### Remarks
 
@@ -485,7 +486,7 @@ What it runs, in order:
 
 #### See also
 
-- [`draft`](#draft) — next, a person approves with `/sdlc:draft approval <id>` and a rename
+- [`draft`](#draft) — the plan skill drafts the approval itself; a person approves by renaming it into place, then admits the plan with `/sdlc:pr --plan`
 - [`interrogate`](#interrogate), [`steer`](#steer)
 - [Declaring the stack](../docs/guides/declaring-the-stack.md)
 - [Running a cycle](../docs/guides/running-a-cycle.md), §2
@@ -522,8 +523,9 @@ takes after an intent**: they never need to run `spec`, `plan`, `interrogate` or
 
 One line per cycle — `planned`, or stopped and why — then each planned cycle's plan panel, verbatim, and one
 free-text question about every open suggestion across the cycles, grouped by cycle and theme, then each
-approval drafted with its path and the rename that places it. It stops at the plan: approving is the person's,
-one cycle at a time, and drafting is not approving.
+approval drafted with its path and the rename that places it, and how the approved plans then leave the
+sandbox — *admit them*, `/sdlc:pr --plan`, or `sdlc admit` with no remote. It stops at the plan: approving is
+the person's, one cycle at a time, and drafting is not approving.
 
 #### Refusals
 
@@ -940,7 +942,7 @@ stack, or the solution document.
 |---|---|---|
 | a blocking finding is open, a document is missing, one has never been interrogated, or a round judged a document that has changed since | `draft approval` refuses to print | answer it; if it genuinely cannot be answered, `draft abandon` and a new cycle |
 | `--reopen` while a deviation is unanswered | `draft approval` refuses, and names each one | answer every deviation first: `sdlc draft approval <id>` |
-| a drafter that does not exist | refuses, and lists the four that do | — |
+| a drafter that does not exist | refuses, and lists the five that do | — |
 | `draft solution` before the document is placed, or `draft techstack` while a draft is waiting | refuses, and leaves the waiting draft as it is: what is in it may be somebody's work | fill in the waiting draft and rename it — or delete it, and draft again |
 | the rename that places the file | shown, and never run or offered: the hook denies it in every spelling and through every shell | run it yourself |
 
@@ -1047,7 +1049,8 @@ props rather than by instruction.
 
 | Condition | Result | What to do |
 |---|---|---|
-| the gate refuses — no cycle, abandoned, a missing document, nobody approved, a refusal standing, a document changed since approval, a blocking finding still open, or a round that judged a document which has moved since | refuses | each has a different next step — [Handling refusals](../docs/guides/handling-refusals.md) |
+| the plan is only in a sandbox, and the solution has an integration branch | `sdlc branch <id> build` refuses | admit it: `/sdlc:pr --plan` in the sandbox, or `sdlc admit` with no remote |
+| the gate refuses — no cycle, abandoned, a missing document, nobody approved, an approval ledger it cannot read, a refusal standing, a findings round it cannot read, a document never interrogated, a document changed since approval, a blocking finding still open, a round that judged a document which has moved since, or a round the approval anchored that has been rewritten | refuses | each has a different next step — [Handling refusals](../docs/guides/handling-refusals.md) |
 | a red build or failing tests | stops, and says so. It does not adjust a test to make it pass | — |
 | the turn ends over a failing suite, with code written and no evidence, or with code moved since the evidence | the turn-end hook sends the turn back | — |
 
@@ -1090,7 +1093,7 @@ What it runs, in order:
    build settings file the repository does not have
 4. `dotnet build` and `dotnet test`, reading the test count rather than the exit code
 5. commits the change, with any `Noticed:` lines
-6. `sdlc evidence <id> --tests <directory> --build-log <path>`, then commits the evidence
+6. `sdlc evidence <id> --tests <directory> --build-log <path> --coverage <directory>`, then commits the evidence
 7. shows `sdlc status <id> --brief` verbatim with at most five lines of its own
 8. on a green build, runs the `verify` stage — its fresh adjudicator, its round — and hands back once with
    both
@@ -1224,7 +1227,7 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 | a regression — a pass that broke what an earlier pass fixed | stops | — |
 | two passes in a row reduce nothing | stops | — |
 | three deviations bend the same approved text and the verification still blocks | stops | — |
-| a fourth pass in this run, still making progress | hands back with what closed and what is open, and asks whether to go on | say *keep going* (`/sdlc:remediate`), in a new session |
+| a fourth pass in this run, still making progress | hands back with what closed and what is open, and asks whether to go on | say *keep going* (`/sdlc:remediate`) |
 
 #### Example
 
@@ -1251,7 +1254,7 @@ deliberately no ceiling behind the progress rule now (D-66).
 
 It reads `sdlc pr-ready <id>` to know whether the loop is still making progress, works the open
 blockers `sdlc findings <id> --stage verify` prints, then `dotnet build`, `dotnet test` and
-`sdlc evidence <id> --tests <results> --build-log <log>`, commits on the cycle's branch, and shows
+`sdlc evidence <id> --tests <results> --build-log <log> --coverage <results>`, commits on the cycle's branch, and shows
 `sdlc status <id>` verbatim. A pass is a verify findings round after the first, so progress is read from
 what happened rather than from a counter anybody could edit.
 
