@@ -268,8 +268,11 @@ internal static class Usage
                                      since the last round instead.
             round prompt <id> <artifact> --dir <directory>
                                      Write every reader's prompt for a round into a directory
-                                     outside the repository, as <reader>.prompt.md: the block every
-                                     reader shares first, then each reader's own part. --reader
+                                     outside the repository: shared.md, the block the rules reader
+                                     and every perspective open with, handed over as a system
+                                     prompt, and <reader>.prompt.md, each reader's own part. A
+                                     verify round after the cycle's first runs no perspective.
+                                     --reader
                                      <name> writes one -- rules, diff on a verify, a perspective,
                                      reconcile once the others have answered, or adjudicate on a
                                      verify. --list names the readers and writes nothing.
@@ -318,6 +321,9 @@ internal static class Usage
                                      what the stack never mentions.
                                      Ends with the proposal file a person marks for 'draft
                                      mining'. Proposes; writes nothing that binds.
+                                     --cycles <id>,<id> reads those finished cycles alone and
+                                     leaves the rest for a later sitting; the rule counts stay
+                                     the whole record's.
             mine record <file>       Once the drafts are renamed into place: record the sitting in
                                      .sdlc/mined.json -- each finished cycle on the integration
                                      branch becomes a husk, with its merge commit, its files, the
@@ -325,8 +331,9 @@ internal static class Usage
                                      under '## Ignored' tallied -- and print the
                                      deletion of the husks' folders, for a person to run on a
                                      branch of its own. Deletes nothing. Refuses while a draft is
-                                     still beside its file.
-            mine --history           The mining ledger: every mined cycle, every sitting with what
+                                     still beside its file. A file with a '## Cycles' section
+                                     records the cycles it lists and no others.
+            mine --history          The mining ledger: every mined cycle, every sitting with what
                                      was accepted and declined, the concerns watched below the
                                      bar of three cycles, and the concerns ignored, with the
                                      cycles each was ignored in.

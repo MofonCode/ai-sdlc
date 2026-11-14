@@ -32,6 +32,11 @@ public static class MiningRenderer
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {response.Unfinished.Count} cycle{(response.Unfinished.Count == 1 ? string.Empty : "s")} still in flight, left alone"));
         }
 
+        if (response.Later is { Count: > 0 } later)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {later.Count} finished cycle{(later.Count == 1 ? string.Empty : "s")} this sitting did not read, left for a later one: 'sdlc mine --cycles <ids>'"));
+        }
+
         // A concern ignored in enough cycles is a pattern, and the next sitting has to answer it (D-153).
         foreach (Watched ignored in (response.Ignored ?? []).Where(ignored => ignored.Cycles.Count >= Proposals.ProposeConstraints.Bar))
         {

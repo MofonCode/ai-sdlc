@@ -1676,13 +1676,34 @@ static async Task<int> MineCommand(CommandLine line)
         }).ConfigureAwait(false);
     }
 
-    return await Workspace.Run(line, Mine).ConfigureAwait(false);
+    // A backlog is mined a few cycles at a time, and the rest wait for a later sitting (D-166).
+    IReadOnlyList<CycleId>? cycles = null;
+
+    if (line.TryOption("cycles", out string? named))
+    {
+        List<CycleId> parsed = [];
+
+        foreach (string text in Ids(named))
+        {
+            if (!CycleId.TryParse(text, out CycleId? id))
+            {
+                await Console.Error.WriteLineAsync($"'{text}' is not a cycle id. 'sdlc cycles' lists them.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
+            parsed.Add(id.Value);
+        }
+
+        cycles = parsed;
+    }
+
+    return await Workspace.Run(line, workspace => Mine(workspace, cycles)).ConfigureAwait(false);
 }
 
-static async Task<int> Mine(Workspace workspace)
+static async Task<int> Mine(Workspace workspace, IReadOnlyList<CycleId>? cycles)
 {
     Result<ProposeMining.Response> result = await workspace
-        .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query())
+        .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query(cycles))
         .ConfigureAwait(false);
 
     if (result.IsFailed)

@@ -19,6 +19,13 @@ You do not have to mine after every cycle. A sitting reads every finished cycle 
 three cycles is one sitting rather than three. The three-cycle bar — one cycle is an instance, two a
 coincidence, three a pattern — is easier to see with several cycles in front of you.
 
+**A long backlog is mined in batches.** The first sitting over a solution that has never been mined would
+read every finished cycle at once, which can cost millions of tokens. Name the cycles for this sitting —
+tell the skill which ones, and it runs `sdlc mine --cycles <id>,<id>`. The report's findings, record and
+suggestions are those cycles' alone, the rule counts still cover the whole record, and the proposal file
+lists the cycles under `## Cycles`, so recording the sitting makes husks of those and leaves the rest for
+the next one (D-166).
+
 ## A sitting, step by step
 
 | Step | You run | What happens |
@@ -28,7 +35,7 @@ coincidence, three a pattern — is easier to see with several cycles in front o
 | 3 | `sdlc draft mining <file>` | the skill runs it: it writes `constraints.draft.md`, `decisions.draft.md`, `techstack.draft.md` and `areas.draft.md` beside the real files, each only where something you accepted reaches it, and any successors you accepted |
 | 4 | — | two fresh processes review what you approved: whether it still serves the evidence and `solution.md`, and whether anything the record raised was left without an answer. Both are advice; a gap goes back to step 1 for that item |
 | 5 | rename each draft over its file | the rename is yours, because these are files only a person writes. Delete a draft you decided against |
-| 6 | `sdlc mine record <file>` | records the sitting in `.sdlc/mined.json`. Every finished cycle on the integration branch becomes a **husk**, and the deletion of the husks' folders is printed |
+| 6 | `sdlc mine record <file>` | records the sitting in `.sdlc/mined.json`. Every finished cycle on the integration branch that the file's `## Cycles` lists becomes a **husk**, and the deletion of the husks' folders is printed |
 | 7 | the printed deletion, then a pull request | a `mining/<date>` branch, `git rm -r` per husk, the ledger added, committed with `git commit -F`. The check admits it as mining when it carries only the records, the ledger, successors and the deletions |
 
 **Nothing is lost when a husk goes.** Its folder is in git at the commit the ledger names, and what later mining

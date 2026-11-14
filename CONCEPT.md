@@ -878,7 +878,8 @@ as a suggestion, which a person takes in through `steer` (D-97) — to sharpen a
 wants, never to add or widen one (D-128). `interrogate` runs one fresh
 process per active perspective, handed that perspective's full method and rules, then **one reconciling
 reader** over the round's findings and the artifact's standing ones, which names a finding that restates
-one still open so the round carries it under the id it has (D-108). `verify` asks each perspective's questions of the evidence.
+one still open so the round carries it under the id it has (D-108). `verify` asks each perspective's questions of the evidence,
+in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164).
 
 **Which apply.** Security, operability and maintainability always. The intent names any others, seen in
 the interview and covered by the approval's hash; at plan, the declared files add any the intent missed,
@@ -1992,7 +1993,9 @@ happened to Gemini CLI (D-50).
 
 **A fresh reader is the host's own non-interactive mode, spelled in the skills.** On Claude Code that is
 `claude -p` with no tools, no MCP servers, no session file and JSON output — `--tools=`, because Windows
-PowerShell drops the empty argument `--tools ""` passes (D-118). `SupportedHosts` carries no invocation,
+PowerShell drops the empty argument `--tools ""` passes (D-118). The block a round's readers share is handed
+over as the system prompt, where the host caches it, and one reader starts first so the rest find it (D-163).
+`SupportedHosts` carries no invocation,
 because the binary never starts a reader (D-46).
 
 ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
@@ -6762,6 +6765,8 @@ binary marks it as data in what it prints, and the planning approval stands betw
 
 **Governs:** §6.5
 
+**Amended by D-164.** A perspective reads a cycle's first verify round only.
+
 **Decision.** A perspective — security, operability, maintainability, accessibility, UI/UX, infrastructure
 and cost, data and migrations, API compatibility, performance — is a document embedded in the binary, the
 way a stack profile is. It carries a **method** for examining the work, the **questions** it asks at each
@@ -7287,6 +7292,134 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-166 — A mining sitting may read some of the finished cycles, and records those alone
+
+**Governs:** §15
+
+**Amends D-152:** `sdlc mine record` makes husks of the cycles the proposal file's `## Cycles` lists, and no
+others.
+
+**Decision.** `sdlc mine --cycles <id>,<id>` limits a sitting to those finished cycles not mined yet: the
+findings that rested on no rule, each cycle's record and the open suggestions are theirs alone, and the rule
+counts stay the whole record's. The report prints a `## Cycles` section listing the sitting's cycles — every
+finished one when nothing is named — which the skill copies into the proposal file as written. `sdlc mine
+record` records the cycles it lists and leaves every other finished one for a later sitting; a file without
+the section records every finished cycle, as before. Naming a cycle that is mined already, in flight, or
+not there is refused.
+
+**Why.** Mining MarketSense found 2,315 open suggestions across a solution never mined, and a first sitting
+that reads every finished cycle at once, one reader per cycle and document, would cost several million
+tokens. `mine` had no way to take part of the history, so the first sitting was all or nothing.
+
+**Rejected.** *A date, or the n oldest cycles.* The person chose to name them, which also lets a sitting
+take related cycles together. *Limiting the rule counts too.* They are counts over the record, and a rule
+cited in three cycles is at the bar however many of those this sitting reads. *`mine record --cycles` as
+well.* Two places to name the same set would disagree; the proposal file is already what record reads, and
+the report writes the list. *Reading the kept report for the list.* Nothing reads a report under `.sdlc/reports/`
+back, by design: a stale one would be state a tool trusts. *A cap on suggestions per reader*, which the mining proposed beside
+this. The person declined it: D-164 and D-163 took most of what suggestions cost, and a cap would decide
+which concerns a reader may raise.
+
+### D-165 — A verdict that concedes on evidence a round already judged goes to remediate without a round
+
+**Governs:** §6
+
+**Amends D-130:** a verdict rewritten in place to answer a blocker is interrogated again unless it now reads
+`blocked` on the evidence the last round judged.
+
+**Decision.** `sdlc round prompt <id> verify` refuses to write a round's prompts when `verify.md` reads
+`blocked` and the evidence hash is the last verify round's, naming `/sdlc:remediate`. The adjudicator's prompt
+and the reconciler's are still written. A verdict claiming a pass on that evidence is interrogated as before,
+and the run remediate records changes the evidence, so it gets a full round.
+
+**Why.** One MarketSense verify ran a round of every reader, about 1.1M tokens, four minutes after the one
+before and on the same evidence. Between them the adjudicator had conceded the blocker — a criterion marked
+Met on a helper whose body the evidence did not hold — so the verdict read blocked, and the round could only
+confirm what the outcome already decided: the cycle went to remediate, and the blocker was answered by the next
+run's evidence. A blocked outcome routes to remediate on the panel whatever a round finds, and remediate works
+from the verdict's Not met criteria and the open blockers, neither of which the round could change: every
+entry the concession did not touch was copied in place (D-130) and judged on that evidence already.
+
+**Rejected.** *No round whenever the evidence is unchanged*, which the mining proposed. A verdict that answers
+a blocker by standing by its claim, and still reads pass, is exactly what a round must judge; refusing it would
+let a verdict argue itself past its readers. *Skipping it in the skill alone.* A deterministic condition belongs
+to the binary, which refuses before anything is paid for; the skill says why.
+
+### D-164 — A perspective reads a cycle's first verify round, and no later one
+
+**Governs:** §6.5
+
+**Amends D-90:** a perspective judges in a fresh reader at every interrogation but a verify's after the first.
+
+**Decision.** A verify round runs the rules reader, the diff reader and every active perspective while the cycle
+has no verify round recorded. Once it has one, a verify round runs the rules and diff readers alone, and
+`round prompt` names the perspectives it leaves out. Intent, spec and plan rounds are unchanged.
+
+**Why.** In six MarketSense cycles the perspective readers at verify used about 4.2M tokens, 31% of every
+reader's, and blocked nothing: every blocker at verify was the rules reader's or the diff reader's. A perspective's
+suggestion at verify can only become a successor, since the cycle has been built, and the 82 they raised there each
+cost the session a disposition. A later verify round re-reads a verdict moved to answer the rules or the diff
+reader, so the perspectives' look at the built change and its evidence is taken in the first, once. D-163 had
+already cut most of what each one cost; this removes the repeats and the suggestions they bring.
+
+**Rejected.** *No perspective at verify.* It loses the one look each angle gets at the finished change, the
+evidence questions §6.5 gives verify. *Only the perspectives whose area the diff touches.* A perspective has no
+area to match, and building one is a design of its own for a reader that has not blocked. *The first round of
+each run, rather than of the cycle.* A run after a remediate changes the code, but the change answers a rules or
+diff finding, which those readers judge again; counting runs would bring the repeats back.
+
+### D-163 — The block a round's readers share is handed over as the system prompt, one reader first, outside the checkout
+
+**Governs:** §2.5, §12
+
+**Amends D-117:** `round prompt` writes the shared block once, as `shared.md`, and the rules reader's and each
+perspective's prompt file holds only its own part. **Amends D-118:** those readers are started with
+`--append-system-prompt-file shared.md`, the rules reader five seconds before the rest, and every reader is
+started from its round's directory rather than from the checkout.
+
+**Decision.** The block every reader of a round opens with — the stack file on a plan, the decisions, the document
+above, the spec and the evidence on a verify, the document — goes to the host as the system prompt, and only what
+the reader is asked is piped in. The rules reader starts first and the others five seconds later. The diff reader,
+the reconciler and the adjudicator are composed apart from that block, so their prompts stay whole. A host with
+no way to take a system prompt from a file pipes `shared.md` and the prompt in that order, which is the same bytes
+one file held before. **Every reader — these, the reconciler, the adjudicator, `mine`'s — is started from a
+directory outside the repository**, the round's own where it has one.
+
+**Why.** Mining MarketSense's sessions found every reader writing about its whole prompt to the cache and reading
+back 0.5–2k tokens. D-117 put the shared block first so a host could cache it, but caching is per marked point: the
+host marks the end of the system prompt and the end of the message, and a prefix inside one piped message is never
+an entry of its own. Measured on one MarketSense plan round, four readers, prompts of 40–60 KB sharing their first
+36 KB, nothing collected:
+
+| How the readers were started | Each perspective: written to the cache / read from it | Round |
+|---|---|---|
+| whole prompt piped, all at once (as before) | ~17,000 / 535 tokens | $0.66 |
+| whole prompt piped, the rules reader 20 s first | ~15,300 / 2,197 | $0.63 |
+| shared block as system prompt, all at once | ~17,000 / 544 | $0.67 |
+| shared block as system prompt, the rules reader 5 s first | ~2,600 / 14,888 | $0.33 |
+
+Neither change saves anything alone; together they halve the round. A verify round, whose shared evidence is larger,
+should save more. The rules reader was run four times each way to see whether where the block sits changes the
+judgement: every run cited the same rule on the same section, and the one blocker among them was about a criterion
+the other arrangement raised as a suggestion, which is the variance a second reading already has.
+
+Running the arrangement from the solution's checkout, as the skills did, showed each reader writing about 5,200
+tokens more than the same run from an empty directory. A two-word prompt measured it: 8,231 tokens from the
+checkout, 3,385 from the round's directory. The difference is what the host knows about the checkout — the
+project's memory, the notes earlier sessions kept about the solution, and its git status and latest commit
+messages. That is the author's context the fresh process exists to leave out (D-58), and every reader paid for it.
+
+**Rejected.** *Staggering alone*, which the mining proposed: measured, it saves 1.7k tokens a reader. *Asking the
+host for a cache point inside the message.* `claude -p` reads a piped prompt as one block, and the binary never
+starts a reader (D-46). *Putting the constraints in the shared block too*, to cache the rules reader's part: a
+perspective would be handed the rule set and judge differently (D-117). *A check in `round collect` that the reader
+was handed `shared.md`.* Its own part is often most of a rules reader's prompt, so no token count tells the two
+apart reliably; a skill from an older release driving this binary is what the session-start warning already says
+(D-131), and the other way round the host refuses to start without the file. *Turning the memory off with a
+setting.* It took 8,231 to about 5,000 and left the git status in; it is one host's switch, where starting
+outside the checkout works on every host. *`--bare`*, which drops all of it: it takes only an API key, so a
+person signed in to a subscription could not run a round.
+
 ### D-162 — The binary copies what a person or session decided, and says what has merged
 
 **Governs:** §5.2, §6.1, §10.3, §15.2
@@ -7716,6 +7849,8 @@ once per cycle, its folder gone each time, would never be seen to recur.
 ### D-152 — A mined cycle is a husk: the ledger keeps what later mining needs, and a person deletes its folder
 
 **Governs:** §3.1, §5.3, §15
+
+**Amended by D-166.** A sitting may be limited to named cycles, and only those become husks.
 
 **Extends D-104 and D-112** — mining answers every item, now with `successor`, `watch` and `declined` among the
 answers — **D-146**, whose recorded abandonment is mined like any other cycle, **D-125 and D-145**, whose readiness
@@ -8786,6 +8921,8 @@ the commit its skills were packed from.
 
 **Governs:** §4.2, §6.2, §7.1, §15
 
+**Amended by D-165.** A verdict rewritten in place that now reads `blocked` on the evidence the last round judged goes to remediate without a round.
+
 **Extends D-119.** The rows a reader returns per criterion get something on the page to point at.
 
 **Decision.**
@@ -9306,6 +9443,8 @@ solution could not mark its own.
 
 **Governs:** §2.5, §12
 
+**Amended by D-163.** The rules reader and every perspective also take `--append-system-prompt-file shared.md`, the rules reader starts a few seconds before the rest, and every reader starts from a directory outside the repository.
+
 **Decision.** On Claude Code every fresh reader — an interrogation's, the reconciler, the adjudicator,
 `propose`'s — is started as:
 
@@ -9343,6 +9482,8 @@ fix for that, and one result object is what collect reads.
 ### D-117 — The binary composes every reader's prompt and collects every reader's answer
 
 **Governs:** §2.5, §6, §6.5
+
+**Amended by D-163.** The shared block is written once, as `shared.md`, and the rules reader's and each perspective's prompt file holds only its own part.
 
 **Amended by D-162.** `round collect --answered` and `--withdrawn` copy the earlier findings the session settles in from the ledger word for word; the session still decides which.
 

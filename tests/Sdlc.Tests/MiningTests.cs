@@ -277,6 +277,56 @@ public sealed class MiningTests
         StringAssert.Contains(rendered, "## Ignored");
     }
 
+    [TestMethod]
+    public async Task A_sitting_limited_to_some_cycles_reads_and_records_those_alone()
+    {
+        // D-166. A first sitting over a long history would cost millions of tokens, so a backlog is mined a few
+        // cycles at a time: the rest stay unmined, and none becomes a husk nobody read.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify("pass");
+        const string other = "20261001_0900_01";
+        string otherFolder = Path.Combine(Path.GetDirectoryName(workspace.Cycle.Directory)!, other);
+        Directory.CreateDirectory(otherFolder);
+
+        foreach (string file in Directory.GetFiles(workspace.Cycle.Directory))
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(otherFolder, Path.GetFileName(file)),
+                (await File.ReadAllTextAsync(file)).Replace(workspace.Cycle.Id.ToString(), other, StringComparison.Ordinal));
+        }
+
+        Assert.IsTrue(CycleId.TryParse(other, out CycleId? named));
+
+        using (var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(new FakeRepository())))
+        {
+            ProposeMining.Response limited = (await gate.Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query([named.Value]))).Value;
+
+            CollectionAssert.AreEqual(new[] { named.Value }, limited.Sitting!.ToArray());
+            CollectionAssert.AreEqual(new[] { named.Value }, limited.Record!.Select(record => record.Cycle).ToArray(), "The record is the sitting's cycles alone.");
+            string rendered = ProposeMining.Render(limited, "proposed.md");
+            StringAssert.Contains(rendered, "This sitting   " + other);
+            StringAssert.Contains(rendered, "## Cycles");
+            StringAssert.Contains(rendered, "                  - " + other);
+
+            Assert.IsTrue(CycleId.TryParse("20200101_0000_00", out CycleId? missing));
+            Result<ProposeMining.Response> refused = await gate.Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query([missing.Value]));
+            Assert.IsTrue(refused.IsFailed);
+            StringAssert.Contains(refused.Errors[0].Message, "20200101_0000_00 is not a finished cycle here");
+        }
+
+        FakeRepository git = new();
+        git.Refs.Add(Integration);
+        git.History[Integration + ":.sdlc/cycles/" + workspace.Cycle.Id] = [("one", DateTimeOffset.UnixEpoch)];
+        git.History[Integration + ":.sdlc/cycles/" + other] = [("two", DateTimeOffset.UnixEpoch)];
+
+        RecordMining.Response recorded = (await Record(workspace, git, await Proposals(workspace, "## Cycles\n\n- " + other + "\n"))).Value;
+
+        CollectionAssert.AreEqual(new[] { other }, recorded.Recorded.Select(cycle => cycle.Cycle).ToArray());
+        CollectionAssert.AreEqual(new[] { workspace.Cycle.Id }, recorded.Later!.ToArray(), "A finished cycle the sitting did not read waits for a later one.");
+        StringAssert.Contains(MiningRenderer.RenderRecorded(recorded), "1 finished cycle this sitting did not read, left for a later one");
+    }
+
     private static MinedCycle Husk(string id) =>
         new(id, "abc123", DateTimeOffset.UnixEpoch, false, ["src/Thing.cs"], ["src/Thing.cs"], [], [], new Dictionary<string, int> { ["intent"] = 1 }, 0, ["pass"]);
 

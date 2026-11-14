@@ -114,6 +114,8 @@ public static class ProposeMining
     /// The open suggestions of the finished cycles not mined yet: each is taken further, declined with its reason,
     /// or ignored, and an ignored one is tallied by concern in the ledger, since nothing else keeps it (D-153).
     /// </param>
+    /// <param name="Sitting">The finished cycles not mined yet that this sitting reads and records.</param>
+    /// <param name="Limited">Whether the sitting was limited to cycles named on the command line (D-166).</param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
@@ -123,10 +125,16 @@ public static class ProposeMining
         IReadOnlyList<string>? OverBudget = null,
         AreaHistory.Reading? Areas = null,
         Mining.MinedLedger? Mined = null,
-        IReadOnlyList<Suggestion>? Suggestions = null);
+        IReadOnlyList<Suggestion>? Suggestions = null,
+        IReadOnlyList<CycleId>? Sitting = null,
+        bool Limited = false);
 
     /// <summary>Asks for the report.</summary>
-    public sealed record Query : IRequest<Response>;
+    /// <param name="Cycles">
+    /// The finished cycles not mined yet that this sitting reads, or null for all of them. A backlog is mined a
+    /// few cycles at a time, and the rest wait for a later sitting.
+    /// </param>
+    public sealed record Query(IReadOnlyList<CycleId>? Cycles = null) : IRequest<Response>;
 
     /// <summary>Renders the report.</summary>
     /// <param name="response">The report.</param>
@@ -268,6 +276,14 @@ public static class ProposeMining
             text.AppendLine("  every row and rule this release ships is answered");
         }
 
+        if (response.Limited)
+        {
+            text.AppendLine();
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"This sitting   {string.Join(", ", response.Sitting ?? [])} -- the cycles' findings, record and suggestions above are theirs alone; the rule counts are the whole record's. Finished cycles not named wait for a later sitting (D-166)."));
+        }
+
         text.AppendLine();
         text.AppendLine("The proposals go in " + proposals + ", one heading each, for a person to mark:");
         text.AppendLine();
@@ -280,6 +296,13 @@ public static class ProposeMining
         text.AppendLine("  ## Watch        - <a concern below the bar> — <cycle>, <cycle>");
         text.AppendLine("  ## Declined     - <suggestion id>: <why>");
         text.AppendLine("  ## Ignored      - <the concern, worded as it was ignored before> — <cycle>, <cycle>");
+        text.AppendLine("  ## Cycles       copied as written: 'mine record' records the cycles listed here and no others");
+
+        foreach (CycleId cycle in response.Sitting ?? [])
+        {
+            text.AppendLine("                  - " + cycle);
+        }
+
         text.AppendLine();
         text.AppendLine("  Under each heading, the entry's clauses as they would be pasted, and '> ' lines for the evidence.");
         text.AppendLine("  There is no remove: supersede a rule or decision, and set a stack concern to none.");
@@ -503,9 +526,38 @@ public static class ProposeMining
                 ? StackCoverage.Of(await File.ReadAllTextAsync(stack, cancellationToken).ConfigureAwait(false))
                 : StackCoverage.Unmentioned.Nothing;
 
+            Mining.MinedLedger? mined = (await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false)).ValueOrDefault;
+
+            // Only a finished cycle's suggestions: one in flight still answers its own through steer, and one already
+            // mined had its suggestions answered at that sitting.
+            List<CycleId> finished = [];
+
+            foreach (Cycle cycle in CycleIndex.All(solution.Path))
+            {
+                if (mined?.Find(cycle.Id.ToString()) is null
+                    && await Mining.RecordMining.IsFinished(cycle, cancellationToken).ConfigureAwait(false))
+                {
+                    finished.Add(cycle.Id);
+                }
+            }
+
+            // A sitting limited to some cycles reads only theirs, and the rest wait for a later one (D-166). The rule
+            // counts stay over the whole record: they are counts, and a rule cited in three cycles is cited in three
+            // however many of them this sitting reads.
+            bool limited = request.Cycles is not null;
+            List<string> refused = [.. (request.Cycles ?? []).Where(id => !finished.Contains(id)).Select(id => Refusal(id, mined))];
+
+            if (refused.Count > 0)
+            {
+                return Result.Fail<Response>("A sitting reads finished cycles not mined yet. " + string.Join(" ", refused));
+            }
+
+            HashSet<CycleId> sitting = [.. request.Cycles ?? finished];
+
             List<Group> groups =
             [
                 .. rules.Value.Uncited
+                    .Where(finding => !limited || sitting.Contains(finding.Cycle))
                     .GroupBy(finding => (Raiser: finding.Perspective ?? "rules", finding.Artifact))
                     .Select(group =>
                     {
@@ -533,7 +585,7 @@ public static class ProposeMining
 
             List<CycleRecord> record = [];
 
-            foreach (Cycle cycle in CycleIndex.All(solution.Path))
+            foreach (Cycle cycle in CycleIndex.All(solution.Path).Where(cycle => !limited || sitting.Contains(cycle.Id)))
             {
                 record.Add(await Recorded(cycle, cancellationToken).ConfigureAwait(false));
             }
@@ -545,7 +597,6 @@ public static class ProposeMining
                 return defined.ToResult<Response>();
             }
 
-            Mining.MinedLedger? mined = (await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false)).ValueOrDefault;
             Result<Suggestions.Response> open = await mediator
                 .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(), cancellationToken)
                 .ConfigureAwait(false);
@@ -553,19 +604,6 @@ public static class ProposeMining
             if (open.IsFailed)
             {
                 return open.ToResult<Response>();
-            }
-
-            // Only a finished cycle's: one in flight still answers its own through steer, and one already mined
-            // had its suggestions answered at that sitting.
-            HashSet<CycleId> finished = [];
-
-            foreach (Cycle cycle in CycleIndex.All(solution.Path))
-            {
-                if (mined?.Find(cycle.Id.ToString()) is null
-                    && await Mining.RecordMining.IsFinished(cycle, cancellationToken).ConfigureAwait(false))
-                {
-                    finished.Add(cycle.Id);
-                }
             }
 
             return Result.Ok(new Response(
@@ -577,8 +615,15 @@ public static class ProposeMining
                 await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false),
                 await AreaHistory.Read(solution.Path, defined.Value, cancellationToken).ConfigureAwait(false),
                 mined,
-                [.. open.Value.Suggestions.Where(suggestion => finished.Contains(suggestion.Cycle))]));
+                [.. open.Value.Suggestions.Where(suggestion => sitting.Contains(suggestion.Cycle))],
+                [.. finished.Where(sitting.Contains)],
+                limited));
         }
+
+        private static string Refusal(CycleId id, Mining.MinedLedger? mined) =>
+            mined?.Find(id.ToString()) is not null
+                ? string.Create(CultureInfo.InvariantCulture, $"{id} was mined already; 'sdlc mine --history' lists when.")
+                : string.Create(CultureInfo.InvariantCulture, $"{id} is not a finished cycle here: its verify has not passed and nobody abandoned it, or there is no such cycle. 'sdlc cycles' lists them.");
 
         /// <summary>
         /// The entries a reader handed only the headline would get too much of: never refused, because the

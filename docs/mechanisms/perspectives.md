@@ -75,7 +75,7 @@ sdlc perspectives <id>
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |
 | `build` | **steers, and never widens.** It applies the *cover this* list to how the plan is written up in code and records the evidence each perspective needs. Anything a perspective wants that the plan did not describe becomes a tagged `Noticed: [name] …` line in the commit, not code |
-| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page |
+| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page. Asked in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164) |
 
 **Why steering as well as judging.** A perspective that only judges finds what it could have prevented,
 and the loop pays a refine round for every finding it raises. A perspective that steers mostly finds

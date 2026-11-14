@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.44.1** · iteration 4 · .NET 10
+**Version 0.45.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.44.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.45.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -421,6 +421,14 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **A round costs about half, measured on one plan round; the rest has met only the suite** (0.45.0). The
+  block every reader shares is handed over as a system prompt with one reader started first, so the host caches
+  it, and readers start outside the checkout, so they are no longer handed the project's memory and git status
+  (D-163). On one MarketSense plan round the blind readers went from about $0.79 to $0.33; a verify round has
+  not been measured. Perspectives read a cycle's first verify round only (D-164), a verdict conceding on
+  evidence a round already judged goes to remediate without another round (D-165), and `sdlc mine --cycles`
+  mines a backlog in batches (D-166). It is a minor because the prompt files changed shape: a 0.44 skill
+  driving this binary would hand its readers only their own part.
 - **The binary does the hand work mining MarketSense found, and has met only the suite** (0.44.1). A session
   settles earlier findings with `round collect --answered/--withdrawn` instead of editing the round file. A
   person's answers to deviations are drafted in with `draft approval --accept/--decline`, `draft solution` moves

@@ -97,8 +97,9 @@ internal sealed record Pair(IReadOnlyList<string>? Between, string? Why);
 /// </summary>
 /// <remarks>
 /// <para>One directory per round, outside the repository: <c>&lt;reader&gt;.prompt.md</c> is what the
-/// binary wrote and <c>&lt;reader&gt;.json</c> what the reader returned. A naming convention rather than a
-/// list of paths on the command line, so the launch line is one loop over a glob on every shell.</para>
+/// binary wrote, <c>shared.md</c> the block the rules reader and every perspective open with, and
+/// <c>&lt;reader&gt;.json</c> what the reader returned. A naming convention rather than a list of paths on
+/// the command line, so the launch line is one loop over a glob on every shell.</para>
 /// <para><strong>The answer is read in either of two shapes.</strong> Claude Code's
 /// <c>--output-format json</c> wraps the reader's text in a result object carrying its usage; any other
 /// host's plain text is the answer itself, with nothing known about its cost. The binary never names a
@@ -140,9 +141,46 @@ public static class ReaderAnswers
     /// </summary>
     /// <param name="artifact">The artifact being judged.</param>
     /// <param name="perspectives">The active perspectives that have a document.</param>
+    /// <param name="verifiedBefore">
+    /// Whether the cycle has recorded a verify round already: the perspectives read a verify's first round
+    /// only (D-164).
+    /// </param>
     /// <returns>The readers' names.</returns>
-    public static IReadOnlyList<string> Blind(ArtifactKind artifact, IEnumerable<string> perspectives) =>
-        [Rules, .. artifact == ArtifactKind.Verify ? (string[])[Diff] : [], .. perspectives];
+    public static IReadOnlyList<string> Blind(ArtifactKind artifact, IEnumerable<string> perspectives, bool verifiedBefore = false) =>
+        [Rules, .. artifact == ArtifactKind.Verify ? (string[])[Diff] : [], .. Resting(artifact, verifiedBefore) ? [] : perspectives];
+
+    /// <summary>
+    /// Whether this round leaves the perspectives out: a verify round once the cycle has recorded one (D-164).
+    /// </summary>
+    /// <remarks>
+    /// In six MarketSense cycles no perspective blocked at verify, and a perspective's suggestion there can only
+    /// become a successor. A later verify round re-reads a verdict moved to answer the rules or the diff reader,
+    /// so the perspectives' look at the built change is taken once, in the first.
+    /// </remarks>
+    /// <param name="artifact">The artifact being judged.</param>
+    /// <param name="verifiedBefore">Whether the cycle has recorded a verify round already.</param>
+    /// <returns>True when the round runs no perspective.</returns>
+    public static bool Resting(ArtifactKind artifact, bool verifiedBefore) => artifact == ArtifactKind.Verify && verifiedBefore;
+
+    /// <summary>Whether the cycle has recorded a verify round, read from its ledger.</summary>
+    /// <param name="mediator">The mediator.</param>
+    /// <param name="id">The cycle.</param>
+    /// <param name="artifact">The artifact being judged; anything but a verify answers false without reading.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>Whether a verify round is recorded, or why the ledger could not be read.</returns>
+    internal static async Task<Result<bool>> VerifiedBefore(MofonCode.Core.Mediator mediator, CycleId id, ArtifactKind artifact, CancellationToken cancellationToken)
+    {
+        if (artifact != ArtifactKind.Verify)
+        {
+            return Result.Ok(false);
+        }
+
+        Result<ReadFindings.Response> standing = await mediator
+            .Send<ReadFindings.Query, ReadFindings.Response>(new ReadFindings.Query(id, ArtifactKind.Verify), cancellationToken)
+            .ConfigureAwait(false);
+
+        return standing.IsFailed ? standing.ToResult<bool>() : Result.Ok(standing.Value.Artifacts.Any(a => a.Rounds.Count > 0));
+    }
 
     /// <summary>The round file collect drafts in the round's directory.</summary>
     public const string RoundFileName = "round.json";
@@ -160,6 +198,23 @@ public static class ReaderAnswers
     /// <param name="reader">The reader.</param>
     /// <returns>The path.</returns>
     public static string PromptPath(string directory, string reader) => Path.Combine(directory, reader + ".prompt.md");
+
+    /// <summary>The block the rules reader and every perspective open with, written once per round.</summary>
+    public const string SharedFileName = "shared.md";
+
+    /// <summary>Where the shared block is written.</summary>
+    /// <param name="directory">The round's directory.</param>
+    /// <returns>The path.</returns>
+    public static string SharedPath(string directory) => Path.Combine(directory, SharedFileName);
+
+    /// <summary>
+    /// Whether a reader opens with the shared block, so its prompt file holds only its own part. The diff
+    /// reader and the reconciler are composed from what their questions need, and the adjudicator's block
+    /// leaves out the document it writes, so each of those prompts is whole.
+    /// </summary>
+    /// <param name="reader">The reader.</param>
+    /// <returns>True for the rules reader and every perspective.</returns>
+    public static bool OpensWithShared(string reader) => reader is not (Diff or Reconcile or Adjudicate);
 
     /// <summary>Where one reader's answer is expected.</summary>
     /// <param name="directory">The round's directory.</param>
@@ -184,8 +239,12 @@ public static class ReaderAnswers
         }
 
         string content = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+        // The size the reader was handed: its own part, and the shared block when it opens with one.
         string prompt = PromptPath(directory, reader);
-        long? bytes = File.Exists(prompt) ? new FileInfo(prompt).Length : null;
+        string shared = SharedPath(directory);
+        long? bytes = File.Exists(prompt)
+            ? new FileInfo(prompt).Length + (OpensWithShared(reader) && File.Exists(shared) ? new FileInfo(shared).Length : 0)
+            : null;
 
         return Parse(reader, content, bytes, path);
     }

@@ -6,6 +6,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Areas;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
@@ -30,7 +31,10 @@ namespace Sdlc.Core.Findings;
 /// the stack file on a plan, the standing decisions, the document above, the spec and the evidence on a
 /// verify, then the document
 /// — and each reader's own part last. A prefix the readers share is one a host can cache, and one a
-/// replay can compare. The rules are in the rules reader's part rather than the shared block, because a
+/// replay can compare. It is written once, as <c>shared.md</c>, and each prompt holds only the reader's own
+/// part: a host caches only up to a point it marks, so the block is handed over as a system prompt, which
+/// ends at one (D-163). Piped in front of the prompt, the bytes are what one file used to hold. The rules
+/// are in the rules reader's part rather than the shared block, because a
 /// perspective is not handed the constraint set and putting it there would change what it judges. The
 /// verify round's diff reader is composed apart from the shared block, from what its question needs.</para>
 /// </remarks>
@@ -59,13 +63,21 @@ public static class ReaderPrompts
     /// <param name="Readers">Every reader this round runs blind, in order: the rules reader, then each perspective.</param>
     /// <param name="Prompts">The prompts written; empty when only the list was asked for.</param>
     /// <param name="Unwritten">Active perspectives with no document yet, which have nothing to run.</param>
+    /// <param name="Shared">
+    /// The shared block, when a reader written opens with it: each of those prompts holds only its own part.
+    /// </param>
+    /// <param name="Rested">
+    /// Active perspectives this round leaves out: a verify round after the cycle's first (D-164).
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         ArtifactKind Artifact,
         string Directory,
         IReadOnlyList<string> Readers,
         IReadOnlyList<Written> Prompts,
-        IReadOnlyList<string> Unwritten);
+        IReadOnlyList<string> Unwritten,
+        Written? Shared = null,
+        IReadOnlyList<string>? Rested = null);
 
     /// <summary>Writes one round's prompts.</summary>
     /// <param name="Id">The cycle.</param>
@@ -418,6 +430,20 @@ public static class ReaderPrompts
                 }
             }
 
+            // A verdict that concedes on the evidence the last round judged goes to remediate whatever a round says,
+            // and the next run's evidence gets a full one (D-165). One MarketSense verify spent 1.1M tokens four
+            // minutes after the last, on the same evidence, to confirm a concession.
+            if (request.Artifact == ArtifactKind.Verify
+                && !adjudicating
+                && !request.List
+                && request.Reader != ReaderAnswers.Reconcile
+                && await BlockedOnJudgedEvidence(cycle, cancellationToken).ConfigureAwait(false) is { } judged)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"verify.md reads blocked, and the evidence is what verify round {judged} judged. No round can change where that goes: the outcome sends the cycle to remediate whatever the readers say, and the run remediate records gets a full round. Run '/sdlc:remediate {cycle.Id}'."));
+            }
+
             Result<ActivePerspectives.Response> active = await mediator
                 .Send<ActivePerspectives.Query, ActivePerspectives.Response>(new ActivePerspectives.Query(request.Id), cancellationToken)
                 .ConfigureAwait(false);
@@ -427,12 +453,22 @@ public static class ReaderPrompts
                 return active.ToResult<Response>();
             }
 
-            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name));
-            List<string> unwritten = [.. active.Value.Perspectives.Where(p => !p.Written).Select(p => p.Name)];
+            Result<bool> verifiedBefore = await ReaderAnswers.VerifiedBefore(mediator, request.Id, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (verifiedBefore.IsFailed)
+            {
+                return verifiedBefore.ToResult<Response>();
+            }
+
+            List<string> perspectives = [.. active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name)];
+            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, perspectives, verifiedBefore.Value);
+            bool resting = ReaderAnswers.Resting(request.Artifact, verifiedBefore.Value);
+            List<string> unwritten = resting ? [] : [.. active.Value.Perspectives.Where(p => !p.Written).Select(p => p.Name)];
+            IReadOnlyList<string> rested = resting ? perspectives : [];
 
             if (request.List)
             {
-                return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, [], unwritten));
+                return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, [], unwritten, Rested: rested));
             }
 
             IReadOnlyList<string> wanted = request.Reader is null ? readers : [request.Reader];
@@ -453,27 +489,41 @@ public static class ReaderPrompts
             // from last time cannot be collected as this one's.
             if (request.Reader is null)
             {
-                foreach (string stale in readers.Append(ReaderAnswers.Reconcile))
+                foreach (string stale in readers.Concat(rested).Append(ReaderAnswers.Reconcile))
                 {
                     System.IO.File.Delete(ReaderAnswers.PromptPath(request.Directory, stale));
                     System.IO.File.Delete(ReaderAnswers.AnswerPath(request.Directory, stale));
                 }
 
                 System.IO.File.Delete(Path.Combine(request.Directory, ReaderAnswers.RoundFileName));
+                System.IO.File.Delete(ReaderAnswers.SharedPath(request.Directory));
             }
 
             string shared = await Shared(cycle, request.Artifact, withDocument: !adjudicating, cancellationToken).ConfigureAwait(false);
             List<Written> written = [];
 
+            // The shared block goes in a file of its own, which the host is handed as a system prompt (D-163).
+            // A host caches a prefix only up to a point it marks, and it marks the end of the system prompt and
+            // the end of the message: inside one piped message, the block every reader shares was written to
+            // the cache by each of them and read back by none.
+            Written? sharedFile = null;
+
+            if (wanted.Any(ReaderAnswers.OpensWithShared))
+            {
+                string path = ReaderAnswers.SharedPath(request.Directory);
+                await System.IO.File.WriteAllTextAsync(path, shared, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
+                sharedFile = new Written(ReaderAnswers.SharedFileName, path, new FileInfo(path).Length);
+            }
+
             foreach (string reader in wanted)
             {
                 Result<string> composed = reader switch
                 {
-                    ReaderAnswers.Rules => await ForRules(request, shared, cancellationToken).ConfigureAwait(false),
+                    ReaderAnswers.Rules => await ForRules(request, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Diff => await ForDiff(cycle, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Reconcile => await ForReconciler(cycle, request, readers, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Adjudicate => await ForAdjudicator(cycle, request, shared, readers, cancellationToken).ConfigureAwait(false),
-                    _ => await ForPerspective(request, reader, shared, cancellationToken).ConfigureAwait(false),
+                    _ => await ForPerspective(request, reader, cancellationToken).ConfigureAwait(false),
                 };
 
                 if (composed.IsFailed)
@@ -486,7 +536,29 @@ public static class ReaderPrompts
                 written.Add(new Written(reader, path, new FileInfo(path).Length));
             }
 
-            return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, written, unwritten));
+            return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, written, unwritten, sharedFile, rested));
+        }
+
+        // The round that last judged this cycle's evidence, when verify.md now reads blocked on that same evidence.
+        private async Task<int?> BlockedOnJudgedEvidence(Cycle cycle, CancellationToken cancellationToken)
+        {
+            Result<FrontmatterDocument> verdict = await Frontmatter.ReadFile(cycle.PathOf(ArtifactKind.Verify), cancellationToken).ConfigureAwait(false);
+
+            if (verdict.IsFailed || !string.Equals(Frontmatter.Key(verdict.Value.Yaml, "outcome"), "blocked", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader.ReadHistory(cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
+
+            if (history.IsFailed || history.Value.Count == 0 || history.Value[^1].EvidenceSha256 is not { } judged)
+            {
+                return null;
+            }
+
+            string? now = await RecordRound.EvidenceHash(cycle, cancellationToken, repository: repository, root: solution.Path).ConfigureAwait(false);
+
+            return string.Equals(judged, now, StringComparison.Ordinal) ? history.Value[^1].Round : null;
         }
 
         private async Task<Result<string>> Constraints(Cycle cycle, ArtifactKind artifact, CancellationToken cancellationToken) =>
@@ -510,7 +582,7 @@ public static class ReaderPrompts
                 : Result.Ok(ConstraintRenderer.Render(set.Value, ConstraintDetail.Full, name).ReplaceLineEndings("\n").TrimEnd());
         }
 
-        private async Task<Result<string>> ForRules(Command request, string shared, CancellationToken cancellationToken)
+        private async Task<Result<string>> ForRules(Command request, CancellationToken cancellationToken)
         {
             Result<string> rules = await Constraints(new Cycle(request.Id, solution.Path), request.Artifact, cancellationToken).ConfigureAwait(false);
 
@@ -537,7 +609,7 @@ public static class ReaderPrompts
                 ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is not in the diff, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n"
                 : string.Empty;
 
-            return Result.Ok(shared + Template("rules")
+            return Result.Ok(Template("rules")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal)
                 .Replace("{{verify}}", verify, StringComparison.Ordinal)
                 .Replace("{{rows}}", rows, StringComparison.Ordinal)
@@ -577,7 +649,7 @@ public static class ReaderPrompts
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal));
         }
 
-        private async Task<Result<string>> ForPerspective(Command request, string reader, string shared, CancellationToken cancellationToken)
+        private async Task<Result<string>> ForPerspective(Command request, string reader, CancellationToken cancellationToken)
         {
             Result<Perspective> perspective = PerspectiveLibrary.Find(reader);
 
@@ -609,7 +681,7 @@ public static class ReaderPrompts
                 .ReplaceLineEndings("\n")
                 .TrimEnd();
 
-            return Result.Ok(shared + Template("perspective")
+            return Result.Ok(Template("perspective")
                 .Replace("{{perspective}}", method, StringComparison.Ordinal)
                 .Replace("{{changed}}", since, StringComparison.Ordinal)
                 .Replace("{{name}}", perspective.Value.Name, StringComparison.Ordinal));

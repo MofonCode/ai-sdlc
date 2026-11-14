@@ -44,6 +44,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a suggestion does not fit the cycle's suggestions](../guides/handling-refusals.md#a-suggestion-does-not-fit-the-cycles-suggestions) | number a new one past the cycle's `S_` ids, carry a restated one under its id, answer it only where it was raised |
 | [a declared file with no area](../guides/handling-refusals.md#a-declared-file-with-no-area) | name its area in the plan's `## Areas`: `- new <name>: <files>`, or `- none: <files>` |
 | [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:mine` for new globs, or correct the `Files:` line by hand |
+| [a blocked verdict on evidence a round already judged](../guides/handling-refusals.md#a-blocked-verdict-on-evidence-a-round-already-judged) | `/sdlc:remediate <id>`; the run it records gets a full round |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |

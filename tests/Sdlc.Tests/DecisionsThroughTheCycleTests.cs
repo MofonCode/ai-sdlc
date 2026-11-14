@@ -94,7 +94,7 @@ public sealed class DecisionsThroughTheCycleTests
 
         foreach (ArtifactKind kind in (ArtifactKind[])[ArtifactKind.Intent, ArtifactKind.Spec, ArtifactKind.Plan])
         {
-            string prompt = await File.ReadAllTextAsync((await ReaderPromptsTests.Prompt(workspace, kind, directory, "rules")).Value.Prompts[0].Path);
+            string prompt = ReaderPromptsTests.Whole((await ReaderPromptsTests.Prompt(workspace, kind, directory, "rules")).Value);
 
             StringAssert.Contains(prompt, "DEC_08", kind + " readers are handed the record.");
             StringAssert.Contains(prompt, Delayed);
@@ -110,7 +110,7 @@ public sealed class DecisionsThroughTheCycleTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteArtifact(ArtifactKind.Intent, "## Problem\n\nThe die is hard to read.");
 
-        string prompt = await File.ReadAllTextAsync((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Intent, Path.Combine(workspace.Root, "round"), "rules")).Value.Prompts[0].Path);
+        string prompt = ReaderPromptsTests.Whole((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Intent, Path.Combine(workspace.Root, "round"), "rules")).Value);
 
         StringAssert.Contains(prompt, "This solution has no decisions.md: it has settled nothing.");
     }
@@ -132,7 +132,7 @@ public sealed class DecisionsThroughTheCycleTests
         ReaderPrompts.Response planRound = (await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Plan, directory, list: true)).Value;
         Assert.IsFalse(planRound.Readers.Contains("diff"), "A document has no diff to read.");
 
-        string prompt = await File.ReadAllTextAsync((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Verify, directory, "diff")).Value.Prompts[0].Path);
+        string prompt = ReaderPromptsTests.Whole((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Verify, directory, "diff")).Value);
 
         StringAssert.Contains(prompt, "+var feed = RealTime();");
         StringAssert.Contains(prompt, "<file name=\"plan.md\">");

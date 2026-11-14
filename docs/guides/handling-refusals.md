@@ -198,14 +198,15 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the six ways a round is refused
+## `sdlc round` — the seven ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
 words, the third when a reader raised a blocker without saying in a sentence what set it off, and the
-fourth when a suggestion's id or its move does not fit the cycle's suggestions. The last two are about areas (D-150):
-a plan that leaves a declared file without one, and an area whose files have moved.
+fourth when a suggestion's id or its move does not fit the cycle's suggestions. The next two are about areas (D-150):
+a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
+that could not change where the cycle goes (D-165).
 
 ### something above it is unsettled
 
@@ -273,6 +274,16 @@ never do. The files usually moved in a refactor (D-150).
 **Next:** `sdlc areas` shows what each area covers. `/sdlc:mine` proposes the new globs as a `files`
 line, `sdlc draft mining` writes the draft and you rename it — or correct the `Files:` line by hand, since
 the file is yours.
+
+### a blocked verdict on evidence a round already judged
+
+Writing a verify round's prompts is refused when `verify.md` reads `blocked` and the evidence is what the last
+verify round judged. It happens after a new adjudication concedes a blocker: the outcome sends the cycle to
+remediate whatever the readers say, so a round there pays for every reader to confirm it. One verify spent
+1.1M tokens doing exactly that, four minutes after the round before (D-165). A verdict that still claims a
+pass on that evidence is judged as before, and the run remediate records gets a full round.
+
+**Next:** `/sdlc:remediate <id>`.
 
 ## `sdlc scaffold` — the two ways it is refused
 

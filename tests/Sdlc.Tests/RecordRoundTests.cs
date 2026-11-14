@@ -294,7 +294,7 @@ public sealed class RecordRoundTests
         }
     }
 
-    private static async Task<Result<RecordRound.Response>> Record(CycleWorkspace workspace, ArtifactKind kind, string json)
+    internal static async Task<Result<RecordRound.Response>> Record(CycleWorkspace workspace, ArtifactKind kind, string json)
     {
         string from = Path.Combine(workspace.Root, "readers." + Cycle.NameOf(kind) + ".json");
         await File.WriteAllTextAsync(from, json);
