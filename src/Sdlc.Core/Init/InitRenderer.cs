@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Init;
@@ -211,7 +212,9 @@ public static class InitRenderer
                 CultureInfo.InvariantCulture,
                 $"The solution was already governed, stays {SolutionDocument.NameOf(report.Origin)}, and is on the {SolutionDocument.NameOf(report.Standard)} standard."),
             "Only what the framework owns was refreshed -- the hook configs, the pipeline, and the README.",
-            "The six files only a person writes were not touched, by the same rule the hook uses rather",
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"The {ProtectedPaths.Names.Count} files only a person writes were not touched, by the same rule the hook uses rather"),
             "than by a second list.",
         ],
 

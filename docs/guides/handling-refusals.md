@@ -594,9 +594,10 @@ ignore it.
 
 ### a verdict already stands
 
-`verify.md` exists, and it adjudicates the run recorded now. Recording a new run would leave every claim
-in that document citing evidence that is gone — and a stale verdict is the one a reader trusts, because
-it looks finished.
+`verify.md` exists, its outcome is not `blocked`, and it adjudicates the run recorded now. Recording a new
+run would leave every claim in that document citing evidence that is gone — and a stale verdict is the one
+a reader trusts, because it looks finished. A **blocked** verdict is never refused: recording a new run
+retires it, which is what remediation does, and the report says so (D-161).
 
 **Next:** delete `verify.md`, record the new run, and verify again. The findings rounds under `findings/`
 are kept either way, so the history of what was challenged survives.
@@ -679,8 +680,8 @@ you were just told.
 **Next:** `sdlc verify-chain <id>`, which prints every check — passing and failing both, because a reader
 looking at a failed check needs to know what held. The checks are: the cycle exists, no shape problems,
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
-passed, every criterion is adjudicated, the verify was judged against this evidence, the changed lines are
-covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
+passed, every criterion is adjudicated, the verify was judged against this evidence, git commits the
+evidence, the changed lines are covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
 after a reopen), the deviations are sound, every deviation is answered and the verdict follows the deviations
 declined (only where the build recorded any), the change was verified. When the pull request changes the solution's constraints,
 decisions or declared stack, it also says whether that was committed before or after the verify — reported,
@@ -692,6 +693,12 @@ under a test, and the whole codebase holds its coverage: at or above the solutio
 commit in `.sdlc/coverage.json`. The first catches a change that arrived untested; the second catches a
 deleted or weakened test uncovering code nobody changed. **The baseline is the last rate a merged cycle
 recorded, not a target anybody chose.**
+
+**Git commits the evidence** (D-161). A pattern in the repository's own ignore file -- Visual Studio's
+`coverage*.json` is the one met -- leaves a file out of every commit: the check passes locally, where the
+file is in the working tree, and fails in the pipeline, where it is not. **Next:** `git check-ignore -v <path>`
+names the pattern; add `!<path>` after it, or `git add -f` the file once. A cycle opened since 0.44.0 carries
+the exception for the evidence in the cycles directory's own ignore file; `.sdlc/coverage.json` is outside it.
 
 **Next,** for the changed lines: add the tests that run them, build, and record again with `--coverage`.
 Code no test should run is excluded in the solution's coverage settings, declared in the plan with its

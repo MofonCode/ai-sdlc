@@ -79,6 +79,16 @@ public interface IRepository
     /// <returns>The paths, relative to the root, or none when the working tree is clean.</returns>
     IReadOnlyList<string> UncommittedChanges(string workingDirectory);
 
+    /// <summary>Which of the given paths git would leave out of a commit, by any ignore file that applies.</summary>
+    /// <remarks>
+    /// A tracked path is never ignored, whatever a pattern says, so a file somebody force-added once answers
+    /// no. Whether the path exists does not matter: the question is what a pattern does to it.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="paths">The paths, relative to <paramref name="workingDirectory"/>.</param>
+    /// <returns>The ones git ignores, as given; empty when none is, or git cannot say.</returns>
+    IReadOnlyList<string> Ignored(string workingDirectory, IReadOnlyList<string> paths);
+
     /// <summary>
     /// Where a branch diverged from the integration branch, or from the default branch when there is none.
     /// </summary>
@@ -521,6 +531,17 @@ public sealed class GitRepository : IRepository
                 CultureInfo.InvariantCulture,
                 $"git could not create {branch}. {complaint ?? "It gave no reason."}"))
             : Result.Ok();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> Ignored(string workingDirectory, IReadOnlyList<string> paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+
+        // check-ignore exits 1 when nothing it was given is ignored, which Run reads as no output.
+        return paths.Count == 0
+            ? []
+            : Lines(Run(workingDirectory, "check-ignore -- " + string.Join(' ', paths.Select(path => "\"" + path.Replace('\\', '/') + "\""))));
     }
 
     /// <inheritdoc />

@@ -28,6 +28,24 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
+    public async Task Evidence_git_ignores_breaks_the_chain_and_names_the_file()
+    {
+        // D-161. The local check read coverage.json from the working tree and passed; a pattern in the
+        // solution's ignore file had left it out of the commit, so the pipeline's checkout had none.
+        using CycleWorkspace workspace = Sound();
+        string coverage = $".sdlc/cycles/{workspace.Cycle.Id}/evidence/coverage.json";
+
+        VerifyChain.Response verdict = await Check(workspace, new FakeRepository { IgnoredPaths = [coverage] }, ["src/Thing.cs"]);
+        VerifyChain.ChainCheck committed = verdict.Checks.Single(check => check.Name == "git commits the evidence");
+
+        Assert.IsFalse(committed.Passed);
+        StringAssert.Contains(committed.Detail, coverage);
+        StringAssert.Contains(committed.Detail, "git check-ignore -v");
+
+        Assert.IsTrue((await Check(workspace, new FakeRepository(), ["src/Thing.cs"])).Checks.Single(check => check.Name == "git commits the evidence").Passed);
+    }
+
+    [TestMethod]
     public async Task A_cycle_with_no_directory_says_there_is_no_chain_rather_than_listing_checks()
     {
         using var workspace = CycleWorkspace.Create();
@@ -467,7 +485,8 @@ public sealed class VerifyChainTests
         string? judged = await Sdlc.Core.Findings.RecordRound.EvidenceHash(
             workspace.Cycle,
             CancellationToken.None,
-            withBuildLog);
+            withBuildLog,
+            withCoverage: !withBuildLog);
         WriteVerifyRound(workspace, judged!);
 
         if (!logCommitted)
@@ -479,6 +498,27 @@ public sealed class VerifyChainTests
         VerifyChain.ChainCheck read = verdict.Checks.Single(check => check.Name == "the verify was judged against this evidence");
 
         Assert.IsTrue(read.Passed, read.Detail);
+    }
+
+    [TestMethod]
+    public async Task A_round_over_the_hash_before_coverage_joined_it_still_holds_and_replaced_coverage_does_not()
+    {
+        // D-161. The coverage summary joined the hash when the adjudicator began reading it. A round recorded
+        // before is recomputed without it; a round recorded after notices coverage recorded again.
+        using CycleWorkspace workspace = Sound();
+        workspace.WriteCoverage();
+
+        string? before = await Sdlc.Core.Findings.RecordRound.EvidenceHash(workspace.Cycle, CancellationToken.None, withCoverage: false);
+        WriteVerifyRound(workspace, before!);
+        Assert.IsTrue((await Check(workspace)).Checks.Single(check => check.Name == "the verify was judged against this evidence").Passed);
+
+        string? after = await Sdlc.Core.Findings.RecordRound.EvidenceHash(workspace.Cycle, CancellationToken.None);
+        Assert.AreNotEqual(before, after, "The coverage summary is in the hash.");
+        WriteVerifyRound(workspace, after!);
+        workspace.WriteCoverage(rate: 700);
+
+        VerifyChain.ChainCheck read = (await Check(workspace)).Checks.Single(check => check.Name == "the verify was judged against this evidence");
+        Assert.IsFalse(read.Passed, read.Detail);
     }
 
     [TestMethod]

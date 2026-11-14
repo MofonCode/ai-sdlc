@@ -95,6 +95,12 @@ internal sealed class FakeRepository : IRepository
 
     public IReadOnlyList<string> UncommittedChanges(string workingDirectory) => Uncommitted;
 
+    /// <summary>What <see cref="Ignored"/> answers, of the paths it is asked about.</summary>
+    public IReadOnlyList<string> IgnoredPaths { get; init; } = [];
+
+    public IReadOnlyList<string> Ignored(string workingDirectory, IReadOnlyList<string> paths) =>
+        [.. paths.Where(path => IgnoredPaths.Contains(path, StringComparer.Ordinal))];
+
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
     /// <summary>The files <see cref="ReadAt"/> returns, keyed <c>reference:path</c>.</summary>

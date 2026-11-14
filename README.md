@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.43.0** · iteration 4 · .NET 10
+**Version 0.44.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.43.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.44.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -421,6 +421,12 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **What mining MarketSense found in the plumbing is fixed, and has met only the suite** (0.44.0). The
+  adjudicator now reads the coverage, so a criterion about the floor can be met. `verify-chain` fails when git
+  would leave an evidence file out of the commit, and a new cycle's ignore file keeps them in. Recording a new
+  run retires a blocked verdict instead of refusing at the end of the run. A fenced verdict is taken, a plan's
+  areas are checked before its readers run, and the status panel stops listing every successor (D-161). It is a
+  minor: the chain has a check it did not have.
 - **No artifact declares a format version** (0.43.0). Every file a cycle wrote said `framework_version: 1.0.0`,
   which read as the framework's release and was never true, and nothing read it; the format moved twice
   without it. It is no longer written or required, and a file written before carries it harmlessly: an older

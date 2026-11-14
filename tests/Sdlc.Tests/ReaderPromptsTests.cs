@@ -85,6 +85,42 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task Every_verify_reader_is_handed_the_recorded_coverage_with_its_rates_and_the_floor_in_force_and_told_when_there_is_none()
+    {
+        // D-161. A criterion asked that the whole-codebase rate be at or above the floor; the rate was in
+        // coverage.json, which no reader was given, so the criterion could only be narrowed by a deviation.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteVerify("pass");
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string absent = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value.Prompts[0].Path);
+        StringAssert.Contains(absent, "<file name=\"evidence/coverage.json\">\nIt was not recorded");
+        Assert.IsFalse(absent.Contains("Whole codebase:", StringComparison.Ordinal), "No coverage, no rates.");
+
+        workspace.WriteSolution(Sdlc.Core.Solutions.SolutionOrigin.Adopted, coverageFloor: "75%");
+        workspace.WriteCoverage(changedCoverable: 8, changedCovered: 6, rate: 812, baseline: 0.79);
+
+        foreach (string reader in new[] { "rules", "adjudicate", "security" })
+        {
+            string prompt = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, reader)).Value.Prompts[0].Path);
+
+            StringAssert.Contains(prompt, "\"changed_coverable\": 8", reader);
+            StringAssert.Contains(prompt, "- Changed lines: 75.0% ran under a test (6 of 8), against the floor every change is held to, 70%.", reader);
+            StringAssert.Contains(prompt, "- Whole codebase: 81.2% (812 of 1000 lines).", reader);
+            StringAssert.Contains(prompt, "- The solution's coverage_floor: 75%", reader);
+            StringAssert.Contains(prompt, "- The baseline, the last rate a merged cycle recorded: 79.0%.", reader);
+        }
+
+        workspace.WriteSolution(Sdlc.Core.Solutions.SolutionOrigin.Adopted);
+        string defaulted = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value.Prompts[0].Path);
+        StringAssert.Contains(defaulted, "- The solution's coverage_floor: 80%", "Declaring none is the default.");
+    }
+
+    [TestMethod]
     public async Task A_proof_reader_and_the_adjudicator_block_on_what_a_test_never_reaches_and_not_on_what_they_imagine()
     {
         // D-127. "What would let it pass while unmet" had no bound: a fresh reader always found one more

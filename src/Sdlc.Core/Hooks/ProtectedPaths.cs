@@ -316,7 +316,10 @@ public static class ProtectedPaths
                 + "that must never change. Ask for it to be run, and give the person the command rather "
                 + "than a description of it. Its options are in 'sdlc help', under 'Options for init' -- "
                 + "this rule matches the verb rather than parsing the line, so even 'sdlc init --help' "
-                + "is refused, and 'sdlc help' is the way to read them.");
+                + "is refused, and 'sdlc help' is the way to read them. It matches the words anywhere in "
+                + "the command, so a commit message, a pull-request body or a search that only mentions "
+                + "them is refused too: write that text to a file and pass the file ('git commit -F', "
+                + "'--body-file'), or search for 'init' alone.");
 
             return true;
         }

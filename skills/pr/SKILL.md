@@ -254,10 +254,12 @@ Then open the pull request with the platform's own tool — `gh pr create` on Gi
 on Azure DevOps. If neither is available, say so and give the person the branch name and the body to
 paste; do not try to reach the API by hand.
 
-**The Azure DevOps path has never been run.** The GitHub one has. So on Azure DevOps, show the person
-the exact command before running it rather than after, and if it fails on an argument or a missing
-extension, that is why — say so plainly instead of trying variations. The generated
-`azure-pipelines.yml` carries the same note, and `CONCEPT.md` D-32 is the decision to ship it that way.
+**On Azure DevOps, name the organisation, project and repository**, read from the remote's URL:
+`az repos pr create --detect false --organization <url> --project <project> --repository <repo>`. The CLI's
+own detection can resolve a cached remote to a repository id that no longer exists, and refuses with
+`TF401019`. **The description holds at most 4,000 characters** there, so when the body is longer, keep its
+`Deviations` section and its criteria and link the cycle's documents rather than quoting them. If it still
+fails on an argument or a missing extension, say so plainly instead of trying variations.
 
 **The body is the cycle, not a summary you invented.** It should carry:
 

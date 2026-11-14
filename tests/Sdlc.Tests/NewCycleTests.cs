@@ -173,6 +173,27 @@ public sealed class NewCycleTests
             Path.GetRelativePath(workspace.Root, Path.Combine(directory, file)).Replace('\\', '/');
     }
 
+    [TestMethod]
+    public async Task A_repository_ignore_pattern_does_not_reach_what_the_chain_reads_and_git_says_what_is_ignored()
+    {
+        // D-161. Visual Studio's template ignores 'coverage*.json', which left a cycle's coverage out of every
+        // commit: green locally, red in the pipeline. The cycles directory's file is deeper, so it wins.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, ".gitignore"), "coverage*.json\n*.sha\n");
+
+        Cycle cycle = await Open(workspace);
+        string evidence = Path.GetRelativePath(workspace.Root, Path.Combine(cycle.Directory, "evidence")).Replace('\\', '/');
+        Git(workspace.Root, "init");
+
+        Sdlc.Core.Git.GitRepository git = new();
+        IReadOnlyList<string> asked = [$"{evidence}/coverage.json", $"{evidence}/base.sha", $"{evidence}/tests.json", ".sdlc/coverage.json"];
+
+        CollectionAssert.AreEqual(
+            new[] { ".sdlc/coverage.json" },
+            git.Ignored(workspace.Root, asked).ToArray(),
+            "The cycle's evidence is kept; the baseline outside the cycles directory is still the root file's to ignore, and the chain says so.");
+    }
+
     private static int Git(string root, string arguments)
     {
         using System.Diagnostics.Process process = System.Diagnostics.Process.Start(

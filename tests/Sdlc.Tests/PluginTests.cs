@@ -1592,18 +1592,17 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_pr_skill_carries_the_same_caveat_the_pipeline_does()
+    public void The_pr_skill_says_what_the_azure_devops_path_needs()
     {
-        // D-32's own reasoning, applied consistently: the caveat goes where somebody meets the path. The
-        // generated pipeline warns and the skill did not, which would have left an agent confidently
-        // running an untried command and reading the failure as its own mistake.
+        // D-32 shipped the path untried and said so where somebody meets it. It has since run (D-161), and
+        // what it took the first time -- naming the repository, and a body under the description cap -- is
+        // what the skill now says instead.
         string pr = File.ReadAllText(Path.Combine(Root, "skills", "pr", "SKILL.md"));
 
-        StringAssert.Contains(pr, "az repos pr create");
-        StringAssert.Contains(
-            pr,
-            "never been run",
-            "The skill names the Azure DevOps command, so it has to say the path is untried.");
+        StringAssert.Contains(pr, "az repos pr create --detect false");
+        StringAssert.Contains(pr, "TF401019");
+        StringAssert.Contains(pr, "4,000 characters");
+        Assert.IsFalse(pr.Contains("never been run", StringComparison.Ordinal), "It has run.");
     }
 
     [TestMethod]
