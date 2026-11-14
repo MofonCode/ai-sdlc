@@ -317,6 +317,25 @@ public sealed class DeviationsTests
     }
 
     [TestMethod]
+    public async Task Answers_given_on_the_command_line_are_drafted_and_the_ledger_takes_them()
+    {
+        // D-162. The person said which to accept, and the agent's hand edit of the draft is what went wrong.
+        using CycleWorkspace workspace = Approved();
+        WriteDeviations(workspace, Entry("DEV_01") + "\n" + Entry("DEV_02") + "\n" + Entry("DEV_03"));
+
+        Assert.IsTrue((await Answering(workspace, new(["DEV_01"], ["DEV_01"], "no"))).IsFailed, "One deviation, one answer.");
+        StringAssert.Contains((await Answering(workspace, new(["DEV_09"], [], null))).Errors[0].Message, "DEV_01, DEV_02, DEV_03");
+        StringAssert.Contains((await Answering(workspace, new([], ["DEV_02"], " "))).Errors[0].Message, "--note");
+
+        ApprovalText.Response text = (await Answering(workspace, new(["DEV_01"], ["DEV_02"], "Keep the retry: \"why\" matters."))).Value;
+
+        await File.WriteAllTextAsync(workspace.Cycle.ApprovalPath, text.FileText);
+        Assert.IsTrue(ApprovalLedger.Read(text.FileText!, "approval.md").IsSuccess);
+        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
+        Assert.AreEqual("DEV_03", state.Pending.Single().Deviation.Id, "Accepted and declined are answered; the unnamed one is not.");
+    }
+
+    [TestMethod]
     public async Task A_reopen_waits_until_every_deviation_is_answered()
     {
         using CycleWorkspace workspace = Approved();
@@ -438,5 +457,12 @@ public sealed class DeviationsTests
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
         return result.Value;
+    }
+
+    private static async Task<Result<ApprovalText.Response>> Answering(CycleWorkspace workspace, ApprovalText.DeviationAnswers answers)
+    {
+        using var gate = Gate.For(workspace.Root);
+        return await gate.Send<ApprovalText.Query, ApprovalText.Response>(
+            new ApprovalText.Query(workspace.Cycle.Id, "Peter Almanzar", GateDecision.Approved, answers));
     }
 }

@@ -316,18 +316,18 @@ public sealed class ApprovalTextTests
         StringAssert.Contains(rendered, "intent");
         StringAssert.Contains(rendered, "r1, clean");
         StringAssert.Contains(rendered, "This file:");
-        StringAssert.Contains(rendered, "Rename it, from the repository root, to record the decision:");
+        StringAssert.Contains(rendered, "Rename it, from any directory, to record the decision. In bash or zsh:");
     }
 
     [TestMethod]
-    public async Task The_rename_is_written_from_the_repository_root()
+    public async Task The_rename_is_written_with_absolute_paths()
     {
-        // It named the bare files, and a person typing it at the root -- where every other command here
-        // runs -- got "cannot stat".
+        // It named the bare files, and a person typing it at the root got "cannot stat". Then it named them
+        // from the root, and a person whose draft was in another worktree got it again (D-162).
         using CycleWorkspace workspace = Ready();
 
         string rendered = ApprovalRenderer.Render(await Print(workspace));
-        string directory = ".sdlc/cycles/" + workspace.Cycle.Id;
+        string directory = Path.GetFullPath(workspace.Cycle.Directory).Replace('\\', '/');
 
         StringAssert.Contains(rendered, $"mv {directory}/approval.approved.draft.md {directory}/approval.md");
         StringAssert.Contains(rendered, $"Move-Item {directory}/approval.approved.draft.md {directory}/approval.md");

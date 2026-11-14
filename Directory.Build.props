@@ -11,7 +11,7 @@
          of one install and a reader asking "what version is this" means the pair. Without it
          the package took the SDK default of 1.0.0 while the plugin said 0.9.0, so the two
          halves disagreed with nobody able to see it. PluginTests asserts they still agree. -->
-    <VersionPrefix>0.44.0</VersionPrefix>
+    <VersionPrefix>0.44.1</VersionPrefix>
 
     <!-- A pack made anywhere but the pipeline is a local build, and its version says so: 0.36.7-local (D-135).
          A solution can pin it to test a change, and no cycle it judges reaches a pull request, because the rounds

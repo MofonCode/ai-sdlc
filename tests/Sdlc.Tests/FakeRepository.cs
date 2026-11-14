@@ -140,6 +140,16 @@ internal sealed class FakeRepository : IRepository
     public IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix) =>
         Remote?.Where(branch => branch.StartsWith(prefix, StringComparison.Ordinal)).ToList();
 
+    /// <inheritdoc />
+    public IReadOnlyList<string> Branches(string workingDirectory, string prefix) =>
+        [.. Refs.Where(name => name.StartsWith(prefix, StringComparison.Ordinal) || name.StartsWith("origin/" + prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal)];
+
+    /// <summary>What <see cref="Worktrees"/> reports.</summary>
+    public List<(string Path, string? Branch)> WorktreeList { get; } = [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string Path, string? Branch)> Worktrees(string workingDirectory) => WorktreeList;
+
     /// <summary>What <see cref="CommittedChanges"/> reports, or null for git not being able to say.</summary>
     public IReadOnlyList<string>? Committed { get; set; }
 

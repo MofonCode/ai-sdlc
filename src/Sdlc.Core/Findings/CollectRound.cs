@@ -62,7 +62,15 @@ public static class CollectRound
     /// <param name="Artifact">The artifact judged.</param>
     /// <param name="Directory">The round's directory, where <c>sdlc round prompt</c> wrote the prompts.</param>
     /// <param name="Host">The host the readers ran on, as the session names it, or null.</param>
-    public sealed record Command(CycleId Id, ArtifactKind Artifact, string Directory, string? Host = null) : IRequest<Response>;
+    /// <param name="Answered">Open findings on this document no reader raised again that the session settles as answered.</param>
+    /// <param name="Withdrawn">Those it settles as withdrawn.</param>
+    public sealed record Command(
+        CycleId Id,
+        ArtifactKind Artifact,
+        string Directory,
+        string? Host = null,
+        IReadOnlyList<string>? Answered = null,
+        IReadOnlyList<string>? Withdrawn = null) : IRequest<Response>;
 
     private static readonly JsonSerializerOptions _writing = new()
     {
@@ -251,6 +259,16 @@ public static class CollectRound
             HashSet<string> mentioned = [.. findings.Select(finding => finding.Id)];
             List<Finding> notRaised = [.. standingHere.Where(finding => finding.Disposition == Disposition.Open && !mentioned.Contains(finding.Id))];
 
+            Result<List<Finding>> settled = Settle(request, notRaised, mentioned);
+
+            if (settled.IsFailed)
+            {
+                return settled.ToResult<Response>();
+            }
+
+            findings.AddRange(settled.Value);
+            notRaised.RemoveAll(finding => settled.Value.Any(moved => moved.Id == finding.Id));
+
             Directory.CreateDirectory(request.Directory);
             string path = Path.Combine(request.Directory, ReaderAnswers.RoundFileName);
             Draft draft = new(findings, conflicts.Count == 0 ? null : conflicts, host, usage);
@@ -266,6 +284,46 @@ public static class CollectRound
                 conflicts,
                 notRaised,
                 usage));
+        }
+
+        /// <summary>
+        /// Each finding the session settles, copied from the ledger word for word with only its disposition
+        /// moved: retyping one by hand is what the session got wrong (D-162).
+        /// </summary>
+        private static Result<List<Finding>> Settle(Command request, List<Finding> notRaised, HashSet<string> mentioned)
+        {
+            IReadOnlyList<string> answered = request.Answered ?? [];
+            IReadOnlyList<string> withdrawn = request.Withdrawn ?? [];
+            List<Finding> settled = [];
+
+            if (answered.Intersect(withdrawn, StringComparer.Ordinal).FirstOrDefault() is { } both)
+            {
+                return Result.Fail(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{both} is named both answered and withdrawn. Name it once."));
+            }
+
+            foreach ((string id, Disposition disposition) in answered.Select(id => (id, Disposition.Answered))
+                .Concat(withdrawn.Select(id => (id, Disposition.Withdrawn))))
+            {
+                if (mentioned.Contains(id))
+                {
+                    return Result.Fail(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{id} is in the draft already: a reader raised it again this round, so it is not settled."));
+                }
+
+                if (notRaised.FirstOrDefault(finding => finding.Id == id) is not { } standing)
+                {
+                    return Result.Fail(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{id} is not open on {Cycle.NameOf(request.Artifact)}.md. Settle only the findings this lists as not raised again{(notRaised.Count == 0 ? ", and it lists none" : ": " + string.Join(", ", notRaised.Select(finding => finding.Id)))}."));
+                }
+
+                settled.Add(standing with { Disposition = disposition });
+            }
+
+            return Result.Ok(settled);
         }
 
         private static List<string> Ungisted(IEnumerable<Finding> findings) =>

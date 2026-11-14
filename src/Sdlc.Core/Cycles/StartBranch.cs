@@ -233,6 +233,16 @@ public static class StartBranch
                             $"The plan has not reached {integration}, so the build starts from its own branch and its pull request will carry the plan and the code together."));
                     }
 
+                    // An admission of several cycles goes on one slicing branch, named for the sandbox rather
+                    // than for this cycle, so it is found by what it carries (D-162).
+                    if (repository.Branches(root, SlicingBranch.Prefix).FirstOrDefault(name => repository.PathExistsAt(root, name, plan)) is { } admission)
+                    {
+                        return Result.Ok(Create(
+                            branch,
+                            admission,
+                            $"The plan is on {admission}, an admission not yet merged into {integration}, so the build starts there and its pull request carries the plan and the code together."));
+                    }
+
                     string bare = request.Id.BranchName();
 
                     if (First(root, bare, "origin/" + bare) is not null)
@@ -243,9 +253,20 @@ public static class StartBranch
                             "This cycle was opened on the bare branch before cycle branches had kinds, so it keeps building there."));
                     }
 
+                    // A sandbox is planned in and never merged, so its plans leave by 'sdlc admit' (D-144) -- unless
+                    // there is no integration branch to admit them to, which is when admit says to build from it.
+                    if (repository.Branches(root, SandboxBranch.Prefix).FirstOrDefault(name => repository.PathExistsAt(root, name, plan)) is { } sandbox)
+                    {
+                        return integrationRef is null
+                            ? Result.Ok(Create(branch, sandbox, $"There is no {integration} branch to admit the plan to, so the build starts from {sandbox}, where it was planned."))
+                            : Result.Fail<Response>(string.Create(
+                                CultureInfo.InvariantCulture,
+                                $"The plan for {request.Id} is only in {sandbox}, which is planned in and never merged. Run 'sdlc admit' in that sandbox to put its approved plans on an admission branch, then ask again: the build starts from that branch, or from {integration} once it merges."));
+                    }
+
                     return Result.Fail<Response>(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"The plan for {request.Id} is on no branch this can find: not on {integration}, not on {planBranch}. Merge its plan's pull request, or push its plan branch, then ask again."));
+                        $"The plan for {request.Id} is on no branch this can find: not on {integration}, not on {planBranch}, not on an admission branch or in a sandbox. Merge its plan's pull request, or push its plan branch, then ask again."));
             }
         }
 

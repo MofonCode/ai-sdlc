@@ -22,6 +22,22 @@ It exits 0 printing the one cycle ready for this step, and that is the cycle. Ot
 candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
 yourself** — the cycle a skill acts on is not a guess.
 
+## Work on the cycle's build branch, first
+
+```
+sdlc branch <id> build
+```
+
+Run the one command it prints. It puts the working copy on `cycle/<id>/build` — created from the
+integration branch once the plan has been admitted to it, or before that from the plan's own branch or the
+admission branch carrying it — or on the bare `cycle/<id>` of an older cycle. A plan only in a sandbox is
+refused with what to do: admit it first. Inside a batch, `batch-build` has already put you on
+`cycle/<id>/build-unattended`; stay there. Everything below measures the change from where this branch
+diverged, so building on the integration or default branch directly makes the diff meaningless.
+
+**Switch before you ask the gate.** The gate reads the cycle's documents as the branch you are on holds
+them, so asked from another branch it refuses over a plan that is only missing there (D-162).
+
 ## The gate decides, not you
 
 ```
@@ -45,39 +61,26 @@ If your host gives you a task list, open one once the gate has said the build ma
 items, and mark each done as it finishes. If it does not, carry on without one — nothing below depends
 on it.
 
-1. switch to the cycle's branch
-2. implement the plan: **one item for each entry in its `Files` section**, and none for anything it
+1. implement the plan: **one item for each entry in its `Files` section**, and none for anything it
    does not declare
-3. build and test, clean
-4. commit the change
-5. record the evidence
-6. commit the evidence
-7. report and hand back
+2. build and test, clean
+3. commit the change
+4. record the evidence
+5. commit the evidence
+6. report and hand back
 
 **The plan decides what is on the list, not the other way round.** An item you want to add that the
 plan does not declare is the plan being departed from: leave it, unless the approved text cannot be
 followed without it — then it is a deviation, below.
 
 **Inside a batch, keep none.** When the batch-build skill is running this stage, its list has one line
-for this cycle and that line is the whole of what this stage shows. Seven more per cycle would bury
+for this cycle and that line is the whole of what this stage shows. Six more per cycle would bury
 the one thing somebody glancing at a batch is looking for.
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
 person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
 done is what is on disk and what the binary reports, so where the two disagree the list is the one
 that is wrong.
-
-## Work on the cycle's build branch
-
-```
-sdlc branch <id> build
-```
-
-Run the one command it prints. It puts the working copy on `cycle/<id>/build` — created from the
-integration branch once the plan has been admitted to it, or from the plan's own branch before that — or on
-the bare `cycle/<id>` of an older cycle. Inside a batch, `batch-build` has already put you on
-`cycle/<id>/build-unattended`; stay there. Everything below measures the change from where this branch
-diverged, so building on the integration or default branch directly makes the diff meaningless.
 
 ## Read what each perspective asks of a build
 

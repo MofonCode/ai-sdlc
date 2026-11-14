@@ -103,6 +103,7 @@ try
         "unpark" => await WithCycle(line, "unpark", UnparkCommand).ConfigureAwait(false),
         "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
         "discard" => await Workspace.Run(line, DiscardCommand).ConfigureAwait(false),
+        "tidy" => await Workspace.Run(line, TidyCommand).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -1176,6 +1177,23 @@ static async Task<int> DiscardCommand(Workspace workspace)
     return result.Value.Remove is null ? ExitCode.Refused : ExitCode.Ok;
 }
 
+// The worktrees and branches whose work has reached the integration branch, and their removal (D-162).
+// A view: it prints the commands and runs none.
+static async Task<int> TidyCommand(Workspace workspace)
+{
+    Result<TidyCycles.Response> result = await workspace
+        .Send<TidyCycles.Query, TidyCycles.Response>(new TidyCycles.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(TidyRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 // Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing.
 static async Task<int> BacklogCommand(Workspace workspace)
 {
@@ -1498,9 +1516,13 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
         return ExitCode.Usage;
     }
 
+    line.TryOption("accept", out string? accept);
+    line.TryOption("decline", out string? decline);
+    line.TryOption("note", out string? note);
+
     Result<ApprovalText.Response> result = await workspace
         .Send<WriteApprovalDraft.Command, ApprovalText.Response>(
-            new WriteApprovalDraft.Command(id, by, decision))
+            new WriteApprovalDraft.Command(id, by, decision, new ApprovalText.DeviationAnswers(Ids(accept), Ids(decline), note)))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -1533,8 +1555,8 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
 // that does not get pasted, and a real adoption left the file on its shipped placeholder because
 // of exactly that.
 //
-// --standard is the one key a draft may move, and only when asked by name. A value rather than a flag,
-// because there are two and a person moving back to 'existing' is as entitled to as one moving on.
+// --standard, --approval and --coverage-floor are the keys a draft may move, and only when asked by name.
+// Values rather than flags, because each has two ways to go and moving back is as entitled as moving on.
 static async Task<int> DraftSolution(CommandLine line)
 {
     SolutionStandard? standard = null;
@@ -1556,8 +1578,34 @@ static async Task<int> DraftSolution(CommandLine line)
         }
     }
 
+    ApprovalRequirement? approval = null;
+
+    if (line.TryOption("approval", out string? required))
+    {
+        if (!SolutionDocument.TryReadApproval(required, out ApprovalRequirement read))
+        {
+            await Console.Error.WriteLineAsync($"'{required}' is not an approval setting. One of: required, none.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        approval = read;
+    }
+
+    double? floor = null;
+
+    if (line.TryOption("coverage-floor", out string? percent))
+    {
+        if (!SolutionDocument.TryReadFloor(percent, out double read))
+        {
+            await Console.Error.WriteLineAsync($"'{percent}' is not a coverage floor. A whole percentage from 0 to 100, such as 80%.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        floor = read;
+    }
+
     return await Workspace.Run(line, async workspace => await PrintDraft(await workspace
-        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command(standard))
+        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command(standard, approval, floor))
         .ConfigureAwait(false)).ConfigureAwait(false)).ConfigureAwait(false);
 }
 
@@ -2132,9 +2180,17 @@ static async Task<int> RoundCollect(Workspace workspace, CommandLine line, Cycle
     }
 
     line.TryOption("host", out string? host);
+    line.TryOption("answered", out string? answered);
+    line.TryOption("withdrawn", out string? withdrawn);
 
     Result<CollectRound.Response> result = await workspace
-        .Send<CollectRound.Command, CollectRound.Response>(new CollectRound.Command(id, artifact, Path.GetFullPath(directory), host))
+        .Send<CollectRound.Command, CollectRound.Response>(new CollectRound.Command(
+            id,
+            artifact,
+            Path.GetFullPath(directory),
+            host,
+            Ids(answered),
+            Ids(withdrawn)))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -2145,6 +2201,9 @@ static async Task<int> RoundCollect(Workspace workspace, CommandLine line, Cycle
     await Console.Out.WriteAsync(FindingsRenderer.RenderCollected(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
+
+static string[] Ids(string? list) =>
+    (list ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
 static async Task<int> RoundVerdict(Workspace workspace, CommandLine line, CycleId id)
 {
@@ -2255,6 +2314,9 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         {
             status = status with { Chain = chain.Value };
         }
+
+        // Merged already: the pull request it would offer is the one that merged it (D-162).
+        status = status with { MergedOn = await MergedCycle.On(workspace.Repository, workspace.SolutionRoot, id, CancellationToken.None).ConfigureAwait(false) };
     }
 
     // On the cycle's build branch, say when the plan was amended under it (D-123): the panel would otherwise

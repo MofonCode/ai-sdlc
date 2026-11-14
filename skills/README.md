@@ -703,8 +703,9 @@ object to a departure the plan had already admitted to (D-58).
 reader's prompt — the block they share first, the same bytes for each, and each reader's own part last —
 and the skill starts one fresh non-interactive process per prompt with no tools, no MCP servers and no
 session file (D-118). `sdlc round collect` reads the answers, applies the reconciler, numbers new ids and
-drafts the round, with each reader's usage beside it; the skill adds the dispositions of what no reader
-raised again, records with `sdlc round`, and shows `sdlc status <id> --stage <artifact>` verbatim with at
+drafts the round, with each reader's usage beside it; the skill decides the dispositions of what no reader
+raised again and collects once more with `--answered`/`--withdrawn`, which copy them in from the ledger,
+records with `sdlc round`, and shows `sdlc status <id> --stage <artifact>` verbatim with at
 most two lines of its own. A rule marked `Judged: per criterion` or `per outcome` is answered with a row
 per item, and an answer missing one is sent back (D-119).
 
@@ -902,9 +903,9 @@ stack, or the solution document.
 
 | Parameter | Description |
 |---|---|
-| `approval <id>` | the gate decision for that cycle. `--changes-requested`, `--deny` or `--reopen` drafts a refusal on the same terms. On an approved cycle whose build recorded deviations nobody answered, it drafts the answer to each instead |
+| `approval <id>` | the gate decision for that cycle. `--changes-requested`, `--deny` or `--reopen` drafts a refusal on the same terms. On an approved cycle whose build recorded deviations nobody answered, it drafts the answer to each instead, with `--accept <ids>` and `--decline <ids> --note <why>` drafting the person's answers in |
 | `abandon <id>` | why that cycle stopped |
-| `solution` | the whole `solution.md`. `--standard profile\|existing` moves that one key |
+| `solution` | the whole `solution.md`. `--standard profile\|existing`, `--approval required\|none` and `--coverage-floor <percent>` each move that one key |
 | `techstack` | the declared stack. `--empty` drafts nothing |
 
 #### Output
@@ -920,7 +921,7 @@ stack, or the solution document.
   (D-115).
 - **`solution`** — the whole `solution.md`, written beside itself for a rename. Keys carried through as
   recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody
-  what they wrote. `--standard profile|existing` moves that one key, and says so.
+  what they wrote. `--standard`, `--approval` and `--coverage-floor` each move that one key, and say so.
 - **`techstack`** — the declared stack for a rename: a byte copy of it, the framework's default where
   none is placed yet, or nothing with `--empty`. **And the options menu as a report**, under
   `.sdlc/reports/`: every concern the shipped profiles know about, every stack rule the framework ships,
@@ -979,8 +980,10 @@ and adds nothing:
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
+                             [--accept <ids>] [--decline <ids> --note <why>]
 sdlc draft abandon <id>
-sdlc draft solution          [--standard profile|existing]
+sdlc draft solution          [--standard profile|existing] [--approval required|none]
+                             [--coverage-floor <percent>]
 sdlc draft techstack         [--empty]
 ```
 
@@ -1076,8 +1079,9 @@ remember — it is why there is no point reporting done over a red build.
 
 What it runs, in order:
 
-1. `sdlc gate <id>`, and stops if it refuses
-2. `git switch cycle/<id>`
+1. `sdlc branch <id> build` and the one command it prints, so the gate reads the cycle as its own branch
+   holds it (D-162)
+2. `sdlc gate <id>`, and stops if it refuses
 3. implements the plan — running `sdlc scaffold <id>` where the plan declares the solution skeleton or a
    build settings file the repository does not have
 4. `dotnet build` and `dotnet test`, reading the test count rather than the exit code

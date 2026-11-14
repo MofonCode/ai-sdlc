@@ -104,6 +104,7 @@ public static class SdlcServices
         services.AddResolveCycleRequestHandler();
         services.AddComposeAdmissionRequestHandler();
         services.AddDiscardSandboxRequestHandler();
+        services.AddTidyCyclesRequestHandler();
         services.AddParkCycleRequestHandler();
         services.AddUnparkCycleRequestHandler();
 

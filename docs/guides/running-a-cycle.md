@@ -120,10 +120,11 @@ change through and hands you a new approval. `handling-blockers.md`, under *Afte
 
 One gate, covering all three documents, immediately before the build. **The skill drafted the approval at the
 plan's hand-back** — `.sdlc/cycles/<id>/approval.approved.draft.md` — and printed the rename that places it,
-written to be typed from the repository root:
+once for bash and once for PowerShell, with absolute paths so it works from any directory, even when the draft
+is in another worktree:
 
 ```pwsh
-Move-Item .sdlc/cycles/20260929_1456_32/approval.approved.draft.md .sdlc/cycles/20260929_1456_32/approval.md
+Move-Item C:/Repos/dice/.sdlc/cycles/20260929_1456_32/approval.approved.draft.md C:/Repos/dice/.sdlc/cycles/20260929_1456_32/approval.md
 ```
 
 Above the rename it lists **any recorded decisions this cycle departs from**, each in the decision's own
@@ -203,7 +204,8 @@ sdlc draft approval 20260929_1456_32
 ```
 
 It drafts each with `accepted: false` and `note: ""`. Set `accepted: true` to accept one; leave it false
-and write why to decline it, and remediation redoes that part. Then rename the draft into place.
+and write why to decline it, and remediation redoes that part. Or tell the session which: it drafts your
+answers in with `--accept DEV_01,DEV_02` and `--decline DEV_03 --note "why"`. Then rename the draft into place.
 `handling-blockers.md` has the rest. Under `approval: none` they are accepted for you, and the pull request
 is where you read them.
 
@@ -246,6 +248,10 @@ change. When the next one conflicts, or goes red because an earlier merge broke 
 **Mine what merged**, if you did not before the pull request: `/sdlc:mine`, then `sdlc mine record <the
 proposal file>` once its drafts are placed — mined cycles become husks you may delete (D-152).
 `mining-the-cycles.md` has the sitting step by step.
+
+**Clear away what merged**: `sdlc tidy` prints the removal of every worktree and local branch whose work has
+reached the integration branch — the plan branches, the build branches, the sandboxes and admissions — for you to
+run. It deletes nothing itself, and a squash merge is why git cannot tell you this on its own (D-162).
 
 **What was noticed and not acted on**: `sdlc suggestions`. Non-blocking is not trivial — two real ones from a
 single trial cycle were "the suite did not actually run" and "this criterion's proof rests entirely on a

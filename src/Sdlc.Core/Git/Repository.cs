@@ -160,6 +160,20 @@ public interface IRepository
     /// <returns>The branch names, without <c>refs/heads/</c>.</returns>
     IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix);
 
+    /// <summary>
+    /// The branches this clone knows whose names start with a prefix: its own, then those it last fetched
+    /// from origin, as <c>origin/</c> and the name. Nothing is fetched.
+    /// </summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="prefix">The start of the branch names wanted, as in <c>sandbox/</c>.</param>
+    /// <returns>The short names; empty outside a repository.</returns>
+    IReadOnlyList<string> Branches(string workingDirectory, string prefix);
+
+    /// <summary>Every worktree of this repository, the main one first, with the branch each has checked out.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>Each worktree's path and branch, the branch null when it is detached; empty outside a repository.</returns>
+    IReadOnlyList<(string Path, string? Branch)> Worktrees(string workingDirectory);
+
     /// <summary>A file's contents as a given commit holds it, or null when it does not.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <param name="reference">The commit or branch to read from.</param>
@@ -542,6 +556,52 @@ public sealed class GitRepository : IRepository
         return paths.Count == 0
             ? []
             : Lines(Run(workingDirectory, "check-ignore -- " + string.Join(' ', paths.Select(path => "\"" + path.Replace('\\', '/') + "\""))));
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> Branches(string workingDirectory, string prefix)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+
+        // A pattern matches whole path components, so it names the directory the prefix opens and the prefix
+        // is held here: 'cycle/' asks for refs/heads/cycle, and a name such as 'cycle-x' is filtered out.
+        string directory = prefix.TrimEnd('/');
+        string remote = "origin/" + prefix;
+
+        return
+        [
+            .. Lines(Run(workingDirectory, $"for-each-ref --format=%(refname:short) \"refs/heads/{directory}\" \"refs/remotes/origin/{directory}\""))
+                .Where(name => name.StartsWith(prefix, StringComparison.Ordinal) || name.StartsWith(remote, StringComparison.Ordinal)),
+        ];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string Path, string? Branch)> Worktrees(string workingDirectory)
+    {
+        List<(string Path, string? Branch)> worktrees = [];
+        string? path = null;
+        string? branch = null;
+
+        // Porcelain: a block per worktree, 'worktree <path>' first and 'branch refs/heads/<name>' when one is checked out.
+        foreach (string line in Lines(Run(workingDirectory, "worktree list --porcelain")).Append("worktree"))
+        {
+            if (line.StartsWith("worktree", StringComparison.Ordinal))
+            {
+                if (path is not null)
+                {
+                    worktrees.Add((path, branch));
+                }
+
+                path = line.Length > "worktree ".Length ? line["worktree ".Length..] : null;
+                branch = null;
+            }
+            else if (line.StartsWith("branch refs/heads/", StringComparison.Ordinal))
+            {
+                branch = line["branch refs/heads/".Length..];
+            }
+        }
+
+        return worktrees;
     }
 
     /// <inheritdoc />

@@ -15,8 +15,10 @@ by `sdlc draft mining` from what `/sdlc:mine` proposed (D-150).
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
+                             [--accept <ids>] [--decline <ids> --note <why>]
 sdlc draft abandon <id>
-sdlc draft solution          [--standard profile|existing]
+sdlc draft solution          [--standard profile|existing] [--approval required|none]
+                             [--coverage-floor <percent>]
 sdlc draft techstack         [--empty]
 ```
 
@@ -29,8 +31,9 @@ writes `approval.<decision>.draft.md` into the cycle directory -- a complete fil
 and prints it with the rename that records it. **`draft solution` does the same for the solution
 document**, carrying its keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
-`--standard` is the one exception, and only when a person asks for it by name: it moves which
-conventions new work follows, and the printed instructions say which way. **Before the document is
+`--standard`, `--approval` and `--coverage-floor` are the exceptions, and only when a person asks for one
+by name: each moves that key and the printed instructions say which way. **Use them rather than editing
+the draft** — an edit once left it with two `approval:` keys (D-162). **Before the document is
 placed it refuses**: adoption already wrote `solution.draft.md`, and a person may be halfway through it,
 so the refusal says to fill that one in and rename it rather than writing a second over it. **And
 `draft techstack` writes the declared stack beside itself** — a copy of it, or the framework's default
@@ -71,8 +74,11 @@ that when you show it.
 **On an approved cycle whose build recorded deviations nobody answered, the same command drafts the answer
 to each one** (D-156): a `deviations` entry listing every deviation with `accepted: false` and `note: ""`.
 Show the deviations it prints, and tell the person: set `accepted: true` to accept one, or leave it false and
-write why in its note to decline it; false with no note is not reviewed, and the pull request waits on it. A
-reopen is refused until every deviation is answered — decline first, then reopen.
+write why in its note to decline it; false with no note is not reviewed, and the pull request waits on it.
+**When the person tells you their answers, draft them in rather than editing the draft** (D-162):
+`sdlc draft approval <id> --accept DEV_01,DEV_02 --decline DEV_03 --note "<their reason, in their words>"`.
+Any not named stays unanswered, and the rename is still theirs. A reopen is refused until every deviation is
+answered — decline first, then reopen.
 
 **`abandon`** — why a cycle stopped. The reason is left empty and the file is rejected without one.
 Abandonment is terminal: the cycle will never build, even if it also holds an approval, and there is no

@@ -155,12 +155,17 @@ Each reader's usage rides in the draft and reaches `findings/usage.json` only wh
 
 **One round, whatever ran.** A round is clean when every reader was silent. What collect printed ends with
 the findings still open on this document that **no reader raised again** — the dispositions that are yours
-to add (D-49), by the next section's table. Add each one you can settle to the draft's `findings` array,
-carried as the ledger holds it with its new `disposition`; leave out what stays open. Then record:
+to decide (D-49), by the next section's table. **Settle them by collecting again, never by editing the
+draft** (D-162): the binary copies each one you name in from the ledger word for word, with only its
+disposition moved, and anything you do not name stays open.
 
 ```bash
+sdlc round collect <id> <artifact> --dir <scratch>/round --host claude --answered F_02 --withdrawn S_03
 sdlc round <id> <artifact> --from <scratch>/round/round.json
 ```
+
+Collecting again reads the answers already on disk and runs no reader. It refuses an id that is not
+open on this document, one a reader raised again this round, and one named both ways.
 
 It numbers the round, stamps when it ran, and records the hash of the document judged, of the one above
 it, of each section, and on a verify of the evidence. **It refuses while anything above the artifact is

@@ -46,6 +46,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Approvals.ApprovalLedger",
         "Sdlc.Core.Approvals.ApprovalRenderer",
         "Sdlc.Core.Approvals.ApprovalText",
+        "Sdlc.Core.Approvals.ApprovalText+DeviationAnswers",
         "Sdlc.Core.Approvals.ApprovalText+Query",
         "Sdlc.Core.Approvals.ApprovalText+Response",
         "Sdlc.Core.Approvals.GateDecision",
@@ -218,6 +219,14 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.DiscardSandbox+Query",
         "Sdlc.Core.Cycles.DiscardSandbox+Response",
         "Sdlc.Core.Cycles.DiscardVerdict",
+
+        // Tidying what has merged: the worktrees and branches whose work reached the integration branch (D-162).
+        "Sdlc.Core.Cycles.MergedCycle",
+        "Sdlc.Core.Cycles.TidyCycles",
+        "Sdlc.Core.Cycles.TidyCycles+Entry",
+        "Sdlc.Core.Cycles.TidyCycles+Query",
+        "Sdlc.Core.Cycles.TidyCycles+Response",
+        "Sdlc.Core.Cycles.TidyRenderer",
 
         // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
         "Sdlc.Core.Cycles.ComposeAdmission",
