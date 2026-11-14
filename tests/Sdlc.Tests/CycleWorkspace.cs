@@ -146,6 +146,10 @@ internal sealed class CycleWorkspace : IDisposable
             "|---|---|",
             "| `src/Thing.cs` | new |",
             string.Empty,
+            "## Areas",
+            string.Empty,
+            "- none: `src/Thing.cs`",
+            string.Empty,
             "## Proof",
             string.Empty,
         ];

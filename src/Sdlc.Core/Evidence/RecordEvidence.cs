@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -29,6 +30,10 @@ public static class RecordEvidence
     /// <param name="Comparison">Declared against changed, which is a signal rather than a gate.</param>
     /// <param name="TestSources">The results files read.</param>
     /// <param name="Coverage">What the run's coverage said, when a report was given (D-103).</param>
+    /// <param name="RetiredVerdict">
+    /// Whether a blocked <c>verify.md</c> about the run this one replaces was removed, so the next verify starts
+    /// from this run (D-161).
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<string> Written,
@@ -36,7 +41,8 @@ public static class RecordEvidence
         IReadOnlyList<string> Changed,
         FileComparison Comparison,
         IReadOnlyList<string> TestSources,
-        CoverageSummary? Coverage = null);
+        CoverageSummary? Coverage = null,
+        bool RetiredVerdict = false);
 
     /// <summary>The normalised test summary every later reader uses.</summary>
     public const string SummaryFileName = "tests.json";
@@ -134,13 +140,27 @@ public static class RecordEvidence
             // Refused rather than warned, for the same reason the approval gate refuses an interrogation
             // round judged against a document that has changed since: the stale artifact is the one a
             // reader trusts, because it looks finished.
+            //
+            // A blocked verdict is the exception, and is retired here rather than refused (D-161). Recording a
+            // new run under one is what remediation is: the verdict asked for the fix this run measures, and
+            // the next verify replaces it. Refusing it taught every remediation the deletion by refusal, after
+            // a run that had already taken most of an hour.
             string verdict = cycle.PathOf(ArtifactKind.Verify);
+            bool retire = false;
 
             if (File.Exists(verdict))
             {
-                return Result.Fail<Response>(string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Recording a new run would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
+                Result<FrontmatterDocument> split = await Frontmatter.ReadFile(verdict, cancellationToken).ConfigureAwait(false);
+                string? outcome = split.IsSuccess ? Frontmatter.Key(split.Value.Yaml, "outcome") : null;
+
+                if (!string.Equals(outcome, "blocked", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Result.Fail<Response>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Its outcome is '{outcome ?? "unreadable"}', and only a blocked verdict is retired by recording a new run. Recording one would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
+                }
+
+                retire = true;
             }
 
             // D-124: the patch is measured to a commit, so the chain can rebuild it from git rather than
@@ -278,7 +298,13 @@ public static class RecordEvidence
                 DeclaredFiles.Read(await File.ReadAllTextAsync(plan, cancellationToken).ConfigureAwait(false)),
                 changed);
 
-            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage));
+            // Last, so a recording refused on the way leaves the verdict where it was.
+            if (retire)
+            {
+                File.Delete(verdict);
+            }
+
+            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage, retire));
         }
 
         /// <summary>Whether an uncommitted path is the run's own output, named on the command line.</summary>

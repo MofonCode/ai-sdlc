@@ -338,6 +338,7 @@ public static class VerifyChain
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
             await EvidenceRead(cycle, checks, repository, solution.Path, cancellationToken).ConfigureAwait(false);
+            Committed(cycle, checks, repository, solution.Path);
             await Covered(cycle, checks, cancellationToken).ConfigureAwait(false);
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Deviated(cycle, checks, cancellationToken).ConfigureAwait(false);
@@ -452,14 +453,27 @@ public static class VerifyChain
             string? now = await RecordRound.EvidenceHash(cycle, cancellationToken, repository: repository, root: root).ConfigureAwait(false);
 
             // A round recorded before the build log left the hash carried it, and that cycle committed its
-            // log, so its own hash is recomputable here. Accepted under the old reading rather than sent
-            // back for a round that judged exactly this run.
-            if (latest.EvidenceSha256 is { } recorded
-                && !string.Equals(recorded, now, StringComparison.Ordinal)
-                && await RecordRound.EvidenceHash(cycle, cancellationToken, withBuildLog: true).ConfigureAwait(false) is { } legacy
-                && string.Equals(recorded, legacy, StringComparison.Ordinal))
+            // log, so its own hash is recomputable here. A round recorded before the coverage summary joined
+            // it left that out (D-161). Each is accepted under its old reading rather than sent back for a
+            // round that judged exactly this run.
+            if (latest.EvidenceSha256 is { } recorded && !string.Equals(recorded, now, StringComparison.Ordinal))
             {
-                now = legacy;
+                // The build-log reading hashes the patch on disk, as it did before the patch was rebuilt (D-124).
+                foreach (bool withBuildLog in new[] { false, true })
+                {
+                    if (await RecordRound.EvidenceHash(
+                            cycle,
+                            cancellationToken,
+                            withBuildLog,
+                            withBuildLog ? null : repository,
+                            withBuildLog ? null : root,
+                            withCoverage: false).ConfigureAwait(false) is { } legacy
+                        && string.Equals(recorded, legacy, StringComparison.Ordinal))
+                    {
+                        now = legacy;
+                        break;
+                    }
+                }
             }
 
             checks.Add(latest.EvidenceSha256 is not { } judged
@@ -488,6 +502,31 @@ public static class VerifyChain
         /// overclaimed. The floor is read from <c>solution.md</c> as it stands, because only a person writes
         /// it, and lowering it is how a person answers a fall without the evidence being recorded again.</para>
         /// </remarks>
+        private static void Committed(Cycle cycle, List<ChainCheck> checks, IRepository repository, string root)
+        {
+            // D-161. A pattern in the solution's own ignore file left coverage.json out of every commit: the
+            // local check read it from the working tree and passed, and the pipeline's checkout had none.
+            string evidence = Path.GetRelativePath(root, cycle.EvidenceDirectory).Replace('\\', '/');
+            IReadOnlyList<string> ignored = repository.Ignored(
+                root,
+                [
+                    $"{evidence}/{RecordEvidence.SummaryFileName}",
+                    $"{evidence}/{Coverage.SummaryFileName}",
+                    $"{evidence}/{RecordEvidence.BaseFileName}",
+                    $"{evidence}/{RecordEvidence.HeadFileName}",
+                    $"{Cycle.SdlcDirectoryName}/{Coverage.SummaryFileName}",
+                ]);
+
+            checks.Add(new ChainCheck(
+                "git commits the evidence",
+                ignored.Count == 0,
+                ignored.Count == 0
+                    ? "no ignore pattern leaves an evidence file out of a commit"
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"git ignores {string.Join(", ", ignored)}, so a commit leaves {(ignored.Count == 1 ? "it" : "them")} out and the pipeline's checkout has none. 'git check-ignore -v <path>' names the pattern; add '!<path>' after it, or 'git add -f' the file once.")));
+        }
+
         private static async Task Covered(
             Cycle cycle,
             List<ChainCheck> checks,

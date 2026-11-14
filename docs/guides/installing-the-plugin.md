@@ -355,7 +355,7 @@ may ride along too. A pipeline is compared step by step, so the steps a solution
 through unchanged; `sdlc factory` drops them, so put them back before committing. The
 same pull request may answer the rows the release asks about in `techstack.md` — added rows only, each one
 `sdlc stack` lists under *Not mentioned*. Anything else in it, one source file or one changed answer, and
-it is refused as a change with no chain; `handling-refusals.md` has the four upgrade refusals.
+it is refused as a change with no chain; `handling-refusals.md` has the five upgrade refusals.
 
 **`doctor` says when this is due.** `.sdlc/README.md` carries the release that wrote it, and the
 `framework files` check compares that with the binary:

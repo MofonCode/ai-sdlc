@@ -143,6 +143,24 @@ public sealed class CollectRoundTests
         Assert.AreEqual(verdict, await File.ReadAllTextAsync(workspace.Cycle.PathOf(ArtifactKind.Verify)));
     }
 
+    [TestMethod]
+    public async Task A_fence_around_the_whole_verdict_is_taken_off_and_one_inside_it_is_kept()
+    {
+        // D-161. A fenced verdict was refused, and the rerun cost the largest prompt the framework sends.
+        using var workspace = CycleWorkspace.Create();
+        string verdict = "---\ncycle: 20260929_1456_32\noutcome: blocked\n---\n\n# Rolls\n\n## Criteria\n\n1. Not met.\n\n```\nAssert.AreEqual(1, roll);\n```\n";
+        string from = Path.Combine(workspace.Root, "adjudicate.json");
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("```markdown\n" + verdict + "```\n"));
+        WriteVerdict.Response written = (await Verdict(workspace, from)).Value;
+
+        Assert.AreEqual("blocked", written.Outcome);
+        Assert.AreEqual(verdict, await File.ReadAllTextAsync(workspace.Cycle.PathOf(ArtifactKind.Verify)));
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("Here it is:\n```markdown\n" + verdict + "```\n"));
+        Assert.IsTrue((await Verdict(workspace, from)).IsFailed, "Prose beside the fence is still prose.");
+    }
+
     private static async Task<string> Answers(
         CycleWorkspace workspace,
         string rules = Silent,

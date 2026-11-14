@@ -148,7 +148,8 @@ sdlc evidence <id> --tests TestResults --build-log <log> --coverage TestResults
 ```
 
 Commit the fix before recording: `sdlc evidence` refuses uncommitted code, because the evidence names the
-commit it was recorded at (D-124). Then commit the evidence on the cycle's branch. The next verification
+commit it was recorded at (D-124). Recording retires the blocked `verify.md` and says so (D-161): do not
+delete it yourself first. Then commit the evidence and that removal on the cycle's branch. The next verification
 reads the new evidence, so evidence left in your working tree is evidence it cannot see.
 
 ## Then verify again, and go round while it is working

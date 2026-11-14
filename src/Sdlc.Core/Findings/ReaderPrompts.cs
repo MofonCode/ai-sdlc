@@ -167,6 +167,7 @@ public static class ReaderPrompts
                 await File(block, "evidence/" + name, path, "It was not recorded.", cancellationToken).ConfigureAwait(false);
             }
 
+            await Covered(block, cycle, cancellationToken).ConfigureAwait(false);
             await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
         }
 
@@ -177,6 +178,56 @@ public static class ReaderPrompts
         }
 
         return block.ToString();
+    }
+
+    /// <summary>
+    /// The run's recorded coverage, then the rates it gives and the floors <c>verify-chain</c> holds them to. A
+    /// run that recorded none is said to have none.
+    /// </summary>
+    /// <remarks>
+    /// A criterion about coverage is adjudicated from the evidence like any other, and the file holds counts,
+    /// not rates. The division and the floor in force are the binary's (D-161): the floor is read from
+    /// <c>solution.md</c> as it stands, as <c>verify-chain</c> reads it, because only a person moves it.
+    /// </remarks>
+    private static async Task Covered(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(cycle.EvidenceDirectory, Coverage.SummaryFileName);
+        await File(block, "evidence/" + Coverage.SummaryFileName, path, "It was not recorded: this run measured no coverage, so no claim about coverage rests on this evidence.", cancellationToken).ConfigureAwait(false);
+
+        if (!System.IO.File.Exists(path))
+        {
+            return;
+        }
+
+        CoverageSummary? summary = Coverage.ReadSummary(await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
+
+        if (summary is null)
+        {
+            block.Append("coverage.json cannot be read, so no claim about coverage rests on it.\n\n");
+            return;
+        }
+
+        double? floor = await SolutionDocument.CoverageFloorOf(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
+
+        block.Append("What that coverage says, computed by the binary -- the figures 'sdlc verify-chain' checks:\n\n");
+        block.Append(summary.ChangedRate is { } changed
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"- Changed lines: {Percent(changed)} ran under a test ({summary.ChangedCovered} of {summary.ChangedCoverable}), against the floor every change is held to, {SolutionDocument.FloorName(CoverageSummary.ChangedFloor)}.\n")
+            : "- Changed lines: the change added no coverable line.\n");
+        block.Append(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- Whole codebase: {Percent(summary.Rate)} ({summary.Covered} of {summary.Valid} lines).\n"));
+        block.Append(floor is { } inForce
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"- The solution's coverage_floor: {SolutionDocument.FloorName(inForce)}, from solution.md, which is {SolutionDocument.FloorName(SolutionDocument.DefaultCoverageFloor)} when it declares none.\n")
+            : "- The solution's coverage_floor: none, because solution.md cannot be read; the codebase is held to its baseline alone.\n");
+        block.Append(summary.Baseline is { } baseline
+            ? string.Create(CultureInfo.InvariantCulture, $"- The baseline, the last rate a merged cycle recorded: {Percent(baseline)}.\n\n")
+            : "- The baseline: none, so this is the first measurement.\n\n");
+
+        static string Percent(double rate) => string.Create(CultureInfo.InvariantCulture, $"{rate * 100:0.0}%");
     }
 
     /// <summary>
@@ -352,6 +403,19 @@ public static class ReaderPrompts
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {cycle.Id} has no {name}. A round judges a document that exists."));
+            }
+
+            // The same refusal recording the round would give, before the readers are paid for rather than after
+            // (D-161): a plan's areas are a listing, and a clean round refused at record time ran twice.
+            if (request.Artifact == ArtifactKind.Plan && !request.List)
+            {
+                string plan = await System.IO.File.ReadAllTextAsync(cycle.PathOf(ArtifactKind.Plan), cancellationToken).ConfigureAwait(false);
+                Result<IReadOnlyList<PlanArea>> planAreas = await RecordRound.PlanAreasChecked(cycle, plan, cancellationToken).ConfigureAwait(false);
+
+                if (planAreas.IsFailed)
+                {
+                    return Result.Fail<Response>(planAreas.Errors);
+                }
             }
 
             Result<ActivePerspectives.Response> active = await mediator

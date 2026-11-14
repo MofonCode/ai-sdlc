@@ -237,7 +237,13 @@ public sealed class AreasTests
         Assert.IsTrue(refused.IsFailed, "src/Brokers/Import.cs has no area and no answer.");
         StringAssert.Contains(refused.Errors[0].Message, "src/Brokers/Import.cs");
 
+        // D-161: refused before the readers are paid for, not only when the round is recorded.
+        Result<ReaderPrompts.Response> unprompted = await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Plan, Path.Combine(workspace.Root, "round"));
+        Assert.IsTrue(unprompted.IsFailed, "The same listing refuses the prompt.");
+        StringAssert.Contains(unprompted.Errors[0].Message, "src/Brokers/Import.cs");
+
         WritePlan(workspace, "- new trade-import: `src/Brokers/**`\n- none: `src/MarketData/**`");
+        Assert.IsTrue((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Plan, Path.Combine(workspace.Root, "round"))).IsSuccess);
         Assert.IsTrue((await RecordClean(workspace, ArtifactKind.Plan)).IsSuccess);
 
         LedgerSuggestion suggestion = (await FindingsReader.ReadSuggestions(workspace.Cycle, CancellationToken.None)).Value.Suggestions.Single();

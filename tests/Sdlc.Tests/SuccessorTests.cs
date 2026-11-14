@@ -349,6 +349,20 @@ public sealed class SuccessorTests
         StringAssert.Contains(panel, "successor:chart is stuck");
         Assert.IsFalse(panel.Contains("successor:share", StringComparison.Ordinal), panel);
         Assert.IsTrue(panel.IndexOf("Successor", StringComparison.Ordinal) < panel.IndexOf("Next", StringComparison.Ordinal), panel);
+
+        // D-161: past two, a panel names only what its own cycle brought, and counts the rest.
+        Write(workspace, "export", First);
+        Write(workspace, "import-feeds-from-the-exchange", workspace.Cycle.Id.ToString());
+        Merge(git, workspace.Cycle.Id.ToString());
+
+        string crowded = StatusRenderer.RenderBrief(
+            status.Value with { Successors = await Read(workspace, git) },
+            new StagePanel(intent, await ArtifactOutlineReader.ReadFile(intent.Path, CancellationToken.None)),
+            null);
+
+        StringAssert.Contains(crowded, "successor:import-feeds-from-the-exchange is ready ");
+        Assert.IsFalse(crowded.Contains("successor:totals", StringComparison.Ordinal), crowded);
+        StringAssert.Contains(crowded, "and 3 more are ready or stuck");
     }
 
     [TestMethod]

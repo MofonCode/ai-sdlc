@@ -233,7 +233,8 @@ internal static class Usage
                                      coverage. Verify reads only this. The summary records the
                                      platform the tests ran on. Refuses code outside .sdlc/ that is
                                      not committed; the diff is rebuilt from the two commits and
-                                     never committed (D-124).
+                                     never committed (D-124). Retires a blocked verify.md, and
+                                     refuses while any other verdict stands (D-161).
             evidence check <id>      List what verify.md cites in backticks that none of the
                                      recorded evidence holds, and tests it says passed that did not.
                                      Reports only; always exits 0.

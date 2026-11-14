@@ -201,10 +201,15 @@ public static class RecordRound
     /// <para><strong>Over what is committed, and nothing else</strong> (D-92). The pull-request check
     /// recomputes this on a clean checkout, where the build log is not, so a hash over it could never
     /// match there. Rounds recorded before carried it; <paramref name="withBuildLog"/> recomputes theirs.</para>
+    /// <para><strong>The coverage summary is in it</strong> (D-161). The adjudicator reads it, and it can be
+    /// recorded again without the test summary, so a hash without it would call a verdict current after the
+    /// coverage it judged was replaced. Rounds recorded before left it out; <paramref name="withCoverage"/>
+    /// recomputes theirs.</para>
     /// </remarks>
     /// <param name="cycle">The cycle.</param>
     /// <param name="cancellationToken">Token observed while reading.</param>
     /// <param name="withBuildLog">Whether to include the build log, as rounds recorded before 0.32.0 did.</param>
+    /// <param name="withCoverage">Whether to include the coverage summary, as rounds recorded before 0.44.0 did not.</param>
     /// <param name="repository">
     /// Git, to rebuild the patch from <c>base.sha</c> and <c>head.sha</c> when the evidence names both (D-124).
     /// The patch is then hashed as git rebuilds it, never as a file on disk says, so a checkout without the file
@@ -217,13 +222,18 @@ public static class RecordRound
         CancellationToken cancellationToken,
         bool withBuildLog = false,
         IRepository? repository = null,
-        string? root = null)
+        string? root = null,
+        bool withCoverage = true)
     {
         ArgumentNullException.ThrowIfNull(cycle);
 
-        string[] names = withBuildLog
-            ? [RecordEvidence.SummaryFileName, RecordEvidence.DiffFileName, RecordEvidence.BuildLogFileName]
-            : [RecordEvidence.SummaryFileName, RecordEvidence.DiffFileName];
+        string[] names =
+        [
+            RecordEvidence.SummaryFileName,
+            RecordEvidence.DiffFileName,
+            .. withBuildLog ? [RecordEvidence.BuildLogFileName] : Array.Empty<string>(),
+            .. withCoverage ? [Coverage.SummaryFileName] : Array.Empty<string>(),
+        ];
         StringBuilder listing = new();
 
         foreach (string name in names)

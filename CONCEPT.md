@@ -401,6 +401,12 @@ git and published by the pipeline, the trx to the platform's test tab.
 records the build's commit as `head.sha`, and writes `diff.patch` from `base..head` for the verify to read.
 The evidence hash covers that rebuilt diff, so `verify-chain` checks it from git on a clean checkout.
 
+**What the chain reads is committed, and checked to be** (D-161). The cycles directory's ignore file keeps the
+test summary, the coverage and the two commits whatever the repository's own says, and `verify-chain` fails when
+git would still leave one out. Every verify reader is handed the coverage with its rates worked out, and the
+evidence hash covers it. Recording a new run retires a blocked `verify.md`, which is what remediation does; any
+other verdict refuses it.
+
 `build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
 
 **A string match runs before a reader does, and only reports** (D-120). `sdlc evidence check` lists
@@ -3219,6 +3225,9 @@ reason a reader could reconstruct.
 ### D-32 — The Azure DevOps adapter ships unexercised, and says so
 
 **Governs:** §13
+
+**Amended by D-161:** the `az repos pr create` path has since run, on MarketSense, and the pr skill says what it
+needed rather than that it is untried.
 
 **Decision.** The Azure Pipelines template and the `az repos pr create` path ship without ever having
 run against a real Azure DevOps server. The template itself carries a note saying so, and §13 and the
@@ -6831,6 +6840,9 @@ evidence format, the artifact schemas — and two binaries would put version ske
 
 **Governs:** §4.5
 
+**Amended by D-161.** The verify round's evidence hash covers the coverage summary as well, and the cycles
+directory's ignore file keeps what the chain reads whatever the repository's own ignore file says.
+
 **Superseded in part: D-13**, which kept the original beside the summary in the cycle's evidence. That
 stands locally, while a build runs; what changes is what is committed. `build.log` and `tests.trx` are
 ignored by git and published by the pipeline — the trx to the platform's test tab, so Azure DevOps shows
@@ -7273,6 +7285,53 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-161 — The adjudicator reads the coverage, evidence git would drop breaks the chain, and a new run retires a blocked verdict
+
+**Governs:** §4.5, §6
+
+**Amends D-92:** the verify round's evidence hash covers the coverage summary too. **Amends D-32:** the
+Azure DevOps pull-request path has run.
+
+**Decision.**
+
+- **Every verify reader, the adjudicator included, is handed `coverage.json`**, with the rates and the floors
+  `verify-chain` holds them to worked out by the binary. A run that recorded none is said to have none. The
+  verify round's evidence hash covers the file, because it can be recorded again without the test summary; a
+  round recorded before is recomputed without it.
+- **The cycles directory's ignore file keeps what the chain reads**: `!/*/evidence/tests.json`, `coverage.json`,
+  `base.sha` and `head.sha`, which a deeper file's pattern does over the repository's own. **`verify-chain` checks
+  that git commits the evidence**, and names the file and how to find the pattern when it does not.
+- **`sdlc evidence` retires a blocked `verify.md`** once the run is recorded, and says so. Any other verdict still
+  refuses the recording, and a refused recording leaves a blocked one where it was.
+- **One fence around the whole of an adjudicator's answer is taken off.** Prose beside it is still refused.
+- **A plan round's areas are checked before the readers run**, by `sdlc round prompt`, as well as when it is recorded.
+- **`sdlc evidence check` searches every recorded file**, the test summary and the two commits included, and
+  treats `coverage_floor` as the evidence's own name.
+- **A status panel names at most two ready or stuck successors whichever cycle it is about** (D-125). Past two it
+  names those its own cycle's merge brought and counts the rest.
+
+**Why.** Mining MarketSense's last six cycles for the framework rather than the solution. Coverage: §4.5 said
+`verify` reads the coverage, the prompt never carried it, and a cycle whose criterion was the whole-codebase rate
+at or above the floor could meet it only by a deviation narrowing it. Its evidence said 91.9% against 80%. The same
+solution's Visual Studio ignore file matched `coverage*.json`, so two cycles merged with no coverage committed: the
+local check read the working tree and passed, and the pipeline's checkout had none. The blocked verdict: three
+remediations deleted `verify.md` by hand, each told to by a refusal that came at the end of a 12 to 50 minute run.
+The rest are smaller. A fenced verdict cost a rerun of the largest prompt the framework sends. Two plan rounds ran
+the whole panel and were refused at record time for a listing. Every verdict listed its platform and its commits as
+cited from nowhere. Seven unrelated successors stood on every panel.
+
+**Why a blocked verdict, and only that one.** A new run under a blocked verdict is what remediation is: the verdict
+asked for the fix the run measures, and the next verify replaces it. Under a pass, a new run is something else
+(a conflict resolved, a rebuild), and refusing it is still what keeps a finished-looking verdict from citing gone
+evidence. The findings rounds and git keep the retired one.
+
+**Rejected.** *Narrowing the `sdlc init` refusal to a segment whose command is `sdlc`.* It refused pull-request
+bodies and a search that only mentioned the words, but `bash -c "sdlc init"` is a segment whose command is `bash`.
+The hook's rule is that a false refusal costs a rephrasing and a miss costs the guarantee, so the refusal now says
+how to pass such text instead. *Refusing an ignored file in `sdlc evidence`.* By then the files are written, and the
+chain is where the pull request is held. *A marker that quiets the turn-end hook while a test run is going.* The
+host already lets the second turn end through. The message now says the run clears it.
 
 ### D-159 — A green build verifies itself, and remediation goes round on its own until it passes or needs a person
 
@@ -8845,6 +8904,9 @@ ends on said "blockers 3" and nothing a person could act on.
 ### D-125 — Work is sliced into atomic cycles before any opens, and what waits is a successor, not a cycle
 
 **Governs:** §3.1, §3.4, §10.4, §16
+
+**Amended by D-161.** A status panel names at most two ready or stuck successors whichever cycle it is about,
+then those its own cycle brought, and counts the rest.
 
 **Superseded in part by D-147.** A person asking for the next wave starts every successor that is ready, through
 `/sdlc:next`, rather than naming each; nothing starts one unasked. And by D-145: a plan found at the plan to need a

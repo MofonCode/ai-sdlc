@@ -74,6 +74,10 @@ public static class EvidenceRenderer
                 }
             }
         }
+        else
+        {
+            output.AppendLine(Indent + "Tests     none recorded yet");
+        }
 
         if (report.Coverage is { } coverage)
         {
@@ -87,9 +91,12 @@ public static class EvidenceRenderer
                 CultureInfo.InvariantCulture,
                 $"{Indent}          whole codebase {coverage.Rate:P1}, {Codebase(coverage)}"));
         }
-        else
+
+        if (report.RetiredVerdict)
         {
-            output.AppendLine(Indent + "Tests     none recorded yet");
+            output.AppendLine();
+            output.AppendLine(Indent + "Verdict   the blocked verify.md was removed: it judged the run this one replaces.");
+            output.AppendLine(Indent + "          Commit its removal with this evidence, then verify again.");
         }
 
         output.AppendLine();
@@ -100,8 +107,8 @@ public static class EvidenceRenderer
         Comparison(output, report);
 
         output.AppendLine();
-        output.AppendLine(Indent + "Verify reads tests.json and the diff, and nothing else. A claim it cannot");
-        output.AppendLine(Indent + "trace to one of these files is a claim it must not make.");
+        output.AppendLine(Indent + "Verify reads tests.json, the diff and the coverage, and nothing else. A claim");
+        output.AppendLine(Indent + "it cannot trace to one of these files is a claim it must not make.");
 
         return output.ToString();
     }

@@ -300,21 +300,43 @@ public static class StatusRenderer
         }
 
         bool wrote = false;
+        List<Sdlc.Core.Successors.ReadSuccessors.Standing> actionable =
+        [
+            .. read.Successors.Where(s => s.State is Sdlc.Core.Successors.SuccessorState.Ready or Sdlc.Core.Successors.SuccessorState.Stuck),
+        ];
 
-        foreach (Sdlc.Core.Successors.ReadSuccessors.Standing standing in read.Successors
-            .Where(s => s.State is Sdlc.Core.Successors.SuccessorState.Ready or Sdlc.Core.Successors.SuccessorState.Stuck))
+        // A few are named whichever cycle this is. Past that, only the ones this cycle's merge brought, and a
+        // count of the rest: seven unrelated lines on every panel buried the one the person came for (D-161).
+        List<Sdlc.Core.Successors.ReadSuccessors.Standing> named = actionable.Count <= SuccessorsNamedOnEveryPanel
+            ? actionable
+            : [.. actionable.Where(s => s.Successor.Succeeds.Any(reference => reference.Cycle == status.Cycle.Id))];
+
+        foreach (Sdlc.Core.Successors.ReadSuccessors.Standing standing in named)
         {
             bool ready = standing.State == Sdlc.Core.Successors.SuccessorState.Ready;
             string slug = "successor:" + standing.Successor.Slug;
 
             Field(output, wrote ? string.Empty : "Successor", ready
-                ? string.Create(CultureInfo.InvariantCulture, $"{slug + " is ready",-44}{Stage(host, "intent --from " + slug)}")
-                : string.Create(CultureInfo.InvariantCulture, $"{slug + " is stuck",-44}sdlc successors"));
+                ? string.Create(CultureInfo.InvariantCulture, $"{slug + " is ready",-43} {Stage(host, "intent --from " + slug)}")
+                : string.Create(CultureInfo.InvariantCulture, $"{slug + " is stuck",-43} sdlc successors"));
+            wrote = true;
+        }
+
+        if (actionable.Count > named.Count)
+        {
+            int rest = actionable.Count - named.Count;
+
+            Field(output, wrote ? string.Empty : "Successor", string.Create(
+                CultureInfo.InvariantCulture,
+                $"{(named.Count == 0 ? string.Empty : "and ") + rest.ToString(CultureInfo.InvariantCulture) + (rest == 1 ? " more is" : " more are") + " ready or stuck",-43} sdlc successors"));
             wrote = true;
         }
 
         return wrote;
     }
+
+    /// <summary>How many ready or stuck successors every panel names, whichever cycle it is about.</summary>
+    private const int SuccessorsNamedOnEveryPanel = 2;
 
     private static bool Amended(StringBuilder output, ReadCycleStatus.Response status)
     {

@@ -68,6 +68,7 @@ public static class CheckEvidence
         RecordEvidence.BaseFileName,
         Coverage.SummaryFileName,
         "build.log",
+        "coverage_floor",
         "pass",
         "blocked",
         "escalated",
@@ -142,7 +143,7 @@ public static class CheckEvidence
         if (response.Unfound.Count > 0)
         {
             text.AppendLine();
-            text.AppendLine("In none of the recorded evidence -- tests.json, diff.patch, coverage.json, and build.log where this checkout has one:");
+            text.AppendLine("In none of the recorded evidence -- tests.json, diff.patch, coverage.json, base.sha, head.sha, and build.log where this checkout has one:");
 
             foreach (string name in response.Unfound)
             {
@@ -192,8 +193,10 @@ public static class CheckEvidence
             string diff = File.Exists(diffPath) ? await File.ReadAllTextAsync(diffPath, cancellationToken).ConfigureAwait(false) : string.Empty;
 
             // The coverage summary and the build log are evidence too, which a verdict may cite for what only
-            // they hold. The log is not committed, so in a pipeline it is simply not searched.
-            foreach (string other in new[] { Coverage.SummaryFileName, "build.log" })
+            // they hold. The log is not committed, so in a pipeline it is simply not searched. The summary and
+            // the two commits are searched as text as well (D-161): a verdict quoting the platform the tests ran
+            // on, or the commit it judged, was reported as citing nothing.
+            foreach (string other in new[] { Coverage.SummaryFileName, "build.log", RecordEvidence.SummaryFileName, RecordEvidence.BaseFileName, RecordEvidence.HeadFileName })
             {
                 string path = Path.Combine(cycle.EvidenceDirectory, other);
 

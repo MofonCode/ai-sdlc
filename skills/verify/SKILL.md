@@ -47,8 +47,8 @@ reads only what the binary put in its prompt (D-118); the prompt piped in, never
 PowerShell, `$env:SDLC_READER = '1'` before the call). **Never switch the hooks off to get it through.**
 
 **The prompt is the binary's, and you neither edit it nor add to it** (D-117). It carries the plan, the
-spec and the evidence — `tests.json`, `base.sha`, `build.log` where this checkout has one, and
-`diff.patch` — then the constraints for a verify, each active perspective's questions for this stage, and
+spec and the evidence — `tests.json`, `base.sha`, `build.log` where this checkout has one,
+`diff.patch`, and `coverage.json` with the rates and floors the binary worked out (D-161) — then the constraints for a verify, each active perspective's questions for this stage, and
 the method: read the evidence and nothing else, adjudicate criterion by criterion, quote the assertion
 every Met rests on, cite everything, choose the outcome, and write the document. Nothing else — not the
 conversation, not what the build set out to do, not this session's view of how it went. Every one of

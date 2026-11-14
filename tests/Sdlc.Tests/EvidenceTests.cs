@@ -579,7 +579,7 @@ public sealed class EvidenceTests
             await Record(workspace, trx: null, changed: ["src/Thing.cs"]));
 
         StringAssert.Contains(rendered, "every declared file changed");
-        StringAssert.Contains(rendered, "Verify reads tests.json and the diff, and nothing else.");
+        StringAssert.Contains(rendered, "Verify reads tests.json, the diff and the coverage, and nothing else.");
     }
 
     [TestMethod]
@@ -654,6 +654,40 @@ public sealed class EvidenceTests
 
         StringAssert.Contains(said, "already has a verdict");
         StringAssert.Contains(said, "verify.md", "A refusal says which file has to move.");
+        Assert.IsTrue(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "A refusal removes nothing.");
+    }
+
+    [TestMethod]
+    public async Task Recording_a_new_run_under_a_blocked_verdict_retires_it_and_says_so()
+    {
+        // D-161. Remediation is a new run under a blocked verdict, and every remediation met the refusal above
+        // only after its run -- most of an hour, on one solution -- then deleted the file by hand and ran again.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "blocked");
+
+        RecordEvidence.Response recorded = await Record(workspace, trx: null, changed: ["src/Roll.cs"]);
+
+        Assert.IsTrue(recorded.RetiredVerdict);
+        Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "The next verify starts from this run.");
+        StringAssert.Contains(EvidenceRenderer.Render(recorded), "the blocked verify.md was removed");
+    }
+
+    [TestMethod]
+    public async Task A_blocked_verdict_stays_when_the_recording_is_refused()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "blocked");
+
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = ["src/Roll.cs"], Uncommitted = ["src/Roll.cs"] });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(result.IsFailed);
+        Assert.IsTrue(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)));
     }
 
     [TestMethod]

@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.42.0** · iteration 4 · .NET 10
+**Version 0.44.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.42.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.44.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -429,6 +429,12 @@ What is honest to say about the rest:
   round while it is working, checking in every fourth pass (D-159). The new session is named once, before the
   build. It is a minor: a person types different things, and `batch-plan` is gone. No cycle has run this way
   yet, so nobody knows whether the planning chain in one session stays small enough to leave there.
+- **What mining MarketSense found in the plumbing is fixed, and has met only the suite** (0.44.0). The
+  adjudicator now reads the coverage, so a criterion about the floor can be met. `verify-chain` fails when git
+  would leave an evidence file out of the commit, and a new cycle's ignore file keeps them in. Recording a new
+  run retires a blocked verdict instead of refusing at the end of the run. A fenced verdict is taken, a plan's
+  areas are checked before its readers run, and the status panel stops listing every successor (D-161). It is a
+  minor: the chain has a check it did not have.
 - **The coverage floor has met one solution's numbers and no cycle** (0.41.0). The whole codebase was held to
   the highest rate it ever reached, with no slack, and MarketSense at 99% refused a cycle that did nothing
   wrong once its two-host test harness changed how coverage was measured. Now a codebase at or above
