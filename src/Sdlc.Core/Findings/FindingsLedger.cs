@@ -45,7 +45,7 @@ public sealed record LedgerFinding(
 
 /// <summary>One round's entry: what it judged, against what, and its place in the chain (D-107).</summary>
 /// <param name="Round">Which round, counting from one.</param>
-/// <param name="FrameworkVersion">The version that wrote it.</param>
+/// <param name="FrameworkVersion">Retired (D-160): read from rounds written before 0.43.0 so their hashes still verify, and never written.</param>
 /// <param name="InterrogatedAt">When it ran.</param>
 /// <param name="UpstreamSha256">The artifact above, as the round saw it (D-21).</param>
 /// <param name="SubjectSha256">The document judged (D-101).</param>
@@ -56,8 +56,8 @@ public sealed record LedgerFinding(
 /// <param name="PreviousSha256">The entry before this one's hash. Null on round one.</param>
 /// <param name="EntrySha256">This entry's hash, over itself, what it raised, what it moved, and the previous hash.</param>
 /// <param name="Release">
-/// The release of the gate that wrote it (D-131). <c>framework_version</c> is the envelope's format and stays put
-/// across releases, so it cannot say that a cycle's rules moved under it. Absent from rounds written before
+/// The release of the gate that wrote it (D-131). The retired <c>framework_version</c> was the envelope's format and stayed put
+/// across releases, so it could not say that a cycle's rules moved under it. Absent from rounds written before
 /// this, and hashed only when present, so their chains still verify.
 /// </param>
 public sealed record LedgerRound(

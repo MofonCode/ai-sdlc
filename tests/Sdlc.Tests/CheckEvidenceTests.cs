@@ -10,7 +10,6 @@ namespace Sdlc.Tests;
 public sealed class CheckEvidenceTests
 {
     private static readonly TestSummary _summary = new(
-        "1.0.0",
         "20260929_1456_32",
         null,
         [

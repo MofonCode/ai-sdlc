@@ -17,7 +17,7 @@ namespace Sdlc.Core.Findings;
 /// remarks why there must be exactly one — the gate and the status panel have to agree on what "open"
 /// means, and the one a person reads would not have been the one that refuses the build.
 /// </remarks>
-/// <param name="FrameworkVersion">The version that produced it.</param>
+/// <param name="FrameworkVersion">Retired (D-160): carried from rounds written before 0.43.0 so their hashes still verify, and never written.</param>
 /// <param name="Cycle">The cycle's id.</param>
 /// <param name="Artifact">The artifact's path, as the round recorded it.</param>
 /// <param name="UpstreamSha256">

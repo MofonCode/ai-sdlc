@@ -384,7 +384,6 @@ public sealed class DecisionsTests
             string.Join(
                 Environment.NewLine,
                 "---",
-                "framework_version: " + Cycle.FrameworkVersion,
                 "cycle: " + workspace.Cycle.Id,
                 "type: feature addition",
                 "---",
@@ -406,7 +405,6 @@ public sealed class DecisionsTests
             string.Join(
                 Environment.NewLine,
                 "---",
-                "framework_version: " + Cycle.FrameworkVersion,
                 "cycle: " + workspace.Cycle.Id,
                 "tier: contract",
                 "---",
@@ -442,7 +440,6 @@ public sealed class DecisionsTests
         [
             "---",
             "cycle: " + workspace.Cycle.Id,
-            "framework_version: " + Cycle.FrameworkVersion,
             "decisions:",
             "  - decision: approved",
             "    by: Somebody",

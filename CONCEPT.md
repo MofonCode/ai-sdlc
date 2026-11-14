@@ -281,19 +281,19 @@ the body and `## Open` are properties of a document; a diff has none of them, an
 
 | Part | Holds | Same across documents | Governed by |
 |---|---|---|---|
-| **envelope** | `framework_version`, `cycle`, and the `## Open` region | yes, identically | the envelope schema; `CON_14` governs `Open` on three of the four (§19) |
+| **envelope** | `cycle`, and the `## Open` region | yes, identically | the envelope schema; `CON_14` governs `Open` on three of the four (§19) |
 | **body** | the sections particular to that document | no, deliberately | a body schema per kind; the constraints bind this |
 
 ```
-framework_version: 1.0.0
 cycle: 20260929_1456_32
 
 ## Open
 ```
 
-**The envelope is an allowlist, not a region.** Two frontmatter keys and one section. Everything else
+**The envelope is an allowlist, not a region.** One frontmatter key and one section. Everything else
 in the file — any other key, any other section — is body, and a key or section nothing declared is a
-violation rather than a tolerated extra (D-31).
+violation rather than a tolerated extra (D-31). The one exception is `framework_version`, which every
+file written before 0.43.0 carries: it is accepted as a retired key, never required, and never written (D-160).
 
 **The test for where a field goes:** same on every document, with the same meaning and the same
 consumer, goes in the envelope. Differs per artifact because a different consumer reads it, goes in
@@ -450,7 +450,6 @@ entry stands.
 ```yaml
 ---
 cycle: 20260929_1456_32
-framework_version: 1.0.0
 decisions:
   - decision: changes_requested
     by: Peter Almanzar
@@ -651,7 +650,6 @@ refused when it is collected (D-119).
   "rounds": [
     {
       "round": 1,
-      "framework_version": "1.0.0",
       "interrogated_at": "2026-10-01T11:08:39Z",
       "subject_sha256": "91c4de08...",
       "upstream_sha256": "3f9a2c7b...",
@@ -659,7 +657,6 @@ refused when it is collected (D-119).
     },
     {
       "round": 2,
-      "framework_version": "1.0.0",
       "interrogated_at": "2026-10-01T11:40:02Z",
       "subject_sha256": "5b07af31...",
       "upstream_sha256": "3f9a2c7b...",
@@ -3194,7 +3191,8 @@ substantive without a constraint to hang on.
 
 **Governs:** §4.1
 
-**Decision.** Two frontmatter keys — `framework_version` and `cycle` — plus one section, `## Open`.
+**Decision.** Two frontmatter keys — `framework_version` and `cycle` — plus one section, `## Open`. **Corrected
+2026-11-13:** one key, `cycle`; `framework_version` is retired (D-160).
 Everything else in the file is body. A key or section the artifact does not declare is a schema
 violation, not a tolerated extra. `verify`'s body is one section, `Criteria`, plus an `outcome` key;
 its findings are data in `findings/verify.rN.json` like every other artifact's. **Corrected 2026-10-25:**
@@ -6914,7 +6912,7 @@ once with `none`, and the list is quiet after that. The `init` skill says so bef
   could write only the framework's files, which update mode already regenerates whole, and could only
   print a draft for a person's. A cycle's artifacts are signed — an approval hashes the planning
   documents — so rewriting them into a new format would invalidate every approval; a format change is
-  read by the binary instead, which is what `framework_version` is for. And *down* is reinstalling the
+  read by the binary instead, as every one so far has been (`framework_version`, meant for this, was retired by D-160). And *down* is reinstalling the
   older binary and running `init`, so a down step is compatibility code D-81 already declined to carry.
   Revisit when a release changes the *shape* of a person's file — and then as a drafter and a `doctor`
   check, not a numbered chain.
@@ -7273,6 +7271,41 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-160 — No artifact declares a format version
+
+**Governs:** §4.1, §5.2, §6.1
+
+**Amends D-31:** the envelope is one key, `cycle`, and the `## Open` section. **Amends D-131:** the
+release a round records is the only version a cycle's files carry.
+
+**Decision.** Nothing writes `framework_version` any more: not the planning documents, not a verify, not
+an approval or an abandonment, not a findings round, not `tests.json`. The schema stops requiring it. A file
+written before 0.43.0 still carries it and is read as it stands: the schema accepts it as a retired key, an
+approval or a summary ignores it, and a findings round keeps it so the round's hash still verifies. `sdlc
+version` prints two numbers, the binary's and the plugin's.
+
+**Why.** It was `1.0.0` on every file from the first cycle, and nothing read it. The schema checked that it
+was present, and the ledger copied it forward. The format did move under it — rounds went from a file each
+to one ledger per document (D-107), and a citation from a string to a line of its own (D-63) — and each time
+the move was made readable by the binary and the number stayed put, so it never told a reader anything. On
+MarketSense it was read as the framework's release, which is what the name says, and was never true; D-131
+added `release` to a round because of exactly that misreading. A field that misleads the one person who reads
+it, and that no code reads, is the decoration D-31 forbids in the body.
+
+**Why a retired key rather than a rewrite.** An approval hashes the planning documents and a round anchors
+them, so stripping the key from a finished cycle would unsign it. Tolerating one known key costs a line; a
+migration over signed files is the thing D-93's rejected list already declined.
+
+**Rejected.**
+
+- *Making it real: renaming it `format_version`, moving it now, and refusing a format a reader does not know.*
+  Every format change so far was absorbed by the binary reading both shapes, and that is how a person upgrades
+  with cycles in flight. A refusal on a number would have stopped each of those upgrades for no reader's
+  benefit.
+- *Moving it with the release.* That is `release`, which a round already carries (D-131).
+- *Keeping it and documenting it better.* The documentation was already right, in three places, and it was
+  still read as the release.
 
 ### D-159 — A green build verifies itself, and remediation goes round on its own until it passes or needs a person
 

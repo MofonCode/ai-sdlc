@@ -331,7 +331,6 @@ public sealed class VerifyChainTests
         CycleWorkspace.WriteRaw(workspace.Cycle.ApprovalPath, $"""
             ---
             cycle: {workspace.Cycle.Id}
-            framework_version: 1.0.0
             decisions:
               - decision: approved
                 by: Peter Almanzar

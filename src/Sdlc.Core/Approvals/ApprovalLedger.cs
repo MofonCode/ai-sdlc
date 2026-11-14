@@ -102,11 +102,9 @@ public sealed record RoundAnchor(int Round, string Sha256);
 /// A cycle's gate history: an append-only ledger of decisions, read top to bottom.
 /// </summary>
 /// <param name="Cycle">The cycle the ledger belongs to.</param>
-/// <param name="FrameworkVersion">The version whose format the entries were written in.</param>
 /// <param name="Decisions">Every decision, in the order they were taken.</param>
 public sealed record ApprovalLedger(
     string Cycle,
-    string? FrameworkVersion,
     IReadOnlyList<GateEntry> Decisions)
 {
     /// <summary>
@@ -278,7 +276,7 @@ public sealed record ApprovalLedger(
 
         return errors.Count > 0
             ? Result.Fail<ApprovalLedger>(errors)
-            : Result.Ok(new ApprovalLedger(shape.Cycle ?? string.Empty, shape.FrameworkVersion, entries));
+            : Result.Ok(new ApprovalLedger(shape.Cycle ?? string.Empty, entries));
     }
 
     /// <summary>
@@ -338,8 +336,6 @@ public sealed record ApprovalLedger(
     private sealed class LedgerShape
     {
         public string? Cycle { get; set; }
-
-        public string? FrameworkVersion { get; set; }
 
         public List<EntryShape>? Decisions { get; set; }
     }

@@ -73,7 +73,6 @@ public static class AbandonText
                 [
                     "---",
                     string.Create(CultureInfo.InvariantCulture, $"cycle: {cycle.Id}"),
-                    string.Create(CultureInfo.InvariantCulture, $"framework_version: {Cycle.FrameworkVersion}"),
                     string.Create(CultureInfo.InvariantCulture, $"by: {request.By}"),
                     string.Create(
                         CultureInfo.InvariantCulture,

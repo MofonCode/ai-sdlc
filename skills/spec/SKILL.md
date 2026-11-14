@@ -222,7 +222,6 @@ carries it down; if nobody raised it, it is a new cycle.
 
 ```markdown
 ---
-framework_version: 1.0.0
 cycle: <id>
 ---
 

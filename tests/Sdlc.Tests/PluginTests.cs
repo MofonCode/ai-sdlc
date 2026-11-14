@@ -1193,25 +1193,6 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_artifact_format_version_is_not_bound_to_the_release()
-    {
-        // These two are different facts and the temptation is to make them one number. The format version
-        // is stamped into every artifact's frontmatter to say which envelope it was written in, so moving
-        // it on a release that changed no format would restamp every file as a new format and make a
-        // reader distrust files it can parse perfectly well. Asserting they are independent is awkward,
-        // so this asserts what the independence is for: the report says which is which.
-        StringAssert.Contains(
-            Sdlc.Cli.Release.Text,
-            "artifact format",
-            "The version report has to name the format version, or the two get read as one number.");
-
-        StringAssert.Contains(
-            Sdlc.Cli.Release.Text,
-            Sdlc.Core.Cycles.Cycle.FrameworkVersion,
-            "And report the value actually being stamped into artifacts.");
-    }
-
-    [TestMethod]
     public void The_version_report_names_the_session_that_carries_this_releases_skills()
     {
         // The report said the plugin "ships separately" for a release after the package began carrying it,

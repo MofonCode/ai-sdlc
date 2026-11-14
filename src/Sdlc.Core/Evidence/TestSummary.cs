@@ -55,7 +55,6 @@ public sealed record RecordedTest(string Name, TestOutcome Outcome, string? Deta
 /// either and <c>CON_22</c> is satisfied by both.
 /// </para>
 /// </remarks>
-/// <param name="FrameworkVersion">The version whose format this was written in.</param>
 /// <param name="Cycle">The cycle the run belongs to.</param>
 /// <param name="RanAt">When the run finished.</param>
 /// <param name="Tests">Every test, in the order the runner reported them.</param>
@@ -65,7 +64,6 @@ public sealed record RecordedTest(string Name, TestOutcome Outcome, string? Deta
 /// ran (D-120). Never a machine or a user name. Null in a summary recorded before it was kept.
 /// </param>
 public sealed record TestSummary(
-    [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
     string? Cycle,
     [property: JsonPropertyName("ran_at")] DateTimeOffset? RanAt,
     IReadOnlyList<RecordedTest> Tests,
