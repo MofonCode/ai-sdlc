@@ -141,7 +141,7 @@ public static class ReaderPrompts
             await File(block, ".sdlc/" + Cycle.TechStackFileName, stack, "This solution has no techstack.md: it declares nothing.", cancellationToken).ConfigureAwait(false);
         }
 
-        // The decisions are standing criteria every stage inherits, judged by CON_24 at every one (D-139):
+        // The decisions are standing criteria every stage inherits, judged by CON_27 at every one (D-139):
         // a reader not handed them can only catch a departure the document admits to.
         block.Append("What this solution has already decided, and what each decision set aside:\n\n");
         await Decisions(block, cycle, artifact, cancellationToken).ConfigureAwait(false);
@@ -705,6 +705,15 @@ public static class ReaderPrompts
         {
             List<Finding> raised = [];
 
+            // The reconciler sees each finding as the round will record it, so a blocker citing a rule its reader
+            // was not handed reaches it as the suggestion it becomes (D-174).
+            Result<CitedRules.Handed> handed = await CitedRules.For(mediator, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (handed.IsFailed)
+            {
+                return handed.ToResult<string>();
+            }
+
             foreach (string reader in readers)
             {
                 Result<ReaderAnswer> answer = await ReaderAnswers.Read(request.Directory, reader, cancellationToken).ConfigureAwait(false);
@@ -714,7 +723,7 @@ public static class ReaderPrompts
                     return answer.ToResult<string>();
                 }
 
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader, handed.Value.Of(reader));
 
                 if (body.IsFailed)
                 {

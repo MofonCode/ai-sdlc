@@ -132,7 +132,7 @@ public static class DecisionsRenderer
         }
 
         output.AppendLine();
-        output.AppendLine("A cycle may depart from any of these, and CON_24 asks it to say so where the");
+        output.AppendLine("A cycle may depart from any of these, and CON_27 asks it to say so where the");
         output.AppendLine("departure arises: an outcome in the intent, under Fixed decisions; an approach in");
         output.AppendLine("the plan, under Shape and departures. Write it as one line, '- Departs from DEC_nn");
         output.AppendLine("(the decision in brief): what this cycle does instead', with who and why. Departing");

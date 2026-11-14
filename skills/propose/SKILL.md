@@ -220,7 +220,7 @@ pasting it is the person's act.
 
 ## What the record does not do
 
-**It does not forbid departing.** `CON_24` asks a departure from a standing entry to be declared once,
+**It does not forbid departing.** `CON_27` asks a departure from a standing entry to be declared once,
 where it arises — an outcome in the intent, an approach in the plan — and holds the intent, the spec, the
 plan and the change to it. A decision that cannot be revisited is a cage, and the first case it genuinely
 does not fit would see the record ignored rather than amended.

@@ -69,11 +69,11 @@ public static partial class ArtifactSchema
         ArtifactKind.Intent =>
             ["Problem", "Wanted outcomes", "Fixed decisions", "Must not change"],
 
-        // Acceptance criteria, read by five constraints and by verify. Out of scope, read by CON_05 and
-        // one of the three destinations an intent's open item can be disposed of into.
+        // Acceptance criteria, read by most of the spec's rules and by verify. Out of scope, read by CON_26
+        // and CON_12, and one of the three destinations an intent's open item can be disposed of into.
         ArtifactKind.Spec => ["Acceptance criteria", "Out of scope"],
 
-        // Shape and departures holds the decision, judged by CON_21 and CON_15. Files holds the
+        // Shape and departures holds the decision, judged by CON_15, CON_18 and CON_27. Files holds the
         // estimate, which nothing judges. Proof is CON_21's subject and verify's criterion table. Risk
         // is read by the person at the gate, which is a consumer like any other.
         ArtifactKind.Plan => ["Shape and departures", "Files", "Proof", "Risk"],

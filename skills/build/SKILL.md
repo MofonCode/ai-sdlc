@@ -109,12 +109,12 @@ an area its plan did not declare (D-151). The plan describes an approach;
 most of what decisions settle — how errors are returned, what is logged, how time is stored, what things
 are named — shows only in code. The diff reader at verify reads the change against the decisions, and code
 that takes what a decision set aside with no `Departs from DEC_nn` line in the intent or the plan is a
-blocking finding under `CON_24`. **If the work cannot be done without departing, record a `decision`
+blocking finding under `CON_27`. **If the work cannot be done without departing, record a `decision`
 deviation** quoting the decision, below, and the person answers it before the merge.
 
-`CON_07.2` forbids a change within a declared file that the plan did not describe — an unrelated
+`CON_25` forbids a change neither the plan nor a deviation in force describes, in any file — an unrelated
 refactor, a drive-by rename, a fix to something else you noticed in passing. The file set is a signal,
-not a contract; **creep inside an approved file is what reaches review dressed as approved work**, which
+not a contract; **creep, in an approved file or a new one, is what reaches review dressed as approved work**, which
 is exactly where it is least likely to be questioned. The diff reader at verify judges it, by what each
 change is for rather than by which files it touched.
 
@@ -280,7 +280,7 @@ It also prints the declared-against-changed comparison. Read it, and read it cor
   the other two it appears **whether or not the plan declared it**, because a declared one is the
   common case and still the one worth a reviewer's attention. Changing a rule is not the same kind of
   act as changing the work, and the two reach review looking identical without this line.
-- **None of the three is a refusal.** The comparison cannot see inside a file, which is why `CON_07.2`
+- **None of the three is a refusal.** The comparison cannot see inside a file, which is why `CON_25`
   exists at all. What blocks is outcome-based: the build fails, tests fail, or a named test did not pass.
 
 **A `governing` line belongs in your report and in the commit message.** The person reviewing the pull

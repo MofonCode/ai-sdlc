@@ -588,7 +588,8 @@ public sealed class EvidenceTests
         StringAssert.Contains(rendered, "undeclared  src/Unexpected.cs");
         StringAssert.Contains(rendered, "undelivered src/Thing.cs");
         StringAssert.Contains(rendered, "not a refusal");
-        StringAssert.Contains(rendered, "outcome-based");
+        StringAssert.Contains(rendered, "What blocks: the build");
+        StringAssert.Contains(rendered, "(CON_25)");
     }
 
     /// <summary>

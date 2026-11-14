@@ -30,10 +30,10 @@ public sealed record FileComparison(
 /// Reads the files a plan declares, and compares them against what changed.
 /// </summary>
 /// <remarks>
-/// <strong>This is a signal, not a gate.</strong> <c>CON_07.2</c> exists precisely <em>because</em> the
-/// comparison cannot see inside a file -- creep within a declared file passes it -- so the comparison was
-/// never load-bearing for scope creep, and a noisy blocker gets routed around. What blocks instead is
-/// outcome-based: the build fails, tests fail, or the proof is not met.
+/// <strong>This is a signal, not a gate.</strong> The comparison cannot see inside a file -- creep within a
+/// declared file passes it -- so it was never load-bearing for scope creep, and a noisy blocker gets routed
+/// around. What blocks instead: the build fails, tests fail, the proof is not met, coverage falls under its
+/// floor, or the change's reader finds work the plan did not describe (<c>CON_25</c>, D-176).
 /// <para>
 /// Its real uses are the two it is good at: estimating blast radius for the person at the gate, and
 /// detecting collisions between cycles so a batch can schedule around them rather than resolve them.

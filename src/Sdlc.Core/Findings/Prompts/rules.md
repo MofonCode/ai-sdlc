@@ -62,7 +62,7 @@ Answer as JSON only, in this shape:
   "cites": { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" },
   "gist": "...", "statement": "...", "locus": "...", "remedy": "..." } ],
   "conflicts": [ { "between": [
-      { "id": "CON_05", "heading": "A spec introduces no scope its intent did not ask for" },
+      { "id": "CON_26", "heading": "A spec introduces no scope its intent did not ask for, beyond what a rule in force requires" },
       { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" } ],
     "statement": "why each remedy excludes the other", "locus": "..." } ]{{rowsShape}} }
 ```

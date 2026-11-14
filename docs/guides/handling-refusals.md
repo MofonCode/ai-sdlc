@@ -200,13 +200,14 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the seven ways a round is refused
+## `sdlc round` — the eight ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
-words, the third when a reader raised a blocker without saying in a sentence what set it off, and the
-fourth when a suggestion's id or its move does not fit the cycle's suggestions. The next two are about areas (D-150):
+words, the third when a reader raised a blocker without saying in a sentence what set it off, the
+fourth when a blocker cites a rule its reader was not handed, and the fifth when a suggestion's id or its
+move does not fit the cycle's suggestions. The next two are about areas (D-150):
 a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
 that could not change where the cycle goes (D-165).
 
@@ -242,6 +243,18 @@ carried forward from before gists needs none.
 **Next:** ask the reader that raised it for the gist — start that fresh process again with the same
 input — rather than writing one in this session, which would be reinterpreting a finding it did not
 raise. The refusal names each finding that wants one.
+
+### a new blocker cites a rule not in force for it
+
+The round raises a blocking finding the ledger has not seen, and the rule it cites is not one its reader was
+handed: superseded, written for another document — a spec's rule raised against a plan — not issued at all, or,
+for a perspective's finding, not one the perspective lists as a rule it blocks on (D-174, D-175). A blocker
+stops a cycle on the rule it names, so it has to name one that binds here. `sdlc round collect` already records
+such a blocker as a suggestion saying so; this refusal meets a draft edited after that. A blocker the ledger
+already holds is never judged again.
+
+**Next:** make the finding a suggestion, or cite the rule in force it actually breaks —
+`sdlc constraints --for <artifact>` lists them, and `sdlc perspective show <name>` a perspective's.
 
 ### a suggestion does not fit the cycle's suggestions
 

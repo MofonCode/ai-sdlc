@@ -185,7 +185,7 @@ is a past:
 **Two questions, and resist the third.** What *done to a good standard* means, and what a reviewer would
 send back that no test caught, are already put to every change by the global tier: `CON_16` requires a
 spec to cover every outcome its intent asks for and all of each one, `CON_17` requires it to say what
-somebody is told when the action fails, and `CON_05` keeps out scope nobody asked for. Asking them at
+somebody is told when the action fails, and `CON_26` keeps out scope nobody asked for. Asking them at
 adoption spends a person's attention on rules already in force, and invites an answer about the change
 they have in mind rather than about the solution — which is the intent's question, one stage later,
 where there is a change to ask it about.

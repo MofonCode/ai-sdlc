@@ -20,8 +20,19 @@ the framework introduces itself. The documents, guides, skills and the binary's 
 other and brought into agreement: among them, the admission a sandbox's approved plan needs before its build is
 now step 4's second half everywhere the steps are given, and the six skills that run interrogation rounds may
 start their readers without a prompt. No solution that adopted the framework is named anywhere in the repository:
-evidence a release rests on is described, not attributed. Nothing a cycle does changed. It is a minor as a planned milestone, not
-because anything blocks that passed before.
+evidence a release rests on is described, not attributed.
+
+**A blocking finding must stand on a rule that binds the document it judges.** A blocker citing a superseded rule,
+another document's rule or an id nobody issued is drafted as a suggestion saying so, and `sdlc round` refuses a
+draft that still carries one (D-174). A perspective blocks only on the rules its document lists as bullets, where
+they bind: operability on `CON_20` at a spec, the others on nothing (D-175). Three rules now forbid what their
+readers were already told to apply them to: `CON_25` supersedes `CON_07.2` and holds a change to what the plan or a
+deviation describes in any file, `CON_26` supersedes `CON_05` and counts a criterion another rule requires as
+supported, and `CON_27` supersedes `CON_24` and accepts a decision deviation as a declared departure (D-176).
+`CON_12.2` and `CON_10.3` are wording revisions. Rounds already recorded are not judged again.
+
+**A minor** because a round may now demote or refuse what it recorded as blocking before, and three rules change
+what is forbidden.
 
 ## 0.46.0
 

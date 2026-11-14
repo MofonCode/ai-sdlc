@@ -99,7 +99,7 @@ headline in full with `sdlc decisions show DEC_nn` when the shape you are choosi
 `sdlc stack` prints what this solution declares it is built from — `CON_15` judges you against it. It
 is `.sdlc/techstack.md` as the binary reads it: the defaults it pins, the stack rules switched on, and
 each build settings file with whether the stack takes it and whether it is on disk.
-`sdlc decisions` prints the choices somebody already settled and **`CON_24` judges you against those**:
+`sdlc decisions` prints the choices somebody already settled and **`CON_27` judges you against those**:
 the plan's reader is handed the same record, and so is the diff reader that judges the change at verify.
 Read it before you choose a shape rather than after, because a plan that has not read it cannot tell
 whether it is departing — and that is the whole failure the rule exists to catch. A departure the intent
@@ -127,7 +127,7 @@ default, departing from one, or building on something the stack never mentioned.
 | The intent | What the plan does about a build settings gap |
 |---|---|
 | asks for it — adopting the build settings, or the first cycle of a new solution, whose skeleton needs them | declares the missing files in `Files`, by the exact paths `sdlc stack` prints, and plans for what they break. `sdlc scaffold <id>` writes the ones the plan declares once it is approved |
-| is about something else | names the gap in `Shape and departures` in one sentence, and leaves it. `CON_05` kept it out of the spec, so no criterion asks for it and a plan that brought it would be building what nothing here proves |
+| is about something else | names the gap in `Shape and departures` in one sentence, and leaves it. `CON_26` kept it out of the spec, so no criterion asks for it and a plan that brought it would be building what nothing here proves |
 
 **Why the second row is strict.** `Directory.Build.props` makes warnings errors. Declared by a plan
 about one endpoint, it turns that cycle into a repair of every warning in the codebase, for a reason no
@@ -166,7 +166,7 @@ it after the build, it belongs on the list.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_21`, `CON_15`, `CON_24` |
+| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_27` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 That distinction matters when you are tempted to pad the file table defensively. Declaring files you
@@ -191,7 +191,7 @@ in `Shape and departures`.
 message bus by failing to mention it. A plan standing up an HTTP surface is silent about the api
 description row by failing to mention that.
 
-`CON_24` is the same shape, pointed at the decision record. If your approach takes an alternative a
+`CON_27` is the same shape, pointed at the decision record. If your approach takes an alternative a
 standing `DEC_` entry weighed and set aside, and the intent has not already declared that departure,
 declare it under `Decisions this plan makes:` as one line in this form, then say in the prose what the
 recorded decision would have cost here:

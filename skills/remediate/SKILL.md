@@ -121,10 +121,10 @@ outcome was about.
 **A finding whose id starts `diff.` is about the change, not the verdict**, and it is yours even when the
 outcome reads `pass` (D-139). Two kinds:
 
-- **`CON_07.2` — the change does something the plan did not describe.** Take it back out. If it is worth
+- **`CON_25` — the change does something the plan did not describe.** Take it back out. If it is worth
   keeping, it is a `Noticed:` line in the commit message for a later cycle. **If the approved text cannot
   be followed without it**, keep it and record a `plan` deviation answering the finding.
-- **`CON_24` — the change takes what a recorded decision set aside, and nothing declared the departure.**
+- **`CON_27` — the change takes what a recorded decision set aside, and nothing declared the departure.**
   The finding quotes the decision in its own words. Make the code keep the decision. **If the work cannot
   be done without departing**, record a `decision` deviation quoting it, for the person to answer.
 

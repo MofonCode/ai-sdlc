@@ -457,7 +457,7 @@ build settings gap is closed only by a plan whose intent asks for it, which decl
 and plans for what they break; a plan about anything else names the gap in a sentence and leaves it.
 
 **Departing is legal; departing in silence is not.** `CON_15` asks a plan to say what the declared stack
-would have cost when it departs from it, in either direction, and `CON_24` asks a departure from a recorded
+would have cost when it departs from it, in either direction, and `CON_27` asks a departure from a recorded
 decision to be declared where it arises: the intent for an outcome, the plan for an approach. The plan's
 reader is handed the decisions, and so is the diff reader that judges the change at verify.
 
@@ -1068,7 +1068,7 @@ verify's verdict below it.
 
 It is the first stage that writes code, and the first a person is not expected to watch, so everything a
 verification will rely on has to be recorded rather than remembered. It implements what the plan decided
-and only that (`CON_07.2`): creep inside an approved file is what reaches review dressed as approved
+and only that (`CON_25`): creep, in an approved file or a new one, is what reaches review dressed as approved
 work, which is where it is least likely to be questioned. Something worth fixing that the plan did not
 describe is left alone and recorded as a `Noticed:` line in the commit message, where the person
 reviewing the pull request will meet it.
@@ -1775,7 +1775,7 @@ finding ids behind it, so a person refuses one on the record rather than on tast
 It is the second verb beside `draft`, split by who made the decision: `draft` is for one somebody already
 took and hands back a finished file; `propose` is for one they have not, and argues from the record.
 
-**Departing is legal from two of the three, and silence is what gets caught.** `CON_24` asks a
+**Departing is legal from two of the three, and silence is what gets caught.** `CON_27` asks a
 departure from a recorded decision to be declared where it arises, and holds the intent, the spec, the
 plan and the change to it; `CON_15` asks a plan the same of the declared stack. The theme is the one nothing in governance objects to, because a colour
 outside the theme is mechanical and belongs to a linter.

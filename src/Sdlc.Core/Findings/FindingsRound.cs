@@ -173,7 +173,7 @@ public static class FindingsReader
             {
                 return Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                    $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_21 or LOC_02, with an optional revision such as CON_12.2."));
             }
         }
 
@@ -231,7 +231,7 @@ public static class FindingsReader
                 {
                     return Result.Fail<FindingsRound>(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                        $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_21 or LOC_02, with an optional revision such as CON_12.2."));
                 }
 
                 if (string.IsNullOrWhiteSpace(citation.Heading))
@@ -246,7 +246,7 @@ public static class FindingsReader
             {
                 return Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.2 objects to in a gate refusal and what the same reasoning objects to here."));
+                    $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.3 objects to in a gate refusal and what the same reasoning objects to here."));
             }
         }
 

@@ -91,8 +91,8 @@ accumulates are also what counts remediation passes.
 **The verify round has one reader no other round has: the diff reader** (D-139). `sdlc round prompt
 --list` names it beside the rules reader and the perspectives, and it is started like them. The perspectives
 read the cycle's first verify round only; a later one is the rules and diff readers' (D-164). It reads the
-change itself — not the verdict — against the intent, the plan and the decisions, and holds it to `CON_07.2`
-(nothing the plan did not describe) and `CON_24` (nothing a decision set aside without a declared
+change itself — not the verdict — against the intent, the plan and the decisions, and holds it to `CON_25`
+(nothing the plan did not describe) and `CON_27` (nothing a decision set aside without a declared
 departure). **Its findings are about the code, so no adjudication answers them**: their ids start
 `diff.`, and the route is `/sdlc:remediate`, which `sdlc status` names. A departure the work genuinely
 needs is a deviation remediate records, for a person to answer.

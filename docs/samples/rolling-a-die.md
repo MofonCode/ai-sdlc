@@ -164,7 +164,7 @@ than a gap. What is left — pips rather than a number, failure said in words �
 work, and the intent is where it is recorded.
 
 Those are the two interview questions on a greenfield repository, and there is no third. It does not ask
-what *done to a good standard* means: `CON_16`, `CON_17` and `CON_05` already put that to every spec,
+what *done to a good standard* means: `CON_16`, `CON_17` and `CON_26` already put that to every spec,
 one change at a time. If it asks you anything beyond these — what a reviewer would send back, what this
 will be judged on — it has gone past its own skill.
 

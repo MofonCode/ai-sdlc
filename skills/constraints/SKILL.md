@@ -57,7 +57,7 @@ the output here is the only place to read the result in full.
 ## Ids and revisions
 
 A bare id is revision 1, and that is the canonical form: `CON_01` means `CON_01.1`. A wording change
-makes a revision — `CON_10.2` is the same rule better worded. A change to **what is forbidden** is a new
+makes a revision — `CON_10.3` is the same rule better worded. A change to **what is forbidden** is a new
 constraint with a new id; the old one stays on the page verbatim and gains `Superseded-by`, so a finding
 that cited it remains readable against the rule it was actually judged under.
 

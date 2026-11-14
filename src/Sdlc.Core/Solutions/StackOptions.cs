@@ -18,7 +18,7 @@ namespace Sdlc.Core.Solutions;
 /// <para><strong>And it is written as a report, not as a file in <c>.sdlc/</c> itself.</strong> The
 /// menu outlives the rename it was written for — nothing deletes it — so an untracked copy would sit
 /// there indefinitely, and <c>evidence</c> stages untracked paths before diffing. It would reach every
-/// later cycle's diff as a file no plan declared, which is what <c>CON_07.2</c> fires on.
+/// later cycle's diff as a file no plan declared, which is what <c>CON_25</c> fires on.
 /// <see cref="Reports.ReportFile"/> carries that argument already, along with the directory that
 /// ignores itself (D-75).</para>
 ///

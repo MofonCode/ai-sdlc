@@ -19,7 +19,7 @@ namespace Sdlc.Core.Reports;
 /// under D-40 — nothing of a team's is touched, and an existing solution gets the ignore the first time
 /// it writes a report rather than needing an adoption re-run. Tracking these would be worse than untidy:
 /// an untracked report left in the tree reaches a build's diff as a file no plan declared, and
-/// <c>CON_07.2</c> is the rule that a change does only what its plan said.</para>
+/// <c>CON_25</c> is the rule that a change does only what its plan said.</para>
 /// </remarks>
 public static class ReportFile
 {

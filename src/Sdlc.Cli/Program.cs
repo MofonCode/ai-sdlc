@@ -286,7 +286,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     // ends with what is left for a person. A failure in either is said on standard error after it.
     // Committed rather than left in the working tree: an untracked file is untracked when the first
     // cycle takes its diff, so the diff records the whole file as new and a plan saying it changes that
-    // file can never match -- the first cycle would fail CON_07.2 for something adoption did.
+    // file can never match -- the first cycle would fail CON_25 for something adoption did.
     // Through the container, not `new GitRepository()`. Constructing the concrete type here meant
     // this one step could not be given a fake, so the only part of adoption that writes to git was
     // the only part no test could exercise -- while Workspace holds no closure precisely so that a

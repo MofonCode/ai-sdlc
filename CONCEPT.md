@@ -312,8 +312,8 @@ other than Application Insights, are not built yet.
 **Five artifacts, four of them documents.** A constraint's `Applies to` names one of five subjects, and
 `sdlc constraints --for` narrows on the same five: `intent`, `spec`, `plan` and `verify` — the governed
 documents — plus `diff`, which is the change itself. **The rest of §4 is about the four.** The envelope,
-the body and `## Open` are properties of a document; a diff has none of them, and `CON_07.2` and
-`CON_11` are the two rules whose subject it is.
+the body and `## Open` are properties of a document; a diff has none of them, and `CON_25`, `CON_27`
+and `CON_11` are the rules whose subject it is.
 
 | Part | Holds | Same across documents | Governed by |
 |---|---|---|---|
@@ -680,7 +680,14 @@ refused when it is collected (D-119).
 
 ### 6.1 Findings are data
 
-`findings/<artifact>.json`, one **ledger** per artifact (D-107):
+`findings/<artifact>.json`, one **ledger** per artifact (D-107).
+
+**A blocking finding cites one rule its reader was handed** — a rule in force for the document it judges,
+compared by tier and number (§7.4) — **or it does not block** (D-174). `sdlc round collect` records a blocker
+citing anything else as a suggestion that says which rule it named and that the rule does not bind here; `sdlc
+round` refuses a draft that still carries one, naming what to change. A blocker the ledger already holds is
+never judged again: a round recorded under an earlier library stands as it was read.
+
 
 ```json
 {
@@ -938,8 +945,9 @@ in the cycle's first verify round; a later one is the rules and diff readers' al
 the interview and covered by the approval's hash; at plan, the declared files add any the intent missed,
 with a finding.
 
-**Blocking or a suggestion, as every finding is.** Only a finding citing a rule blocks; what a method finds
-beyond the rules is a suggestion, and a suggestion that keeps recurring is what `propose constraints` turns
+**Blocking or a suggestion, as every finding is.** Only a finding citing a rule blocks — a rule the perspective
+lists as a bullet opening with its id, and one in force for the document being read (D-174, D-175); what a method
+finds beyond the rules is a suggestion, and a suggestion that keeps recurring is what `propose constraints` turns
 into a rule. **So a suggestion carries the perspective that raised it** — a finding's `perspective` field,
 checked against the perspectives the binary carries, and a build's `Noticed: [name]` line — and
 `propose constraints` counts each perspective by the distinct cycles it raised something in, across both
@@ -953,7 +961,7 @@ perspective's questions of the evidence. **Security, operability and maintainabi
 three always on — **and so is accessibility**, which an intent naming a user interface or a plan declaring
 a `.razor`, `.cshtml` or stylesheet file switches on, and which judges against WCAG 2.2 AA unless a solution
 records another target. **Operability's reader may block on `CON_20`** (D-99), the one rule a perspective
-lists; the others have none of their own, so everything they find is a suggestion until rules are adopted. The
+lists, and only at a spec, the one document it binds; the others have none of their own, so everything they find is a suggestion until rules are adopted. The
 other five are not written. A perspective's reader is handed the decisions and the solution's own rules as every
 reader is: where the solution names areas, in full only those in the areas its stage touches, and the rest by
 headline (§8.1.1, D-151). The fixtures that prove a perspective catches its planted
@@ -1020,7 +1028,7 @@ mechanism.
 
 **One constraint is applied by a person rather than by an interrogation, and the set is exactly one.**
 The effective set is matched by artifact name, so a rule whose subject is not an artifact is handed to
-nobody. `CON_10.2` is that rule: it governs what a gate refusal's reason has to say, and a gate
+nobody. `CON_10.3` is that rule: it governs what a gate refusal's reason has to say, and a gate
 decision is a person's own act rather than a document — the approval ledger is a file only a person
 writes, which is what makes an approval mean anything. `sdlc constraints --for` returns it for
 none of the five artifacts, by construction.
@@ -1090,12 +1098,10 @@ nobody.
 | `CON_01` | an intent states the problem, not the solution | intent |
 | `CON_02` | an intent's unknowns are recorded as open questions, not answered by guess | intent |
 | `CON_03` | a criterion states an observable outcome and how it is checked | spec |
-| `CON_05` | a spec introduces no scope its intent did not ask for | spec |
-| `CON_07.2` | a change does only what its plan declared, including inside files the plan named | diff |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
-| `CON_10.2` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
+| `CON_10.3` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
 | `CON_11` | every constraint carries a Forbids clause that rules something out | a diff adding a constraint |
-| `CON_12` | a criterion's check is one the solution's testing layers can run | spec |
+| `CON_12.2` | a criterion's check is one the solution's testing layers can run | spec |
 | `CON_14` | an open item is one nobody can resolve yet, not one nobody has done | intent, spec, plan |
 | `CON_15` | a plan says why it departs from a declared default, in either direction | plan |
 | `CON_16` | a spec covers every outcome its intent asks for, and all of each one | spec |
@@ -1105,9 +1111,11 @@ nobody.
 | `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
 | `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
 | `CON_23` | a criterion that ranges over cases lists them | spec |
-| `CON_24` | a departure from a recorded decision is declared where it arises, and later stages rely on it | intent, spec, plan, diff |
+| `CON_25` | a change does only what its plan, or a deviation in force, describes — wherever it lands | diff |
+| `CON_26` | a spec introduces no scope its intent did not ask for, beyond what a rule in force requires | spec |
+| `CON_27` | a departure from a recorded decision is declared where it arises, or accepted as a deviation, and later stages rely on it | intent, spec, plan, diff |
 
-**Five ids are absent because they no longer bind**, and each is explained once below.
+**Eight ids are absent because they no longer bind**, and each is explained once below.
 
 `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -1137,11 +1145,18 @@ it, with no rule broken until a plan happened to reach for it. `CON_24` replaces
 principle through the chain — a departure is declared once, where it arises, and every later stage relies
 on it — judged at the intent, the spec, the plan and the change (D-139).
 
+`CON_07.2`, `CON_05` and `CON_24` each said less than their readers were told to apply, and a reader judges the
+rule's words. `CON_07.2` forbade creep *within a declared file* while its reader was told a file the plan did not
+list is not a finding; `CON_25` forbids a change no plan or deviation in force describes, wherever it lands.
+`CON_05` had no word for a failure criterion another rule requires; `CON_26` counts that rule as support.
+`CON_24` named only the intent and the plan as places a departure is declared, while a decision deviation a person
+accepted is one too; `CON_27` names it (D-176).
+
 `CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
 reading rather than re-running.
 
-`CON_16` and `CON_05` stay separate — a gap, creep and narrowing fail differently and are remedied
+`CON_16` and `CON_26` stay separate — a gap, creep and narrowing fail differently and are remedied
 differently: a gap sends you back for another criterion, creep sends you to delete one, and narrowing
 sends you to widen the one that is already there (D-61).
 
@@ -1164,7 +1179,7 @@ the cases it lists (`CON_23`), so "wrong" at plan and verify means a listed case
 **What blocks:** the build fails, tests fail, or the proof is not met — every criterion maps to a
 named test and that test passed. Beside the outcome, two things about the change itself block: the diff
 reader's findings, which hold the change to what the plan describes and to the decisions it may not depart
-from silently (`CON_07.2`, `CON_24`, D-139), and coverage — the change's added lines under 70%, or a codebase
+from silently (`CON_25`, `CON_27`, D-139, D-176), and coverage — the change's added lines under 70%, or a codebase
 under its floor falling below its baseline (D-103, D-157).
 
 **What is a signal:** the comparison of declared files against changed files (D-15). `UNDELIVERED`
@@ -1436,7 +1451,7 @@ leaves the file alone.
 
 **It commits what it created, then creates the integration branch.** An uncommitted `AGENTS.md` is
 untracked when a cycle takes its diff, so the diff records the whole file as new, and a plan that says it
-*changes* that file can never match — the first cycle would fail `CON_07.2` for something adoption did.
+*changes* that file can never match — the first cycle would fail `CON_25` for something adoption did.
 After the commit, when the integration branch exists neither locally nor on the remote, it is created
 there and switched to, so the default branch and the integration branch both hold the hooks and what a
 person places next is committed where approved plans wait (D-94). The drafts are not committed.
@@ -2174,8 +2189,8 @@ whether that change was committed before or after the commit that wrote the veri
 a person changes those files inside a cycle for reasons git cannot tell from mining (D-111, D-113).
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
-`D-15` made it a signal the evidence reports as a suggestion, because `CON_07.2` exists precisely *because*
-the comparison cannot see inside a file — so it was never load-bearing for scope creep, and a noisy
+`D-15` made it a signal the evidence reports as a suggestion, because a rule judging purpose — now `CON_25` —
+exists precisely *because* the comparison cannot see inside a file — so it was never load-bearing for scope creep, and a noisy
 blocker gets routed around. What blocks instead is §7.7's: the build, the tests, the proof, the diff
 reader's findings and coverage.
 
@@ -2676,7 +2691,7 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    process-based."* A rule requiring a plan's blast radius to match what it changes is that
    comparison promoted back to a process-based blocker. There is a second problem with the wording:
    a constraint judges a plan **at approval**, when there is no change to compare the declared set
-   against — and the comparison after the fact is `CON_07.2`, which already binds. So this is either
+   against — and the comparison after the fact is `CON_25`, which already binds. So this is either
    a reversal of D-15, which §20 says needs a new id and an argument, or it is already covered. It is
    recorded here rather than dropped because deciding which is a person's call; what is not open is
    that it may not quietly become a rule.
@@ -6898,6 +6913,9 @@ binary marks it as data in what it prints, and the planning approval stands betw
 
 **Governs:** §6.5
 
+**Amended by D-175.** The rules a perspective may block on are the bullets in its Rules section that open with an
+id, parsed by the binary; an id in a sentence there is a reference.
+
 **Corrected 2026-11-14.** The fixtures below — an artifact with a planted defect, and a suite that holds a
 perspective's reader finds it — are not built: they need a model to run, so they are an evaluation outside the
 suite (§6.5). The rest of the decision stands.
@@ -7247,6 +7265,9 @@ whatever their working copy of the plugin held that night.
 
 **Governs:** §3.2, §6.5
 
+**Amended by D-176.** `CON_05` is now `CON_26`, which counts a criterion another rule in force requires as
+supported. What stands: a raised suggestion reaches the spec through the intent, by its id.
+
 **Decision.** A spec's criteria derive only from the intent (`CON_05`), and that rule does not loosen.
 What a perspective finds beyond the intent reaches it one way: **a person names the suggestion's id to
 `steer`**, and decides it.
@@ -7362,6 +7383,9 @@ dashboard and the exporter, and not service discovery.
 
 **Governs:** §6.5, §7.5
 
+**Amended by D-175.** Operability blocks on `CON_20` only where it binds, at a spec; its reader's other blockers
+are suggestions.
+
 **Decision.** `CON_20` joins the global set: a spec says what is recorded when the action fails. The
 operability perspective lists it as the rule its reader may block on. The accessibility perspective's
 *Cover this*, *Questions* and *Evidence* name what an automated scan cannot decide: a visible focus
@@ -7428,6 +7452,83 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-176 — Three rules are superseded so each forbids what its reader already applies it to
+
+**Governs:** §7.5, §7.7
+
+**Revisits D-139, D-156 and D-97.** **Supersedes `CON_07.2`, `CON_05` and `CON_24`** with `CON_25`, `CON_26` and
+`CON_27`. The old entries stay on the page verbatim, so the findings that cited them stay readable.
+
+**Decision.**
+
+- **`CON_25`** forbids a change neither the plan nor a deviation in force describes, *wherever it lands* — in a
+  file the plan declared or one it did not — and a change doing what a widening deviation describes.
+- **`CON_26`** is `CON_05` with its exception in its own words: a criterion another rule in force for the spec
+  requires — a failure criterion `CON_17` or `CON_20` asks for — is supported by that rule and names it.
+- **`CON_27`** is `CON_24` with the third place a departure is declared: at the change, a `decision` deviation a
+  person accepted.
+- **Two wording revisions ride with them**, what each forbids unchanged: `CON_12.2`'s Why cites `CON_22` where it
+  cited the superseded `CON_08`, and `CON_10.3`'s calls the approval ledger one of the files only a person writes
+  rather than the one.
+
+**Why.** **A reader judges the rule's words, never the prompt or the skill around it.** A contradictions review of
+the framework's own documents found each of these saying less than it was applied to. `CON_07.2` forbade creep
+*within a declared file* while the diff reader's prompt said a file the plan did not list is not a finding and
+D-156 blocked an undeclared one under it; read at its word, creep in a new file was unforbidden. `CON_05` had no
+exception, and D-97 records it blocking failure logging that `CON_20` (D-99) now requires; only the spec skill said
+which won, and the reader never sees the skill. `CON_24` named the intent and the plan as the places a departure is
+declared, while D-156 and the diff prompt treat an accepted decision deviation as one. Each is a change to what is
+forbidden, so §7.4 makes each a new rule rather than a revision.
+
+**Rejected.** *Revising each in place.* Each widens or narrows what is illegal, and a revision that does that loses
+the old rule for real (§7.4). *Leaving the rules and narrowing the prompts to match their words.* That reverses
+D-139 and D-156, which were argued on real cycles; the rules were the part that lagged. *One rule for creep and
+departures together.* They fail differently — doing more than the plan, and doing what a decision set aside — and
+the remedies differ: take it out, or keep the decision.
+
+### D-175 — A perspective blocks only on the rules its document lists as bullets
+
+**Governs:** §6.5
+
+**Revisits D-90 and D-99.**
+
+**Decision.** A perspective's Rules section lists each rule its reader may block on as a bullet opening with the
+rule's id, and the binary parses those ids: `Perspective.BlocksOn`. An id named in a sentence there is a reference.
+A perspective's blocker stands only on a listed rule that is also in force for the document being read (D-174);
+anything else is recorded as a suggestion under its name. Operability lists `CON_20` and so blocks at a spec and
+nowhere else; security, maintainability and accessibility list none and block on nothing.
+
+**Why.** The reader's answer was checked with a substring search of the section's prose. Maintainability's
+section reads *"None of its own yet; `CON_07.2` already forbids…"*, so its reader could block on that rule at every
+stage, and operability could block on `CON_20`, a spec's rule, at the intent, the plan and the verify — while
+`perspectives.md` said a perspective with none of its own blocks on nothing.
+
+**Rejected.** *A frontmatter key listing the ids.* A second place to keep in step with the prose a person reads,
+which is the drift D-90 put the rules in the document to avoid. *Rewording the prose so no id appears in it.* The
+next sentence naming a rule would reopen it; a parse does not depend on anybody remembering.
+
+### D-174 — A blocking finding cites a rule its reader was handed, or it does not block
+
+**Governs:** §6.1, §6.2
+
+**Decision.** A blocker's citation is compared, by tier and number, with the rules in force for what its reader
+judged: the document's own set for the rules reader, the change's for the diff reader, and for a perspective the
+document's — with the change's too at a verification. `sdlc round collect` records a blocker citing anything else —
+a superseded rule, another document's rule, an id nobody issued — as a suggestion, its statement saying which rule
+it named and that the rule does not bind here. `sdlc round` refuses a draft whose new blocker still does, naming
+the finding and pointing at `sdlc constraints --for`. A blocker the ledger already holds is never judged again, and
+`verify-chain` does not apply it to rounds recorded before.
+
+**Why.** The binary checked only that a citation looked like an id. A reader citing `CON_06` after `CON_21`
+superseded it, or `CON_20` against a plan, stopped the cycle on a rule nobody could show it broke, contrary to §7
+and §7.4 — and the person at the gate weighs a blocker by the rule it names.
+
+**Rejected.** *Refusing the reader's answer at collect.* The observation may be sound, and a rerun to hear it again
+buys nothing; a perspective's unlisted citation was already demoted for that reason. *Demoting at record time too.*
+The draft there is the session's own, and a session moving what it recorded is not a reader's honest mistake.
+*Re-judging recorded rounds.* A round read under an earlier library stands as it was read; changing its verdict
+afterwards would move an approval's anchor.
 
 ### D-173 — A successor can say it is a gap in the framework, and mining hands it there
 
@@ -8020,6 +8121,9 @@ nothing changes, so no solution is refused on the upgrade that would have passed
 
 
 **Governs:** §5.2, §6.3, §6.4, §10.3
+
+**Amended by D-176.** The undeclared deviation it blocks is a finding under `CON_25`, which forbids it in any file,
+and an accepted `decision` deviation is a declared departure under `CON_27`.
 
 **Amended by D-162.** `draft approval --accept` and `--decline --note` draft the person's answers in; the rename is still theirs.
 
@@ -8665,6 +8769,10 @@ change can make a cycle block is not something a diff shows. A wrong patch is ca
 ### D-139 — The decisions run through the whole cycle, a departure is declared where it arises, and the change is read against both
 
 **Governs:** §4.2, §7.5, §8.1.1, §15.2
+
+**Superseded in part by D-176.** `CON_24` gave way to `CON_27`, which names an accepted decision deviation as a
+third place a departure is declared, and the diff reader's creep rule is now `CON_25`. What stands: the decisions
+as standing criteria, a departure declared once where it arises, and the change read against both.
 
 **Decision.** A solution's recorded decisions are standing criteria every cycle inherits, as it inherits the
 constraints. Five parts:

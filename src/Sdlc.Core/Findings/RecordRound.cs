@@ -414,7 +414,52 @@ public static class RecordRound
     internal static string AreaStatement(string name) =>
         "The plan's files read as one area this solution does not name yet: " + name + ".";
 
-    private sealed class Handler(SolutionRoot solution, TimeProvider clock, IRepository repository) : IRequestHandler<Command, Response>
+    /// <summary>
+    /// A blocker new in this round that cites a rule its reader was not handed, or that a perspective does not list
+    /// as one it blocks on (D-174, D-175).
+    /// </summary>
+    /// <remarks>
+    /// <c>round collect</c> already makes such a blocker a suggestion, so this meets only a draft edited after it.
+    /// Refused rather than demoted here, because the draft is the session's own words and a session changing what it
+    /// recorded is not a reader's honest mistake. A blocker the ledger already holds is never judged again: a round
+    /// recorded under an earlier library stands as it was read.
+    /// </remarks>
+    private static string? Unfounded(FindingsRound given, FindingsLedger ledger, CitedRules.Handed handed, Command request)
+    {
+        HashSet<string> recorded = [.. ledger.Findings.Select(finding => finding.Id)];
+        List<string> reasons = [];
+
+        foreach (Finding finding in given.Findings)
+        {
+            if (finding.Severity != Severity.Blocking || recorded.Contains(finding.Id) || CitedRules.Key(finding.Cites?.Id) is not { } cited)
+            {
+                continue;
+            }
+
+            if (!handed.Of(finding).Contains(cited))
+            {
+                reasons.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{finding.Id} cites {finding.Cites!.Id}, which is not a rule in force for {(finding.Id.StartsWith(ReaderAnswers.Diff + ".", StringComparison.Ordinal) ? "a change" : "this " + Cycle.NameOf(request.Artifact))}"));
+            }
+            else if (finding.Perspective is { } name
+                && Perspectives.PerspectiveLibrary.Find(name) is { IsSuccess: true } perspective
+                && !perspective.Value.BlocksOn.Select(CitedRules.Key).Contains(cited, StringComparer.Ordinal))
+            {
+                reasons.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{finding.Id} cites {finding.Cites!.Id}, which the {name} perspective does not list as a rule it blocks on"));
+            }
+        }
+
+        return reasons.Count == 0
+            ? null
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{request.From}: a blocking finding stands on a rule its reader was handed, and {(reasons.Count == 1 ? "this one does" : "these do")} not: {string.Join("; ", reasons)}. Make {(reasons.Count == 1 ? "it a suggestion" : "each a suggestion")}, or cite the rule in force it breaks -- 'sdlc constraints --for {Cycle.NameOf(request.Artifact)}' lists them.");
+    }
+
+    private sealed class Handler(SolutionRoot solution, TimeProvider clock, IRepository repository, Mediator mediator) : IRequestHandler<Command, Response>
     {
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -553,6 +598,18 @@ public static class RecordRound
                 }
 
                 (finding.Severity == Severity.Blocking || here.Contains(finding.Id) ? toLedger : toSuggestions).Add(finding);
+            }
+
+            Result<CitedRules.Handed> handed = await CitedRules.For(mediator, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (handed.IsFailed)
+            {
+                return Result.Fail<Response>(handed.Errors);
+            }
+
+            if (Unfounded(given.Value, ledger, handed.Value, request) is { } unfounded)
+            {
+                return Result.Fail<Response>(unfounded);
             }
 
             // Merged rather than appended verbatim (D-107): a new id is a finding, a moved one a

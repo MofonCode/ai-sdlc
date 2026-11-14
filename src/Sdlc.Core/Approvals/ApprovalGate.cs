@@ -476,7 +476,7 @@ public static class ApprovalGate
             foreach (ArtifactKind kind in Cycle.PlanningDocuments)
             {
                 // Rule, objection, place and fix: this list is what a gate refusal hands back, so it is
-                // read by whoever has to decide what to do about the blocker -- and CON_10.2 requires
+                // read by whoever has to decide what to do about the blocker -- and CON_10.3 requires
                 // their reason to say what has to change, which is not a judgement anybody can make from
                 // an id alone, or from an objection they cannot find in the document.
                 foreach (Finding blocker in FindingsReader.StandingBlockers(interrogations[kind]))

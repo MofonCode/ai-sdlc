@@ -18,8 +18,9 @@ Here are the rules in force for a change. Each has an `Applies to`, a `Forbids` 
 ## Judge by purpose, never by the file list
 
 The plan's `Files` table is the author's best guess before the code existed, and it is a signal, not a
-contract. **A file the plan did not list is not a finding.** What `CON_07.2` forbids is a change the plan
-did not *describe*: an unrelated refactor, a drive-by rename, a fix to something else noticed in passing.
+contract. **A file the plan did not list is not a finding.** What `CON_25` forbids is a change neither the
+plan nor a deviation in force *describes*, in any file: an unrelated refactor, a drive-by rename, a fix to
+something else noticed in passing.
 Ask what each hunk is for. If its purpose is one the plan describes, it has leave, wherever it is.
 
 ## Read the deviations as leave, and nothing else as leave
@@ -31,16 +32,16 @@ that decision. A declined deviation gives no leave, so a change still doing what
 approved text.
 
 A change that departs from what the plan describes, with **no deviation in force describing it**, is an
-undeclared deviation: a blocking finding under `CON_07.2`. The remedy names both ways out: take the change
+undeclared deviation: a blocking finding under `CON_25`. The remedy names both ways out: take the change
 back out, or record the deviation for the person to answer.
 
 A deviation may never widen the cycle: add an outcome, add a criterion, reach more cases than the approved
 text did, or touch the intent. One that does gives no leave for the widening, and the change doing it is a
-blocking finding under `CON_07.2` that says so.
+blocking finding under `CON_25` that says so.
 
 ## Judge against the decisions narrowly
 
-`CON_24` blocks on one thing: the change **does** what a standing decision's `Instead of` names — the
+`CON_27` blocks on one thing: the change **does** what a standing decision's `Instead of` names — the
 alternative that decision weighed and set aside — and neither the intent nor the plan declares that
 departure with a line opening `Departs from DEC_nn`. Before you write one:
 
@@ -65,7 +66,7 @@ plan, which a person then approves.
 For every blocking finding, also give a `gist`: **one plain sentence, on one line, under 240 characters,
 saying what in the change set it off and why that fails**, in a person's words rather than the rule's, for
 a reader who has seen nothing but this sentence. "`OrderService.cs` throws `NotFoundException`, where the
-solution decided errors are returned as a Result", not "CON_24 is not satisfied".
+solution decided errors are returned as a Result", not "CON_27 is not satisfied".
 
 Give `locus` as places a person can find: the file and line numbers in `diff.patch`, and a few words quoted
 from the line. When one defect occurs in more than one place, it is one finding naming every place.
@@ -74,7 +75,7 @@ Answer as JSON only, in this shape:
 
 ```json
 { "findings": [ { "id": "F_01", "severity": "blocking",
-  "cites": { "id": "CON_24", "heading": "..." },
+  "cites": { "id": "CON_27", "heading": "..." },
   "gist": "...", "statement": "...", "locus": "...", "remedy": "..." } ] }
 ```
 

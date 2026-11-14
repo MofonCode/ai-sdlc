@@ -114,6 +114,8 @@ of the job.
 
 ## CON_05 — A spec introduces no scope its intent did not ask for
 
+**Superseded-by:** CON_26
+
 **Applies to:** a spec, at approval.
 
 **Forbids:** a criterion that no statement in the intent supports.
@@ -138,6 +140,8 @@ worse than none, because it produces a green verification instead of an obvious 
 **Judged:** per criterion.
 
 ## CON_07.2 — A change does only what its plan declared, including inside files the plan named
+
+**Superseded-by:** CON_25
 
 **Applies to:** a diff, at verification.
 
@@ -173,7 +177,7 @@ artifact owns, instead of citing it.
 **Why:** two copies diverge, and nothing says which is binding. Citation keeps exactly one owner
 per fact, which is the only arrangement that stays true without maintenance.
 
-## CON_10.2 — A gate refusal's reason says what has to change
+## CON_10.3 — A gate refusal's reason says what has to change
 
 **Applies to:** a gate decision that is not an approval — changes requested, denied, or a standing
 approval reopened.
@@ -188,7 +192,7 @@ rule did not: a refusal that says nothing is a refusal nobody can act on.
 
 **Applied by a person, not by an interrogation.** Every other rule here is handed to an interrogation
 of one artifact, matched by the artifact's name. This one's subject is a gate decision, which is not
-an artifact and never will be — the approval ledger is the one file only a person writes, so that an
+an artifact and never will be — the approval ledger is one of the files only a person writes, so that an
 approval means something. So nothing hands this rule to anybody: a person reading the ledger applies
 it, at the gate or six months later. The ledger reader checks that a refusal carries a reason at all;
 whether the reason says what has to change is a judgement, and this is where the judgement is written
@@ -206,7 +210,7 @@ clause restates its statement instead of naming what becomes illegal.
 interrogation and buys nothing. This is the constraint that keeps the list from growing into
 decoration, and it applies to itself.
 
-## CON_12 — A criterion's check is one the solution's testing layers can run
+## CON_12.2 — A criterion's check is one the solution's testing layers can run
 
 **Applies to:** a spec, at approval.
 
@@ -217,8 +221,8 @@ took, whether a second run passes in another mode, with another worker count or 
 whether repeated runs are free of flakes. A test that times one operation, or runs the code with two
 workers, and asserts the result is admissible: the test observes it, and its outcome is recorded.
 
-**Why:** verify derives its verdict from the recorded test results and diff, and `CON_08` forbids
-a claim with no cited evidence. The evidence is one recorded run: each test's name and outcome, the
+**Why:** verify derives its verdict from the recorded test results and diff, and `CON_22` forbids
+a claim the verdict relies on that no recorded evidence shows. The evidence is one recorded run: each test's name and outcome, the
 assertions in the diff, coverage and the build log. A criterion no test in that run is in a position
 to observe has no entry in it, so admitting one forces a choice between verify adjudicating on
 attestation and `pass` no longer meaning every criterion was met. The outcome belongs in the intent
@@ -423,6 +427,8 @@ and the person approving the spec sees the list (D-132).
 
 ## CON_24 — A departure from a recorded decision is declared where it arises, and later stages rely on it
 
+**Superseded-by:** CON_27
+
 **Applies to:** an intent, a spec and a plan, at approval; and a diff, at verification.
 
 **Forbids:** a document or change that takes the alternative a standing entry in the solution's
@@ -446,3 +452,66 @@ relevant, or a document that could have cited one, is a suggestion, because a ru
 that blocked on a maybe would be a loop at all four. No analyzer can decide it — whether a passage or a
 hunk contradicts a paragraph of prose is a judgement about language, and the entry's `Instead of` is
 what makes the judgement possible rather than a guess.
+
+## CON_25 — A change does only what its plan, or a deviation in force, describes — wherever it lands
+
+**Applies to:** a diff, at verification.
+
+**Forbids:** a change, in any file — one the plan declared or one it did not — whose purpose neither the
+plan nor a deviation in force describes: an unrelated refactor, a drive-by rename, a fix to something else
+noticed in passing, a file added for another purpose. And a change doing what a deviation describes where
+that deviation widens the cycle — adds an outcome or a criterion, reaches cases the approved text did not,
+or touches the intent — for the widening has no leave.
+
+**Why:** the file set is mechanical, and it is reported as a signal at the gate rather than enforced
+anywhere. Creep reaches review dressed as approved work, which is precisely where it is least likely to be
+questioned, and it does so whether it landed in a file the plan named or one it did not. `CON_07.2` said
+*within a declared file*, while its reader was told that a file the plan did not list is not a finding and
+its purpose is — so read at its word the rule left creep in a new file unforbidden, and the reader had to be
+told to read past the rule it was handed. Purpose is what the plan approved; where the hunk landed is the
+plan's estimate.
+
+## CON_26 — A spec introduces no scope its intent did not ask for, beyond what a rule in force requires
+
+**Applies to:** a spec, at approval.
+
+**Forbids:** a criterion that neither a statement in the intent nor another rule in force for the spec
+supports. A criterion another rule requires — what somebody is told when the action fails, what is recorded
+when it does — is supported by that rule and names it; it is not scope the intent left out.
+
+**Why:** scope added at spec time was never approved by whoever approved the intent, yet it
+arrives carrying the authority of an approved artifact. Gaps and creep fail differently and are
+remedied differently — a gap sends you back for more criteria, creep sends you to delete one —
+so they are separate constraints rather than one rule about correspondence. The exception is in the rule
+because a reader judges the rule's words and never the skill that wrote the spec: `CON_05` had none, so a
+failure criterion the failure rules require read as creep to one reader and as a gap to another, and only
+the spec skill's text said which won.
+
+## CON_27 — A departure from a recorded decision is declared where it arises, or accepted as a deviation, and later stages rely on it
+
+**Applies to:** an intent, a spec and a plan, at approval; and a diff, at verification.
+
+**Forbids:** a document or change that takes the alternative a standing entry in the solution's
+`decisions.md` set aside — the thing its `Instead of` names — where no departure from that entry is
+declared at or above it. An intent asking for that outcome without a line under `Fixed decisions`
+opening `Departs from DEC_nn`, with who decided it and why. A spec criterion requiring it where the
+intent declares no such departure. A plan taking it without that line under `Shape and departures`,
+saying what the recorded decision would have cost here. A change doing it where neither the intent nor
+the plan declares it, and no decision deviation in force — one a person accepted — departs from that entry.
+
+**Why:** a decision is recorded so a later cycle does not argue it again from nothing, and the cost of
+the record going unread is not that somebody disagrees with it. It is that nobody knows they are
+disagreeing — and the later the disagreement surfaces, the more it costs. Asked for in the intent, a
+departure is one question to the person who wants it; discovered at the plan, it unsettles a spec that
+was already approved; found in the code, it is work to undo. Declared once, where it arises, every later
+stage can rely on it rather than reopen it, and the person at each gate is told what they are agreeing
+to depart from. **Departing stays legal**: a decision that cannot be revisited is a cage, and the first
+case it does not fit would see the record ignored rather than amended. What this forbids is departing in
+silence. At the change a departure can also arrive as a deviation the build recorded and a person
+accepted — the same declaration, made later, by the same person — and `CON_24` named only the two
+documents, so a reader taking it at its word blocked a departure somebody had already answered for. It
+blocks only on an actual contradiction of an `Instead of`; a decision that merely seems relevant, or a
+document that could have cited one, is a suggestion, because a rule read at four stages that blocked on a
+maybe would be a loop at all four. No analyzer can decide it — whether a passage or a hunk contradicts a
+paragraph of prose is a judgement about language, and the entry's `Instead of` is what makes the
+judgement possible rather than a guess.

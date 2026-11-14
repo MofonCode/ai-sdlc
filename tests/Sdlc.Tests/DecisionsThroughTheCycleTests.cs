@@ -138,8 +138,8 @@ public sealed class DecisionsThroughTheCycleTests
         StringAssert.Contains(prompt, "<file name=\"plan.md\">");
         StringAssert.Contains(prompt, "<file name=\"intent.md\">", "A departure may be declared in the intent.");
         StringAssert.Contains(prompt, Delayed);
-        StringAssert.Contains(prompt, "CON_07.2");
-        StringAssert.Contains(prompt, "CON_24");
+        StringAssert.Contains(prompt, "CON_25");
+        StringAssert.Contains(prompt, "CON_27");
         StringAssert.Contains(prompt, "never by the file list", "Scope by purpose: the file table is a guess.");
         Assert.IsFalse(prompt.Contains("<file name=\"spec.md\">", StringComparison.Ordinal), "The criteria are the adjudicator's question.");
         Assert.IsFalse(prompt.Contains("evidence/tests.json", StringComparison.Ordinal));
@@ -156,7 +156,7 @@ public sealed class DecisionsThroughTheCycleTests
         string directory = Path.Combine(workspace.Root, "round");
         ReaderPrompts.Response written = (await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Verify, directory)).Value;
 
-        const string Blocker = """{ "findings": [ { "id": "F_01", "severity": "blocking", "cites": { "id": "CON_24", "heading": "A departure from a recorded decision is declared where it arises, and later stages rely on it" }, "gist": "The feed is real-time, where the solution decided on the delayed one.", "statement": "s", "locus": "diff.patch +1" } ] }""";
+        const string Blocker = """{ "findings": [ { "id": "F_01", "severity": "blocking", "cites": { "id": "CON_27", "heading": "A departure from a recorded decision is declared where it arises, or accepted as a deviation, and later stages rely on it" }, "gist": "The feed is real-time, where the solution decided on the delayed one.", "statement": "s", "locus": "diff.patch +1" } ] }""";
 
         foreach (string reader in written.Readers)
         {
@@ -175,6 +175,7 @@ public sealed class DecisionsThroughTheCycleTests
         Finding finding = collected.Value.Raised.Single();
 
         StringAssert.StartsWith(finding.Id, "diff.", "Prefixed, so it cannot collide with the rules reader's ids.");
+        Assert.AreEqual(Severity.Blocking, finding.Severity, "CON_27 is a rule the diff reader is handed, so it blocks (D-174).");
         Assert.IsNull(finding.Perspective, "Not a perspective: propose constraints counts by perspective.");
         Assert.IsTrue(ReaderAnswers.IsAboutTheChange(finding));
     }
@@ -189,12 +190,12 @@ public sealed class DecisionsThroughTheCycleTests
         {
             Result<EffectiveConstraints.Response> set = await gate.Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(artifact));
 
-            Assert.AreEqual(binds, set.Value.Constraints.Any(rule => rule.Id.ToString() == "CON_24"), artifact);
-            Assert.IsFalse(set.Value.Constraints.Any(rule => rule.Id.ToString() == "CON_19"), "Superseded, and binds nowhere.");
+            Assert.AreEqual(binds, set.Value.Constraints.Any(rule => rule.Id.ToString() == "CON_27"), artifact);
+            Assert.IsFalse(set.Value.Constraints.Any(rule => rule.Id.ToString() is "CON_19" or "CON_24"), "Superseded, and binds nowhere.");
         }
 
         Result<EffectiveConstraints.Response> diff = await gate.Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query("diff"));
-        StringAssert.Contains(string.Join(" ", diff.Value.Constraints.Select(rule => rule.Id.ToString())), "CON_07.2", "The rule that reached no reader until now.");
+        StringAssert.Contains(string.Join(" ", diff.Value.Constraints.Select(rule => rule.Id.ToString())), "CON_25", "The change's own rule, wherever the hunk lands (D-176).");
     }
 
     [TestMethod]

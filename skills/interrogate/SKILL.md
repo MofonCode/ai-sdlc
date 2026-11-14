@@ -114,7 +114,7 @@ each citing one rule by its id and the line its heading states, copied rather th
 
 **The diff reader**, on a verify only, judges the change itself rather than the verdict: handed the intent,
 the plan, the decisions and `diff.patch`, it asks whether the change did anything it was not given leave to
-do — `CON_07.2`, `CON_11`, `CON_24` (D-139). Its ids start `diff.`, and its blockers go to `remediate`.
+do — `CON_25`, `CON_09`, `CON_11`, `CON_27` (D-139, D-176). Its ids start `diff.`, and its blockers go to `remediate`.
 
 **Every reader of an intent, a spec, a plan and a verify is handed the standing decisions**, in short form,
 so a document is judged against what the solution already settled and not only against the rules.

@@ -198,9 +198,9 @@ cycles and which only fixtures.
 | Feature | The problem | What it does |
 |---|---|---|
 | **Interrogator** | The agent that wrote a document reviews it, and agrees with itself | `/sdlc:interrogate` has a fresh process — no memory of writing it, no tools — read the document against the rules in force. It judges and never edits; `/sdlc:refine` edits and never judges. The loop runs until a round raises nothing blocking, and a rule answered then raised again is reported as going backwards |
-| **Findings** | Review comments are vague, cite nothing, and quietly get dismissed | Every blocking finding cites one rule by id, and every finding says where, what and the remedy. **A blocking one cannot be waived by any mechanism** — it is answered, or the cycle does not advance. Each artifact's rounds are one ledger chained by hash, so the argument behind an approval cannot be rewritten |
+| **Findings** | Review comments are vague, cite nothing, and quietly get dismissed | Every blocking finding cites one rule in force for that document by id, and every finding says where, what and the remedy. **A blocking one cannot be waived by any mechanism** — it is answered, or the cycle does not advance. Each artifact's rounds are one ledger chained by hash, so the argument behind an approval cannot be rewritten |
 | **Suggestions** | Good observations that block nothing are lost the moment the session ends | Non-blocking findings go to a ledger, each concern once. `/sdlc:suggestions` lists what is still open across the solution, what became of each, and any of them can start the next cycle |
-| **Perspectives** | Security, operability, maintainability and accessibility are considered only if somebody happens to think of them | Each perspective steers the author with a short list at every stage and judges in a reader of its own. Only a finding citing a rule it lists blocks; the rest arrive as suggestions under its name |
+| **Perspectives** | Security, operability, maintainability and accessibility are considered only if somebody happens to think of them | Each perspective steers the author with a short list at every stage and judges in a reader of its own. Only a finding citing a rule it lists, where that rule binds, blocks; the rest arrive as suggestions under its name |
 
 ### Remembering what was settled
 
@@ -473,7 +473,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Declaring the stack after adoption** | its author | a real adoption walked through it in order, by somebody new |
 | **Taking the build settings into an existing codebase** | the suite: `sdlc scaffold` writes what the plan names, and `sdlc stack` reports the gap | the cycle that switches warnings-as-errors on over real code and fixes what it broke |
 | **The stack rules** | — five `PRO_` rules, .NET only, a solution held to the ones its declared stack marks `true` | judging a real plan. Three came from convictions rather than findings; `PRO_04` and `PRO_05` came from trial and real plans and have not yet refused one |
-| **Perspectives** | security, operability, maintainability and accessibility, written as methods that steer every stage; operability's reader may block on `CON_20` | proof that a perspective's reader catches what it should; UI/UX and the four others are not written |
+| **Perspectives** | security, operability, maintainability and accessibility, written as methods that steer every stage; operability's reader may block on `CON_20`, at a spec only, and the suite holds that no other perspective blocks | proof that a perspective's reader catches what it should; UI/UX and the four others are not written |
 | **Leads and Operate** | fakes only: `sdlc lead show` through `az` and `gh`, `sdlc operate` reading Application Insights | a real tracker or telemetry store. Jira is not read |
 | **The task lists** | the suite holds the wording (`CONCEPT.md` D-80) | watched on any host |
 | **Pushing** | the refusal, in the binary and tested | a command behind the push: `pr` and `batch-build` use the platform's own CLI |

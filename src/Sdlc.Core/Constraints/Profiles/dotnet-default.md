@@ -6,7 +6,7 @@ local rules, so a `LOC_` rule is still the last word.
 
 **These may name a language, framework or package, and that is what the tier is for.** The global
 library forbids itself from naming one — *"Stack neutrality. These bind solutions on any stack, so none
-of them may name a language, framework or package. Stack specifics live in the profile and in
+of them may name a language, framework or package. Stack specifics live in the stack rules and in
 analyzers."* A rule that needs a name has nowhere else to go: an analyzer decides a question about
 code, and these are questions about a plan.
 

@@ -56,7 +56,7 @@ git merge --abort
 | code: the integration branch changed what this cycle uses — a rename, a moved type, a new parameter | adapt this cycle's code to the integration branch as it now is, keeping what the plan said this cycle does. The integration branch's change is merged work; it is not yours to undo |
 | no textual conflict, and the re-check is red | the same: read the failure, adapt this cycle's code inside its declared files |
 
-**Keep what the plan described, nothing more.** `CON_07.2` still binds: a resolution is not the moment to
+**Keep what the plan described, nothing more.** `CON_25` still binds: a resolution is not the moment to
 tidy something you noticed. Record it as a `Noticed:` line in the commit instead.
 
 ## 4. Prove it, from fresh

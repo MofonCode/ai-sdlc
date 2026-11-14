@@ -27,7 +27,7 @@ user's path through an interaction the intent asked for, the hostile input to a 
 
 **An item the intent does not ask for gets no criterion.** Name it in `Out of scope` — *not asked for by
 the intent* — with the perspective's name, so the approval shows the gap and the person can take it in
-with `/sdlc:steer`. Writing the criterion anyway is the scope creep `CON_05` blocks: a list that arrives
+with `/sdlc:steer`. Writing the criterion anyway is the scope creep `CON_26` blocks: a list that arrives
 with every cycle is not the person asking.
 
 ## Which cycle
@@ -84,7 +84,7 @@ spec says what *should be*.
 **Then run `sdlc decisions --for spec`.** What the solution already settled is a standing criterion this spec
 inherits, and the spec's reader is handed the same record: in full what applies everywhere, the rest by
 headline, and `sdlc decisions show DEC_nn` for one a criterion reaches (D-151). A criterion requiring what a decision set aside
-is a blocking finding under `CON_24` unless the intent declares that departure with a line opening
+is a blocking finding under `CON_27` unless the intent declares that departure with a line opening
 `Departs from DEC_nn` — and a spec declares none of its own, because the intent is where an outcome is
 settled with a person. If a criterion you need contradicts a decision and the intent is silent, stop and
 say so: the route is `/sdlc:steer`, not a criterion that quietly overrides the record.
@@ -150,7 +150,7 @@ think of, and each fresh reader thinks of one more.
 
 **So the list is where the argument about cases happens, once, here.** Take each case from the intent's
 own words. A case the intent names and the list leaves out is a gap under `CON_16`, unless it is in `Out
-of scope` by name. A case the intent never names is not yours to add: that is creep under `CON_05`, and
+of scope` by name. A case the intent never names is not yours to add: that is creep under `CON_26`, and
 widening an outcome, which D-128 sends to a successor. A criterion with one case is its own sentence and
 needs no list.
 
@@ -211,7 +211,7 @@ and verify checks the spec — so an intent question nobody carried forward is n
 
 ## Stay inside the intent
 
-`CON_05` forbids a criterion no statement in the intent supports. Scope added here was never approved
+`CON_26` forbids a criterion no statement in the intent supports. Scope added here was never approved
 by whoever approved the intent, and it arrives carrying the authority of an approved artifact.
 
 The two fail differently and are remedied differently, which is why they are separate rules: a gap

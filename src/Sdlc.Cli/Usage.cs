@@ -306,7 +306,7 @@ internal static class Usage
                                      two branches each numbering a new one, and a merge keeping
                                      both -- the next free id, the first keeping its own (D-171).
             decisions                The choices this solution has already settled, so a cycle reads
-                                     what was argued rather than arguing it again. CON_24 asks a cycle
+                                     what was argued rather than arguing it again. CON_27 asks a cycle
                                      departing from one to declare it where it arises. Names
                                      the entries over the word budget, for mining to reword.
             decisions show <id>      One decision in full, standing or superseded: what a reader
@@ -567,7 +567,7 @@ internal static class Usage
             decide -- which build settings the stack takes against which are on disk.
 
             A plan may depart from any of the three. Departing from a rule is impossible, from a
-            recorded decision it is legal but CON_24 asks it to be declared where it arises, and
+            recorded decision it is legal but CON_27 asks it to be declared where it arises, and
             from the theme nothing in governance objects at all -- that one is a linter's job,
             because it is mechanical. Silence is what the rules catch, never the departure.
 

@@ -21,7 +21,7 @@ public sealed class RecordRoundTests
 
     private const string Blocking = """
         { "findings": [ { "id": "F_01", "severity": "blocking", "disposition": "open",
-          "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
+          "cites": { "id": "CON_09", "heading": "no artifact restates another's content as its own authority" },
           "statement": "something that must be answered.", "gist": "The second criterion has no test." } ] }
         """;
 
@@ -103,6 +103,56 @@ public sealed class RecordRoundTests
         Assert.IsTrue(File.Exists(workspace.Cycle.FindingsLedgerPath(ArtifactKind.Intent)), "One ledger per artifact (D-107).");
         Assert.IsFalse(File.Exists(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1)), "And no file per round.");
         Assert.IsNotNull(written.Written.EntrySha256, "The round is chained.");
+    }
+
+    [TestMethod]
+    [DataRow("CON_06", null, DisplayName = "a superseded rule")]
+    [DataRow("CON_21", null, DisplayName = "a plan's rule against an intent")]
+    [DataRow("CON_99", null, DisplayName = "an id nobody issued")]
+    [DataRow("CON_01", "security", DisplayName = "a rule the perspective does not list")]
+    public async Task A_new_blocker_citing_a_rule_its_reader_was_not_handed_is_refused(string rule, string? perspective)
+    {
+        // round collect already makes such a blocker a suggestion; this is a draft edited after it (D-174, D-175).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string id = perspective is null ? "F_01" : perspective + ".F_01";
+        string under = perspective is null ? string.Empty : $", \"perspective\": \"{perspective}\"";
+
+        Result<RecordRound.Response> refused = await Record(workspace, ArtifactKind.Intent, $$"""
+            { "findings": [ { "id": "{{id}}", "severity": "blocking", "disposition": "open"{{under}},
+              "cites": { "id": "{{rule}}", "heading": "whatever the reader wrote" },
+              "statement": "x.", "gist": "y." } ] }
+            """);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, id + " cites " + rule);
+        StringAssert.Contains(refused.Errors[0].Message, "sdlc constraints --for intent");
+    }
+
+    [TestMethod]
+    public async Task A_blocker_the_ledger_already_holds_is_never_judged_again()
+    {
+        // A round recorded under an earlier library stands as it was read: CON_06 was in force when it was raised.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string old = Blocking.Replace("CON_09", "CON_06", StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1), old
+            .Replace("{ \"findings\"", "{ \"round\": 1, \"interrogated_at\": \"2026-10-01T10:00:00Z\", \"findings\"", StringComparison.Ordinal));
+
+        Result<RecordRound.Response> carried = await Record(workspace, ArtifactKind.Intent, old);
+
+        Assert.IsTrue(carried.IsSuccess, string.Join("; ", carried.Errors.Select(error => error.Message)));
+    }
+
+    [TestMethod]
+    public async Task A_revision_of_a_rule_in_force_is_the_same_rule()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        Result<RecordRound.Response> recorded = await Record(workspace, ArtifactKind.Intent, Blocking.Replace("\"CON_09\"", "\"CON_09.7\"", StringComparison.Ordinal));
+
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
     }
 
     [TestMethod]

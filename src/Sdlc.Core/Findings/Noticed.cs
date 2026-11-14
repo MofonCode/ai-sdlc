@@ -86,7 +86,7 @@ public sealed record Noticed(CycleId Cycle, string Statement, string? Perspectiv
     /// <remarks>
     /// <strong>These and the findings rounds are two different stores, and only one of them was being
     /// read.</strong> A build is forbidden from fixing what it notices in passing -- that is creep inside
-    /// an approved file, which <c>CON_07.2</c> catches -- so the build skill has it write a
+    /// an approved file, which <c>CON_25</c> catches -- so the build skill has it write a
     /// <c>Noticed:</c> line in the commit instead. The commit is the right home: it reaches whoever
     /// reviews the pull request. But <c>sdlc suggestions</c> read only the interrogation rounds, so the
     /// command that answers "what have we noticed and not acted on" could not see the lines written by

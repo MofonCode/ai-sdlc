@@ -180,9 +180,10 @@ public static class EvidenceRenderer
             output.AppendLine();
         }
         output.AppendLine(Indent + "          These are suggestions, not a refusal. The comparison cannot see inside");
-        output.AppendLine(Indent + "          a file, which is why CON_07.2 exists -- so it was never what caught scope");
-        output.AppendLine(Indent + "          creep. What blocks is outcome-based: the build fails, tests fail, or a");
-        output.AppendLine(Indent + "          criterion's proof is not met.");
+        output.AppendLine(Indent + "          a file, so it was never what caught scope creep. What blocks: the build");
+        output.AppendLine(Indent + "          fails, tests fail, a criterion's proof is not met, coverage falls under");
+        output.AppendLine(Indent + "          its floor, or the change's reader finds work the plan did not describe");
+        output.AppendLine(Indent + "          (CON_25) or a recorded decision departed from in silence (CON_27).");
     }
 
     /// <summary>The whole codebase against its baseline and the floor, in the terms the merge judges it (D-157).</summary>

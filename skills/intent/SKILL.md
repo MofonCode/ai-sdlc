@@ -23,7 +23,7 @@ nothing. Ask from where it leaves off.
 aside under `Instead of`. Where the solution has areas, an intent touches none of them — it is the business
 case, not the design — so it gets every decision that applies everywhere in full and the rest by headline;
 `sdlc decisions show DEC_nn` prints one when the interview reaches it (D-151). They are standing criteria this cycle inherits: the spec, the plan and the code
-are each judged against them, and `CON_24` asks a departure to be declared where it arises — here, for an
+are each judged against them, and `CON_27` asks a departure to be declared where it arises — here, for an
 outcome. Two uses in the interview:
 
 - **Do not ask what is settled.** A question a decision already answers spends the person's attention on
@@ -465,7 +465,7 @@ suggestions"* is the person adopting your wording, so the read-back is what they
 
 What the person picks becomes a wanted outcome **in their words**, and an answer that is a decision
 (*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do not take up, you do
-not write.** The spec may only derive from what the intent states (`CON_05`), so a concern added here
+not write.** The spec may only derive from what the intent states (`CON_26`), so a concern added here
 without being asked is the scope creep the rule exists to stop, moved one stage earlier. The fresh
 readers will raise what was left, and the hand-back offers it again.
 

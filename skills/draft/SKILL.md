@@ -131,7 +131,7 @@ truthfully not be departing from anything, which is the deadlock protecting the 
 `sdlc doctor` reports a declared stack that ended up with the menu inside it.
 
 **A report rather than a file in `.sdlc/` itself, because it outlives the rename.** Nothing deletes it,
-and an untracked copy would reach every later cycle's diff as a file no plan declared — `CON_07.2`. The
+and an untracked copy would reach every later cycle's diff as a file no plan declared — `CON_25`. The
 reports directory ignores itself, which is the whole reason it exists.
 
 It is protected for the reason the solution's own constraints are. The declared stack is the second rule

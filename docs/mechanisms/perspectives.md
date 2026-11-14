@@ -92,10 +92,13 @@ an outcome, or widen one, becomes a successor that keeps its id (D-128).
 
 ## Reading what it found
 
-**A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
-method turns up is a **suggestion**, exactly as any finding that cites no rule is. Look at a perspective's
-rules with `sdlc perspective show <name> --for <stage>`; a perspective with none of its own can block on
-nothing.
+**A perspective's finding blocks only when it cites a rule the perspective lists, and that rule is in force
+for the document being read.** A rule is listed as a bullet in the perspective's Rules section that opens with
+its id; an id mentioned in a sentence there is a reference, not a rule it blocks on (D-175). So operability
+blocks on `CON_20` at a spec and nowhere else, and a perspective with none of its own can block on nothing.
+Everything else its method turns up is a **suggestion**, exactly as any finding that cites no rule is, and a
+blocker it raised under any other rule is recorded as a suggestion saying so. Look at a perspective's rules
+with `sdlc perspective show <name> --for <stage>`.
 
 **Where its findings appear:**
 

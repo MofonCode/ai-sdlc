@@ -70,7 +70,8 @@ internal sealed record ReaderBody(
 /// <param name="Findings">What it raised, ids normalised.</param>
 /// <param name="Conflicts">The conflicts it declared.</param>
 /// <param name="Rows">Its row per criterion or outcome, under each rule judged item by item.</param>
-/// <param name="Demoted">A perspective's blockers made suggestions, because they cite no rule it lists.</param>
+/// <param name="Demoted">Blockers made suggestions: a perspective's citing no rule it lists, and any citing a rule not
+/// handed to that reader (D-174).</param>
 internal sealed record ReadBody(
     IReadOnlyList<Finding> Findings,
     IReadOnlyList<Conflict> Conflicts,
@@ -354,7 +355,7 @@ public static class ReaderAnswers
     /// <param name="perspective">The perspective that read, or null for the rules reader.</param>
     /// <returns>The findings, conflicts and rows, and the ids made suggestions; or a refusal.</returns>
     internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective) =>
-        FindingsOf(answer, perspective, prefix: null);
+        FindingsOf(answer, perspective, prefix: null, inForce: null);
 
     /// <summary>One reader's findings, by the reader's name: its perspective, or its own prefix.</summary>
     /// <remarks>
@@ -364,15 +365,17 @@ public static class ReaderAnswers
     /// </remarks>
     /// <param name="answer">The answer.</param>
     /// <param name="reader">The reader's name.</param>
+    /// <param name="inForce">The rules that reader was handed, as <see cref="CitedRules"/> keys; a blocker citing
+    /// anything else is made a suggestion (D-174). Null checks nothing.</param>
     /// <returns>The findings, or a refusal.</returns>
-    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader) => reader switch
+    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader, IReadOnlySet<string>? inForce = null) => reader switch
     {
-        Rules => FindingsOf(answer, perspective: null, prefix: null),
-        Diff => FindingsOf(answer, perspective: null, prefix: Diff),
-        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null),
+        Rules => FindingsOf(answer, perspective: null, prefix: null, inForce),
+        Diff => FindingsOf(answer, perspective: null, prefix: Diff, inForce),
+        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null, inForce),
     };
 
-    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix)
+    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix, IReadOnlySet<string>? inForce)
     {
         ArgumentNullException.ThrowIfNull(answer);
 
@@ -427,9 +430,23 @@ public static class ReaderAnswers
                 return Refuse<ReadBody>(answer, $"uses the id {id} twice");
             }
 
-            if (perspective is not null
+            string statement = given.Statement.Trim();
+            string? cited = CitedRules.Key(given.Cites?.Id);
+
+            // A blocker stands only on a rule this reader was handed (D-174), and a perspective's only on one its
+            // document lists as a rule it blocks on (D-175). Either way it is kept as a suggestion rather than
+            // refused: the observation may be sound, and a rerun to hear it again buys nothing.
+            if (severity == Severity.Blocking && cited is not null && inForce is not null && !inForce.Contains(cited))
+            {
+                severity = Severity.Suggestion;
+                demoted.Add(id);
+                statement += string.Create(
+                    CultureInfo.InvariantCulture,
+                    $" (Raised as blocking under `{given.Cites!.Id!.Trim()}`, which is not a rule in force for this document, so it does not block.)");
+            }
+            else if (perspective is not null
                 && severity == Severity.Blocking
-                && (given.Cites?.Id is not { Length: > 0 } rule || !perspective.Rules.Contains(rule, StringComparison.Ordinal)))
+                && (cited is null || !perspective.BlocksOn.Select(CitedRules.Key).Contains(cited, StringComparer.Ordinal)))
             {
                 severity = Severity.Suggestion;
                 demoted.Add(id);
@@ -440,7 +457,7 @@ public static class ReaderAnswers
                 severity,
                 Disposition.Open,
                 given.Cites,
-                given.Statement.Trim(),
+                statement,
                 given.Locus,
                 given.Remedy,
                 Perspective: perspective?.Name,

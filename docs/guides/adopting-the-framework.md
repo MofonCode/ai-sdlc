@@ -130,7 +130,7 @@ nobody is defending.
    different one from nobody having asked.
 
 An existing codebase gets the first question and three about its history instead of the second. Neither
-asks what *done to a good standard* means: `CON_16`, `CON_17` and `CON_05` already put that to every
+asks what *done to a good standard* means: `CON_16`, `CON_17` and `CON_26` already put that to every
 spec, one change at a time, where there is a change to ask it about.
 
 **Most answers are not constraints, and the skill sorts them before proposing anything:**

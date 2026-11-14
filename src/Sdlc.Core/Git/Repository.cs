@@ -765,7 +765,7 @@ public sealed class GitRepository : IRepository
     /// <strong>And a failure carries git's message.</strong> Every failure used to return null, so
     /// git's own reason was thrown away and <c>Commit</c> reported "git could not stage what init
     /// created" with nothing to act on -- which contradicts the framework's own standard that a
-    /// refusal says what has to change, and <c>CON_10.2</c> is that rule.
+    /// refusal says what has to change, and <c>CON_10.3</c> is that rule.
     /// </para>
     /// </remarks>
     /// <param name="workingDirectory">Where to run it.</param>

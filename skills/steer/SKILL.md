@@ -59,7 +59,7 @@ cost of getting this wrong is a cycle whose intent no longer describes the work,
 whole chain exists to prevent.
 
 **Why a raised suggestion may change what, and a comment may not** (D-97). The spec may only derive
-from what the intent states (`CON_05`), so a concern a perspective found — keyboard use, where a key is
+from what the intent states (`CON_26`), so a concern a perspective found — keyboard use, where a key is
 kept, what is logged on a failure — reaches a criterion only through the intent, and only because a
 person chose it. A suggestion was raised by a fresh reader against this cycle's own documents: the
 person is choosing from what the cycle was found to lack, not inventing a new piece of work midway. A
