@@ -520,7 +520,6 @@ sits where the spec looks for it.
 
 ```markdown
 ---
-framework_version: 1.0.0
 cycle: <id>
 type: feature addition
 perspectives: ui-ux, accessibility

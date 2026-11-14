@@ -291,7 +291,6 @@ public sealed class ClaimGraphTests
             [
                 "---",
                 "cycle: " + id,
-                "framework_version: 1.0.0",
                 "decisions:",
                 "  - decision: approved",
                 "    by: Peter Almanzar",
@@ -342,7 +341,6 @@ public sealed class ClaimGraphTests
                     Environment.NewLine,
                     [
                         "---",
-                        "framework_version: 1.0.0",
                         "cycle: " + id,
                         "tier: local",
                         "---",

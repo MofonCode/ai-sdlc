@@ -477,7 +477,6 @@ public static class RecordEvidence
             }
 
             TestSummary summary = new(
-                Cycle.FrameworkVersion,
                 cycle.Id.ToString(),
                 time.GetUtcNow(),
                 tests,

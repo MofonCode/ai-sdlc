@@ -439,14 +439,14 @@ public sealed class SuccessorTests
         Directory.CreateDirectory(cycle.Directory);
         System.IO.File.WriteAllText(
             cycle.PathOf(ArtifactKind.Intent),
-            "---\nframework_version: 1.0.0\ncycle: " + id + "\ntype: feature addition\nlead: successor:" + slug + "\n---\n\n# x\n");
+            "---\ncycle: " + id + "\ntype: feature addition\nlead: successor:" + slug + "\n---\n\n# x\n");
         System.IO.File.Delete(Path.Combine(Successor.DirectoryOf(workspace.Root), slug + ".md"));
     }
 
     private static void Merge(FakeRepository git, string id)
     {
         git.PathsAt.Add(Integration + ":" + Folder(id) + "intent.md");
-        git.Files[Integration + ":" + Folder(id) + "verify.md"] = "---\nframework_version: 1.0.0\ncycle: " + id + "\noutcome: pass\n---\n\n# v\n";
+        git.Files[Integration + ":" + Folder(id) + "verify.md"] = "---\ncycle: " + id + "\noutcome: pass\n---\n\n# v\n";
     }
 
     private static string Folder(string id) => ".sdlc/cycles/" + id + "/";

@@ -67,7 +67,7 @@ public sealed class ApprovalTextTests
         // Exactly what a person does: the header, then the entry pasted under it.
         string pasted = string.Create(
             CultureInfo.InvariantCulture,
-            $"---\ncycle: {workspace.Cycle.Id}\nframework_version: 1.0.0\ndecisions:\n{text.Entry}---\n");
+            $"---\ncycle: {workspace.Cycle.Id}\ndecisions:\n{text.Entry}---\n");
 
         Result<ApprovalLedger> read = ApprovalLedger.Read(pasted, "pasted");
 
@@ -252,7 +252,7 @@ public sealed class ApprovalTextTests
             workspace.Cycle.ApprovalPath,
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"---\n  cycle: {workspace.Cycle.Id}\n  framework_version: 1.0.0\ndecisions:\n  - decision: approved\n---\n"));
+                $"---\n  cycle: {workspace.Cycle.Id}\ndecisions:\n  - decision: approved\n---\n"));
 
         ApprovalText.Response text = await Print(workspace);
 
@@ -425,17 +425,23 @@ public sealed class ApprovalTextTests
     }
 
     [TestMethod]
-    public async Task The_printed_header_declares_the_framework_version()
+    public async Task A_ledger_written_before_the_format_version_was_retired_still_reads()
     {
+        // D-160: every approval a solution placed before 0.43.0 carries framework_version under its cycle.
+        // Nobody rewrites a file only a person writes, so the old header has to read as it stands.
         using CycleWorkspace workspace = Ready();
 
         ApprovalText.Response text = await Print(workspace);
 
-        StringAssert.Contains(
-            text.FileText,
-            "framework_version: " + Cycle.FrameworkVersion,
-            "The envelope requires the field on every artifact. A printed header that omitted it would "
-            + "make a first entry the one file in the cycle that does not declare its format.");
+        Assert.IsFalse(text.FileText!.Contains("framework_version", StringComparison.Ordinal), text.FileText);
+
+        string older = string.Create(
+            CultureInfo.InvariantCulture,
+            $"---\ncycle: {workspace.Cycle.Id}\nframework_version: 1.0.0\ndecisions:\n{text.Entry}---\n");
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(older, "older");
+
+        Assert.IsTrue(read.IsSuccess, string.Join(" ", read.Errors.Select(error => error.Message)));
     }
 
     [TestMethod]

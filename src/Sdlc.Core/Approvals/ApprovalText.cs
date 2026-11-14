@@ -465,7 +465,6 @@ public static class ApprovalText
             [
                 "---",
                 string.Create(CultureInfo.InvariantCulture, $"cycle: {status.Cycle.Id}"),
-                string.Create(CultureInfo.InvariantCulture, $"framework_version: {Cycle.FrameworkVersion}"),
                 "decisions:",
                 .. entry.TrimEnd().Split(Environment.NewLine),
                 "---",

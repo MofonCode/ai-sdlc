@@ -130,7 +130,7 @@ public sealed class CollectRoundTests
     public async Task The_verdict_is_written_byte_for_byte_and_prose_is_refused()
     {
         using var workspace = CycleWorkspace.Create();
-        string verdict = "---\nframework_version: 1.0.0\ncycle: 20260929_1456_32\noutcome: pass\n---\n\n# Rolls\n\n## Criteria\n\n1. Met. `Rolls` passed.\n";
+        string verdict = "---\ncycle: 20260929_1456_32\noutcome: pass\n---\n\n# Rolls\n\n## Criteria\n\n1. Met. `Rolls` passed.\n";
         string from = Path.Combine(workspace.Root, "adjudicate.json");
 
         await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("Here is the verdict:\n\n" + verdict));

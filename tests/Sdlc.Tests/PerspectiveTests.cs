@@ -74,7 +74,7 @@ public sealed class PerspectiveTests
         using var workspace = CycleWorkspace.Create();
         CycleWorkspace.WriteRaw(
             workspace.Cycle.PathOf(ArtifactKind.Intent),
-            "---\nframework_version: 1.0.0\ncycle: " + workspace.Cycle.Id + "\ntype: feature addition\nperspectives: accessibility, ui-ux\n---\n\n# x\n");
+            "---\ncycle: " + workspace.Cycle.Id + "\ntype: feature addition\nperspectives: accessibility, ui-ux\n---\n\n# x\n");
         using var gate = Gate.For(workspace.Root);
 
         Result<ActivePerspectives.Response> result = await gate

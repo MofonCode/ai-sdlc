@@ -361,7 +361,6 @@ revert" stops being true.
 
 ```markdown
 ---
-framework_version: 1.0.0
 cycle: <id>
 tier: local
 ---

@@ -9,7 +9,6 @@ public sealed class ApprovalLedgerTests
     private const string OneApproval = """
         ---
         cycle: 20260929_1456_32
-        framework_version: 1.0.0
         decisions:
           - decision: approved
             by: Peter Almanzar

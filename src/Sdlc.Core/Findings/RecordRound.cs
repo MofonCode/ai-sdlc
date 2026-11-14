@@ -486,7 +486,6 @@ public static class RecordRound
 
             FindingsRound written = given.Value with
             {
-                FrameworkVersion = Cycle.FrameworkVersion,
                 Release = Sdlc.Core.Release.Version,
                 Cycle = cycle.Id.ToString(),
                 Artifact = name,
