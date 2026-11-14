@@ -67,6 +67,25 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task A_spec_rules_reader_is_told_what_the_evidence_is_and_no_other_stage_is()
+    {
+        // A criterion only the whole run could show passed two spec rounds clean, because nothing told the
+        // reader the evidence is one run of test names and outcomes (D-167).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteSpec(criteria: 1);
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string spec = Whole((await Prompt(workspace, ArtifactKind.Spec, directory, "rules")).Value);
+        StringAssert.Contains(spec, "The evidence each criterion will be judged on is one recorded run");
+        StringAssert.Contains(spec, "how long the whole run or suite takes");
+
+        string intent = Whole((await Prompt(workspace, ArtifactKind.Intent, directory, "rules")).Value);
+        Assert.IsFalse(intent.Contains("one recorded run", StringComparison.Ordinal), "An intent is not judged against the evidence.");
+        Assert.IsFalse(intent.Contains("{{stage}}", StringComparison.Ordinal), "The placeholder never reaches a reader.");
+    }
+
+    [TestMethod]
     public async Task A_verify_round_carries_the_criteria_and_the_evidence_and_the_build_log_only_where_there_is_one()
     {
         using var workspace = CycleWorkspace.Create();
@@ -82,7 +101,7 @@ public sealed class ReaderPromptsTests
         StringAssert.Contains(first, "<file name=\"spec.md\">");
         StringAssert.Contains(first, "<file name=\"evidence/tests.json\">");
         StringAssert.Contains(first, "+Assert.AreEqual(1, roll);");
-        StringAssert.Contains(first, "Find each quote in the diff");
+        StringAssert.Contains(first, "Find each quote where it says it is");
         Assert.IsFalse(first.Contains("evidence/build.log", StringComparison.Ordinal), "No build log, no block claiming one.");
 
         CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "build.log"), "Build succeeded.\n");

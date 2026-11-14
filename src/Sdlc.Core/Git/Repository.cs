@@ -253,6 +253,20 @@ public interface IRepository
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <returns>Its full path, or null outside a repository.</returns>
     string? CommonDirectory(string workingDirectory);
+
+    /// <summary>
+    /// The files a commit holds that contain a word, as a whole word, with the directories given left out.
+    /// </summary>
+    /// <remarks>
+    /// How a verify finds the test a proof names when the change never touched it (D-168): the name is in the
+    /// file that defines it, and git searches the commit the build was recorded at rather than the working tree.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The commit to search.</param>
+    /// <param name="word">The word, matched literally.</param>
+    /// <param name="exclude">Directories to leave out, relative to the root.</param>
+    /// <returns>The paths, relative to the root with forward slashes, or none.</returns>
+    IReadOnlyList<string> FilesContaining(string workingDirectory, string reference, string word, IReadOnlyList<string> exclude);
 }
 
 /// <summary>
@@ -659,6 +673,32 @@ public sealed class GitRepository : IRepository
                 .Select(line => line.Split('\t'))
                 .Where(parts => parts.Length == 2 && parts[1].StartsWith(Heads, StringComparison.Ordinal))
                 .Select(parts => parts[1][Heads.Length..]),
+        ];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> FilesContaining(string workingDirectory, string reference, string word, IReadOnlyList<string> exclude)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(word);
+        ArgumentNullException.ThrowIfNull(exclude);
+
+        // A quote would end the argument early, and no test name a runner reports carries one.
+        if (word.Contains('"', StringComparison.Ordinal))
+        {
+            return [];
+        }
+
+        string pathspec = string.Join(
+            ' ',
+            exclude.Select(path => "\":(exclude)" + path.Replace('\\', '/').Trim('/') + "\""));
+
+        // git grep names each file "<commit>:<path>"; exit 1, no match, is null and so no files.
+        return
+        [
+            .. Lines(Run(workingDirectory, $"grep -l -w -F -e \"{word}\" {reference} -- . {pathspec}"))
+                .Select(line => line.StartsWith(reference + ":", StringComparison.Ordinal) ? line[(reference.Length + 1)..] : line)
+                .Order(StringComparer.Ordinal),
         ];
     }
 

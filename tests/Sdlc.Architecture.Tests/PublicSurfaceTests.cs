@@ -101,6 +101,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Evidence.CheckEvidence+Response",
         "Sdlc.Core.Evidence.Coverage",
         "Sdlc.Core.Evidence.EvidenceDiff",
+        "Sdlc.Core.Evidence.ProofSources",
+        "Sdlc.Core.Evidence.RunTimings",
+        "Sdlc.Core.Evidence.TimedFile",
+        "Sdlc.Core.Evidence.TimedTest",
         "Sdlc.Core.Evidence.CoverageSummary",
         "Sdlc.Core.Findings.RecordRound",
         "Sdlc.Core.Findings.RecordRound+Command",
@@ -379,6 +383,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.LedgerSuggestion",
         "Sdlc.Core.Findings.SuggestionEvent",
         "Sdlc.Core.Findings.SuggestionEventKind",
+        // An id a merge recorded twice, renumbered by the binary (D-171).
+        "Sdlc.Core.Findings.RenumberedSuggestion",
+        "Sdlc.Core.Findings.RenumberSuggestions",
+        "Sdlc.Core.Findings.RenumberSuggestions+Command",
+        "Sdlc.Core.Findings.RenumberSuggestions+Response",
         // A suggestion's status, worked out from intents, leads and abandonments on every read and never
         // stored (D-115). Public because the listing carries it and the suite holds how each is read.
         "Sdlc.Core.Findings.SuggestionDecision",
@@ -483,6 +492,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.ConfigOwnership",
         "Sdlc.Core.Hooks.HookDecision",
         "Sdlc.Core.Hooks.HookEntryShape",
+        "Sdlc.Core.Hooks.PluginHooks",
         "Sdlc.Core.Hooks.HookEvent",
         "Sdlc.Core.Hooks.HookHost",
         "Sdlc.Core.Hooks.HookPolicy",
@@ -536,6 +546,12 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Solutions.BuildSettings",
         "Sdlc.Core.Solutions.BuildSettings+Row",
         "Sdlc.Core.Solutions.BuildSettings+Setting",
+        // What taking a release involves, in order (D-170).
+        "Sdlc.Core.Solutions.UpgradeChecklist",
+        "Sdlc.Core.Solutions.UpgradeChecklist+Behind",
+        "Sdlc.Core.Solutions.UpgradeChecklist+Query",
+        "Sdlc.Core.Solutions.UpgradeChecklist+Response",
+        "Sdlc.Core.Solutions.UpgradeRenderer",
 
         // 'sdlc stack': the operation, the per-file state it returns, and its renderer. Public for
         // the reason every other operation's request and response are -- Sdlc.Cli dispatches one and

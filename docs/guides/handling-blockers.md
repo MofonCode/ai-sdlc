@@ -216,7 +216,9 @@ runs the tests or reads the source. Per criterion it asks which test the plan na
 says it ran and passed, **whether that test actually establishes the criterion**, and which case it never
 runs or which outcome it never reads. A test that passed but does not reach its criterion is *not met*. Each
 Met quotes the assertion it rests on from `diff.patch`, so the interrogation that follows checks the quote
-against the diff rather than trusting a test's name.
+against the diff rather than trusting a test's name. A proof that lives in code the change did not touch —
+an existing test, or a helper the plan's proof names by path — is quoted from `proof-sources.txt`, which
+holds that test's block, or the named file whole, from the build's commit (D-168).
 
 The verdict is written by a **fresh process** that never saw the build: the session running the skill
 assembles the spec, the plan and the evidence, starts the adjudicator, and records what it returns. When

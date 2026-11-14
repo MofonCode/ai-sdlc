@@ -258,7 +258,15 @@ reopens were exactly this: a render mode that did not fall back, a connection th
 plan said, services that differed on each side, a host that never started.
 
 Before you write the shape, list each behaviour it rests on that nobody in this cycle has seen happen —
-a render mode, a fallback, an order of events, what a library does on failure. For each:
+a render mode, a fallback, an order of events, what a library does on failure.
+
+**Then tell the person, before the first probe runs.** A planning stage that starts writing and running
+code reads as the plan going off the rails: one person watching asked *"why is it doing all of that? i
+thought we were just planning?"* Say it in a few lines: which behaviours you will try, that each is a
+throwaway experiment on a side branch nothing merges, and that it is cheaper than finding out at the build.
+This is telling, not asking; go on unless they stop you.
+
+For each:
 
 1. **Branch a probe from the cycle's base, outside the cycle's worktree:**
    `git worktree add ../<repo>.probes/<id>-<slug> -b probe/<id>/<slug> <base>`. It is not a cycle branch,
@@ -322,6 +330,12 @@ like when it is written in good faith. A cell may not hold a `|`.
 
 An older plan's numbered entries — `1. `Test_name` asserts …`, opening with the test's name — are still
 read, so a cycle that started with them does not have to rewrite its proof.
+
+**A proof may rest on code this change does not touch** (D-168). An existing test that guards behaviour
+the change must not break is a fair proof: name it, and the verify is handed its block from the build's
+commit, because its assertion is in no diff. **When a test asserts through a helper the
+change leaves alone, name the helper's file by its path in the row's `Asserts` cell** — *the chart, through
+`tests/Support/ChartAssert.cs`* — or the verify can quote the call and never what it checks.
 
 The numbers are compared in both directions: a criterion with no proof fails, and a proof citing a
 criterion the spec does not have fails too — because that means one was deleted or renumbered after the
@@ -440,6 +454,10 @@ through 'steer'.>
 ```
 
 ## Run the loop, then hand back
+
+**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
+person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
+how one person ended up asking "what is dev 1 - 5?".
 
 Interrogate, refine, interrogate again — until a round is clean, a reader reports a conflict, or the
 panel's `Loop` line says the loop is stuck on one rule. It is the same loop the intent and spec skills

@@ -244,6 +244,29 @@ public static class DeclaredFiles
     }
 
     /// <summary>
+    /// The files a proof entry names in backticks anywhere in it, by a path with a slash.
+    /// </summary>
+    /// <remarks>
+    /// How a proof that rests on a helper the change never touched points at it, so the verify is handed that
+    /// file (D-168). A slash, because a bare <c>Foo.cs</c> in prose is as often a type as a file.
+    /// </remarks>
+    /// <param name="entry">One proof entry's text, or one row's cells joined.</param>
+    /// <returns>The paths, with forward slashes, which may be none.</returns>
+    public static IReadOnlyList<string> PathsIn(string entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        return
+        [
+            .. _quoted.Matches(entry)
+                .Select(match => Normalise(match.Groups["path"].Value))
+                .Where(path => path.Contains('/', StringComparison.Ordinal))
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    /// <summary>
     /// Compares what a plan declared against what a change touched.
     /// </summary>
     /// <param name="declared">The plan's paths.</param>

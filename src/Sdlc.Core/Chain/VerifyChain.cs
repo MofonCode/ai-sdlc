@@ -458,6 +458,13 @@ public static class VerifyChain
             // round that judged exactly this run.
             if (latest.EvidenceSha256 is { } recorded && !string.Equals(recorded, now, StringComparison.Ordinal))
             {
+                // A round recorded before the proofs' sources joined the hash (D-168) read the same run without them.
+                if (await RecordRound.EvidenceHash(cycle, cancellationToken, repository: repository, root: root, withSources: false).ConfigureAwait(false) is { } unsourced
+                    && string.Equals(recorded, unsourced, StringComparison.Ordinal))
+                {
+                    now = unsourced;
+                }
+
                 // The build-log reading hashes the patch on disk, as it did before the patch was rebuilt (D-124).
                 foreach (bool withBuildLog in new[] { false, true })
                 {

@@ -116,6 +116,9 @@ public static class ProposeMining
     /// </param>
     /// <param name="Sitting">The finished cycles not mined yet that this sitting reads and records.</param>
     /// <param name="Limited">Whether the sitting was limited to cycles named on the command line (D-166).</param>
+    /// <param name="FrameworkGaps">
+    /// Every successor marked <c>framework:</c>, for a person to take to the framework rather than build here (D-173).
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
@@ -127,7 +130,8 @@ public static class ProposeMining
         Mining.MinedLedger? Mined = null,
         IReadOnlyList<Suggestion>? Suggestions = null,
         IReadOnlyList<CycleId>? Sitting = null,
-        bool Limited = false);
+        bool Limited = false,
+        IReadOnlyList<Successors.Successor>? FrameworkGaps = null);
 
     /// <summary>Asks for the report.</summary>
     /// <param name="Cycles">
@@ -274,6 +278,17 @@ public static class ProposeMining
         if (response.Stack.Defaults.Count == 0 && response.Stack.Rules.Count == 0)
         {
             text.AppendLine("  every row and rule this release ships is answered");
+        }
+
+        if (response.FrameworkGaps is { Count: > 0 } gaps)
+        {
+            text.AppendLine();
+            text.AppendLine("Gaps in the framework -- successors marked framework:, for a person to file with the framework rather than build here (D-173)");
+
+            foreach (Successors.Successor gap in gaps)
+            {
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {gap.Slug} -- {gap.Framework}"));
+            }
         }
 
         if (response.Limited)
@@ -617,7 +632,20 @@ public static class ProposeMining
                 mined,
                 [.. open.Value.Suggestions.Where(suggestion => sitting.Contains(suggestion.Cycle))],
                 [.. finished.Where(sitting.Contains)],
-                limited));
+                limited,
+                await FrameworkGaps(cancellationToken).ConfigureAwait(false)));
+        }
+
+        // Read whatever else is wrong with the successors: a malformed one is the successors command's to report.
+        private async Task<IReadOnlyList<Successors.Successor>> FrameworkGaps(CancellationToken cancellationToken)
+        {
+            Result<Successors.ReadSuccessors.Response> read = await mediator
+                .Send<Successors.ReadSuccessors.Query, Successors.ReadSuccessors.Response>(new Successors.ReadSuccessors.Query(), cancellationToken)
+                .ConfigureAwait(false);
+
+            return read.IsFailed
+                ? []
+                : [.. read.Value.Successors.Select(standing => standing.Successor).Where(successor => successor.Framework is not null).OrderBy(successor => successor.Slug, StringComparer.Ordinal)];
         }
 
         private static string Refusal(CycleId id, Mining.MinedLedger? mined) =>

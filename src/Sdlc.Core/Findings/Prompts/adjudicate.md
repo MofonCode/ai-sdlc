@@ -26,6 +26,7 @@ The evidence above is the cycle's `evidence/` directory:
 |---|---|
 | `tests.json` | the normalised test summary: name and outcome per test, and the platform the run was on |
 | `diff.patch` | the change itself. The cycle's own artifacts are **not** in it — their absence is by design, not a missing commit |
+| `proof-sources.txt` | only when a proof lives in code the change did not touch, as the build's commit holds it: the block of each test the plan names that the diff never mentions, headed with its file and lines, and whole any file a proof entry names by path (D-168) |
 | `base.sha` | the commit the diff is measured from |
 | `build.log` | what the build said, when this checkout has one. **Not committed** |
 
@@ -63,7 +64,7 @@ criterion in turn:
 
 1. Which test did the plan name for it?
 2. Does `tests.json` say that test ran and passed?
-3. Does that test, as the diff shows it, actually establish the criterion?
+3. Does that test, as the diff or `proof-sources.txt` shows it, actually establish the criterion?
 4. **Which case does that test never run, and which outcome does it never read?** Answer it before you
    write Met. A test that asserts a value was handed to a library, where the criterion is about what the
    person saw; a keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that
@@ -79,7 +80,9 @@ pass that nobody can rely on.
 
 **Quote the assertion, not the test's name.** Every Met cites the lines of the diff that do the asserting
 — `diff.patch`, the file and the line numbers, and the assertion itself copied — so a reader checks the
-claim against the code in front of them rather than trusting a name. In one real cycle every one of
+claim against the code in front of them rather than trusting a name. A test the change never touched, or
+a helper it asserts through, is quoted from `proof-sources.txt` the same way. A proof whose assertion is in
+neither is not shown. In one real cycle every one of
 fourteen verify blockers was "Met, because test X passed" where test X asserted less than the criterion
 asked, and it took ten rounds because the verdict cited names. A quoted assertion that does not establish
 the criterion is visible in the first round.

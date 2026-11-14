@@ -52,6 +52,15 @@ public static class TidyCycles
 
     private static readonly string[] _families = [CycleId.BranchPrefix, SlicingBranch.Prefix, SandboxBranch.Prefix];
 
+    /// <summary>Why a branch the framework opened is done, or null while it is not or this cannot tell.</summary>
+    /// <param name="repository">Git.</param>
+    /// <param name="root">The repository's root.</param>
+    /// <param name="at">The integration branch, as git names it here.</param>
+    /// <param name="branch">The branch.</param>
+    /// <returns>For a person, or null.</returns>
+    internal static string? Done(IRepository repository, string root, string at, string branch) =>
+        Handler.Done(repository, root, at, branch);
+
     private sealed class Handler(SolutionRoot solution, IRepository repository) : IRequestHandler<Query, Response>
     {
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
@@ -96,7 +105,7 @@ public static class TidyCycles
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal))
             {
-                if (Done(root, at, branch) is not { } why)
+                if (Done(repository, root, at, branch) is not { } why)
                 {
                     continue;
                 }
@@ -127,7 +136,7 @@ public static class TidyCycles
         }
 
         /// <summary>Why a branch's work is done, or null while it is not or this cannot tell.</summary>
-        private string? Done(string root, string at, string branch)
+        internal static string? Done(IRepository repository, string root, string at, string branch)
         {
             if (CycleId.TryParseBranch(branch, out CycleId? parsed))
             {

@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.45.0** · iteration 4 · .NET 10
+**Version 0.46.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -219,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.45.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.46.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -421,6 +421,16 @@ What is honest to say about the rest:
   is a minor: a plan of a cycle opened on it names its areas, or its round is refused. Since 0.39.1 the
   report lists the finished cycles' open suggestions, and a suggestion mining ignores is tallied by concern so
   one ignored in three cycles reaches the bar; whether a gist is matched across sittings has not been seen.
+- **Four design gaps mining MarketSense found are closed, and have met only the suite** (0.46.0). A criterion
+  only the run as a whole could show, such as how long the suite takes, now breaks `CON_12` at spec, and the
+  spec readers are told what the evidence is (D-167). A proof living in code the change did not touch is handed
+  to the verify as that test's block, or a file the proof names (D-168); on one MarketSense cycle that is 98 KB
+  per reader, cached with the shared block. A run keeps its timings in `timings.json`, which no reader sees
+  (D-169). `sdlc upgrade` prints everything an upgrade moves, in order (D-170), and `sdlc suggestions <id>
+  --renumber` mends an id a merge recorded twice (D-171). In an adopted solution the plugin's hooks step aside
+  for the ones adoption wrote, so each check speaks once (D-172), and a successor can be marked as a gap in the
+  framework, which mining lists to be filed there (D-173). It is a minor because the widened rule can block a
+  spec that passed before.
 - **A round costs about half, measured on one plan round; the rest has met only the suite** (0.45.0). The
   block every reader shares is handed over as a system prompt with one reader started first, so the host caches
   it, and readers start outside the checkout, so they are no longer handed the project's memory and git status

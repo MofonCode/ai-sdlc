@@ -195,7 +195,8 @@ wants a class of branch to merge anyway says so in branch policy by not requirin
 which is a decision somebody can read; deleting the step is a different decision that reads as
 nothing. **A cycle is for a decision, so two changes need no chain** (D-133, D-134). Moving to another release: a pull
 request carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
-is checked by writing those files again and comparing. Moving dependency versions: a pull request whose only
+is checked by writing those files again and comparing. `sdlc upgrade` prints everything that moves with it, in
+order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
 change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
 checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
 both. **Nor does mining** (D-152): a pull request carrying only the records a person placed from a sitting, the
@@ -401,6 +402,15 @@ git and published by the pipeline, the trx to the platform's test tab.
 records the build's commit as `head.sha`, and writes `diff.patch` from `base..head` for the verify to read.
 The evidence hash covers that rebuilt diff, so `verify-chain` checks it from git on a clean checkout.
 
+**A proof outside the change is handed over** (D-168). The block of each test the plan names that the diff
+never mentions, and each file a proof names by path that existed before the change, whole, are written to
+`proof-sources.txt` from `head.sha`, rebuilt and hashed like the patch, so a Met can quote an assertion the
+change did not write.
+
+**How long the run took is kept, and judged by nobody** (D-169). `sdlc evidence` writes `timings.json` from
+the results files — the run's start and finish, each file's span, the 25 slowest tests — commits it with the
+summary, and prints the wall time and the five slowest. No reader is handed it and the hash leaves it out.
+
 **What the chain reads is committed, and checked to be** (D-161). The cycles directory's ignore file keeps the
 test summary, the coverage and the two commits whatever the repository's own says, and `verify-chain` fails when
 git would still leave one out. Every verify reader is handed the coverage with its rates worked out, and the
@@ -410,7 +420,7 @@ other verdict refuses it.
 `build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
 
 **A string match runs before a reader does, and only reports** (D-120). `sdlc evidence check` lists
-the names `verify.md` cites that appear in none of the evidence — `tests.json`, `diff.patch`, `coverage.json`, and the build log where there is one — and the tests it
+the names `verify.md` cites that appear in none of the evidence — `tests.json`, `diff.patch`, `proof-sources.txt` where there is one, `coverage.json`, and the build log where there is one — and the tests it
 claims passed that `tests.json` does not record as passed. Whether a claim rests on its evidence stays
 the reader's judgement, so it never refuses. `tests.json` records the platform the tests ran on.
 
@@ -1719,7 +1729,8 @@ hybrid targets use. **What remains unproven is the native shell only** — platf
 lifecycle, deep links, native file pickers, platform chrome.
 
 **A device-only outcome is a bound in the intent, never a criterion in the spec**, verified by a
-person outside the cycle. `CON_12` keeps them out of specs. So MAUI-targeted work has some outcomes
+person outside the cycle. `CON_12` keeps them out of specs, and so too an outcome only the run as a
+whole could show, such as how long the suite takes (D-167). So MAUI-targeted work has some outcomes
 this framework does not govern.
 
 ### 11.3 The kernel, and the conventions that come with it
@@ -2278,7 +2289,7 @@ mechanical rather than promised.
 | `batch-build` | a queued cycle (§10.1) | nothing; a cycle held back by a branch on the remote is not built, and the sitrep says why | code, evidence and a verify document per cycle, each on its own branch. Never pushes without `--pr` (D-22) |
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
 | `constraints` | nothing | nothing | nothing; it prints |
-| `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
+| `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69). With `--renumber`, the cycle's suggestions ledger: each id recorded twice takes the next free one (D-171) |
 | `resolve-conflict` | a cycle whose pull request conflicts with the integration branch or went red after another merge | a resolution needing a file the plan never declared — a change of plan, handed back; or two settings carry one key with different values | the cycle's declared files, its evidence and its verify (D-86) |
 | `propose` | nothing | nothing; an unreadable rule file, decision record or theme is reported rather than worked around | nothing that binds; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
 
@@ -2339,6 +2350,7 @@ they print verbatim.
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
 | `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
 | `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
+| `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes, the factory's images, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
@@ -3745,6 +3757,8 @@ fails open.
 
 **Governs:** §9
 
+**Amended by D-172.** The plugin's hooks step aside where the settings file adoption wrote runs the same one.
+
 **Superseded in part by D-81.** Adoption no longer names a `pull-request.yml` an earlier adoption left
 behind. Everything else stands.
 
@@ -3822,7 +3836,8 @@ second that also runs.
   real, and for a plugin user every matched tool call pays two process launches. Rejected because
   adoption cannot reliably tell a plugin install from a global one, and guessing wrong leaves the hook
   uninstalled. After D-39 both launches answer with silence, so the cost is start-up time rather than
-  behaviour. Worth revisiting if a marker appears.
+  behaviour. Worth revisiting if a marker appears. *(D-172: the turn-end hook was not silent when it objected,
+  so its message came twice; the plugin's copy now carries a marker and steps aside.)*
 - *Merging the pipeline YAML* — rejected above. There is no entry to own.
 - *Keeping `pull-request.yml` and printing on a collision* — rejected as the worse half of both
   options: it leaves a conventional name claimed by the framework, and the first collision is a
@@ -7292,6 +7307,196 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-173 — A successor can say it is a gap in the framework, and mining hands it there
+
+**Governs:** §3.4, §15
+
+**Decision.** A successor may carry `framework:` and one line saying what in the framework fell short, when the
+work exists because of a gap there rather than in the solution. `sdlc successors` shows the line, the mining
+report lists every such successor under *Gaps in the framework*, and the mine skill writes each under
+`## For the framework` for a person to carry to ai-sdlc. The remediate skill marks the successor a deviation
+names when what could not be followed was the framework's gap. Nothing about it blocks.
+
+**Why.** MarketSense filed two framework defects as its own successors — the adjudicator never handed the
+coverage, and an ignore file dropping evidence. Both sat in the solution's backlog beside its real work, and the
+framework heard of them only because somebody read the threads. Mining already has a place for what belongs to
+the framework; nothing pointed a successor at it.
+
+**Rejected.** *The key on deviations too.* A deviation's fields are pinned by the hash a person's approval
+records, and a deviation that meets a framework gap already names the successor that carries the mark. *Telling
+the agent in the skills and recording nothing.* Mining could not find them later. *A separate file for framework
+gaps.* A gap is still work the solution may have to route around, and a successor is where that waits.
+
+### D-172 — The plugin's copy of a hook steps aside where the solution's own runs
+
+**Governs:** §9
+
+**Amends D-40**, which kept both registrations and said to revisit them if a marker appeared.
+
+**Decision.** The plugin's pre-tool and turn-end hooks pass `--source plugin`. Given it, `sdlc hook` reads the
+host's configuration file in the solution holding the directory it runs in, and when that file runs the
+framework's hook for the same event — the command adoption writes — it answers with silence and leaves the
+settings copy to answer. Where the file is absent, unreadable or carries no such hook, the plugin's copy answers
+as before, so a repository not yet adopted is still guarded. The session-start hook is the plugin's alone and
+is unchanged.
+
+**Why.** Claude Code merges identical hooks across settings files but never a plugin's with a settings file's,
+so in every adopted solution with the plugin loaded each check ran twice. D-40 accepted that because both copies
+were meant to answer with silence; the turn-end hook is not silent when it sends a turn back, and in MarketSense
+every one of those messages appeared twice. Adoption still cannot tell whether the plugin is installed, so the
+copy that can tell — the plugin's, by reading the solution — is the one that steps aside.
+
+**Rejected.** *Adoption writing no Claude hooks and leaning on the plugin.* A solution opened without the plugin
+would be ungoverned, which is what D-40 rejected. *The settings copy stepping aside instead.* It cannot tell
+whether a plugin is loaded, and guessing wrong leaves nothing guarding. *Leaving it.* A refusal said twice reads
+as two refusals. A pinned release older than this ignores the option, so against one the plugin's copy speaks
+too, as before.
+
+### D-171 — A suggestion id a merge recorded twice is renumbered by the binary
+
+**Governs:** §6.1
+
+**Amends D-162:** the duplicate-id refusal names `sdlc suggestions <id> --renumber` rather than asking for the
+ledger to be edited by hand.
+
+**Decision.** `sdlc suggestions <id> --renumber` reads the cycle's suggestions ledger, keeps the first suggestion
+under each id in the order the file holds them, and gives each later one the next free number under its prefix.
+It prints what moved and where each was first raised, and checks the result as every read of the ledger does.
+Nothing else holds a suggestion's id (D-115), so the ledger is the one file it writes. The id format is
+unchanged.
+
+**Why.** Two branches of one cycle each number a new suggestion past the ledger they started from, and a merge
+keeps both. The refusal then asked for the later one to be renumbered by hand in a file the hook keeps every
+agent out of, so it fell to a person editing JSON, and in the one MarketSense case an agent renumbered at the
+merge. Which id moves, and to what, is decided by the file alone, so by §15.2 the binary does it.
+
+**Rejected.** *Ids that cannot collide* — derived from a suggestion's content, or carrying the branch. It fixes
+the cause, but changes an id the reconciler, the prompts and the parsers all read, and makes it harder to say
+aloud; D-162 weighed it already. *Renumbering silently on read.* A read that writes is a surprise, and a person
+should see that two concerns shared a name before the merge lands.
+
+### D-170 — `sdlc upgrade` prints everything that moves to take a release, in order, and runs nothing
+
+**Governs:** §3.1, §9
+
+**Amends D-131:** `upgrade` is the one command the global binary never hands on to the release a solution pins.
+
+**Decision.** `sdlc upgrade [<release>]` prints one ordered checklist, with the release each piece is on now
+and the commands that move it: this machine's tool; the installed plugin; the solution's pin, adoption and
+`sdlc doctor` on a branch from the integration branch, into it by pull request (D-133), with `sdlc factory`
+when the solution carries a factory pipeline; the factory's images; and every open cycle branch whose manifest
+pins an older release, which keeps it until that branch takes the upgrade. Without a release it is the one this
+machine runs. When this machine runs an older release than the target, the checklist is that one step and
+asking again, because the release being moved to is the one that knows what it changed. A local build is no
+release to move to, and is refused. It runs nothing, as `tidy` does.
+
+**Why.** Upgrading MarketSense touched six places by hand, four times in four days: the solution's pin, the
+global tool, the plugin, adoption, two agent images and the branches already in flight. Each had a page saying
+how; none said which came first or which applied, and the person asked "what do we need to do". Every fact the
+answer needs — the pin, this machine's release, whether a factory pipeline exists, what each cycle branch pins
+and whether its work has merged — is on disk or in git, so by §15.2 the answer is the binary's.
+
+**Why never handed on.** Inside a solution every command is answered by the pinned release (D-131), which is the
+one being upgraded from: it would describe an upgrade to itself, or not know the command at all.
+
+**Rejected.** *One upgrade guide.* Cheap, but it cannot say which steps apply to this solution or which cycles
+are behind, so the person still works that out, which is what went wrong. *Running the steps.* An upgrade lands
+by pull request and a person decides when, and two of the steps — the plugin and the images — are outside any
+repository the binary can see. *Checking nuget.org for the newest release.* A network call in a command that
+otherwise reads only the machine; the release is named, or is the one this machine runs.
+
+### D-169 — A recorded run keeps how long it took, beside the evidence and out of every reader's prompt
+
+**Governs:** §4.5
+
+**Decision.** `sdlc evidence` reads each results file's run times and each test's duration, and writes
+`timings.json` beside `tests.json`: the run's start and finish (the earliest start and the latest finish across
+the results files), each file's span and count, and the 25 slowest tests, slowest first. It prints the wall time
+and the five slowest after recording. The file is committed — the cycles directory's ignore file keeps it in —
+so cycles can be compared after the results files are gone. **No reader is handed it, and the evidence hash
+leaves it out.** A run whose results files carry no times leaves none, and removes one an earlier run left.
+
+**Why.** MarketSense's suite reached two and a half hours and nobody could say where the time went. A session
+spent two to three hours measuring it and wrote a baseline script by hand, while every results file the
+framework had read and thrown away carried each test's duration and the run's start and finish.
+
+**Why apart from the summary.** `tests.json` is in every verify reader's prompt. A duration on each test adds
+about 25 KB per reader on MarketSense's suite, and hands the readers durations D-167 keeps out of every proof:
+a duration is a fact about the machine as much as about the change.
+
+**Rejected.** *Each test's duration inside `tests.json`.* One file and the simplest change, at the cost above.
+*Printing the durations when recording and keeping nothing.* Nothing to compare across cycles, and gone with
+the terminal. *Every test's duration.* A suite of thousands commits a file of hundreds of kilobytes per cycle to
+answer a question the slowest few answer; the results files hold the rest while the machine keeps them.
+
+### D-168 — A proof that lives in code the change did not touch is handed to the verify
+
+**Governs:** §4.5
+
+**Amends D-124:** the patch is no longer the only working file the evidence rebuilds from its two commits.
+
+**Decision.** `sdlc round prompt <id> verify` and `sdlc evidence check` write `proof-sources.txt` beside the
+patch whenever a proof rests outside it, and remove it when none does. It holds, as `head.sha` holds them, the
+block of each test the plan's proof names that the patch never mentions — found with `git grep` at that commit,
+`.sdlc/` left out, and read from the line naming it to where its indentation closes, at most 300 lines, a cut
+block saying so — and, whole, each file a proof entry names in backticks by a path that existed at `base.sha`,
+which is how a plan points at a helper. A name found in more than three files, or in none, is listed rather
+than guessed at. Every verify reader and the adjudicator is handed it, and a Met may quote from it as it
+quotes from the patch. The evidence hash covers it as rebuilt; a cycle whose proofs all sit in the patch hashes
+as before, and a round recorded before this is accepted under the reading it was recorded with. The cycles
+directory's ignore file keeps it out of git.
+
+**Why.** Verify reads the diff, so a proof living outside it was judged not shown however good it was. MarketSense
+cycle `20261109_1844_59` guarded behaviour the change must not break with a test the change never touched; its
+Met could quote nothing, the reader blocked under `CON_22`, and the cycle spent about seven hours on a reopen, two
+plan rounds and a 2.5-hour rerun. Another spent 4.7M tokens over three verify rounds on an assertion inside an
+unchanged helper. Both proofs were sound. The evidence lacked the file that showed it.
+
+**Why a block and not the file.** Run against `_59`, whole files came to nine files and 186 KB for every reader;
+the blocks are 37 complete tests and 98 KB — a cycle whose proofs were mostly tests it never touched, which is the
+honest size of letting the verify see them. It sits in the block every reader shares, which D-163 caches.
+
+**Rejected.** *Flagging it at plan time*, so the author writes the assertion into the change. Deterministic and
+cheap, but it makes an author duplicate a sound existing test to satisfy the reader, and misses the helper case,
+where the test is in the patch and what it calls is not. *Telling plan authors to assert inside the change*, and
+nothing more: the same duplication, as advice. *Handing over every file a proof's test lives in*, changed or not.
+A changed file's new lines are in the patch already, and every proof's file whole in every verify reader's
+prompt is the cost D-163 worked to take out of a round. *Parsing the test's method out of its file.* That is a
+parser per language, and the framework names no language outside a profile; indentation closes a body in every
+language a profile declares.
+
+### D-167 — A criterion is shown by an assertion a test makes in the recorded run, not by a property of the run
+
+**Governs:** §4.2, §7.5, §11.2
+
+**Decision.** `CON_12` forbids two kinds of check rather than one: a criterion whose only check is a person
+observing something, as before, and one whose check is a property of the recorded run itself rather than an
+assertion a test in it makes — how long the whole run or suite took, whether a second run passes in another
+mode, with another worker count or on another machine, whether repeated runs are free of flakes. **The line is
+who could observe it.** A test that times one operation and asserts it is under two seconds, or runs the code
+with two workers and asserts the result, is admissible: the test observes it, and its outcome is recorded. The
+spec rules reader is told what the evidence is — one recorded run, each test's name and outcome, the
+assertions in the diff, coverage and the build log — so it can block such a criterion at spec. The outcome is
+not lost: it stays a wanted outcome in the intent, and the spec's `Out of scope` names who checks it outside the
+cycle. The intent interview asks, of an outcome measured over a whole run, whether the person will judge it
+themselves.
+
+**Why.** Two MarketSense cycles wrote "a full Linux run takes under 30 minutes, checked by start and finish
+times" and "a run with two workers passes". Both specs passed review clean at round 1: neither criterion is a
+person observing, so `CON_12` did not reach them. Only the plan's author found that the evidence records one
+serial run of names and outcomes and could show neither. The person was asked four times across two sessions
+and chose the same thing both times: take it out of the governed proof and judge it themselves. This encodes
+that choice and moves its discovery to the stage that can act on it cheaply.
+
+**Rejected.** *A trap in the spec skill only.* A patch, but a reader blocks only on a rule it can cite, so the
+spec stage would still pass the criterion and the plan's author would still be the one to notice. *Recording
+what these criteria need, so the evidence can show them* — run durations, or a second run. A duration depends
+on the machine: the same code passes on the factory and fails on a laptop, which is a verdict about the
+hardware rather than the change. A second run doubles the most expensive step in the cycle for a property a
+person can read once. *A spike type for work judged by a measured outcome.* One cycle called itself a spike
+and wrote keep-or-abandon into its fixed decisions by hand; one instance is not a pattern, and mining will show
+whether it recurs.
+
 ### D-166 — A mining sitting may read some of the finished cycles, and records those alone
 
 **Governs:** §15
@@ -9226,6 +9431,8 @@ builds from the same base, alone, into a pull request of its own, and the factor
 ### D-124 — The diff a verify judged is rebuilt from git, and never committed
 
 **Governs:** §4.5, §16
+
+**Amended by D-168.** The files a proof rests on outside the change are rebuilt beside the patch, the same way.
 
 **Extends D-92:** that entry took the build log and the runner's output out of git and kept `tests.json`,
 `base.sha` and the chain committed. The patch joins the log: `diff.patch` is a working file, written for the

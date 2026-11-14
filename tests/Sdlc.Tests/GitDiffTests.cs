@@ -148,6 +148,27 @@ public sealed class GitDiffTests
         Assert.IsTrue(git.SwitchToNewBranch(repo.Root, "development").IsFailed, "A branch that exists is not created twice.");
     }
 
+    [TestMethod]
+    public void The_files_holding_a_word_are_read_from_the_commit_whole_words_only_and_outside_what_is_left_out()
+    {
+        // How a verify finds a test the change never touched (D-168): from the build's commit, not the tree.
+        using var repo = Repo.Create();
+        Directory.CreateDirectory(Path.Combine(repo.Root, "tests"));
+        Directory.CreateDirectory(Path.Combine(repo.Root, ".sdlc"));
+        File.WriteAllText(Path.Combine(repo.Root, "tests", "OldTests.cs"), "public void Charts_a_stock() { }\n");
+        File.WriteAllText(Path.Combine(repo.Root, "tests", "Longer.cs"), "public void Charts_a_stock_twice() { }\n");
+        File.WriteAllText(Path.Combine(repo.Root, ".sdlc", "plan.md"), "`Charts_a_stock`\n");
+        repo.Git("add .");
+        repo.Git("commit -m tests");
+        string head = repo.Git("rev-parse HEAD").Trim();
+        File.WriteAllText(Path.Combine(repo.Root, "tests", "Uncommitted.cs"), "Charts_a_stock\n");
+
+        var git = new GitRepository();
+
+        CollectionAssert.AreEqual(new[] { "tests/OldTests.cs" }, git.FilesContaining(repo.Root, head, "Charts_a_stock", [".sdlc"]).ToArray());
+        Assert.AreEqual(0, git.FilesContaining(repo.Root, head, "Nowhere_at_all", [".sdlc"]).Count);
+    }
+
     /// <summary>A throwaway git repository with one commit in it.</summary>
     private sealed class Repo : IDisposable
     {

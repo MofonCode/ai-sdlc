@@ -77,6 +77,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc admit` | binary | in a sandbox, the git command that takes its approved cycles and the successors it wrote onto an admission branch beside it; what is not approved stays. `/sdlc:pr --plan` runs it |
 | `sdlc discard` | binary | in a sandbox, what throwing it away would lose; prints the removal once nothing worth recording is left unrecorded |
 | `sdlc tidy` | binary | the worktrees and local branches whose work has reached the integration branch, and the commands that remove them, for you to run. Deletes nothing |
+| `sdlc upgrade [<release>]` | binary | everything that moves to take a release, in order, with what each is on now: this machine's tool, the plugin, the solution's pin and what `sdlc init` writes, the factory's images, and the open cycles still pinning an older release. Answered by this machine's release, never the pinned one. Runs nothing (D-170) |
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
@@ -87,6 +88,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc cycles --claims` | binary | which files each cycle claims |
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
 | `sdlc suggestions [<id>] [--all]` | binary | what was noticed and not acted on, each concern once; `--all` adds what became of each and which cycle decided it |
+| `sdlc suggestions <id> --renumber` | binary | gives every suggestion id the cycle's ledger records twice — two branches each numbering a new one, and a merge keeping both — the next free id, the first keeping its own (D-171) |
 | `sdlc propose constraints` | binary | rules cited across three or more cycles |
 | `sdlc decisions` | binary | what this solution already settled, naming the entries over the word budget. `--for <stage> --cycle <id>` gives every headline and, in full, only the entries in the areas that stage touches |
 | `sdlc decisions show <id>` | binary | one decision in full, standing or superseded |
@@ -120,7 +122,9 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
         base.sha
         head.sha           <- the commit the build was recorded at
         diff.patch         <- not committed: rebuilt from the two commits (D-124)
+        proof-sources.txt  <- not committed: the files a proof rests on outside the change, when there are any (D-168)
         tests.json         <- the normalised summary. The only one verify reads
+        timings.json       <- how long the run took and its slowest tests. No reader is handed it (D-169)
         tests.1.trx        <- one per test project, as the runner wrote them. Not committed
         build.log          <- not committed: the pipeline publishes its own (D-92)
 ```

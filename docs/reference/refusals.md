@@ -70,6 +70,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a pipeline step the release did not write](../guides/handling-refusals.md#a-pipeline-step-the-release-did-not-write) | put the framework's step back as the release writes it, and the team's own as the base had them; change a team's step in a cycle |
 | [a dependency file that changed more than versions](../guides/handling-refusals.md#a-dependency-file-that-changed-more-than-versions) | keep only the version moves; add or remove a package in a cycle |
 | [a stack line that answers nothing](../guides/handling-refusals.md#a-stack-line-that-answers-nothing) | keep only rows the release asks about; change any other line in a cycle |
+| **The upgrade checklist — `sdlc upgrade`** | |
+| [no release to move to](../guides/handling-refusals.md#no-release-to-move-to) | name the release: `sdlc upgrade <release>` |
 | **A promotion's pull request — `sdlc promotion`** | |
 | [a branch that may not promote](../guides/handling-refusals.md#a-branch-that-may-not-promote) | open it into the integration branch as a cycle, and promote from there or from a `release/*` branch |
 | **Mining — `sdlc mine record`, and its pull request** | |

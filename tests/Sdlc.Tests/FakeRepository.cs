@@ -185,4 +185,10 @@ internal sealed class FakeRepository : IRepository
 
     public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from) =>
         Messages;
+
+    /// <summary>What <see cref="FilesContaining"/> answers, keyed by the word, whatever the commit.</summary>
+    public Dictionary<string, IReadOnlyList<string>> Containing { get; } = new(StringComparer.Ordinal);
+
+    public IReadOnlyList<string> FilesContaining(string workingDirectory, string reference, string word, IReadOnlyList<string> exclude) =>
+        Containing.TryGetValue(word, out IReadOnlyList<string>? paths) ? paths : [];
 }

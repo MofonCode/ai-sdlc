@@ -335,7 +335,8 @@ Derives testable acceptance criteria from a clean intent, producing the spec of 
 #### Output
 
 `spec.md`: numbered acceptance criteria, `Out of scope` with reasons, and `## Open`. Every criterion's
-check has to be one this solution's testing layers can actually run (`CON_12`). A criterion that holds over
+check has to be one this solution's testing layers can actually run, and an assertion a test in the
+recorded run makes rather than a property of the run itself, like its length (`CON_12`, D-167). A criterion that holds over
 several cases lists them under `Cases:`, and the list is all it covers at every later stage (`CON_23`,
 D-132). Every intent `## Open`
 entry ends in exactly one of three places — a criterion, `Out of scope` with a reason, or the spec's own
@@ -462,7 +463,8 @@ reader is handed the decisions, and so is the diff reader that judges the change
 **It probes what the platform does before planning on it** (D-129). Each behaviour the shape rests on that
 nobody in the cycle has observed is run on a throwaway `probe/<id>/<slug>` branch outside the cycle's
 worktree, and the plan's `## Assumptions proven` quotes what it showed and names the commit — or says
-`None.` Nothing on a probe branch is governed, merged or pushed. Its proof is a table, one row per case a
+`None.` Nothing on a probe branch is governed, merged or pushed. It tells the person which behaviours it will
+try before the first probe runs, so code appearing during planning is no surprise. Its proof is a table, one row per case a
 criterion states (D-130).
 
 What it runs, in order:
@@ -1111,7 +1113,7 @@ see the build. Never edits code.
 |---|---|
 | Stage | build and verify, after the build has recorded its evidence |
 | Started by | `build` on a green build, `remediate` after each pass, `batch-build`, or a person |
-| Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha` and `build.log` where there is one, all in the adjudicator's prompt |
+| Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha`, `build.log` where there is one, and `proof-sources.txt` when a proof lives in code the change did not touch, all in the adjudicator's prompt |
 | Writes | `.sdlc/cycles/<id>/verify.md` |
 
 #### Syntax

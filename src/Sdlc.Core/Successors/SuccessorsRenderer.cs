@@ -48,6 +48,12 @@ public static class SuccessorsRenderer
                     output.AppendLine(Indent + new string(' ', 12) + "succeeds " + ReadSuccessors.Describe(wait));
                 }
 
+                // A gap in the framework is the framework's to fix; mining lists it to be filed there (D-173).
+                if (standing.Successor.Framework is { } gap)
+                {
+                    output.AppendLine(Indent + new string(' ', 12) + "a gap in the framework: " + gap);
+                }
+
                 if (state == SuccessorState.Ready)
                 {
                     output.AppendLine(Indent + new string(' ', 12) + "start it: /sdlc:intent --from successor:" + standing.Successor.Slug);

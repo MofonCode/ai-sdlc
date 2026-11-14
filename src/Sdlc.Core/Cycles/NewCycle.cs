@@ -154,6 +154,16 @@ public static class NewCycle
                 "!/*/evidence/base.sha",
                 "!/*/evidence/head.sha",
             ],
+            [
+                "# The files a proof rests on outside the change, as the verify reads them. Never committed: the",
+                "# binary rebuilds them from head.sha and the plan, as it does the patch (D-168).",
+                "/*/evidence/proof-sources.txt",
+            ],
+            [
+                "# How long the run took and its slowest tests, committed so cycles can be compared once the",
+                "# results files are gone. Kept whatever the repository's own ignore file says (D-169).",
+                "!/*/evidence/timings.json",
+            ],
         ];
 
         /// <inheritdoc />

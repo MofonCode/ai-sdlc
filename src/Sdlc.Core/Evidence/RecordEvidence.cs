@@ -34,6 +34,7 @@ public static class RecordEvidence
     /// Whether a blocked <c>verify.md</c> about the run this one replaces was removed, so the next verify starts
     /// from this run (D-161).
     /// </param>
+    /// <param name="Timings">How long the run took and where the time went, when its results files say (D-169).</param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<string> Written,
@@ -42,7 +43,8 @@ public static class RecordEvidence
         FileComparison Comparison,
         IReadOnlyList<string> TestSources,
         CoverageSummary? Coverage = null,
-        bool RetiredVerdict = false);
+        bool RetiredVerdict = false,
+        RunTimings? Timings = null);
 
     /// <summary>The normalised test summary every later reader uses.</summary>
     public const string SummaryFileName = "tests.json";
@@ -304,7 +306,11 @@ public static class RecordEvidence
                 File.Delete(verdict);
             }
 
-            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage, retire));
+            RunTimings? timings = written.Contains(RunTimings.FileName)
+                ? RunTimings.Read(await File.ReadAllTextAsync(Path.Combine(cycle.EvidenceDirectory, RunTimings.FileName), cancellationToken).ConfigureAwait(false))
+                : null;
+
+            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage, retire, timings));
         }
 
         /// <summary>Whether an uncommitted path is the run's own output, named on the command line.</summary>
@@ -459,6 +465,7 @@ public static class RecordEvidence
             CancellationToken cancellationToken)
         {
             List<RecordedTest> tests = [];
+            List<(string Xml, string File)> kept = [];
 
             for (int index = 0; index < sources.Count; index++)
             {
@@ -478,9 +485,12 @@ public static class RecordEvidence
                 // read by people and cited by a verify -- a predictable name is worth more than a record
                 // of what the runner happened to call it, which the original path already says. F-38.
                 // A run with several results files numbers them, because one of them cannot be the one.
+                string keptAs = sources.Count == 1 ? TrxFileName : TrxFileNameAt(index + 1);
+                kept.Add((xml, keptAs));
+
                 await Write(
                     cycle,
-                    sources.Count == 1 ? TrxFileName : TrxFileNameAt(index + 1),
+                    keptAs,
                     xml,
                     written,
                     cancellationToken).ConfigureAwait(false);
@@ -516,6 +526,19 @@ public static class RecordEvidence
                 TestSummaryReader.Write(summary),
                 written,
                 cancellationToken).ConfigureAwait(false);
+
+            // Where the run's time went, for whoever asks next (D-169). Beside the summary rather than in it, so
+            // no reader is handed a duration to judge; a run whose files carry no times leaves none.
+            string timingsPath = Path.Combine(cycle.EvidenceDirectory, RunTimings.FileName);
+
+            if (RunTimings.FromTrx(kept) is { } timings)
+            {
+                await Write(cycle, RunTimings.FileName, RunTimings.Write(timings), written, cancellationToken).ConfigureAwait(false);
+            }
+            else if (File.Exists(timingsPath))
+            {
+                File.Delete(timingsPath);
+            }
 
             return Result.Ok(summary);
         }

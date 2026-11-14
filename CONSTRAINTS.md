@@ -211,13 +211,19 @@ decoration, and it applies to itself.
 **Applies to:** a spec, at approval.
 
 **Forbids:** a criterion whose only named check is a person observing something — on a device, in
-an app store, on hardware the suite cannot reach.
+an app store, on hardware the suite cannot reach. And a criterion whose check is a property of the
+recorded run itself rather than an assertion a test in it makes: how long the whole run or suite
+took, whether a second run passes in another mode, with another worker count or on another machine,
+whether repeated runs are free of flakes. A test that times one operation, or runs the code with two
+workers, and asserts the result is admissible: the test observes it, and its outcome is recorded.
 
 **Why:** verify derives its verdict from the recorded test results and diff, and `CON_08` forbids
-a claim with no cited evidence. A criterion with no machine-runnable check has no entry in the
-test results, so admitting one forces a choice between verify adjudicating on attestation and
-`pass` no longer meaning every criterion was met. The outcome belongs in the intent as a bound,
-verified by a person outside the cycle, where it is honest about not being governed.
+a claim with no cited evidence. The evidence is one recorded run: each test's name and outcome, the
+assertions in the diff, coverage and the build log. A criterion no test in that run is in a position
+to observe has no entry in it, so admitting one forces a choice between verify adjudicating on
+attestation and `pass` no longer meaning every criterion was met. The outcome belongs in the intent
+as a bound, and in the spec's `Out of scope` naming who checks it outside the cycle, where it is
+honest about not being governed.
 
 ## CON_13 — A plan that departs from the declared defaults says why
 
