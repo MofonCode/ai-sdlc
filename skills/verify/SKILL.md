@@ -27,7 +27,7 @@ yourself** — the cycle a skill acts on is not a guess.
 
 **This session does not adjudicate.** It has the binary write what the adjudicator reads and start it, and
 records what it returns. The session running this skill is very often the one that built the change — the
-build stage hands straight to this one, and `batch-build` runs both in one agent — and a verdict written by
+`build` playbook runs `implement` and this one in one agent — and a verdict written by
 the author of the code is the author grading their own work (D-01). It is not hypothetical: a cycle's
 building session wrote *every criterion met* over 22 criteria, and then argued one of the four its
 interrogation found back to met by refining the verdict, with no change to the code. A fresh adjudicator
@@ -138,6 +138,6 @@ Run on its own — a person asked for a verification outside *build it* — the 
   it passes or needs a person. Do not start remediating on your own; it is remediate that loops, never this
   stage.
 
-**Run by `batch-build` or `remediate`, this is the same stage with the same fresh adjudicator**, and the
-hand-back is theirs to give: inside the build's own process the batch reads the outcome and opens the pull
-request or remediates (D-178); inside remediate's loop, the loop reads the outcome and decides whether to go on.
+**Run by the `build` or `remediate` playbook, this is the same stage with the same fresh adjudicator**, and the
+hand-back is theirs to give: inside the build's own process the `build` playbook reads the outcome and opens the
+pull request or remediates (D-178); inside remediate's loop, the loop reads the outcome and decides whether to go on.

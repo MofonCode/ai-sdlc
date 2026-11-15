@@ -13,8 +13,8 @@ namespace Sdlc.Core.Cycles;
 /// </summary>
 /// <remarks>
 /// <para><strong>A file listing and a few refs decide it, so the binary does</strong> (§15.2). Three skills
-/// need the answer — <c>intent</c> opens the plan branch, <c>build</c> and <c>batch-build</c> open a build
-/// branch — and three skills working it out in prose would come out three ways.</para>
+/// need the answer — <c>intent</c> opens the plan branch, <c>build</c>, by hand and unattended, opens a build
+/// branch — and three uses working it out in prose would come out three ways.</para>
 /// <para><strong>Where each kind starts</strong> (D-83, D-85):</para>
 /// <list type="bullet">
 /// <item><c>plan</c> — from the integration branch, or from what is checked out when there is none.</item>

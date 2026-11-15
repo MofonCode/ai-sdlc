@@ -199,7 +199,8 @@ the response-factory ban has a test of its own.
 **A command is deterministic and the binary owns it; a skill needs language and an agent runs it.**
 `sdlc help` lists what a file listing and a hash can decide. Everything in `skills/README.md` is what
 cannot be decided that way. Typing a stage name at the binary — `sdlc spec <id>` — is answered rather
-than refused: it says the stage is a skill and names the invocation.
+than refused: it says the stage is a skill and names the invocation. **`sdlc build` is the one exception**: it is
+the command that starts a build's own process, and the `build` skill runs it (D-187).
 
 **Seven files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
 `constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
@@ -216,6 +217,26 @@ hook denies every agent write to all seven, by file path and by shell command al
 the text of the command, not the paths it resolves, so a commit message with a write verb beside a
 protected file's name -- *Move techstack.md into place* -- is refused too: pass it with `git commit -F`.
 
+## Skills: playbooks and single-responsibility skills
+
+**Every skill is one of two kinds** (D-186), and a new one is either or it is not finished:
+
+- **A playbook** is a step a person says, or the factory runs. It orchestrates — it names the skills it runs, in
+  order — and **does no stage work itself**: no code, no document written, no verdict. A playbook may run another
+  playbook.
+- **A single-responsibility skill** does one job — writes one document, judges one, changes the code, opens the
+  pull request — and **starts no other skill**. It hands back to whatever ran it.
+
+**Why.** One job per skill keeps each one readable and replaceable, and keeps the orchestration in one place
+instead of copied into every stage. The loop is the case that showed it: written into each stage skill (D-29), it
+was three copies of one procedure drifting apart; it is `to-plan`'s now (D-188).
+
+**Where it is held.** The table under *Two kinds of skill* in [`skills/README.md`](skills/README.md) declares each
+skill's kind and the skills each playbook runs, and two tests in `tests/Sdlc.Tests/PluginTests.cs` hold it: every
+skill on disk has a kind, and every skill a playbook runs exists and is named in the playbook. **Whether a single
+skill quietly does two jobs, or a playbook does stage work of its own, no test can read** — that is a reviewer's
+question, and the one to ask of every change to a skill.
+
 ## Keep the documentation current
 
 **This is the section to come back to.** Every document describes a surface, so each goes stale the
@@ -224,7 +245,7 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 
 | If the change | update |
 |---|---|
-| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/reference/skills.md`](docs/reference/skills.md)**, both held by the suite against disk, and the skills list's `Takes` against the skill's `argument-hint` |
+| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, its row in the kinds table, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/reference/skills.md`](docs/reference/skills.md)**, both held by the suite against disk, and the skills list's `Takes` against the skill's `argument-hint` |
 | adds or renames a concept the framework has a name for | [`docs/README.md`](docs/README.md), which defines each one once. A concept defined nowhere is one the next session works out from the code |
 | changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/reference/commands.md`](docs/reference/commands.md) |
 | adds, moves or removes data the framework keeps — a file under `.sdlc/`, a ledger — or changes which command shows it | [`docs/reference/data-views.md`](docs/reference/data-views.md), one row each: where it lives, the command that shows it, who writes it. The suite holds its commands to the binary and its rows to the files only a person writes |

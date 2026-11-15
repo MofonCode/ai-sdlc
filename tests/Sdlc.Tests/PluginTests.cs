@@ -359,15 +359,16 @@ public sealed class PluginTests
     [TestMethod]
     public void A_skill_that_keeps_a_task_list_ends_it_at_the_hand_back_and_never_calls_it_the_record()
     {
-        // Seven long skills open a task list where the host has one. Two sentences are what keep that
+        // Six long skills open a task list where the host has one. Two sentences are what keep that
         // from undoing the design: a stage's list holds nothing past its hand-back, so it never shows a
         // stage a person has not decided to run, and every list is a view rather than the record, so a
         // tick is never mistaken for a placed file or recorded evidence. Held per skill, because each
         // skill is loaded alone and a rule stated only in the index is one an agent never reads. D-80.
         //
-        // A batch has no hand-back between cycles to protect, and a different way to mislead: four
-        // outcomes shown in a tick box with two states. So their two sentences are their own.
-        string[] keeping = ["batch-build", "build", "init", "intent", "plan", "spec", "to-plan"];
+        // A run over several cycles has no hand-back between them to protect, and a different way to mislead:
+        // four outcomes shown in a tick box with two states. So its sentences are its own -- the build's own
+        // process and to-plan both keep one line per cycle (D-187 folded batch-build's list into build).
+        string[] keeping = ["build", "init", "intent", "plan", "spec", "to-plan"];
 
         List<string> found = [];
 
@@ -387,12 +388,7 @@ public sealed class PluginTests
             StringAssert.Contains(text, "carry on without one", name + " must still work on a host with no task list.");
             StringAssert.Contains(text, "**The list is a view, never the record.**", name);
 
-            if (name == "batch-build")
-            {
-                StringAssert.Contains(text, "**One line per cycle.**", name);
-                StringAssert.Contains(text, "**A tick means `passed`, and nothing else does.**", name);
-            }
-            else if (name == "to-plan")
+            if (name == "to-plan")
             {
                 StringAssert.Contains(text, "**One line per cycle.**", name);
                 StringAssert.Contains(text, "**A tick means planned, and nothing else does.**", name);
@@ -404,10 +400,15 @@ public sealed class PluginTests
 
             if (name == "build")
             {
+                StringAssert.Contains(text, "**One line per cycle**", "The build's own process lists one line per cycle.");
                 StringAssert.Contains(
                     text,
-                    "**Inside a batch, keep none.**",
-                    "Seven lines per cycle would bury the batch's one line per cycle.");
+                    "**A tick means `passed`, and nothing else does**",
+                    "A run over several cycles shows four outcomes in a tick box with two states.");
+                StringAssert.Contains(
+                    text,
+                    "The skills this playbook runs keep no list of their own",
+                    "A line per stage would bury the run's one line per cycle.");
             }
         }
 
@@ -416,11 +417,11 @@ public sealed class PluginTests
         CollectionAssert.AreEqual(
             keeping,
             found,
-            "The skills index and CONCEPT.md name these seven. An eighth is a decision, not an edit.");
+            "The skills index and CONCEPT.md name these six. A seventh is a decision, not an edit.");
 
         string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
 
-        StringAssert.Contains(index, "**Seven of them keep a task list where the host has one.**");
+        StringAssert.Contains(index, "**Six of them keep a task list where the host has one.**");
     }
 
     [TestMethod]
@@ -470,7 +471,7 @@ public sealed class PluginTests
         // the person ran. Both were steps a person had to remember that decided nothing: the build now takes the
         // plan out of its sandbox itself and runs in a process of its own. So the hand-back offers build it, says
         // it ends in a pull request, and asks for neither.
-        foreach (string name in (string[])["plan", "to-plan"])
+        foreach (string name in (string[])["to-plan"])
         {
             string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md")).ReplaceLineEndings(" ");
 
@@ -494,12 +495,13 @@ public sealed class PluginTests
     [TestMethod]
     public void The_build_skill_hands_the_cycle_to_the_binary_that_runs_it_in_a_process_of_its_own()
     {
-        // D-178, D-183. `sdlc build-run` admits the plan, prepares the build's worktree and starts the factory's
-        // path for one cycle in a process of its own, with its tools named; the skill asks the gate, runs it, and
-        // hands back the report the binary renders, so every host shows the same thing.
+        // D-178, D-183, D-187. `sdlc build` admits the plan, prepares the build's worktree and starts this playbook
+        // again in a process of its own, with its tools named; the skill asks the gate, runs it, and hands back the
+        // report the binary renders, so every host shows the same thing.
         string text = File.ReadAllText(Path.Combine(Root, "skills", "build", "SKILL.md"));
 
-        StringAssert.Contains(text, "sdlc build-run <id>", "The build does not hand the cycle to the binary.");
+        StringAssert.Contains(text, "sdlc build [<id>]", "The build does not hand the cycle to the binary.");
+        StringAssert.Contains(text, "--unattended", "The build has no mode for its own process.");
         StringAssert.Contains(text, "sdlc report", "The build does not hand back the report.");
         Assert.IsFalse(text.Contains("bypassPermissions", StringComparison.Ordinal), "The build skips the host's permission checks on a person's machine.");
     }
@@ -549,11 +551,12 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    [DataRow("intent", "Then stop. The person decides whether to take it to plan.")]
-    [DataRow("spec", "then stop. The person decides whether to move to the plan.")]
-    [DataRow("plan", "I can't place the approval myself")]
+    [DataRow("intent", "whether to carry on is their decision")]
+    [DataRow("spec", "**Run by `to-plan`, hand straight back to it**")]
+    [DataRow("plan", "**Run by `to-plan`, hand straight back to it**")]
     [DataRow("to-plan", "**It stops at the plan.**")]
-    [DataRow("build", "say so plainly and stop there.")]
+    [DataRow("to-plan", "I can't place an approval myself")]
+    [DataRow("implement", "**If the build or the tests failed, say so plainly**")]
     [DataRow("verify", "Do not start remediating on your own")]
     public void The_stage_skills_hand_back_rather_than_chaining_into_the_next_stage(string name, string handBack)
     {
@@ -563,8 +566,9 @@ public sealed class PluginTests
         // skills uses a dozen times for other reasons and so proved nothing.
         //
         // A green build goes straight on to verify (D-159): the verdict is a fresh process's, and the person had
-        // nothing to decide between the two. So build is held to the stop on a red build, and the decision after
-        // a build is verify's: open the pull request, or remediate.
+        // nothing to decide between the two. So implement is held to the stop on a red build, and the decision
+        // after a build is verify's: open the pull request, or remediate. A single-responsibility skill run by a
+        // playbook hands back to the playbook, which hands back once (D-186, D-188).
         string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md")).ReplaceLineEndings(" ");
 
         StringAssert.Contains(
@@ -612,15 +616,13 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    [DataRow("intent")]
-    [DataRow("spec")]
-    [DataRow("plan")]
+    [DataRow("interrogate")]
     [DataRow("to-plan")]
     [DataRow("steer")]
     [DataRow("next")]
     public void Every_skill_that_runs_a_round_may_run_the_binary_that_starts_its_readers(string skill)
     {
-        // A stage runs its own interrogation loop (D-29), and `sdlc round run` starts its readers (D-183). So all
+        // The loop is a playbook's (D-188, reversing D-29), and `sdlc round run` starts its readers (D-183). So all
         // a stage needs to run a round unattended is the binary -- no prompt per reader, and none an unattended
         // planning run could not answer.
         string path = Path.Combine(Root, "skills", skill, "SKILL.md");
@@ -677,6 +679,72 @@ public sealed class PluginTests
             text,
             "answered by a new adjudication, not by an edit",
             "A blocker against the verdict answered in the session is the session writing the verdict after all.");
+    }
+
+    [TestMethod]
+    public void Every_skill_declares_whether_it_is_a_playbook_or_does_one_job()
+    {
+        // D-186. A playbook orchestrates and does no stage work; a single-responsibility skill does one job and
+        // starts no other skill. The kind is declared once, in the index's table, so a skill added without one
+        // fails here rather than arriving as a third kind nobody chose.
+        Dictionary<string, (string Kind, string Runs)> kinds = Kinds();
+        HashSet<string> disk = [.. Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!)];
+
+        CollectionAssert.AreEquivalent(
+            disk.Order(StringComparer.Ordinal).ToArray(),
+            kinds.Keys.Order(StringComparer.Ordinal).ToArray(),
+            "The kinds table and the skills on disk name different skills.");
+
+        foreach ((string name, (string kind, string runs)) in kinds)
+        {
+            Assert.IsTrue(kind is "playbook" or "single", $"{name} is declared '{kind}', which is neither playbook nor single.");
+            Assert.AreEqual(kind == "single", runs == "—", $"{name}: a playbook names the skills it runs, and a single skill runs none.");
+        }
+    }
+
+    [TestMethod]
+    public void Every_skill_a_playbook_runs_exists_and_the_playbook_names_it()
+    {
+        // D-186. A playbook delegates by naming the skill whose step it runs rather than restating it, so a skill
+        // it names has to exist, and the playbook's own text has to name it -- a Runs cell the playbook never acts
+        // on is a claim nobody checked. Whether a single skill quietly does two jobs is a reader's call, not this
+        // test's: AGENTS.md says so.
+        foreach ((string name, (string kind, string runs)) in Kinds().Where(entry => entry.Value.Kind == "playbook"))
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+            foreach (string run in System.Text.RegularExpressions.Regex.Matches(runs, "`(?<name>[a-z-]+)`").Select(match => match.Groups["name"].Value))
+            {
+                Assert.IsTrue(
+                    Directory.Exists(Path.Combine(Root, "skills", run)),
+                    $"{name} runs '{run}', and there is no such skill.");
+                StringAssert.Contains(text, "`" + run + "`", $"{name} is declared to run '{run}' and never names it.");
+            }
+        }
+    }
+
+    // Each row of the kinds table in skills/README.md: the skill, its kind, and the skills it runs.
+    private static Dictionary<string, (string Kind, string Runs)> Kinds()
+    {
+        string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
+        int start = index.IndexOf("## Two kinds of skill", StringComparison.Ordinal);
+        int end = index.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+
+        Assert.IsTrue(start >= 0 && end > start, "The skills index has no 'Two kinds of skill' section.");
+
+        Dictionary<string, (string, string)> kinds = new(StringComparer.Ordinal);
+
+        foreach (System.Text.RegularExpressions.Match row in System.Text.RegularExpressions.Regex.Matches(
+            index[start..end],
+            @"^\| \[`(?<name>[a-z-]+)`\]\(#[a-z-]+\) \| (?<kind>[a-z]+) \| (?<runs>[^|]+) \|",
+            System.Text.RegularExpressions.RegexOptions.Multiline))
+        {
+            kinds.Add(row.Groups["name"].Value, (row.Groups["kind"].Value, row.Groups["runs"].Value.Trim()));
+        }
+
+        Assert.IsTrue(kinds.Count > 0, "The kinds table has no rows, so this checked nothing.");
+
+        return kinds;
     }
 
     [TestMethod]

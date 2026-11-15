@@ -191,10 +191,11 @@ every deviation, every choice the approved text left open, and every concern (D-
 request is how the person accepts what the report says; asking for a change sends the build round again into the
 same pull request.
 
-Each stage skill runs the artifact loop itself: it writes, interrogates, refines, and interrogates
-again until the round is clean, a reader reports a conflict, or the loop is stuck, then reports and hands
-back
-(D-29).
+**The loop is a playbook's, not a stage's** (D-188). `intent`, `spec` and `plan` each write their document and
+nothing else; the playbook that drives them — `to-plan` for all three, and `steer` and `next` the same way — runs
+interrogate, refine, interrogate again until the round is clean, a reader reports a conflict, or the loop is stuck,
+then reports and hands back. **A playbook orchestrates and does no stage work; a single-responsibility skill does one
+job and starts no other skill** (D-186).
 
 A stage will not run until the artifact before it has an interrogation round with no open blocking
 findings (§5.4).
@@ -905,7 +906,7 @@ and identical behaviour on every host. A person editing an artifact by hand need
 
 ### 6.4 The loop's three exits
 
-Each stage skill loops until the round is clean, a reader reports a conflict, or the loop is stuck —
+The playbook driving a document loops until the round is clean, a reader reports a conflict, or the loop is stuck (D-188) —
 with "stuck" decided by the oscillation counter rather than by the session doing the work (D-65). Every
 finding has exactly three exits:
 
@@ -1489,11 +1490,13 @@ It creates no empty directories.
 
 ## 10. Building and pull requests
 
-### 10.1 `batch-build` completes cycles
+### 10.1 `build` completes cycles
 
-A skill, executed rather than subscribed to. It collects the queued cycles, builds **and verifies** each,
-and reports. Run by a person it works from that working copy; run by the factory, from a fresh checkout of
-the integration branch (D-83, §10.5).
+**One name for the step and the command** (D-187). A person says *build it*; `/sdlc:build` checks the gate and runs
+`sdlc build [<id>]`, which starts the build's own process running `/sdlc:build <id> --unattended`. That unattended
+run is the playbook: for the cycle named, or every queued cycle when none is, it runs `implement`, then `verify`,
+then `remediate` while it converges, then the pull request, and reports. Started by `sdlc build` it works where the
+binary opened it; run by the factory, from a fresh checkout of the integration branch (D-83, §10.5).
 
 1. `sdlc cycles --queued` lists the work: approved, no verify, not abandoned, not parked (D-145), and no
    `cycle/<id>/...` branch on the remote (D-85). With one cycle named, a plan admitted only on this machine is
@@ -1539,7 +1542,7 @@ completed — §19 item 5. This section claimed otherwise for a while.
 
 **Two variables, and the framework sets them without ever reading them.** An AppHost carries two launch
 profiles, `local` and `test`, each setting `SDLC_RUN_MODE` to its own name, so the mode is what a person
-picks when they press run (D-102). `batch-build` exports `SDLC_RUN_MODE=test` and `SDLC_RUN_ID`, unique
+picks when they press run (D-102). The unattended build exports `SDLC_RUN_MODE=test` and `SDLC_RUN_ID`, unique
 per cycle invocation rather than per batch, because the collision below is between two app hosts running
 at the same time and a id shared across a run would not separate them. The scaffold's architecture suite
 fails an AppHost missing either profile, and one that starts containers without grouping them.
@@ -1595,7 +1598,7 @@ name the variables and export them, so that AppHost finds a contract instead of 
 part worth having early; a count of solutions that agree on them is the part that cannot be had early.
 The group label is in the same position — named here, implemented by the first app host that exists.
 
-This section said *"Selected by an environment variable that `batch-build` sets"* and named no
+This section said *"Selected by an environment variable that the batch build sets"* and named no
 variable, while nothing anywhere set or read one. The warning above had nothing acting on it, which is
 the shape of enforcement §2.1 is written against — and the fix is not to claim less but to say which
 half is missing.
@@ -1610,8 +1613,8 @@ choices, and concerns — **and merging it is how a person accepts them** (D-181
 
 **Build it opens the pull request itself** (D-178). Saying it is the consent: the plan's hand-back says *build
 it* implements, verifies, fixes what it can and opens the pull request, so nothing asks again before the push. The
-build runs `batch-build <id> --pr --unattended` for its one cycle, in a process of its own, after admitting the
-plan locally. A person reaches for `pr` by hand only when that could not happen — no remote when it ran, or a
+build runs `/sdlc:build <id> --unattended` for its one cycle, in a process of its own, after admitting the
+plan locally (D-187). A person reaches for `pr` by hand only when that could not happen — no remote when it ran, or a
 draft to share.
 
 **`pr --all`** sweeps every cycle whose verdict is `passed`, with five guards (D-23): it opens one only
@@ -1619,9 +1622,9 @@ for `passed`; it re-checks each cycle's gate rather than trusting the verdict; i
 push and **asks once** before the first push; a push failure on one cycle does not stop the others;
 and each pull request is reported individually.
 
-**`batch-build --pr`** composes the two, invoking `pr` per completed cycle — `pr --draft` for one that
-is `blocked` or `escalated` (D-85) — and asks before the run rather than at the end (D-24); with
-`--unattended` starting the run is that question (D-143). Plain `batch-build` never pushes.
+**The unattended build** composes the two, invoking `pr` per completed cycle — `pr --draft` for one that is
+`blocked` or `escalated` (D-85). Saying *build it*, or starting the factory's run, is the one question before the
+push (D-143, D-178). A build always ends at a pull request when there is a remote, so there is no `--pr` (D-187).
 
 **Mining is never asked at the pull request** (D-182): the hand-back suggests it after the merge, on the
 integration branch. The question D-111 put before the push was a decision nobody needed at that moment.
@@ -1670,7 +1673,7 @@ a plan approved on one machine still matches on another.
 ### 10.5 The factory
 
 **The factory finds approved plans, builds, verifies and opens pull requests — and nothing else** (D-84).
-It is `batch-build --pr` against `development`, **started by a person and never on a schedule** (D-143):
+It is `/sdlc:build --unattended` against `development` (D-187), **started by a person and never on a schedule** (D-143):
 starting it is the confirmation, one run at a time holds a lock, and the job's timeout is the spend ceiling.
 It builds the cycle the most successors wait on first, and a run started for one cycle builds that one alone.
 **It builds and nothing more**: intents and plans are a person's work with a model, and Operate is a command a
@@ -1696,8 +1699,8 @@ abandoning it is a person's decision. **It never resumes a build made before its
 and run as a fresh container per job on a machine that exists for it (D-96). It is the first thing the
 factory bundle in `factory/` holds.
 
-**What is built and what is not.** The queue, the branches, the admission check, the sitrep, `batch-build`
-and `pr` working this way, the factory's pipeline template (`sdlc factory`: the lock, the headless run,
+**What is built and what is not.** The queue, the branches, the admission check, the sitrep, the unattended
+`build` and `pr` working this way, the factory's pipeline template (`sdlc factory`: the lock, the headless run,
 the one cycle asked for) and its agent image are built, and both run a real solution's: the factory's pipeline,
 which ran nightly before D-143, and every pull request's check, on a local VM through an image of that solution's own built on
 this one.
@@ -2319,33 +2322,38 @@ It never names a step the build's queue would refuse.
 
 ## 15. Skills
 
-| Skill | Does |
-|---|---|
-| `init` | adopts the framework into a repository — §9 |
-| `intent` | interviews; classifies the change; writes `intent.md`; runs the loop |
-| `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
-| `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
-| `to-plan` | takes an intent to a plan — one cycle, or every one this branch carries — spec then plan, picking up where each stopped, and hands back once with the approvals drafted — D-142, D-158 |
-| `next` | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox, and stops at the approvals — D-147 |
-| `steer` | re-runs the chain from an existing intent and spec — §3.2 |
-| `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
-| `refine` | applies an artifact's findings to that artifact |
-| `remediate` | applies a blocked verify's unmet criteria and findings to source and tests, or a change the person asked for, and verifies again while it is working; when the passes stop converging, may take one different approach recorded as a deviation — D-159, D-179, D-181 |
-| `build` | carries an approved cycle to its pull request in a process of its own: admits the plan, builds, tests, records evidence, verifies, remediates, opens the pull request, and hands back the report — D-178 |
-| `verify` | adjudicates the build against the spec from evidence alone |
-| `batch-build` | completes the queued cycles, each on its own branch and independently, and reports the sitrep — §10.1, D-86 |
-| `resolve-conflict` | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in a fresh verify — D-86 |
-| `pr` | pushes the cycle's branch, opens the pull request into the integration branch led by the report, links the work item; the build opens its own, so a person uses this by hand, with `--plan` to admit an approved plan for the factory, or `--draft` for a build that did not pass — D-85, D-178 |
-| `draft` | prints a protected file's entry for a person to place — §5.3 |
-| `propose` | reads the record and proposes what it is missing — a `LOC_` rule from the findings, a decision from approved cycles, or a theme's roles — with the evidence — D-69, D-70, D-71 |
-| `mine` | reads the finished cycles — every one, or a few at a time — and proposes the rules, decisions, stack rows, areas and successors they settled, answering every item and recording the sitting — D-104, D-148, D-166 |
-| `status` | prints the stage panel, and the state of a cycle or of all cycles |
-| `constraints` | renders the effective constraint set, all tiers |
-| `suggestions` | lists accumulated non-blocking findings |
+**Two kinds** (D-186). A **playbook** is a step a person says, or the factory runs: it orchestrates by naming the
+skills it runs and does no stage work of its own, and it may run another playbook. A **single-responsibility skill**
+does one job and starts no other skill. [`skills/README.md`](skills/README.md) carries each skill's kind, and the suite
+holds that every skill has one and every skill a playbook names exists.
 
-**Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
-each list their own steps and nothing past the hand-back; `batch-build` and `to-plan` list one line per cycle
-(D-80).
+| Skill | Kind | Does |
+|---|---|---|
+| `init` | single | adopts the framework into a repository — §9 |
+| `intent` | single | slices a request into atomic cycles and interviews a person into each intent; writes `intent.md` and nothing else — D-188 |
+| `spec` | single | derives testable criteria from the intent; writes `spec.md` and nothing else — D-188 |
+| `plan` | single | reads the spec and the existing code; writes `plan.md` and nothing else — D-188 |
+| `to-plan` | playbook | takes an intent to a plan — one cycle, or every one this branch carries: the intent's loop if it is not clean, then `spec` and its loop, then `plan` and its loop, picking up where each stopped, and hands back once with the approvals drafted — D-142, D-158, D-188 |
+| `next` | playbook | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox through the same steps, and stops at the approvals — D-147 |
+| `steer` | playbook | carries a correction down the chain from an existing intent, editing each document and running its loop again — §3.2 |
+| `interrogate` | single | judges one artifact against the constraints in force; writes a round; never edits |
+| `refine` | single | applies an artifact's findings to that artifact |
+| `build` | playbook | *build it*: in a person's session, checks the gate, runs `sdlc build [<id>]` and hands back what it prints. Unattended — its own process, and the factory — for the cycle named or every queued one: `implement`, `verify`, `remediate` while it converges, the pull request, the report — D-178, D-187 |
+| `implement` | single | changes code and tests to do what it is handed — the plan, a verification's findings, or a person's instruction; records deviations and choices; builds, tests, commits, records the evidence — D-187 |
+| `verify` | single | adjudicates the build against the spec from evidence alone |
+| `remediate` | playbook | *fix it*: a blocked verdict, an escalation with the person's instruction, or a passed cycle with a change they asked for — `implement`, `verify`, again while it converges, within D-179's limits, then the pull request updated and the report — D-159, D-179, D-181, D-185 |
+| `resolve-conflict` | playbook | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in a fresh verify — D-86 |
+| `pr` | single | pushes the cycle's branch, opens the pull request into the integration branch led by the report, links the work item; the build opens its own, so a person uses this by hand, with `--plan` to admit an approved plan for the factory, or `--draft` for a build that did not pass — D-85, D-178 |
+| `draft` | single | prints a protected file's entry for a person to place — §5.3 |
+| `propose` | single | reads the record and proposes what it is missing — a `LOC_` rule from the findings, a decision from approved cycles, or a theme's roles — with the evidence — D-69, D-70, D-71 |
+| `mine` | single | reads the finished cycles — every one, or a few at a time — and proposes the rules, decisions, stack rows, areas and successors they settled, answering every item and recording the sitting — D-104, D-148, D-166 |
+| `status` | single | prints the stage panel, and the state of a cycle or of all cycles |
+| `constraints` | single | renders the effective constraint set, all tiers |
+| `suggestions` | single | lists accumulated non-blocking findings |
+
+**Six of them keep a task list where the host has one.** `init`, `intent`, `spec` and `plan` each list their own
+steps and nothing past the hand-back; `build` and `to-plan` list one line per cycle. `implement` keeps none: it
+runs inside the build's own process, where nobody sees a list (D-80, D-187).
 
 **A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
 `sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
@@ -2359,7 +2367,7 @@ verifies, fixes what it can and opens the pull request — because saying it is 
 **Every hand-back closes with one plain offer** of the next step, in words a person can say back — *take it
 to plan*, *build it*, and the pull request to review, or *fix it* when a build escalated — with the slash form
 beside it. The panel names the step a person takes, never `interrogate` or `refine`, which each stage runs inside
-its own loop (D-182).
+the playbook's loop (D-182, D-188).
 
 **Three documents list these, and the suite holds all three against disk.** This inventory,
 [`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
@@ -2381,11 +2389,11 @@ mechanical rather than promised.
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
 | `steer` | an intent | a cut or a join, which is `intent --reslice`'s; approved without a reopen | intent, spec, plan — whichever exist |
 | `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
-| `build` | the gate satisfied, and the plan admitted — or only in a sandbox, which `build-run` admits itself (D-184) | the gate refuses; admission refuses; the build's process cannot start | through `sdlc build-run`, in a process of its own: code, evidence, `verify.md`, `deviations.md`, the pull request, and the report it hands back (D-178) |
+| `build` | the gate satisfied, and the plan admitted — or only in a sandbox, which `sdlc build` admits itself (D-184); unattended, a queued cycle (§10.1) | the gate refuses; admission refuses; the build's process cannot start; unattended, a cycle held back by a branch on the remote is not built, and the sitrep says why | through `sdlc build`, in a process of its own: what `implement`, `verify` and `remediate` write, the pull request, and the report it hands back (D-178, D-187) |
+| `implement` | an approved plan on the build's branch; or a verification's findings, or a person's instruction, handed by a playbook | the gate refuses; uncommitted work that is not its own | code, tests, `deviations.md`, evidence (D-187) |
 | `verify` | evidence exists | no evidence | `verify.md` |
 | `remediate` | verify blocked; or escalated, with the person's instruction; or passed, with a change the person asked for before the merge (D-185) | nothing to fix and nothing asked; a second stop, or three deviations at one place, escalates it (D-179) | code, tests and `deviations.md`, in the build's worktree (`sdlc branch <id> remediate`) |
 | `pr` | verify passed; with `--plan`, the gate satisfied; with `--draft`, verify blocked or escalated | not passed; escalated — except as `--draft`; the chain broken | push, pull request |
-| `batch-build` | a queued cycle (§10.1) | nothing; a cycle held back by a branch on the remote is not built, and the sitrep says why | code, evidence and a verify document per cycle, each on its own branch. Never pushes without `--pr` (D-22) |
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
 | `constraints` | nothing | nothing | nothing; it prints |
 | `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69). With `--renumber`, the cycle's suggestions ledger: each id recorded twice takes the next free one (D-171) |
@@ -2421,7 +2429,7 @@ they print verbatim.
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `deviations <id>` | where the build bent the approved documents, and the choices it made that they left open: each entry, whether it is in force or was changed at the person's request, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, a criterion narrowed (D-156, D-179, D-180). Exits 1 when anything is |
-| `build-run <id>` | *build it*, as one command: commits the approval a person placed in the sandbox when it is uncommitted, admits the plan when it is only in a sandbox, opens the build's worktree beside the repository on `cycle/<id>/build-unattended`, starts the build's own process there — headless, its tools named, never with permission checks off, never marked as a reader — waits, and prints the report. Refuses when the build's process cannot start or ends without a report — D-178, D-183, D-184 |
+| `build [<id>]` | *build it*, the one stage the binary runs rather than names a skill for (D-187): commits the approval a person placed in the sandbox when it is uncommitted, admits the plan when it is only in a sandbox, opens the build's worktree beside the repository on `cycle/<id>/build-unattended`, starts the build's own process there — headless, its tools named, never with permission checks off, never marked as a reader — waits, and prints the report. With no id, every queued cycle in one process started from the checkout, each in a worktree of its own; a plan only in a sandbox is queued only when named. Refuses when the build's process cannot start or ends without a report — D-178, D-183, D-184, D-187 |
 | `report <id>` | the report a build ends on and the pull request leads with: deviations, choices, what was changed at the person's request, and the verification's open suggestions as concerns, in markdown. Merging the pull request accepts it (D-181) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, a new blocker without a one-line gist (D-110), a new blocker citing a rule its reader was not handed (D-174), and a new finding quoting its rule in other words (D-177). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
@@ -2443,13 +2451,13 @@ they print verbatim.
 | `cycles --claims` | which open cycles name the same files, so whose pull requests will likely conflict and in what order to merge them — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
 | `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162). `remediate` prints the path of a worktree on the cycle's build branch, opening it from the local or the remote branch when absent (D-185) |
-| `factory` | writes the factory's pipeline for the recorded platform: `batch-build --pr --unattended` against the integration branch, started by a person and never on a schedule, with one optional cycle to build alone, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84, D-143) |
+| `factory` | writes the factory's pipeline for the recorded platform: `/sdlc:build --unattended` against the integration branch (D-187), started by a person and never on a schedule, with one optional cycle to build alone, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84, D-143) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id>` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
-| `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144). `build-run` runs it for *build it*, and `/sdlc:pr --plan` for the factory (D-184) |
+| `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144). `build` runs it for *build it*, and `/sdlc:pr --plan` for the factory (D-184) |
 | `park <id>` | the plan-time claim check: compares the cycle's plan with every plan not yet built; a file only another creates parks it, writing `parked.md` with what it waits on and the commit it was planned against, and a file two plans name is reported (D-145) |
 | `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
@@ -2492,7 +2500,8 @@ this document opens by naming.
 
 **Typing a stage name is answered rather than refused.** The panel ends with the literal next command,
 and for a stage that is a skill — `sdlc spec <id>` — the binary cannot do the work. So it says what the
-stage is and names the invocation. A tool must never send somebody somewhere it does not go: the
+stage is and names the invocation. **`build` is the one exception** (D-187): `sdlc build` starts the build's own
+process, so the step a person says and the command they type share one name. A tool must never send somebody somewhere it does not go: the
 alternative is the most-read output in the plugin pointing at "Unknown command", and a person concluding
 the install is broken.
 
@@ -2594,13 +2603,13 @@ chronologically and say when the cycle opened. Allocation needs no coordination 
 The id is load-bearing in the branch name, the directory path, and every cross-reference, so it is
 fixed at allocation and never rewritten.
 
-Artifacts live on the cycle branch. `batch-build` reads approved cycles locally and completes them
+Artifacts live on the cycle branch. The unattended `build` reads approved cycles locally and completes them
 before anything is pushed, so the gate is passed before code exists.
 
 Finding work **is** a directory listing: `CycleIndex` globs `.sdlc/cycles/`, deliberately, because
 *"a manifest is a second place the truth lives, and the one that goes stale is always the one a tool
 trusts."* Nothing records a branch or a work item — a branch is derived from the id, and no cycle has
-needed a work item yet. Resumable state for a long `batch-build` run is genuinely absent and is in
+needed a work item yet. Resumable state for a long unattended `build` run is genuinely absent and is in
 §19.
 
 ### 16.1 Abandoning a cycle
@@ -2755,8 +2764,8 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    it. It is cheap only in the sense that it breaks no rule: a delta needs the target branch's own
    coverage to compare against, so it is a second run or a stored artifact rather than one more step
    in the pull-request workflow. Worth doing when somebody wants it; dishonest to describe as shipped.
-5. **Resumable `batch-build` state.** §10.1 said a local cycle index persists state so a run can be
-   resumed, and §16 said a cycle index exists so `batch-build` does not glob directories. Neither is
+5. **Resumable unattended `build` state.** §10.1 said a local cycle index persists state so a run can be
+   resumed, and §16 said a cycle index exists so the batch build did not glob directories. Neither is
    built, and the second is the opposite of what `CycleIndex` does deliberately — it globs, because *"a
    manifest is a second place the truth lives, and the one that goes stale is always the one a tool
    trusts."* Finding work is a directory listing and should stay one. What is genuinely absent is
@@ -3206,6 +3215,8 @@ round *judged*, only what the files are now.
 
 **Governs:** §10.1
 
+**Superseded in part by D-187.** `batch-build` is gone: completing cycles is the unattended `/sdlc:build`'s. What stands: building means verifying, and `pr` is what pushes.
+
 **Why.** One word carried two meanings. And "successes" implies success is determined, so
 `batch-build` must **verify** as well as build — a batch that cannot say which cycles succeeded cannot
 open pull requests for the ones that did.
@@ -3232,6 +3243,8 @@ reversible but **outward-facing** — and printing the list also covers the surp
 ### D-24 — `batch-build --pr` composes the two; plain `batch-build` stops at completion
 
 **Governs:** §10.3
+
+**Superseded in part by D-187.** There is no `batch-build` and no `--pr`: a build always ends at a pull request when there is a remote.
 
 **Amended by D-178.** For one cycle, saying *build it* is the confirmation: the hand-back before it says the build
 opens the pull request.
@@ -3335,6 +3348,8 @@ remains open.
 ### D-29 — The interrogate-refine loop is a mode of each stage skill
 
 **Governs:** §3
+
+**Reversed by D-188.** The loop is the playbook's that drives a stage; the stage writes its document and nothing else.
 
 **Why.** `D-02` requires a clean round to advance, so the stage that must reach one is the stage that
 should run the loop. And `D-16` is satisfied, because the loop stops on convergence and **hands back
@@ -6573,7 +6588,9 @@ for something that breaks nothing.
 
 **Governs:** §15
 
-**Amended by D-142 and D-158.** `to-plan` keeps one line per cycle, so seven skills keep a task list, not six.
+**Amended by D-187.** `implement` keeps the build's own step list and `build` one line per cycle, where `batch-build` did; still seven.
+
+**Amended by D-142, D-158 and D-187.** `to-plan` keeps one line per cycle; the build's list moved to the `build` playbook, one line per cycle, and `implement`, which runs where nobody sees a list, keeps none — so six skills keep a task list.
 
 **Decision.** `init`, `intent`, `spec`, `plan` and `build` each tell the agent to open a task list of
 that skill's own steps, if its host has one, and to mark each done as it finishes. The list holds
@@ -6744,6 +6761,8 @@ it, and teams name it differently. A person's file holds it because it decides w
 ### D-84 — The factory automates four things — finding approved plans, building, verifying, opening pull requests — and nothing else
 
 **Governs:** §10.5
+
+**Amended by D-187.** The factory runs `/sdlc:build --unattended`, not `batch-build --pr --unattended`.
 
 **Superseded in part by D-143.** The factory is no longer run on a schedule: a person starts every run, and
 starting it is the confirmation D-24 asks for. What stands: the four things it automates, and its refusal to
@@ -7479,6 +7498,8 @@ the cost of waiting. The method changes need no threshold: they are guidance for
 
 **Governs:** §14
 
+**Amended by D-187.** `sdlc build` is now a command, so the panel's `sdlc build <id>` runs where the binary cannot tell the host.
+
 **Decision.** The Next line prints a stage — a skill — in the host's own form when the binary can tell
 which host it runs in, and the host-neutral `sdlc <stage>` when it cannot. Each host's row carries both
 facts: how a stage is invoked, and the environment variable the host sets in its shells. Claude Code has
@@ -7504,6 +7525,87 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-188 — The loop leaves the stage skills: a playbook runs interrogate and refine, and a stage writes its document
+
+**Governs:** §3, §6.4, §15, §15.1
+
+**Reverses D-29.** **Amends D-142 and D-158:** `to-plan` runs the loops it used to ask each stage to run.
+
+**Decision.** `intent`, `spec` and `plan` each write their document and nothing else. The interrogate → refine →
+interrogate loop is the playbook's that drives them: `to-plan` runs the intent's loop when it is not clean, then `spec`
+and its loop, then `plan` and its loop, and hands back once; `steer` and `next` run loops through the same steps.
+`intent` keeps the slicing and the interview, because turning a request into intents is one job. The exits are
+unchanged (§6.4): clean, a reader reporting a conflict, or the oscillation counter calling it stuck (D-65).
+
+**Why.** D-186 makes a stage a single-responsibility skill, and a skill that writes a document, judges it through
+another skill and edits it through a third is three jobs and an orchestration. D-29 put the loop in the stage because
+the stage that must reach a clean round seemed the one to run it — but every stage ran the same loop, so the same
+orchestration was written three times and drifted three ways, and the person-facing playbook (`to-plan`) already
+sequenced the stages around it.
+
+**Rejected.** D-29's own objection, *a second way to invoke one loop*: there is still one way, the playbook's, and the
+binary scripts the round (`sdlc round prompt`, `run`, `collect` — D-117, D-183), so the loop is a few lines of
+orchestration that names the skills it runs rather than a second implementation of anything. *A loop skill of its
+own*: an orchestration with no step a person says is a playbook nobody would call. *Leaving the loop in the stages and
+the principle with an exception*: the exception would be the three most-used skills.
+
+### D-187 — One name for building: *build it* is `/sdlc:build` and `sdlc build`; `implement` does the work; `batch-build` and `build-run` are gone
+
+**Governs:** §3, §10.1, §10.3, §10.5, §14, §15, §15.1, §15.2, §16
+
+**Amends D-178, D-183 and D-184:** `sdlc build-run <id>` is now `sdlc build [<id>]`, and the build's process runs
+`/sdlc:build <id> --unattended`. **Supersedes D-22's and D-24's `batch-build`:** its work is the unattended build's.
+**Amends D-84:** the factory runs `/sdlc:build --unattended`. **Amends the stage-name rule (§15.2):** `build` is the
+one stage the binary runs rather than answers.
+
+**Decision.**
+
+| Say | Name | Kind | Does |
+|---|---|---|---|
+| *build it* | `/sdlc:build [<id>] [--unattended]` | playbook | in a person's session: checks the gate, runs `sdlc build [<id>]`, hands back what it prints. Unattended — its own process, and the factory — for the cycle named, or every queued cycle: `implement`, `verify`, `remediate` while it converges, the pull request, the report |
+| — | `sdlc build [<id>]` | command | commits the placed approval, admits, opens the build's worktree, and starts `/sdlc:build <id> --unattended` there with its tools named. With no id, every queued cycle in one process started from the checkout, each in a worktree of its own; a plan only in a sandbox is queued only when named |
+| — | `/sdlc:implement` | single | changes code and tests to do what it is handed — the plan, a verification's findings, or a person's instruction; records deviations and choices; builds, tests, commits, records the evidence |
+| *fix it* | `/sdlc:remediate` | playbook | the name kept: a blocked verdict, an escalation with the person's instruction, or a passed cycle with a change asked for — `implement`, `verify`, again while it converges, the pull request updated, the report |
+
+There is no `--pr`: a build always ends at a pull request when there is a remote. The skill count stays twenty-one.
+
+A build of one cycle in a slicing starts from `slices/sandbox-<id>/plan`, so its pull request carries the siblings'
+approved planning paperwork with its code. That is admission, not change — what `sdlc admit` composed is what the gate
+let through — and nothing judges it as this change: the evidence patch and the declared-files comparison both leave
+`.sdlc/` out. Merging it admits the siblings, as their admission's own pull request would have.
+
+**Why.** Three things said *build* and did different jobs — the person's step, the command that started its process,
+and the playbook inside it — so a person met a second word for one thing at every turn. One playbook named for the
+step, one command sharing its name, and one single-responsibility skill for the work leave nothing to translate.
+`remediate` stays because it is the word the framework and its record already use, and the step a person says, *fix
+it*, is the hand-back's.
+
+**Rejected.** *`/sdlc:fix` for remediate*: one fewer word to learn, against a name every guide, finding and decision
+already uses; the person chose to keep it. *Keeping `batch-build` as the many-cycle form*: one cycle or every cycle is
+whether an id is named, not a second skill. *An alias for the old names*: a second way in, and the release is the point
+at which every solution moves to the new ones.
+
+### D-186 — Skills are playbooks or single-responsibility skills
+
+**Governs:** §3, §15
+
+**Decision.** A **playbook** is a step a person says, or the factory runs: it orchestrates by naming the skills it
+runs, does no stage work of its own, and may run another playbook. A **single-responsibility skill** does one job and
+starts no other skill. Playbooks: `to-plan`, `build`, `remediate`, `steer`, `next`, `resolve-conflict`.
+Single: `init`, `intent`, `spec`, `plan`, `implement`, `interrogate`, `refine`, `verify`, `pr`, `draft`, `status`,
+`constraints`, `suggestions`, `propose`, `mine`. Where it is held: this decision; the kinds in §15 and in
+`skills/README.md`, each skill's row; AGENTS.md, as how the skills are written; and the suite, which holds that every
+skill declares a kind and that every skill a playbook names exists.
+
+**Why.** A skill holding two contexts is read whole by an agent that needs half of it, and its halves drift: the build
+skill carried a person's playbook and the build's own work in one file, and the stage skills each carried the same
+loop. One job per skill keeps each the keeper of its responsibility, and a playbook that names what it runs rather than
+restating it is the one place the order lives.
+
+**Rejected.** *A rule in `CONSTRAINTS.md`*: a constraint judges what a governed solution writes, and this is how the
+framework's own skills are written. *A test that a single skill names no other skill*: a hand-back offering the next
+step names one legitimately, so no test can read the difference between naming and running; a reviewer reads it.
 
 ### D-185 — Remediation has three ways in: blocked, escalated with a person's instruction, and passed with a change asked for
 
@@ -7540,6 +7642,8 @@ back through build it.* Its queue takes a cycle with no verdict, and that is rig
 
 **Governs:** §3.1, §10.1, §15.1, §15.2
 
+**Amended by D-187.** The command is `sdlc build [<id>]`, and the process it starts runs `/sdlc:build <id> --unattended`.
+
 **Amends D-178:** how *build it* reaches the build and where it runs. **Amends D-144:** for *build it*, the binary runs
 the admission it used to print.
 
@@ -7571,6 +7675,8 @@ Nothing about a person's own build needs the remote until the pull request opens
 ### D-183 — The binary starts every process the chain runs, its tools named, never with permission checks off
 
 **Governs:** §2.5, §12, §15.2
+
+**Amended by D-187.** `build-run` is now `sdlc build`.
 
 **Amends D-117, D-118 and D-163:** the binary starts the readers it writes prompts for. **Amends D-178:** the build
 skill no longer launches the build's process.

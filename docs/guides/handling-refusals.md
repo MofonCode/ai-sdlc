@@ -601,9 +601,9 @@ place, and create the branch. Otherwise run adoption without the option.
 
 ---
 
-## `sdlc build-run` — when the build cannot start
+## `sdlc build` — when the build cannot start
 
-`/sdlc:build` asks the gate, then hands the cycle to `sdlc build-run` (D-178), which commits a placed approval,
+`/sdlc:build` asks the gate, then hands the cycle to `sdlc build` (D-178, D-187), which commits a placed approval,
 admits the plan, prepares the build's worktree and starts the build in a process of its own. The gate's refusals
 are above; these are the binary's own.
 
@@ -620,7 +620,7 @@ instead: a builder that sat through the planning is the separation the process e
 The build's process stopped before it reached an outcome: the toolchain failed, or the run was stopped. Nothing
 was opened, and `sdlc status <id>` says where the cycle got to.
 
-**Next:** read what `build-run` printed, fix the cause, and say *build it* again.
+**Next:** read what `sdlc build` printed, fix the cause, and say *build it* again.
 
 ## `sdlc round run` — when a reader cannot run
 
@@ -722,7 +722,7 @@ build has not recorded any.
 The verdict is `blocked`. Not "no failures recorded" — an actual pass is required, because the verdict is
 the only thing standing between unattended building and work presented as ready for review.
 
-**Next:** `/sdlc:remediate <id>`. The build, and a batch run with `--pr`, open a **draft** pull request for it instead
+**Next:** `/sdlc:remediate <id>`. The build opens a **draft** pull request for it instead
 (D-85): marked not ready, its check red, so the attempt is somewhere a person looks rather than built again
 the next night. Remedy it on that branch and mark the draft ready once it passes.
 

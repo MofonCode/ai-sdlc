@@ -63,13 +63,14 @@ which ones run, is `../mechanisms/perspectives.md`.
 cycle the work turns into opens beside the first, so one session sees all of them. Your own checkout is never
 switched: the cycle's documents are written in the sandbox, so work on it from that folder.
 
-The intent is then checked against the rules in a fresh process and revised until a round raises nothing
-blocking, and **it hands back rather than going on** — deciding the intent is right is yours. Read it.
+**It writes the intent and hands back** — deciding the intent is right is yours. Read it. It is checked when you
+take it to plan, before anything is written below it (D-188).
 
 ## 2. Take it to plan
 
-Say *take it to plan*, or `/sdlc:to-plan`. It writes the spec, then the plan, each checked by its own readers
-in fresh processes and revised until clean, and hands back **once** (D-158). Given several cycles, it takes
+Say *take it to plan*, or `/sdlc:to-plan`. It checks the intent first, then writes the spec, then the plan —
+each checked by its own readers in fresh processes and revised until clean — and hands back **once** (D-158,
+D-188). Given several cycles, it takes
 each in turn; one that needs you stops alone and the rest carry on. Interrupted part way, it picks a cycle up
 where it stopped.
 
@@ -160,7 +161,7 @@ person accepts it, and `verify-chain`, `sdlc status` and the sitrep all say no p
 
 Say *build it*, or `/sdlc:build`. **It goes all the way to the pull request** (D-178), and it is the first step
 you are not expected to watch. It asks the gate first and stops if the gate refuses — `handling-refusals.md`
-lists every reason with its remedy. Then it runs one command, `sdlc build-run <id>`, and the binary does the
+lists every reason with its remedy. Then it runs one command, `sdlc build <id>`, and the binary does the
 rest:
 
 1. **It records your approval and takes the plan out of the sandbox.** If the approval you renamed into place is
@@ -254,8 +255,8 @@ the rules cited in three or more distinct cycles. It proposes and never places; 
 takes all of it: it starts each ready successor with a short interview, takes back each parked cycle, plans
 them in one sandbox, and stops at the approvals (D-147). `sdlc backlog` lists what is waiting.
 
-**With several cycles approved**, `/sdlc:batch-build --pr` builds, verifies and remediates them all, each on
-its own branch, opens a pull request for each, and ends with the sitrep:
+**With several cycles approved**, *build it* with no id — `/sdlc:build` — builds, verifies and remediates them
+all, each on its own branch, opens a pull request for each, and ends with the sitrep:
 
 ```pwsh
 sdlc sitrep
@@ -263,7 +264,7 @@ sdlc sitrep
 
 It is the morning's page: what is ready to merge and in what order, which pull requests are expected to
 conflict, what needs a person, and what is waiting and going stale. Everything unattended rests on the
-remediation bound, so the first batch runs are worth watching.
+remediation bound, so the first runs over several cycles are worth watching.
 
 ## Where to go next
 

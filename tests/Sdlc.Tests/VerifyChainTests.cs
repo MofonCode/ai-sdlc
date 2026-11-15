@@ -18,6 +18,22 @@ namespace Sdlc.Tests;
 public sealed class VerifyChainTests
 {
     [TestMethod]
+    public void A_build_from_a_slicings_admission_carries_its_siblings_plans_and_nothing_judges_them_as_its_change()
+    {
+        // A build of one cycle in a slicing starts from slices/sandbox-<id>/plan, which holds every approved cycle the
+        // sandbox admitted, so its pull request carries the siblings' planning paperwork too. That is admission, not
+        // change: what admit composed is what the gate let through, and the siblings' documents are each judged by
+        // their own cycle. The change's readers and the declared-files comparison never see them, because both leave
+        // .sdlc/ out (D-187).
+        Assert.IsTrue(CycleId.TryParse("20260929_1500_00", out CycleId? parsed));
+        CycleId sibling = parsed.Value;
+        string plan = ".sdlc/cycles/" + sibling + "/plan.md";
+
+        Assert.IsTrue(Sdlc.Core.Evidence.DeclaredFiles.IsFrameworkOwned(plan), "A sibling's plan would be judged as this change.");
+        Assert.IsTrue(VerifyChain.AdmitsAsPlan(sibling, [plan, ".sdlc/cycles/" + sibling + "/approval.md"]), "A sibling's paperwork is not read as planning.");
+    }
+
+    [TestMethod]
     public async Task A_complete_approved_cycle_holds()
     {
         using CycleWorkspace workspace = Sound();

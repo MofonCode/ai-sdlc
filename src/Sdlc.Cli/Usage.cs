@@ -114,16 +114,20 @@ internal static class Usage
                                      one its pull request is from -- opening it when absent, from
                                      the local branch or the remote's. Where remediation works, on
                                      a blocked, escalated or passed cycle (D-185).
-            build-run <id>           Build it, as one command (D-178, D-184): commits the approval a
-                                     person placed in the sandbox if it is uncommitted, admits the
-                                     plan when it is only in a sandbox, opens the build's worktree
-                                     beside the repository, starts the build's own process there --
-                                     headless, its tools named, never with permission checks off,
-                                     never marked as a reader -- waits, and prints the report.
-                                     Exits 0 on a pass, 1 on blocked or escalated. Refuses when the
-                                     build's process cannot start, or ends without a report.
+            build [<id>]             Build it (D-178, D-184, D-187): commits the approval a person
+                                     placed in the sandbox if it is uncommitted, admits the plan
+                                     when it is only in a sandbox, opens the build's worktree beside
+                                     the repository, starts the build's own process there running
+                                     /sdlc:build <id> --unattended -- headless, its tools named,
+                                     never with permission checks off, never marked as a reader --
+                                     waits, and prints the report. Exits 0 on a pass, 1 on blocked
+                                     or escalated. With no id, every queued cycle in one process
+                                     started from here, each in a worktree of its own; a plan only
+                                     in a sandbox is queued only when named. Refuses when the
+                                     build's process cannot start, or ends without a report. The
+                                     one stage this binary runs rather than names a skill for.
             factory                  Write the factory's pipeline for the recorded platform: a run
-                                     a person starts, never a schedule, of batch-build --pr
+                                     a person starts, never a schedule, of /sdlc:build
                                      --unattended against the integration branch -- every queued
                                      cycle, or the one named as its input -- one run at a time,
                                      six hours at most, proving the hooks refuse before it builds,
@@ -193,8 +197,8 @@ internal static class Usage
                                      outside a sandbox, with nothing approved, over uncommitted
                                      changes in an approved cycle, and a plan that needs a file
                                      only a sibling's plan creates. Abandoned cycles go with it as
-                                     records. /sdlc:build runs it through 'build-run', and
-                                     /sdlc:pr --plan runs it.
+                                     records. 'sdlc build <id>' runs it, and /sdlc:pr --plan
+                                     runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and
@@ -621,10 +625,12 @@ internal static class Usage
             trusting one.
 
         The stages
-            Writing an intent, a spec or a plan, judging one against the rules, building, verifying
-            and opening the pull request are skills rather than commands: they need language, so your
-            agent runs them and this binary checks what they produced. Typing one here says so, and
-            names the invocation. 'sdlc help' lists what the binary does on its own.
+            Writing an intent, a spec or a plan, judging one against the rules, implementing,
+            verifying and opening the pull request are skills rather than commands: they need
+            language, so your agent runs them and this binary checks what they produced. Typing one
+            here says so, and names the invocation. 'build' is the exception: 'sdlc build' starts the
+            build's own process, which runs those skills. 'sdlc help' lists what the binary does on
+            its own.
 
         Exit codes
             0  the command did what was asked

@@ -52,14 +52,15 @@ and `sdlc init`, plus the pull-request check, rather than a flag in a skill's fr
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
 the hook actually denies today, and what it does not.
 
-**Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
-each list their own steps and nothing past the hand-back, so the list never shows a stage a person
-has not yet decided to run. `batch-build` lists one line per cycle, ticked only when that cycle
-passed, `to-plan` one per cycle ticked when its plan is clean, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
-of a session and never the record — what is done is what is on disk and what `sdlc doctor`, `sdlc
-status` and `sdlc cycles --pr-ready` report — and a host without a task list loses nothing, because
-no step depends on one. `../CONCEPT.md` D-80 has why a stage's list stops at the hand-back, why the
-batch's is shaped differently, and why the other fourteen have none.
+**Six of them keep a task list where the host has one.** `init`, `intent`, `spec` and `plan` each list
+their own steps and nothing past the hand-back, so the list never shows a stage a person has not yet decided
+to run. `build` lists its two steps in a person's session, and one line per cycle in its own process, ticked
+only when that cycle passed; `to-plan` one per cycle, ticked when its plan is clean. The skills a playbook runs
+keep none of their own while it runs them. Every one is the agent's view of a session and never the record —
+what is done is what is on disk and what `sdlc doctor`, `sdlc status` and `sdlc cycles --pr-ready` report — and
+a host without a task list loses nothing, because no step depends on one. `../CONCEPT.md` D-80 has why a stage's
+list stops at the hand-back, why a run over several cycles is shaped differently, and why the other fifteen
+have none.
 
 **Two words are kept apart throughout.** A **refusal** is a command or a hook declining to proceed —
 `sdlc gate`, `sdlc pr-ready`, a stage skill's early check, the hook denying a write. A **blocker** is a
@@ -67,6 +68,44 @@ blocking finding on an intent, spec or plan, or a `blocked` verification. A bloc
 refusal further on, but the two are answered in different places: a refusal in
 [handling refusals](../docs/guides/handling-refusals.md), a blocker in
 [handling blockers](../docs/guides/handling-blockers.md).
+
+## Two kinds of skill
+
+**A playbook** is a step a person says, or the factory runs. It orchestrates: it names the skills it runs, in
+order, and does no stage work itself. **A single-responsibility skill** does one job — writes one document,
+judges one, changes the code, opens the pull request — and starts no other skill. A playbook may run another
+playbook (D-186).
+
+Why: one job per skill keeps each one readable and replaceable, and the orchestration lives in one place rather
+than copied into every stage. The interrogate-and-refine loop is the clearest case — it used to be a mode of each
+stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, the spec and the plan (D-188).
+
+| Skill | Kind | Runs |
+|---|---|---|
+| [`init`](#init) | single | — |
+| [`intent`](#intent) | single | — |
+| [`spec`](#spec) | single | — |
+| [`plan`](#plan) | single | — |
+| [`to-plan`](#to-plan) | playbook | `spec`, `plan`, `interrogate`, `refine`, `steer` |
+| [`next`](#next) | playbook | `intent`, `to-plan` |
+| [`interrogate`](#interrogate) | single | — |
+| [`refine`](#refine) | single | — |
+| [`steer`](#steer) | playbook | `interrogate`, `refine` |
+| [`draft`](#draft) | single | — |
+| [`build`](#build) | playbook | `implement`, `verify`, `remediate`, `pr` |
+| [`implement`](#implement) | single | — |
+| [`verify`](#verify) | single | — |
+| [`remediate`](#remediate) | playbook | `implement`, `verify`, `pr` |
+| [`pr`](#pr) | single | — |
+| [`resolve-conflict`](#resolve-conflict) | playbook | `verify`, `remediate` |
+| [`status`](#status) | single | — |
+| [`constraints`](#constraints) | single | — |
+| [`suggestions`](#suggestions) | single | — |
+| [`propose`](#propose) | single | — |
+| [`mine`](#mine) | single | — |
+
+The suite holds that every skill on disk is in this table with a kind, and that every skill a playbook runs exists
+and is named in the playbook. Whether a single skill quietly does two jobs no test can read; a reviewer does.
 
 ---
 
@@ -81,6 +120,7 @@ hands over the command.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | adoption, once per repository — and again later to refresh what the framework owns, or to add a platform once a remote exists |
 | Started by | a person. **The hook denies an agent the `sdlc init` command** |
 | Reads | the repository: whether it is a git repository, whether `.sdlc/` already exists, and whether it holds code |
@@ -211,10 +251,11 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | the planning chain, first. It opens the cycle |
 | Started by | a person: somebody wants to start new work, reports a problem, or has an idea to turn into something the process can carry |
 | Reads | the constraints in force and the conversation |
-| Writes | `.sdlc/cycles/<id>/intent.md`, and the findings rounds the loop produces; for a slicing, one cycle per piece that needs nothing unmerged and `.sdlc/successors/<slug>.md` for each that does |
+| Writes | `.sdlc/cycles/<id>/intent.md`; for a slicing, one cycle per piece that needs nothing unmerged and `.sdlc/successors/<slug>.md` for each that does |
 
 #### Syntax
 
@@ -293,20 +334,16 @@ What it runs, in order:
    solution is asked what its absence causes
 5. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
    means small in scope or plain in appearance
-6. writes the intent, then runs the interrogate-refine loop itself until a round raises nothing blocking,
-   a reader reports a conflict, or the panel's `Loop` line says it is stuck on one rule
-7. asks once which open suggestions to take in, decline or leave — from a file under `.sdlc/reports/`
-   that groups every one by theme, answered in free text and read back — and runs `/sdlc:steer` with
-   what the person named; skipped when nothing is open
-8. shows `sdlc status <id> --stage intent --brief` verbatim and stops
+6. writes the intent, reading it once for every claim stated as fact before anybody judges it
+7. shows `sdlc status <id> --stage intent --brief` verbatim and stops
 
-**It does not chain into the spec.** That hand-back is the human-in-the-loop point, and a skill that
-continued would remove it while appearing helpful. It does not cap the rounds: a loop that is converging
-can take eleven.
+**It writes the intent and stops** (D-186, D-188). Checking it is `to-plan`'s, which runs the intent's loop
+before it writes anything below it. That hand-back is the human-in-the-loop point, and a skill that continued
+would remove it while appearing helpful.
 
 #### See also
 
-- [`spec`](#spec) — the next stage, when you are satisfied with the intent
+- [`to-plan`](#to-plan) — the next step, when you are satisfied with the intent: it checks it first
 - [`interrogate`](#interrogate), [`refine`](#refine)
 - [Running a cycle](../docs/guides/running-a-cycle.md), §1
 
@@ -316,6 +353,7 @@ Derives testable acceptance criteria from a clean intent, producing the spec of 
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | the planning chain, after `intent` |
 | Started by | a person, once the intent has a clean interrogation round |
 | Reads | `intent.md` as its only input: not the request that started the cycle, not the conversation, not the codebase for requirements |
@@ -377,11 +415,9 @@ What it runs, in order:
    `feature change` with a criterion for each `Must not change` item
 4. disposes of every entry under the intent's `## Open`
 5. writes the spec — a perspective's item only where the intent asks for it, the rest named in `Out of
-   scope` — and runs the same interrogate-refine loop as the intent
-6. asks once which open suggestions to take in, decline or leave — from a file under `.sdlc/reports/`
-   that groups every one by theme, answered in free text and read back — and runs `/sdlc:steer` with
-   what the person named; skipped when nothing is open
-7. shows `sdlc status <id> --stage spec --brief` verbatim and stops
+   scope`
+6. hands back to `to-plan`, which checks it with its loop; run on its own, shows `sdlc status <id> --stage
+   spec --brief` verbatim and stops
 
 #### See also
 
@@ -396,6 +432,7 @@ last document before a person approves.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | the planning chain, after `spec`. It is the last document written before a person approves, so it is the one a reviewer reads most closely |
 | Started by | a person, once the spec has a clean interrogation round |
 | Reads | `spec.md`, the codebase, the declared stack, the decision record and the theme |
@@ -478,16 +515,13 @@ What it runs, in order:
    argues each departure, writes a proof row for every case of every criterion and chooses the tier —
    `local`, `contract` or `data`, by how reversible the change is
 5. writes the plan — a perspective's item that would need a criterion the spec lacks goes under `Risk`,
-   not into the proof — and runs the interrogate-refine loop
-6. asks once which open suggestions to take in, decline or leave — from a file under `.sdlc/reports/`
-   that groups every one by theme, answered in free text and read back — and runs `/sdlc:steer` with
-   what the person named; skipped when nothing is open
-7. shows `sdlc status <id> --stage plan --brief` and `sdlc gate <id>` — which refuses, because nobody has
-   approved yet — and explains that approving is the person's act
+   not into the proof
+6. hands back to `to-plan`, which checks it with its loop, runs `sdlc park`, and drafts the approval; run on
+   its own, shows `sdlc status <id> --stage plan --brief` verbatim and stops
 
 #### See also
 
-- [`draft`](#draft) — the plan skill drafts the approval itself; a person approves by renaming it into place, then says *build it*
+- [`to-plan`](#to-plan) — what runs it, checks it and drafts the approval; a person approves by renaming it into place, then says *build it*
 - [`interrogate`](#interrogate), [`steer`](#steer)
 - [Declaring the stack](../docs/guides/declaring-the-stack.md)
 - [Running a cycle](../docs/guides/running-a-cycle.md), §2
@@ -496,13 +530,15 @@ What it runs, in order:
 
 ### `to-plan`
 
-Takes an intent to a plan — one cycle, or every one this branch carries — each cycle's spec, then its plan,
-each with its own loop, picking a cycle up wherever its planning stopped. It hands back once, with every
+Takes an intent to a plan — one cycle, or every one this branch carries — checking the intent, then writing each
+cycle's spec and its plan, and running **the loop** on each, picking a cycle up wherever its planning stopped.
+**The one place the interrogate-and-refine loop lives** (D-188). It hands back once, with every
 panel, one question about suggestions, and the approvals drafted (D-142, D-158). **It is the step a person
 takes after an intent**: they never need to run `spec`, `plan`, `interrogate` or `refine` themselves.
 
 | | |
 |---|---|
+| Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | the planning chain, from an intent to a plan a person can approve |
 | Started by | a person happy with their intent, who says *take it to plan* |
 | Reads | `sdlc cycles --here --for to-plan` for the work, or the cycle named; then what `spec` and `plan` read, per cycle |
@@ -555,9 +591,9 @@ the same one taken in after the plan; one question across every cycle is the tra
 
 #### See also
 
-- [`spec`](#spec), [`plan`](#plan) — what it runs for each cycle
+- [`spec`](#spec), [`plan`](#plan), [`interrogate`](#interrogate), [`refine`](#refine) — what it runs for each cycle
 - [`draft`](#draft) — what drafts each approval, which a person places by the rename
-- [`batch-build`](#batch-build) — the same shape for building
+- [`build`](#build) — the same shape for building
 
 ---
 
@@ -568,6 +604,7 @@ merged taken back and read again — plans them in one sandbox, and stops at the
 
 | | |
 |---|---|
+| Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | the planning chain, for whatever the last merges made ready |
 | Started by | a person, after merges land, or asking what is next for a piece of work |
 | Reads | `sdlc backlog` for the wave; then what `intent`, `interrogate`, `spec` and `plan` read, per item |
@@ -617,7 +654,7 @@ piece of work to completion one wave at a time.
 
 ---
 
-## The loop
+## Judging and editing
 
 The two skills every stage above runs in turn until a round is clean. A person can also run either
 directly.
@@ -630,8 +667,9 @@ round. Never edits.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
-| Started by | the stage skill's loop, or a person |
+| Started by | the loop `to-plan` and `steer` run, or a person |
 | Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence — each reader's prompt written by `sdlc round prompt`, every answer read back by `sdlc round collect` |
 | Writes | the next round of `.sdlc/cycles/<id>/findings/<artifact>.json`, the artifact's findings ledger, through `sdlc round` |
 
@@ -731,8 +769,9 @@ judges.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | the loop, after an interrogation round raised blocking findings and while the cycle is not yet approved |
-| Started by | the stage skill's loop, or a person |
+| Started by | the loop `to-plan` and `steer` run, or a person |
 | Reads | the findings, the panel's `Loop` line, and the artifact |
 | Writes | that one planning document |
 
@@ -796,7 +835,7 @@ one. Anything other than that defect is still the next reader's to raise.
 It reads the panel's `Loop` line first — a rule that *has come back* means look for an exit rather than
 edit the same words again, and *stuck on* means do not edit at all. Then it edits the artifact, reports
 one line per finding, shows `sdlc status <id> --stage <artifact>` verbatim and stops. It does not
-interrogate again; that is the stage skill's loop.
+interrogate again; that is the loop `to-plan` runs (D-188).
 
 #### See also
 
@@ -814,6 +853,7 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 
 | | |
 |---|---|
+| Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | correction, from a written intent until the gate. Before the spec, the person revising their own intent (D-141); after it, a change of *how* carried down |
 | Started by | a person who has changed their mind about *how* a cycle is being done, or the intent, spec or plan hand-back once a person has said which suggestions to take in |
 | Reads | the correction, each named finding, and each artifact it reaches |
@@ -898,6 +938,7 @@ stack, or the solution document.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | the gate, and whenever the solution's own declaration changes |
 | Started by | a person who needs to approve or refuse a cycle at the gate, stop a cycle, or declare or change what the solution is or is built from |
 | Reads | what the matching `sdlc draft` command reads |
@@ -1010,54 +1051,46 @@ hook's denial as a configuration problem.
 
 ### `build`
 
-Carries an approved cycle to its pull request (D-178): takes the plan out of its sandbox, then, in a process
-of its own, implements and tests it, records the evidence, verifies in a fresh process, remediates while it is
-working — deviating within limits before it escalates (D-179) — and opens the pull request. It hands back the
-report: every deviation, every choice the build made that nothing approved settled, and every concern (D-181).
+**A playbook.** Carries approved cycles to their pull requests — the one named, or every approved cycle when none
+is (D-178, D-187). In a person's session it asks the gate and runs `sdlc build`, which commits the placed approval,
+admits the plan, opens the build's worktree and starts this playbook again in a process of its own with
+`--unattended`. There, for each cycle, it runs `implement`, `verify`, `remediate` while it converges — deviating
+within limits before it escalates (D-179) — and `pr`. It hands back the report: every deviation, every choice the
+build made that nothing approved settled, and every concern (D-181).
 
 | | |
 |---|---|
+| Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | build, verify and the pull request, once the gate is satisfied |
-| Started by | a person saying *build it*, after the cycle's three planning documents are approved; inside its own process, `batch-build` runs the stage |
-| Reads | `plan.md`, the decisions, and the code |
-| Writes | the admission branch, source and tests, the evidence verify will read, `deviations.md` — deviations where the approved text cannot be followed, choices where it was silent — and the pull request |
+| Started by | a person saying *build it*, after the cycle's planning documents are approved; with `--unattended`, the process `sdlc build` starts, and the factory |
+| Reads | `sdlc gate`, then `sdlc cycles --queued` and `--claims` in its own process |
+| Writes | nothing itself: what `implement`, `verify`, `remediate` and `pr` write, for each cycle, in its own worktree on `cycle/<id>/build-unattended` |
 
 #### Syntax
 
 ```
-/sdlc:build [<cycle id>]
+/sdlc:build [<cycle id>] [--unattended]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the approved cycle to build. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
+| `<cycle id>` | the approved cycle to build. Optional: without it, every approved cycle ready to build — `sdlc cycles --here --for build` says which before it starts |
+| `--unattended` | run as the build's own process: ask nothing. `sdlc build` passes it, and the factory's pipeline runs it. A person never needs to type it |
 
 #### Output
 
 `sdlc report <id>` and `sdlc status <id> --brief`, verbatim, and the pull request's link — or, escalated, a draft
-pull request and what stopped it. Underneath, commits on the cycle's branch — the change, then the evidence: the diff, the commit it is measured from,
-the runner's own output, and one normalised test summary. **Verify reads only these files**, so a
-verdict derived from the builder's recollection is a verdict nobody can check (`CON_22`).
-`sdlc evidence` also prints what changed against what the plan declared — `undeclared`, `undelivered`,
-`governing` — none of which is a refusal; a `governing` line goes in the report and the commit message.
-
-**`sdlc scaffold <id>` is how two kinds of file arrive, and the plan is what asks for either.** On a new
-solution's first cycle it writes the skeleton and the build settings it compiles under. On a solution
-adopted into existing code it writes only the build settings files the plan declares — and where
-`Directory.Build.props` is one of them, the build that follows can fail on code the cycle never
-touched, which the plan was required to have planned for. Warnings are errors, enforced by the build
-props rather than by instruction.
+pull request and what stopped it. For several cycles, one line per cycle and `sdlc sitrep` verbatim.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
-| no `claude`, or no other non-interactive way to start the host | stops: the build is not run in the person's session instead | run it where the host can be started headless |
 | the gate refuses — no cycle, abandoned, a missing document, nobody approved, an approval ledger it cannot read, a refusal standing, a findings round it cannot read, a document never interrogated, a document changed since approval, a blocking finding still open, a round that judged a document which has moved since, or a round the approval anchored that has been rewritten | refuses | each has a different next step — [Handling refusals](../docs/guides/handling-refusals.md) |
-| a red build or failing tests | stops, and says so. It does not adjust a test to make it pass | — |
-| the turn ends over a failing suite, with code written and no evidence, or with code moved since the evidence | the turn-end hook sends the turn back | — |
+| the build's process cannot start, or ended without a report | `sdlc build` refuses, saying why; the build is never run in the person's session instead | [Handling refusals](../docs/guides/handling-refusals.md) |
+| a named cycle not queued | `sdlc cycles --queued <id>` refuses with why, and nothing else is built | — |
 
 #### Example
 
@@ -1070,47 +1103,96 @@ deviations, choices and concerns, each by what it says — the panel, and the pu
 
 #### Remarks
 
-It is the first stage that writes code, and the first a person is not expected to watch, so everything a
-verification will rely on has to be recorded rather than remembered. It implements what the plan decided
-and only that (`CON_25`): creep, in an approved file or a new one, is what reaches review dressed as approved
-work, which is where it is least likely to be questioned. Something worth fixing that the plan did not
-describe is left alone and recorded as a `Noticed:` line in the commit message, where the person
-reviewing the pull request will meet it.
+**It does no stage work itself** (D-186): code, tests and evidence are `implement`'s, the verdict is `verify`'s,
+the loop after a blocked verdict is `remediate`'s, and the pull request is `pr`'s. **It never merges.**
 
-**Where the approved text cannot be followed, it records a deviation and keeps going** (D-156): a file the
-fix has to touch that the plan did not declare, a test whose name has to change, a decision the work cannot
-keep. Each quotes the approved text it departs from, names the blocker with its evidence, and says what was
-done instead, in `deviations.md`; `sdlc deviations <id>` checks it. **Where the approved text was silent and a
-reviewer would want to know what it chose** — a library, a pattern, a default — it records a **choice** in the
-same file (D-180). Every one reaches the person in the report, and **merging the pull request accepts them**
-(D-181); a person who wants one otherwise says what instead, and `/sdlc:remediate` changes it on the same pull
-request.
+**Everything unattended rests on the remediation bound.** A cycle that cannot be made to pass stops rather than
+reaching a ready pull request; the bound is on progress, not passes, and there is deliberately no ceiling behind
+it (D-66), which is why the factory's pipeline job has a timeout.
 
-It checks that the suite actually ran: a trial cycle lost its whole verification to `dotnet test` exiting
-zero without running anything, because the runner was not configured. And **the turn end is checked as
-well**, on both hosts — a hook asks the gate before the agent finishes. It is not a rule the skill has to
-remember — it is why there is no point reporting done over a red build.
-
-What it runs, in order:
-
-1. `sdlc cycles --here --for build` without an id, then `sdlc gate <id>`, and stops if it refuses
-2. `sdlc build-run <id>`, which commits the approval a person placed if it is uncommitted, admits the plan when
-   it is only in its sandbox, prepares the build's worktree on `cycle/<id>/build-unattended`, and starts the
-   build in a process of its own there — the factory's path for this one cycle, its tools named, never with
-   permission checks off, asking nothing — and waits for it
-3. inside that process: implements the plan — running `sdlc scaffold <id>` where the plan declares the
-   solution skeleton or a build settings file the repository does not have — `dotnet build` and `dotnet test`
-   reading the test count rather than the exit code, commits the change with any `Noticed:` lines, `sdlc
-   evidence <id> --tests <directory> --build-log <path> --coverage <directory>` and commits the evidence; the
-   batch then verifies, remediates and opens the pull request
-4. shows what `build-run` printed — the report and the pull request's link — and `sdlc status <id> --brief`,
-   verbatim
+**One name for building** (D-187). `batch-build` was the many-cycle form and `sdlc build-run` the command that
+started a person's build; both are gone. Given no id it builds every approved cycle, each independently in its own
+worktree; with `--unattended` it asks nothing, which is the factory's run.
 
 #### See also
 
-- [`verify`](#verify) — what it runs next, on a green build
-- [`batch-build`](#batch-build)
-- [Handling refusals](../docs/guides/handling-refusals.md)
+- [`implement`](#implement), [`verify`](#verify), [`remediate`](#remediate), [`pr`](#pr) — what it runs
+- [Running a cycle](../docs/guides/running-a-cycle.md), [Running the factory](../docs/guides/running-the-factory.md)
+
+### `implement`
+
+**A single-responsibility skill.** Changes code and tests to do what it is handed — the approved plan, a
+verification's unmet criteria and findings, or a person's instruction — recording every deviation from the
+approved text and every choice the approved text left open, then builds, tests, commits and records the evidence
+a verification reads (D-186, D-187). It never verifies and never opens a pull request.
+
+| | |
+|---|---|
+| Kind | single — one job, and it starts no other skill |
+| Stage | build, inside `build` or `remediate` |
+| Started by | the `build` playbook, handed the plan; the `remediate` playbook, handed findings or a person's instruction |
+| Reads | `plan.md`, the decisions, the perspectives' build lists, `verify.md` and the verify findings when handed them, and the code |
+| Writes | source and tests, `deviations.md` — deviations where the approved text cannot be followed, choices where it was silent — commits on the cycle's branch, and the evidence |
+
+#### Syntax
+
+```
+/sdlc:implement <cycle id>
+```
+
+#### Parameters
+
+| Parameter | Description |
+|---|---|
+| `<cycle id>` | the cycle whose work it is handed. Required: a playbook always names it |
+
+#### Output
+
+`sdlc status <id> --brief` verbatim and at most five lines: what it implemented or changed, what the build and the
+tests said, and how many `Noticed:` lines, deviations and choices the commit carries. Underneath, commits on the
+cycle's branch — the change, then the evidence: the diff, the commit it is measured from, the runner's own output,
+one normalised test summary, the coverage and the timings. **Verify reads only these files** (`CON_22`).
+
+**`sdlc scaffold <id>` is how two kinds of file arrive, and the plan is what asks for either**: the skeleton and its
+build settings on a new solution's first cycle, and only the build settings files the plan declares on a solution
+adopted into existing code — where `Directory.Build.props` can make code the cycle never touched fail to compile,
+which the plan was required to have planned for.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| a criterion the code cannot be made to meet | stops: no deviation changes what *done* means (D-179) | the playbook escalates; a person reopens the plan |
+| a fix needs the intent changed, a wider scope, or a file another cycle claims | stops | a successor, or a reopen |
+| a red build or failing tests | stops, and says so. It does not adjust a test to make it pass | — |
+| a whole-codebase coverage fall it cannot explain from the change | stops as not finished, with what fell and where | lower `coverage_floor` through `sdlc draft solution`, or re-measure the integration branch |
+| the turn ends over a failing suite, with code written and no evidence, or with code moved since the evidence | the turn-end hook sends the turn back | — |
+
+#### Example
+
+```
+/sdlc:implement 20261002_1414_12
+```
+
+Run by a playbook rather than typed. Expect the panel and five lines.
+
+#### Remarks
+
+It implements what it is handed and only that (`CON_25`): creep, in an approved file or a new one, is what reaches
+review dressed as approved work. Something worth fixing that it was not handed is a `Noticed:` line in the commit
+message. **Where the approved text cannot be followed, it records a deviation and keeps going** (D-156), quoting the
+text it departs from and the blocker with its evidence; **where the approved text was silent and a reviewer would
+want to know what it chose**, a **choice** (D-180). Three limits hold every deviation: never what *done* means,
+never wider, and never on its own account without end (D-179). A person's change is recorded on the entry in their
+words, and a redo that still bends the approved text is a new deviation with `Replaces: DEV_nn`.
+
+It fixes the cause rather than the symptom — no loosened assertion, no sleep or retry, no substituted thing under
+test, no skipped test — and checks the suite actually ran, reading the test count rather than the exit code.
+
+#### See also
+
+- [`build`](#build), [`remediate`](#remediate) — the playbooks that hand it work
+- [`verify`](#verify) — what judges it next, in a fresh process
 
 ### `verify`
 
@@ -1119,8 +1201,9 @@ see the build. Never edits code.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | build and verify, after the build has recorded its evidence |
-| Started by | `build` on a green build, `remediate` after each pass, `batch-build`, or a person |
+| Started by | the `build` playbook after `implement`, `remediate` after each pass, `resolve-conflict`, or a person |
 | Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha`, `build.log` where there is one, and `proof-sources.txt` when a proof lives in code the change did not touch, all in the adjudicator's prompt |
 | Writes | `.sdlc/cycles/<id>/verify.md` |
 
@@ -1195,17 +1278,18 @@ may disagree with the plan — a test that passed but does not reach its criteri
 
 ### `remediate`
 
-Applies a blocked verification's unmet criteria and findings — or a change a person asks for at the pull
-request, in words — to source and tests, verifies again in a fresh process, and goes round while each pass
-reduces what is open. When it stalls it may deviate once, within limits, before it escalates (D-179). Edits
-code, never a planning document.
+**A playbook: *fix it*.** Takes a blocked verification, an escalated cycle with the person's instruction, or a
+change a person asks for at the pull request, in words, and goes round `implement` and `verify` while each pass
+converges. When it stalls it may deviate once, within limits, before it escalates (D-179). Then `pr` updates the
+pull request (D-185, D-187). It changes no code itself.
 
 | | |
 |---|---|
-| Stage | build and verify, after verify recorded `blocked` or left a `diff.` finding open; after an escalation, with the person's instruction; or at the pull request, when a person says what to change |
-| Started by | `batch-build`, inside the build's own process; or a person, with what they want instead, in the worktree `sdlc branch <id> remediate` prints |
-| Reads | the criteria `verify.md` marks Not met, the verify findings, `sdlc pr-ready <id>`, and the code |
-| Writes | source and tests, fresh evidence, `deviations.md` where the approved text cannot be followed, and a commit on the cycle's branch |
+| Kind | playbook — it names the skills it runs and does no stage work itself |
+| Stage | build and verify, after verify recorded `blocked`; after an escalation, with the person's instruction; or at the pull request, when a person says what to change |
+| Started by | the `build` playbook, inside its own process; or a person, with what they want instead |
+| Reads | `sdlc cycles --here --for remediate`, `sdlc pr-ready <id>`, and the verify outcome |
+| Writes | nothing itself: what `implement`, `verify` and `pr` write, in the worktree `sdlc branch <id> remediate` prints |
 
 #### Syntax
 
@@ -1217,23 +1301,23 @@ code, never a planning document.
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle — `blocked`, `escalated`, or passed with its pull request open. Optional: without it, `sdlc cycles --here --for remediate` names the one this working copy carries, or the skill asks which (D-142) |
+| `<cycle id>` | the cycle — `blocked`, `escalated`, or passed with its verdict not yet on the integration branch. Optional: without it, `sdlc cycles --here --for remediate` names the one this working copy carries, or the skill asks which (D-142) |
 
 #### Output
 
-**Edits source and tests, never a planning document.** It fixes the cause rather than the symptom — no
-loosened assertion, no sleep or retry, no substituted thing under test, no skipped test.
+One line per pass, each with a line per unmet criterion and finding — what was wrong, what changed, and whether
+`implement` was confident that was the cause — then the panel, and on `pass` the report.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
 | the criterion itself looks wrong, or the code cannot be made to meet it | escalates: no deviation changes what *done* means (D-179) | reopen the plan — `sdlc draft approval <id> --reopen` |
-| a fix needs the intent changed, a wider scope, or a file another cycle claims | stops | a successor, or `sdlc draft approval <id> --reopen` |
-| a regression, or two passes in a row reducing nothing, with no deviation taken since | takes one different approach, recorded as a deviation, and goes round again | — |
-| the same again after that deviation | stops: escalated | — |
+| a regression, or two passes in a row reducing nothing, with no deviation taken since | one more pass, `implement` told to take a different approach recorded as a deviation | — |
+| the same again after that | stops: escalated | — |
 | three deviations bend the same approved text and the verification still blocks | stops: escalated | — |
 | a person's "no" that does not say what to do instead | asks what they want in its place, until it knows | say what instead |
+| an instruction that would reach the intent, the spec or the plan, or widen the cycle | says so, and does not act | a reopen, or a successor |
 
 #### Example
 
@@ -1241,58 +1325,30 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 /sdlc:remediate 20261002_1414_12
 ```
 
-Expect one line per pass, each with a line per unmet criterion and finding — what was wrong, what changed,
-and whether it is confident that was the cause — then the panel, on `pass` or `escalated`, and on `pass` the
-report.
-
 #### Remarks
 
-`refine` and `remediate` are two editors with opposite guards, and the asymmetry is the whole design: if
-a failing test could cause an agent to adjust the spec, the criteria become whatever the code happens to
-do. So when the honest conclusion is "the criterion is wrong", the skill never edits it and never deviates from
-it: no deviation changes what *done* means (D-179), and the cycle escalates for a person to reopen the plan. Where
-the plan's text cannot be followed, it records a deviation, which reaches the person in the report and is
-accepted by the merge (D-181). One the person wants otherwise is changed from their words, recorded on the
-entry.
+**It stops when it is not getting anywhere, not after a set number of tries.** When a pass undoes what an earlier
+one answered, or two passes in a row reduce nothing, it may take one different approach — never changing what
+*done* means, never widening the cycle — and it escalates when that stalls too, or when a third deviation bends the
+same approved text (D-179). That stopping is the only reason an unattended build is safe to run at all. The blind
+three it replaced failed an honest cycle that needed a fourth pass, and there is deliberately no ceiling behind the
+progress rule now (D-66). A pass is a verify findings round after the first, so progress is read from what happened
+rather than from a counter anybody could edit.
 
-**It stops when it is not getting anywhere, not after a set number of tries.** When a pass undoes what an
-earlier one answered, or two passes in a row reduce nothing, it may take one different approach — never
-changing what *done* means, never widening the cycle — and it escalates when that stalls too, or when a third
-deviation bends the same approved text (D-179). That stopping is the only reason an unattended build is safe
-to run at all. The blind three it replaced failed an honest cycle
-that needed a fourth pass and spent all three on a cycle making no progress at all, and there is
-deliberately no ceiling behind the progress rule now (D-66).
+**It does not adjudicate its own remediation**: after each pass `verify` runs its adjudicator in a fresh process
+that never saw the fix (D-159). **It does not check in on a count**: the build runs with nobody to ask (D-178).
 
-It reads `sdlc pr-ready <id>` to know whether the loop is still making progress, works the open
-blockers `sdlc findings <id> --stage verify` prints, then `dotnet build`, `dotnet test` and
-`sdlc evidence <id> --tests <results> --build-log <log> --coverage <results>` — with `--retire-pass` when a
-person asked for a change on a cycle that passed — commits on the cycle's branch, and shows
-`sdlc status <id>` verbatim. A pass is a verify findings round after the first, so progress is read from
-what happened rather than from a counter anybody could edit.
-
-**It does not adjudicate its own remediation.** After each pass it runs the `verify` stage, whose adjudicator
-is a fresh process that never saw the fix; `sdlc round run` starts it, the session reads what it returns, and never edits
-`verify.md`. A verdict written by the session that wrote the fix is the investment bias the separation exists
-to remove, and it stays removed because the judge is a separate process (D-159).
-
-**It does not check in on a count.** The build runs in a process of its own with nobody to ask (D-178); the
-progress rule, the one deviation and the third-deviation stop bound it.
-
-**At the pull request it takes a person's change in words** (D-181) — *change deviation 2: use X instead*,
-*revert that choice* — in the worktree `sdlc branch <id> remediate` prints, records their words on the entry,
-changes the code and tests, verifies, and pushes to the same pull request with the report refreshed. It never
-acts on a "no" that does not say what to do instead. After an escalation it starts the same way, from the
-person's instruction.
+**At the pull request it takes a person's change in words** (D-181) — *change deviation 2: use X instead*, *revert
+that choice* — hands it to `implement`, which records their words on the entry and retires the pass with
+`--retire-pass`; then `verify`, and `pr` pushes to the same pull request with the report refreshed. After an
+escalation it starts the same way, from the person's instruction.
 
 #### See also
 
-- [`verify`](#verify) — what it runs after each pass
-- [`refine`](#refine)
+- [`implement`](#implement), [`verify`](#verify), [`pr`](#pr) — what it runs
 - [Handling blockers](../docs/guides/handling-blockers.md)
 
----
-
-## Pull requests and unattended runs
+## Pull requests and conflicts
 
 ### `pr`
 
@@ -1301,8 +1357,9 @@ touches the remote.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | pull requests: after a verification passed, after a plan is approved, or after a build that did not pass |
-| Started by | the build, once its verification passes — saying *build it* was the consent to push (D-178); `batch-build --pr`; or a person, and then **it asks before the push** |
+| Started by | the build, once its verification passes — saying *build it* was the consent to push (D-178); or `remediate` updating one already open; or a person, and then **it asks before the push** |
 | Reads | `sdlc pr-ready`, or `sdlc gate` and `sdlc verify-chain`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
 | Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>`, or a slicing's `slices/<slug>/plan` — and a pull request |
 
@@ -1372,89 +1429,9 @@ eligible, including one somebody has forgotten.
 
 #### See also
 
-- [`batch-build`](#batch-build)
+- [`build`](#build)
 - [Handling refusals](../docs/guides/handling-refusals.md)
 - [Running a cycle](../docs/guides/running-a-cycle.md), §5
-
-### `batch-build`
-
-Completes every queued cycle — builds and verifies each on its own branch, independently — and reports the
-sitrep. Run by the factory, it is the whole of what the factory does (D-84).
-
-| | |
-|---|---|
-| Stage | unattended runs, when several cycles are approved and waiting |
-| Started by | a person, here or by starting the factory's pipeline |
-| Reads | `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for which plans stand up services |
-| Writes | what `build`, `verify` and `remediate` write, for each cycle, each in its own worktree on `cycle/<id>/build-unattended` |
-
-#### Syntax
-
-```
-/sdlc:batch-build [<cycle id>] [--pr] [--unattended]
-```
-
-#### Parameters
-
-| Parameter | Description |
-|---|---|
-| `<cycle id>` | builds that cycle alone, and stops with why when it is not queued. Without it, every queued cycle, the one the most successors wait on first |
-| `--pr` | opens a pull request for every cycle that reached an outcome — ready when it passed, a draft when it is `blocked` or `escalated` — asking once before the run |
-| `--unattended` | asks nothing: the person who started the run made the decision. Used by the factory's pipeline |
-
-#### Output
-
-Each cycle ends `passed`, `blocked`, `escalated` or did not finish. **A sibling's outcome changes nothing
-about another cycle.** Its task list is one line per cycle, ticked only on `passed`. It ends with one line
-per cycle and the sitrep, verbatim. Beneath a cycle that did not pass, it says what stopped it: each
-criterion marked Not met, and each open blocker by its id and gist — never a count.
-
-**Plain `batch-build` never pushes.** `--pr` asks once before the run rather than at the end, because the
-question is about volume and a person should answer it before waiting rather than after.
-
-#### Refusals
-
-| Condition | Result | What to do |
-|---|---|---|
-| a cycle cannot be made to pass | stops that cycle, and with `--pr` opens a draft rather than a ready pull request | [Handling blockers](../docs/guides/handling-blockers.md) |
-| a cycle is held back by a branch on the remote | does not build it; the sitrep says why | delete the branch to put it back in the queue |
-| the cycle named is not queued | builds nothing, and says why | `sdlc status <id>`, or run without an id |
-
-#### Example
-
-```
-/sdlc:batch-build
-/sdlc:batch-build --pr
-/sdlc:batch-build --pr --unattended
-```
-
-Expect a line per cycle that moves to done only when that cycle passed, and a closing report of one line
-per cycle — with what stopped any that did not pass — then the sitrep.
-
-#### Remarks
-
-**Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
-than reaching a ready pull request, and that stopping is the only reason this is safe to run without
-watching. **There is no ceiling behind it (D-66)**, so the factory's pipeline job has a timeout.
-
-**It builds; it never merges** (D-84). Every cycle builds from the same base, so two that touch the same
-file meet at merge, where a person resolves it with `resolve-conflict` (D-86).
-
-What it runs, in order:
-
-1. `git fetch`, `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for the plans that stand up
-   services — read from the binary rather than worked out
-2. per cycle, a worktree and `sdlc branch <id> build-unattended`
-3. caps concurrency where a plan stands up a backing service, and exports `SDLC_RUN_MODE=test` and a
-   fresh `SDLC_RUN_ID` into each cycle's worktree
-4. per cycle, the build stage then the verify stage, remediating while it makes progress
-5. with `--pr`, `pr <id>` or `pr <id> --draft` for each
-6. reports one line per cycle, then `sdlc sitrep` verbatim, and stops
-
-#### See also
-
-- [`build`](#build), [`verify`](#verify), [`remediate`](#remediate)
-- [`pr`](#pr), [`resolve-conflict`](#resolve-conflict)
 
 ### `resolve-conflict`
 
@@ -1463,6 +1440,7 @@ another merge — inside the cycle's declared files, ending in fresh evidence an
 
 | | |
 |---|---|
+| Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | merging, when a pull request into the integration branch conflicts or its re-check fails |
 | Started by | a person |
 | Reads | the cycle's plan for its declared files, the integration branch, and the failure |
@@ -1517,7 +1495,7 @@ lands.
 
 #### See also
 
-- [`verify`](#verify), [`remediate`](#remediate), [`batch-build`](#batch-build)
+- [`verify`](#verify), [`remediate`](#remediate), [`build`](#build)
 
 ---
 
@@ -1531,6 +1509,7 @@ Shows where a cycle has got to — the stage panel, its checks, the gate, and th
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | any, after any stage |
 | Started by | anyone, constantly |
 | Reads | the cycle's documents, rounds and approval |
@@ -1592,6 +1571,7 @@ Shows the rules in force for this solution, all tiers resolved.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | any. Every stage skill runs it as its first step |
 | Started by | anyone, before writing or judging any artifact, and whenever somebody asks what the rules are |
 | Reads | the global `CON_` set, the `PRO_` stack rules the declared stack switches on, and the solution's own `LOC_` |
@@ -1649,6 +1629,7 @@ and what became of it.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | any |
 | Started by | a person who asks what has been noticed and not acted on, what became of a suggestion, or is looking for small work worth picking up |
 | Reads | each cycle's suggestions ledger and findings ledgers, the intents, leads and abandonments that decided a suggestion, and the `Noticed:` lines in builds' commit messages on cycle branches |
@@ -1721,6 +1702,7 @@ never places.
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | any. `init` runs `propose constraints` during adoption |
 | Started by | a person who asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a theme |
 | Reads | a different record for each subject — see Output |
@@ -1817,6 +1799,7 @@ converging is a document's rounds settling** — the two were once both called c
 
 | | |
 |---|---|
+| Kind | single — one job, and it starts no other skill |
 | Stage | none. Once a verify passes — on the cycle's branch before its pull request, or on the integration branch after the merge (D-111) |
 | Started by | a person, or `pr` asking whether to mine on the branch now |
 | Reads | `sdlc mine`, every cycle's findings rounds, its reopens and the verify history git holds, and the mining ledger |

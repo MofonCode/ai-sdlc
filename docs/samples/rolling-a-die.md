@@ -279,11 +279,8 @@ What is already decided becomes the intent's fixed decisions, each with your nam
 and what it touches its `perspectives: ui-ux, accessibility`. The first two decisions keep the spec from
 growing a second page; the third keeps it from shrinking the one it has.
 
-**Once you answer, the intent is interrogated for you.** The skill writes it, challenges it, fixes what
-comes back, asks once which of the readers' suggestions you want to take in — grouped by theme in a file,
-answered in your own words, and leaving them all is a fine answer — then shows the cycle's status and
-stops, offering to take it to plan. If it stops on a blocker, see
-[handling blockers](../guides/handling-blockers.md).
+**Once you answer, the skill writes the intent**, shows the cycle's status and stops, offering to take it to
+plan. Read it: taking it to plan is what checks it.
 
 ## 6. Take it to plan
 
@@ -418,7 +415,7 @@ Say *build it*, or:
 ```
 
 The first stage that writes code and the first you are not expected to watch. It asks the gate, then `sdlc
-build-run` commits your approval, takes the plan out of the sandbox, and builds in a process of its own — this
+build` commits your approval, takes the plan out of the sandbox, and builds in a process of its own — this
 session just waits for it to report. It implements
 what the plan decided and only that. The skeleton arrives first, because
 the plan declared it — a solution file, its projects, the architecture suite and a reference slice written

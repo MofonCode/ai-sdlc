@@ -8,6 +8,9 @@ allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 
 # Steer a cycle already underway
 
+**A playbook** (D-186): it writes the person's correction into the documents it reaches, then has each judged
+again by the loop — `interrogate`, then `refine` until clean — from the top down (D-188).
+
 A comment arrives mid-cycle: *"use the existing cache abstraction rather than a new one"*. Doing that by
 hand means editing the intent, re-interrogating it, editing the spec, re-interrogating that, and then
 the plan. Nobody pays that, so the correction ends up in conversation where it is lost — and a path so
@@ -91,7 +94,7 @@ the same intent, finished later. Two limits stay:
 
 **Write the change into the section it belongs to, not into `Fixed decisions`.** An outcome the person
 added is a wanted outcome; an approach they settled is a fixed decision, with attribution as below. Then
-run the intent's loop — step 4 below, which here is the intent alone — and report.
+run `to-plan`'s loop on the intent — step 4 below, which here is the intent alone — and report.
 
 **When the intent now holds more than one atomic piece, say so in a line** and offer
 `/sdlc:intent --reslice <id>`. Every outcome multiplies what the spec and plan must prove, and an intent
@@ -187,8 +190,8 @@ longer exists.
 
 **4. Re-interrogate from the top, one document at a time.** Not optional, and checked: a round records
 the hash of what it judged and of the artifact above it, and `sdlc round` refuses a spec round until the
-intent is settled and a plan round until the spec is. So run `/sdlc:interrogate` on the highest document
-you edited, refine until its round is clean, and only then move down — **never two documents' rounds at
+intent is settled and a plan round until the spec is. So run **the loop** — `to-plan`'s §3, `interrogate` then
+`refine` until a round is clean — on the highest document you edited, and only then move down — **never two documents' rounds at
 once**. You may edit a lower document while an upper one is being judged; its round simply waits.
 
 Each downstream round carries a `note` saying what moved above it and what this document did about it.

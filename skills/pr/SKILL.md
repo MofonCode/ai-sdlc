@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Push a cycle's branch and open its pull request into the integration branch. The only stage that touches the remote. Use after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
+description: Push a cycle's branch and open its pull request into the integration branch, or update the one already open with a new push and a refreshed report. The only stage that touches the remote. Run by the build and remediate playbooks, or by a person: after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>...] [--plan | --draft] | --plan | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
@@ -8,7 +8,8 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Gr
 
 # Open a pull request for a cycle
 
-The only stage that reaches outside the repository. Everything before this is local and reversible; a
+**A single-responsibility skill** (D-186): the pull request, and nothing else. The `build` and `remediate`
+playbooks run it; a person may too. The only stage that reaches outside the repository. Everything before this is local and reversible; a
 pull request notifies people, appears in a queue, and withdrawing it is something somebody has to notice
 happened.
 
@@ -21,6 +22,7 @@ happened.
 | `pr <id> <id>... --plan` | every approved plan of one slicing, and the successors it wrote, by one pull request | `sdlc gate <id>` for each, then `sdlc slices` |
 | `pr --plan`, in a sandbox | every approved plan the sandbox carries, and the successors it wrote, by one pull request | `sdlc admit`, which names each before you are asked to push |
 | `pr <id> --draft` | a build that did not pass: `blocked` or `escalated` | `sdlc pr-ready <id>`, which must refuse for exactly that: did not pass, or escalated |
+| `pr <id>`, its pull request already open | a new push after `remediate`, and the body's report refreshed | nothing: the playbook that ran it already decided |
 
 ## Which cycle
 
@@ -142,7 +144,7 @@ are the set, and a cycle still being planned stays behind for a later admission.
 
 ## A cycle that did not pass: `--draft`
 
-Opened for a `blocked` or `escalated` cycle, usually by `batch-build` (D-85). **Refuse if `sdlc pr-ready`
+Opened for a `blocked` or `escalated` cycle, usually by the `build` playbook in its own process (D-85). **Refuse if `sdlc pr-ready`
 gives any other reason** — not verified, or the chain broken — because then there is nothing true to show.
 Open it as a draft (`gh pr create --draft`, `az repos pr create --draft true`), and lead the body with
 what stopped it, so the person picking it up starts there: the outcome; each criterion `verify.md` marks
@@ -172,14 +174,23 @@ it anyway, so pushing would cost a round trip through CI to learn what you were 
 
 ## When the build opens it, ask nothing more
 
-**Saying *build it* was the consent to push** (D-178). The build carries a cycle all the way here, and its
-process opens the pull request as soon as `pr-ready` holds, with no question of its own: the plan's hand-back
+**Saying *build it* was the consent to push** (D-178). The `build` playbook carries a cycle all the way here, and
+its process runs this skill as soon as the cycle has an outcome, with no question of its own: the plan's hand-back
 told the person that *build it* implements, verifies, fixes what it can and opens the pull request, and they
 said it. Asked for by hand — *open the pull request*, or `/sdlc:pr` — the one question before the push names
 the cycle, by id and headline, as above.
 
 **Mining is never asked here.** It reads what the cycle settled, and the pull request is where a person may
 still ask for a change; the report's last line suggests `/sdlc:mine` once it has merged (D-182).
+
+## When the pull request is already open: push and refresh its report
+
+After `remediate` has gone round on a cycle whose pull request is open, **this skill updates it rather than
+opening another**: `git push` on the branch it was opened from, then the body's report replaced with what
+`sdlc report <id>` prints — write it to a file, and `gh pr edit <number> --body-file <file>` on GitHub, `az repos
+pr update --id <number> --description <text>` on Azure DevOps. A draft that now passes is marked ready
+(`gh pr ready <number>`, `az repos pr update --id <number> --draft false`). Ask nothing: the person asked for the
+change, and the playbook ran this for them.
 
 ## First: is there anywhere to push?
 

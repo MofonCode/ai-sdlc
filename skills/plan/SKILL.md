@@ -1,12 +1,16 @@
 ---
 name: plan
-description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
+description: Decide how a spec will be met and what will prove it, writing the plan of a cycle and nothing else. The to-plan playbook runs it and then checks the plan with its loop. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author a plan
+
+**A single-responsibility skill** (D-186): it writes the plan, and nothing after. The `to-plan` playbook runs it,
+then checks it with fresh readers, has `refine` apply what they find, checks what it needs from plans not yet
+built, and drafts the approval (D-188).
 
 A plan says **how**, and commits to what will prove it. It is the last document written before a
 person approves, and the approval covers all three at once — so this is the artifact a reviewer reads
@@ -66,11 +70,9 @@ each done as it finishes. If it does not, carry on without one — nothing below
 4. a proof for every criterion
 5. the tier
 6. write the plan
-7. interrogate and refine until a round is clean
-8. hand back
+7. hand back
 
-**The loop is one item, however many rounds it takes.** And the approval is not an item: a person
-places it, after this skill has stopped.
+**The approval is not an item**: a person places it, after the playbook has stopped.
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
 person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
@@ -453,84 +455,15 @@ through 'steer'.>
 ## Open
 ```
 
-## Run the loop, then hand back
+## Hand back
 
-**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
-person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
-how one person ended up asking "what is dev 1 - 5?".
-
-Interrogate, refine, interrogate again — until a round is clean, a reader reports a conflict, or the
-panel's `Loop` line says the loop is stuck on one rule. It is the same loop the intent and spec skills
-run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
-a rule coming back three times, which is the loop going backwards rather than going slowly.
-
-**Once the round is clean, check what the plan needs from plans not yet built** (D-145):
-
-```
-sdlc park <id>
-```
-
-It compares this plan's files with every plan not yet built — the cycles beside it in the sandbox, and those
-admitted and waiting for a build. **A file only another plan creates parks this cycle**: it writes `parked.md`,
-keeps the spec and plan, and the cycle waits until that one merges. Say so in a line at the hand-back, with what
-it waits on, and that it may still be approved — it builds once `sdlc unpark <id>` takes it back and its spec and
-plan are read again against what merged. **A file two plans both name is not a dependency**: say which, since
-their pull requests may conflict, and carry on.
-
-**First, the suggestions the plan's rounds left open, if there are any.** Ask once, from a file, in
-free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an
-answer, and the commonest one — skip all of this when nothing is open.
-
-1. `sdlc suggestions <id>` — the list, and the count the file must hold.
-2. Write `.sdlc/reports/<id>-plan-suggestions.md`: themes, each a heading, a short summary of what its
-   findings mean **for this change**, whether it sharpens an outcome the intent already wants (name it)
-   or adds or widens one (a successor, D-128), what taking it in costs now against later, and a suggested
-   answer with its reason; beneath it each finding's id and one line of what it found and where. **The themes only group** — every
-   open suggestion once, none merged, none left out.
-3. Ask one question in free text, never from a picker: name the file, each theme in one line, and what
-   to take in, decline or leave.
-4. Map the answer to finding ids and **read it back before acting** — take in to sharpen a named
-   outcome, decline with the reason, make a successor of one that adds or widens, leave. A theme named whole is every id beneath it; a decline without a reason is asked for one; words
-   with no finding behind them are not taken in here — a change to *how* is a correction for
-   `/sdlc:steer`, and something no reader raised is a cycle of its own.
-5. Once they confirm, `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words, which
-   writes each into the intent with their name on it and re-interrogates down to here (D-97). **Never
-   take one in on their behalf**: a suggestion nobody chose is exactly what the spec may not derive from.
-
-Then:
+**Run by `to-plan`, hand straight back to it**: it checks the plan next, then what it needs from plans not yet
+built, then drafts the approval. Run on its own:
 
 ```
 sdlc status <id> --stage plan --brief
-sdlc gate <id>
 ```
 
-Show the panel verbatim. The gate will refuse, because nobody has approved yet — that is the correct
-state and worth showing, because it is the moment to explain what happens next. **Draft the approval for
-them** — drafting is not placing, and a person should not have to type a command to be handed a file:
-
-```
-sdlc draft approval <id>
-```
-
-It writes the draft beside the ledger and prints the rename that places it. Then add nothing to the panel
-beyond this paragraph, filled in:
-
-> The three documents are clean. I've drafted the approval at `<the draft's path>` — read it, and if you
-> agree, place it with `<the rename it printed>`. If anything should be done differently, tell me and
-> I'll carry it through the documents first. I can't place the approval myself — every agent write to
-> it is denied — and that is what makes a recorded approval mean something. Once it is placed, say
-> *build it* (or `/sdlc:build`): it implements the plan, verifies it, fixes what it can and
-> opens the pull request, in a process of its own, then reports every deviation, every choice it made that the plan left
-> open, and every concern. Merging that pull request is where you accept it.
-
-Then stop. **Name no new session and no admission** (D-178, D-182): the build takes the plan out of this
-sandbox itself and runs in a process of its own, so this session stays as small as the planning left it.
-
-**If the drafter refuses**, show what it printed: it names what is still open, which is the loop not yet
-finished rather than an approval to place.
-
-**When the gate lets the cycle through instead, read why.** If it says the solution declares
-`approval: none`, nobody has to approve: say that the three documents are clean, that the solution runs
-without approvals, and that *build it* carries the cycle to a pull request whose report and merge are where a
-person accepts it. Do not ask for an approval the solution does not require, and do not offer one as a
-step; a person who wants to sign this cycle anyway knows `sdlc draft approval <id>` from the panel.
+Show it verbatim, then stop. **Close with one plain offer**, in a line of your own: *take it to plan*
+(`/sdlc:to-plan`) checks this plan with fresh readers and drafts the approval; or say what should change first.
+**Say nothing else beyond two sentences.**

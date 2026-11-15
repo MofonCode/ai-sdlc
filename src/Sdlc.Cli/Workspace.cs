@@ -62,7 +62,7 @@ internal sealed class Workspace
     /// <paramref name="body"/> in it, and closes it.
     /// </summary>
     /// <remarks>
-    /// For the one command that moves between working copies on a person's behalf, <c>build-run</c> (D-184): the
+    /// For the one command that moves between working copies on a person's behalf, <c>build</c> (D-184, D-187): the
     /// admission is composed in the sandbox the plan was approved in, and the report read in the worktree the build
     /// wrote. Each through its own container, so no request is ever answered about one copy from another's files.
     /// </remarks>

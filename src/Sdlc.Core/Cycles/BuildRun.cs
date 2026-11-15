@@ -9,8 +9,8 @@ using Sdlc.Core.Solutions;
 namespace Sdlc.Core.Cycles;
 
 /// <summary>
-/// What <c>sdlc build-run</c> and <c>sdlc branch &lt;id&gt; remediate</c> decide: where a cycle's build works, and how
-/// its own process is started there (D-183, D-184, D-185).
+/// What <c>sdlc build</c> and <c>sdlc branch &lt;id&gt; remediate</c> decide: where a cycle's build works, and how
+/// its own process is started there (D-183, D-184, D-185, D-187).
 /// </summary>
 /// <remarks>
 /// <para><strong>Build it is one command a skill runs, not a shell script it types.</strong> The binary prepares the
@@ -68,16 +68,18 @@ public static class BuildRun
     }
 
     /// <summary>What the build's own process is asked to do.</summary>
-    /// <param name="id">The cycle.</param>
-    /// <returns>The prompt: the batch, for this one cycle, opening its pull request and asking nothing.</returns>
-    public static string PromptFor(CycleId id) =>
-        string.Create(CultureInfo.InvariantCulture, $"/sdlc:batch-build {id} --pr --unattended");
+    /// <param name="id">The cycle, or none for every queued cycle.</param>
+    /// <returns>The prompt: the build playbook, unattended, for this cycle or every queued one (D-187).</returns>
+    public static string PromptFor(CycleId? id) =>
+        id is { } cycle
+            ? string.Create(CultureInfo.InvariantCulture, $"/sdlc:build {cycle} --unattended")
+            : "/sdlc:build --unattended";
 
     /// <summary>The arguments the build's own process starts with, after the word <c>claude</c>.</summary>
-    /// <param name="id">The cycle.</param>
+    /// <param name="id">The cycle, or none for every queued cycle.</param>
     /// <param name="pluginDirectory">This release's skills, so the process runs the release the solution pins.</param>
     /// <returns>The arguments, one each; the named tools last, because the option takes every word after it.</returns>
-    public static IReadOnlyList<string> ArgumentsFor(CycleId id, string pluginDirectory)
+    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pluginDirectory);
 
@@ -155,10 +157,10 @@ public static class BuildRun
     public sealed record Place(string Branch, string Path, bool Opened, bool AdmitFirst = false);
 
     /// <summary>Starts the build's own process in its worktree, and waits for it.</summary>
-    /// <param name="Id">The cycle.</param>
-    /// <param name="Worktree">The worktree's full path.</param>
+    /// <param name="Id">The cycle, or none for every queued cycle, each of which the playbook builds in a worktree of its own.</param>
+    /// <param name="Worktree">The worktree's full path, or the repository's root when no cycle is named.</param>
     /// <param name="PluginDirectory">This release's skills.</param>
-    public sealed record Launch(CycleId Id, string Worktree, string PluginDirectory) : IRequest<AgentExit>;
+    public sealed record Launch(CycleId? Id, string Worktree, string PluginDirectory) : IRequest<AgentExit>;
 
     private sealed class PrepareHandler(SolutionRoot solution, Mediator mediator, IRepository repository)
         : IRequestHandler<Prepare, Place>

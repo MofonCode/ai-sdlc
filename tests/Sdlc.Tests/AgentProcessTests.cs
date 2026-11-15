@@ -117,7 +117,7 @@ public sealed class AgentProcessTests
 
         Assert.IsFalse(arguments.Any(argument => argument.Contains("bypass", StringComparison.OrdinalIgnoreCase)));
         Assert.IsFalse(arguments.Contains("--permission-mode"));
-        CollectionAssert.Contains(arguments.ToList(), "/sdlc:batch-build 20260929_1456_32 --pr --unattended");
+        CollectionAssert.Contains(arguments.ToList(), "/sdlc:build 20260929_1456_32 --unattended");
         CollectionAssert.AreEqual(BuildRun.AllowedTools.ToList(), arguments.Skip(arguments.ToList().IndexOf("--allowedTools") + 1).ToList());
     }
 

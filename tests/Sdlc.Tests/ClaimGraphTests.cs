@@ -160,7 +160,7 @@ public sealed class ClaimGraphTests
         // §10.1 says the graph is built from the approved cycles in this working copy. The handler
         // applied no approval filter, no abandonment filter and no already-verified filter, so an
         // abandoned cycle's plan claimed its files forever and every merged cycle narrowed the graph
-        // for every future batch. batch-build reads this to plan a run. F-13.
+        // for every future batch. the build playbook reads this to plan a run. F-13.
         using var solution = Solution.Create();
 
         solution.Plan("20260929_1000_00", "src/A.cs");

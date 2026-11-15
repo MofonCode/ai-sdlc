@@ -38,7 +38,7 @@ blocker that could be waived would be waived exactly when it mattered.
 
 | Loop | Judges | Blocker | Answered by |
 |---|---|---|---|
-| interrogate, then refine — run by each stage, and by `to-plan` | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
+| interrogate, then refine — run by `to-plan`, and by `steer` | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
 | verify, then remediate — verify run by a green build, then by remediate after each pass | the build, from its recorded evidence, against the spec | a `blocked` verification | `remediate`, which edits source and tests — say *fix it* |
 
 **The two editors have opposite guards, and the asymmetry is the whole design.** Refine edits a
@@ -70,9 +70,9 @@ runs, or a verify never shows, blocks; a case nobody listed is a suggestion, wha
 it under. Which cases belong on the list is decided once, at the spec, against the intent's own words, and
 you see the list when you approve (D-132).
 
-**The stage skills run this loop for you.** `/sdlc:intent`, and `/sdlc:to-plan` for the spec and the plan,
-each write their document, interrogate it, refine it, and repeat until a round raises nothing blocking, then hand
-back. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
+**`/sdlc:to-plan` runs this loop for you** (D-188): on the intent, then on the spec and the plan it has `spec`
+and `plan` write, it interrogates, refines and repeats until a round raises nothing blocking, then hands back.
+`/sdlc:steer` runs the same loop on whatever it edited. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
 when a refusal elsewhere names one.
 
 ### What it stops
@@ -85,8 +85,7 @@ While a blocking finding is open:
 
 ### Answering it
 
-**The stage answers it**: each stage, and `to-plan` across them, runs refine and interrogates again until a
-round is clean. What you meet is the moment it stops and asks. To run a step by hand —
+**The loop answers it**: `to-plan` runs refine and interrogates again until a round is clean. What you meet is the moment it stops and asks. To run a step by hand —
 `/sdlc:refine <id> <artifact>`, then `/sdlc:interrogate <id> <artifact>` — is the same loop.
 
 Refine applies the latest round's findings to that one document and never judges its own work. **Every

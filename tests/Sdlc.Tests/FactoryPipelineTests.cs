@@ -23,7 +23,7 @@ public sealed class FactoryPipelineTests
         Assert.AreEqual(1, stream.Documents.Count);
 
         int smoke = pipeline.IndexOf("the hooks refuse", StringComparison.Ordinal);
-        int build = pipeline.IndexOf("--pr --unattended", StringComparison.Ordinal);
+        int build = pipeline.IndexOf("/sdlc:build", StringComparison.Ordinal);
         int sitrep = pipeline.IndexOf("sdlc sitrep", StringComparison.Ordinal);
 
         Assert.IsTrue(smoke > 0 && build > smoke, "The hooks are proved before the agent is trusted with anything.");
@@ -135,7 +135,7 @@ public sealed class FactoryPipelineTests
         string factory = FactoryPipeline.Text(platform, "development");
 
         Assert.IsFalse(factory.Contains("plugin install", StringComparison.Ordinal), "The factory installs no plugin.");
-        StringAssert.Contains(factory, "sdlc claude -p '/sdlc:batch-build");
+        StringAssert.Contains(factory, "sdlc claude -p '/sdlc:build");
         StringAssert.Contains(factory, "sdlc claude -p 'Create the file .sdlc/approval.md", "The hooks proved are the pinned release's.");
 
         string[] bare = [.. factory.Split('\n')
@@ -230,7 +230,7 @@ public sealed class FactoryPipelineTests
         string pipeline = FactoryPipeline.Text(platform, "development");
 
         int check = pipeline.IndexOf("sdlc cycles --queued \"$CYCLE\" || exit 1", StringComparison.Ordinal);
-        int build = pipeline.IndexOf("/sdlc:batch-build '\"$CYCLE\"' --pr --unattended", StringComparison.Ordinal);
+        int build = pipeline.IndexOf("/sdlc:build '\"$CYCLE\"' --unattended", StringComparison.Ordinal);
 
         Assert.IsTrue(check > 0 && build > check, "The cycle is refused before anything is built.");
         StringAssert.Contains(pipeline, "CYCLE: ${{ ", "It arrives through the environment, never pasted into the script.");

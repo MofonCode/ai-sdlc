@@ -50,7 +50,7 @@ suggests it once the pull request has merged (D-182).
 **The binary starts every process the chain runs** (D-183). No skill starts a reader, an adjudicator or the build
 itself any more, so a skill needs no permission to start one and no multi-line shell its host could not
 pre-approve — which is what kept a headless build from getting past its first reader. `sdlc round run` starts a
-round's readers, `sdlc mine read` and `sdlc mine review` mining's, and `sdlc build-run` is *build it*: it commits
+round's readers, `sdlc mine read` and `sdlc mine review` mining's, and `sdlc build` is *build it*: it commits
 the approval a person placed if it is uncommitted, admits the plan, prepares the build's worktree and starts the
 build there with its tools named and permission checks on. A person's change at the pull request, and their
 instruction after an escalation, reach remediate: `sdlc cycles --here --for remediate` finds a cycle `blocked`,
@@ -58,13 +58,29 @@ instruction after an escalation, reach remediate: `sdlc cycles --here --for reme
 `sdlc evidence --retire-pass` retires a pass a person asked to change. The panel sends a blocked cycle to
 remediate. A deviation never narrows a criterion: one the code cannot meet escalates (D-179).
 
+**Every skill is a playbook or does one job, and building has one name** (D-186..D-188). A **playbook** is a step a
+person says, or the factory runs: it names the skills it runs and does no stage work itself — `to-plan`, `next`,
+`steer`, `build`, `remediate`, `resolve-conflict`. Every other skill does one job and starts no other. The skills
+index declares each one's kind in a table the suite holds, and AGENTS.md states the rule. **`build` is the one
+name for building**: given an id it builds that cycle, given none every approved one, and with `--unattended` it is
+the build's own process and the factory's run. `batch-build` and `sdlc build-run` are gone, with no alias: `sdlc
+build [<id>]` starts the build, and is the one stage name the binary runs rather than answers. **`implement`** is a
+new skill — the code, the tests, the deviations and choices, and the evidence — which `build` hands the plan and
+`remediate` hands findings or a person's instruction; `remediate` is the *fix it* playbook around it. **The loop
+leaves the stage skills**: `intent`, `spec` and `plan` each write their document and stop, and `to-plan` runs the
+interrogate-and-refine loop on each — the intent's first — handing back once (D-188, reversing D-29). The skill count
+stays twenty-one.
+
 **A minor** because a round may now demote or refuse what it recorded as blocking before, three rules change
 what is forbidden, a deviation narrowing a criterion is refused, and a person walks different steps: they no longer
-admit a plan, open a session for the build, say *open the pull request*, or answer deviations in a file.
+admit a plan, open a session for the build, say *open the pull request*, or answer deviations in a file; and
+*take it to plan* now checks the intent, which the intent skill no longer does itself.
 
 **Moving to it.** A cycle in flight keeps its deviations: one answered in the approval ledger before this release
 is still read as answered, and one left unanswered no longer holds the pull request — merging accepts it. A
-criterion narrowing a person accepted before this release still holds; a new one is refused.
+criterion narrowing a person accepted before this release still holds; a new one is refused. **A solution with
+a factory pipeline** receives `/sdlc:build --unattended` in place of `/sdlc:batch-build --pr --unattended` in the
+upgrade pull request that moves its pin, which `sdlc upgrade` lists; nothing else needs a hand edit.
 
 ## 0.46.0
 

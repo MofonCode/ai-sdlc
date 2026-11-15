@@ -117,7 +117,7 @@ try
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
         "report" => await WithCycle(line, "report", ReportCommand).ConfigureAwait(false),
-        "build-run" => await WithCycle(line, "build-run", BuildRunCommand).ConfigureAwait(false),
+        "build" => await BuildVerb(line).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
@@ -1255,17 +1255,74 @@ static async Task<int> BacklogCommand(Workspace workspace)
 
 // What a sandbox has approved, composed onto an admission branch the check already knows (D-144). The command
 // alone on standard output, so the pr skill runs exactly what was decided; what stays behind, on standard error.
-// Build it, as one command (D-178, D-184): the placed approval committed in its sandbox, the plan admitted, the
-// build's worktree opened, its own process started there with its tools named, and the report read back.
-static async Task<int> BuildRunCommand(Workspace workspace, CycleId id)
+// Build it (D-178, D-184, D-187): the one stage name the binary runs rather than answers with the skill to use. With
+// a cycle, that cycle; with none, every queued cycle in one process.
+static async Task<int> BuildVerb(CommandLine line) =>
+    line.Arguments.Count == 0
+        ? await Workspace.Run(line, BuildEveryQueuedCommand).ConfigureAwait(false)
+        : await WithCycle(line, "build", BuildCommand).ConfigureAwait(false);
+
+// The plugin this release carries, which the build's process loads so it runs the release the solution pins.
+static async Task<string?> BuildPlugin()
 {
     string plugin = ClaudeSession.PluginDirectory;
 
-    if (!File.Exists(Path.Combine(plugin, ".claude-plugin", "plugin.json")))
+    if (File.Exists(Path.Combine(plugin, ".claude-plugin", "plugin.json")))
     {
-        await Console.Error.WriteLineAsync(
-            $"sdlc {Sdlc.Core.Release.Version} carries no plugin at {plugin}, so the build's process cannot load this release's skills. Reinstall the tool from a package built by ci.yml.")
-            .ConfigureAwait(false);
+        return plugin;
+    }
+
+    await Console.Error.WriteLineAsync(
+        $"sdlc {Sdlc.Core.Release.Version} carries no plugin at {plugin}, so the build's process cannot load this release's skills. Reinstall the tool from a package built by ci.yml.")
+        .ConfigureAwait(false);
+    return null;
+}
+
+// Every queued cycle, in one process started from this checkout (D-187). The playbook opens a worktree per cycle,
+// as the factory's run does, and ends on the sitrep. A plan still only in a sandbox is not queued: name it, and
+// that build admits it first.
+static async Task<int> BuildEveryQueuedCommand(Workspace workspace)
+{
+    if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
+    {
+        return ExitCode.Usage;
+    }
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Building every queued cycle from {workspace.SolutionRoot}, each in a worktree of its own. The build's process implements, verifies, fixes what it can and opens each pull request; it asks nothing, and this waits for it. A plan only in a sandbox is not queued: 'sdlc build <id>' admits it first."))
+        .ConfigureAwait(false);
+
+    Result<Sdlc.Core.AgentExit> exit = await workspace
+        .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(null, workspace.SolutionRoot, plugin))
+        .ConfigureAwait(false);
+
+    if (exit.IsFailed)
+    {
+        return await Report(exit, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (exit.Value.NeverStarted)
+    {
+        await Console.Error.WriteLineAsync("The build's process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    if (!exit.Value.Succeeded)
+    {
+        await Console.Error.WriteLineAsync("The build's process ended badly: " + exit.Value.Problem + " 'sdlc cycles' says where each cycle stopped.").ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    return ExitCode.Ok;
+}
+
+// One cycle (D-178, D-184): the placed approval committed in its sandbox, the plan admitted, the build's worktree
+// opened, its own process started there with its tools named, and the report read back.
+static async Task<int> BuildCommand(Workspace workspace, CycleId id)
+{
+    if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
+    {
         return ExitCode.Usage;
     }
 

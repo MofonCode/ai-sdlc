@@ -153,6 +153,10 @@ pull request, and **merging is where you accept it**. To change anything in it, 
 deviation 2: use X instead* — and the agent changes the code, verifies again, and updates the same pull request.
 If the build escalates instead, its pull request is a draft: say what to do, then *fix it*.
 
+**Each step a person says is a playbook** (D-186): it runs skills that each do one job — `implement` writes the
+code, `verify` judges it, `remediate` goes round them, `pr` opens the pull request — and does no stage work
+itself. [`skills/README.md`](skills/README.md) has the table.
+
 **The binary starts every process** (D-183) — each reader, the verification, the build's own — with its tools
 named and the host's permission checks left on. No skill launches one itself, so nothing a cycle runs needs a
 permission a person did not already give, on any host.
@@ -238,7 +242,7 @@ cycles and which only fixtures.
 |---|---|---|
 | **Chain check** | The process is skipped and the change merged anyway | `sdlc verify-chain` runs as a required pull-request check and refuses a change whose chain is not complete, approved and hash-matched, or whose new lines are under 70% covered |
 | **The pull request from the cycle** | A pull request description is a summary somebody invented, and what the agent decided alone is buried in the diff | The build opens it. The body leads with the report — every deviation, every choice the build made alone, every concern — then the problem in the intent's words, each criterion with its verdict, the risk tier, and anything still open. Merging accepts it |
-| **Batch build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:batch-build` builds every approved cycle on its own branch; the factory runs it unattended whenever you start it and **never merges**. The sitrep it ends on says what is ready, in what order, and what needs a person |
+| **Build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:build` with no id builds every approved cycle on its own branch; the factory runs the same playbook unattended whenever you start it and **never merges**. The sitrep it ends on says what is ready, in what order, and what needs a person |
 | **Leads** | Work arrives in a tracker and is retyped into a prompt | `/sdlc:intent --from` starts from an Azure DevOps or GitHub work item, a suggestion or a ready successor. Operate reads production's errors and files them as leads |
 | **Init** | Bringing governance into a repository is a week of setup nobody finishes | `/sdlc:init` interviews the team about what matters here and proposes its first rules. Adoption writes the hooks for every supported agent and the pipeline, drafts the files only a person writes, and creates the integration branch |
 | **Pinned release** | Upgrading the tool halfway through a change moves the rules under it, and moving to a new release costs a whole cycle about nothing | A solution pins its release, and a cycle runs on the one it opened on — the binary, its skills and its hooks together. Moving the pin needs no cycle: the pull-request check writes the framework's files again as the new release and merges the upgrade only if they match |
@@ -460,7 +464,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 
 | Capability | Has met | Not yet |
 |---|---|---|
-| **Bounded remediation** | the suite, far more than real use | enough real escalations to trust an unattended batch without watching the first ones |
+| **Bounded remediation** | the suite, far more than real use | enough real escalations to trust an unattended run over several cycles without watching the first ones |
 | **The factory** | real use: one unattended run that built a cycle and opened its pull request | a morning spent on a sitrep of more than one cycle |
 | **The Azure DevOps pipeline** | real use: one server, checking every pull request on the factory's agent image. It runs only once a person adds a build validation branch policy, which the file, the adoption guide and `sdlc doctor` all say | the branch-policy commands `sdlc branch-policy` prints for Azure DevOps |
 | **Round cost** | real use: one plan round's blind readers, from about $0.79 to $0.33 | a verify round measured; which readers run on which model (`CONCEPT.md` §19) |
@@ -470,7 +474,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **The coverage floor** | one real solution's numbers | a cycle refused or passed by it |
 | **The decisions through every stage, and departures** | the suite | a cycle judged this way: how often the change's reader blocks, and whether it adds rounds |
 | **Deviations and choices** | the suite | a recorded deviation or choice: how often a build bends where it used to stop, and how often a stalled remediation's one deviation gets it to a pass |
-| **The five-step cycle: build it through to the pull request** | the suite | a cycle run this way: `sdlc build-run` starting the build in its own process with its tools named, the readers started by `sdlc round run`, the report, and a change asked for at the pull request |
+| **The five-step cycle: build it through to the pull request** | the suite | a cycle run this way: `sdlc build` starting the build in its own process with its tools named, the readers started by `sdlc round run`, the report, and a change asked for at the pull request |
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |
@@ -487,7 +491,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Perspectives** | security, operability, maintainability and accessibility, written as methods that steer every stage; operability's reader may block on `CON_20`, at a spec only, and the suite holds that no other perspective blocks | proof that a perspective's reader catches what it should; UI/UX and the four others are not written |
 | **Leads and Operate** | fakes only: `sdlc lead show` through `az` and `gh`, `sdlc operate` reading Application Insights | a real tracker or telemetry store. Jira is not read |
 | **The task lists** | the suite holds the wording (`CONCEPT.md` D-80) | watched on any host |
-| **Pushing** | the refusal, in the binary and tested | a command behind the push: `pr` and `batch-build` use the platform's own CLI |
+| **Pushing** | the refusal, in the binary and tested | a command behind the push: `pr` uses the platform's own CLI |
 
 **Three gaps are the hosts' and the design's rather than a test's.**
 

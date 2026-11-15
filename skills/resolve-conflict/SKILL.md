@@ -12,7 +12,8 @@ Every cycle builds from the same base, so two that touch the same thing meet whe
 request is merged (`CONCEPT.md` §10.5, D-86). A person merges one pull request at a time; when the next one
 conflicts, or its re-check goes red because an earlier merge broke it, this brings it up to date.
 
-**It edits, and it does not judge its own work.** A resolution changes code, so the cycle's verify is void
+**A playbook** (D-186): it brings the integration branch in, then runs `verify` on the result, and `remediate`
+when that blocks. **It edits, and it does not judge its own work.** A resolution changes code, so the cycle's verify is void
 the moment it is made. What proves the resolution regressed nothing is the suite and a **fresh** verify, in a
 new process, against the spec — never this session's opinion of what it did (D-01).
 
@@ -84,7 +85,7 @@ Run the tests with `--coverage --coverage-output-format cobertura --results-dire
 build stage does. **A conflict on `.sdlc/coverage.json` is expected** when another cycle merged first:
 take the integration branch's side, and recording the evidence writes the new value over it.
 
-Commit the evidence, then run the **verify stage** — in a fresh process, as it always runs. It may come back
+Commit the evidence, then run **`verify`** — in a fresh process, as it always runs. It may come back
 `blocked`; that is the verify working, and `remediate` is the next step, on this branch.
 
 ## 5. Push, and report

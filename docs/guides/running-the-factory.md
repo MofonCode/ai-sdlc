@@ -58,7 +58,7 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
    only a person writes and fails the run if the file appears, because a host whose hooks did not load would
    build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
    in writes nothing either, and would pass
-3. runs `/sdlc:batch-build --pr --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
+3. runs `/sdlc:build --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
    branch, independently, and a pull request for each — **a draft for one that did not pass**. Given one cycle
    id, that cycle alone: the binary checks it is queued before the agent sees it, and the run stops with why
    if it is not

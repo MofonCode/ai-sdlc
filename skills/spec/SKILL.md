@@ -1,12 +1,15 @@
 ---
 name: spec
-description: Derive testable acceptance criteria from an approved-shape intent, producing the spec of a cycle. Use after an intent has a clean interrogation round.
+description: Derive testable acceptance criteria from a clean intent, writing the spec of a cycle and nothing else. The to-plan playbook runs it and then checks the spec with its loop. Use after an intent has a clean interrogation round.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author a spec
+
+**A single-responsibility skill** (D-186): it writes the spec, and nothing after. The `to-plan` playbook runs it,
+then checks what it wrote with fresh readers and has `refine` apply what they find (D-188).
 
 A spec says **what done means**. Every criterion is something that can be observed and checked, and
 nothing in it was invented here: each criterion traces to something the intent asked for.
@@ -65,10 +68,7 @@ each done as it finishes. If it does not, carry on without one — nothing below
 2. derive the criteria: every outcome covered whole, and each one able to fail
 3. dispose of every open item the intent carries
 4. write the spec
-5. interrogate and refine until a round is clean
-6. hand back
-
-**The loop is one item, however many rounds it takes.**
+5. hand back
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
 person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
@@ -261,54 +261,14 @@ cycle: <id>
 A spec carries no `Fixed decisions` section and needs none: its criteria derive from the intent, so a
 decision appearing here would derive from nothing.
 
-## Run the loop, then hand back
+## Hand back
 
-**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
-person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
-how one person ended up asking "what is dev 1 - 5?".
-
-Interrogate, refine, interrogate again until a round is clean, a reader reports a conflict, or the
-panel's `Loop` line says the loop is stuck. The three exits for a finding are the same as the intent's —
-healed, assumed, asked — except that a spec has no decisions region, so an assumption here is almost
-always a sign the intent is the thing to fix.
-
-**"Nothing further can be settled" is no longer your call to make.** It used to be, and it was the one
-judgement in this loop that the session running it had no standing to make — the whole interrogate and
-refine split exists so that the thing being judged is not the judge. The `Loop` line on the panel is the
-answer now: silence means keep going, a rule that *has come back* means look for an exit instead of
-editing the same words again, and *stuck on* means stop and hand back to a person. Nothing caps the
-rounds, so a slow convergence is never a reason to stop.
-
-See the intent skill's loop section for the full table; it is the same loop.
-
-**First, the suggestions the spec's rounds left open, if there are any.** Ask once, from a file, in
-free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an
-answer, and the commonest one — skip all of this when nothing is open.
-
-1. `sdlc suggestions <id>` — the list, and the count the file must hold.
-2. Write `.sdlc/reports/<id>-spec-suggestions.md`: themes, each a heading, a short summary of what its
-   findings mean **for this change**, whether it sharpens an outcome the intent already wants (name it)
-   or adds or widens one (a successor, D-128), what taking it in costs now against later, and a suggested
-   answer with its reason; beneath it each finding's id and one line of what it found and where. **The themes only group** — every
-   open suggestion once, none merged, none left out.
-3. Ask one question in free text, never from a picker: name the file, each theme in one line, and what
-   to take in, decline or leave.
-4. Map the answer to finding ids and **read it back before acting** — take in to sharpen a named
-   outcome, decline with the reason, make a successor of one that adds or widens, leave. A theme named whole is every id beneath it; a decline without a reason is asked for one; words
-   with no finding behind them are not taken in here — a change to *how* is a correction for
-   `/sdlc:steer`, and something no reader raised is a cycle of its own.
-5. Once they confirm, `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words, which
-   writes each into the intent with their name on it and re-interrogates down to here (D-97). **Never
-   take one in on their behalf**: a suggestion nobody chose is exactly what the spec may not derive from.
+**Run by `to-plan`, hand straight back to it**: it checks the spec next. Run on its own:
 
 ```
 sdlc status <id> --stage spec --brief
 ```
 
-Show it verbatim, then stop. The person decides whether to move to the plan. **Close with one plain
-offer**, in a line of your own: say *take it to plan* (or `/sdlc:to-plan`) to carry on to the plan, or
-say what should change first.
-
-**Say nothing else beyond two sentences.** The panel carries the cycle, the counts, the gate and the next
-command; prose around it competes with the only lines worth reading. Drop `--brief` when somebody asks
-for the whole panel.
+Show it verbatim, then stop. **Close with one plain offer**, in a line of your own: *take it to plan*
+(`/sdlc:to-plan`) checks this spec with fresh readers and carries on to the plan; or say what should change
+first. **Say nothing else beyond two sentences.**

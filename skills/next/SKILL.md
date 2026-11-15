@@ -8,6 +8,9 @@ allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 
 # Pull the next wave
 
+**A playbook** (D-186): `intent` interviews each ready successor, and `to-plan` checks and plans every cycle the
+wave holds, its loop and its parking check included.
+
 Work that was sliced, or whose plans turned out to need each other, comes ready in waves: a successor once what
 it succeeds has merged, a parked cycle once what it waits on has. This takes **every item ready now** and carries
 it as far as a person's approval, in one run, and says what the next wave waits on (D-147).
@@ -38,8 +41,8 @@ skill's §1 says, and every other opens inside it.
 
 For each ready successor, **follow the `intent` skill with `--from successor:<slug>`**: it fetches the outcome and
 why the slicing left, starts the successor in this sandbox, and interviews the person against the code that
-merged. Most of each interview is short. Run each intent's loop as the skill says; do not stop at its hand-back,
-since the run hands back once, in §6.
+merged. Most of each interview is short. Do not stop at its hand-back, since the run hands back once, in §6; the
+intent is checked in §5, where `to-plan` runs its loop.
 
 ## 4. Parked cycles: take each back and read it again
 
@@ -50,8 +53,7 @@ sdlc unpark <id>
 ```
 
 Its plan was written before the code it needed existed, so **read its spec and its plan again against what
-merged** — `/sdlc:interrogate <id> spec`, refine until clean, then the same for its plan, one document at a
-time. A round that changes nothing leaves any approval it had standing. One that changes a document needs that
+merged** — `to-plan`'s loop on its spec, then on its plan, one document at a time. A round that changes nothing leaves any approval it had standing. One that changes a document needs that
 document's changes approved again: an approved cycle is reopened first, `sdlc draft approval <id> --reopen`, as
 the `steer` skill says.
 
@@ -61,8 +63,8 @@ leave by the same admission as the rest.
 
 ## 5. Plan the new intents
 
-Then follow the `to-plan` skill for this sandbox: spec then plan for every intent this wave opened, one cycle
-at a time, each with its loop and its `sdlc park` check — **a cycle this wave planned may itself be parked**,
+Then follow the `to-plan` playbook for this sandbox: every intent this wave opened checked, then its spec and its
+plan, one cycle at a time, each with its loop and its `sdlc park` check — **a cycle this wave planned may itself be parked**,
 behind one of its siblings, and that is the next wave forming.
 
 ## 6. Hand back once

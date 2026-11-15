@@ -55,7 +55,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
 | **Deviations — `sdlc deviations`, `sdlc report`, `sdlc verify-chain`** | |
 | [a deviation that does not hold](../guides/handling-refusals.md#a-deviation-that-does-not-hold) | the stage that wrote it corrects the quote; a narrowed criterion is taken out and the cycle escalates; a claimed file is not a deviation |
-| **The build — `sdlc build-run`** | |
+| **The build — `sdlc build`** | |
 | [the build's process cannot start](../guides/handling-refusals.md#the-builds-process-cannot-start) | install the host's command line; the build never runs in your session instead |
 | [the build ended without a report](../guides/handling-refusals.md#the-build-ended-without-a-report) | fix what it printed, and say *build it* again |
 | **Starting readers — `sdlc round run`** | |

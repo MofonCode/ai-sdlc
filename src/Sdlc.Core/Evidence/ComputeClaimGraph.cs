@@ -218,7 +218,7 @@ public static class ComputeClaimGraph
                 // decides concurrency, and D-15 calls over-serialising self-correcting for a wide
                 // claim rather than for a cycle that should not be in the set. F-13.
                 //
-                // Filtered here rather than in batch-build, so "approved" means one thing: it is the
+                // Filtered here rather than in the build playbook, so "approved" means one thing: it is the
                 // gate's answer, from the gate's own handler.
                 if (cycle.IsAbandoned)
                 {
