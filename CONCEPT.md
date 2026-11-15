@@ -2416,7 +2416,7 @@ mechanical rather than promised.
 | `constraints` | nothing | nothing | nothing; it prints |
 | `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69). With `--renumber`, the cycle's suggestions ledger: each id recorded twice takes the next free one (D-171) |
 | `resolve-conflict` | a cycle whose pull request conflicts with the integration branch or went red after another merge | a resolution needing a file the plan never declared — a change of plan, handed back; or two settings carry one key with different values | the cycle's declared files and its evidence, with the old verify removed; the fresh verify is `remediate`'s (D-86, D-186) |
-| `harvest` and its five aspect skills | a completed cycle not closed, still needing the aspect — merged after a passing verify, or abandoned (D-190) | nothing; a cycle in flight or not merged is waiting, and the overview says so; recording refuses while the aspect's draft is beside its file | nothing that binds: the report, drafts for a person to rename, and with `record` the harvest ledger (D-191) |
+| `harvest` and its five aspect skills | a completed cycle not closed, still needing the aspect — merged after a passing verify, or abandoned, merged or not: one none of which merged is brought in from its own branch, untracked (D-190) | nothing; a cycle in flight or not merged is waiting, and the overview says so; recording refuses while the aspect's draft is beside its file | nothing that binds: the report, drafts for a person to rename, and with `record` the harvest ledger (D-191) |
 | `close-cycle` | every aspect answered for a cycle, every draft placed or refused, the integration branch checked out | any of those missing — `sdlc harvest close` names what (D-192) | the harvest ledger, a `harvest/<date>` commit removing the closed folders, a push and a pull request |
 | `theme` | nothing | nothing; an unreadable theme is reported | nothing; it prints |
 
@@ -2482,7 +2482,7 @@ they print verbatim.
 | `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
 | `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
-| `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
+| `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle, and every branch of a cycle the harvest ledger there records closed — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
 | `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes, the factory's images, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
@@ -7556,7 +7556,8 @@ areas proposed.
 those: it refuses while a draft is still beside its file, while nothing can close — naming each cycle and the
 aspects it still needs — and anywhere but the integration branch, where the cycles merged and the drafts were
 placed. It records each closed cycle in `.sdlc/harvested.json`, then on a new `harvest/<date>` branch commits the
-removal of their folders with the ledger, the records the person placed and the successors written. It pushes
+removal of their folders with the ledger, the records the person placed and the successors written — a folder brought
+in from a cycle's own branch is deleted from the working tree, and only what was kept from it is committed. It pushes
 nothing. The `close-cycle` skill runs it, then pushes the branch and opens the pull request into the integration
 branch a person merges; the check admits that pull request as a harvest when it carries only those files (D-152).
 The ledger is `.sdlc/harvested.json` — renamed from `mined.json` with no fallback, because no solution had mined.
@@ -7616,7 +7617,10 @@ nothing is harvested on a cycle's branch before its pull request merges. **Amend
 the area replay read completed cycles, and closed ones from the ledger.
 
 **Decision.** A cycle is **completed** when its verify passed and its folder is on the integration branch — its pull
-request merged — or a person abandoned it and its folder is there. A harvest reads completed cycles and nothing else:
+request merged — or a person abandoned it, merged or not. A cycle stopped before any of it merged lives only on its own
+`cycle/<id>/...` branch: `sdlc harvest` brings its folder into the working tree from there, untracked, among the
+branches the clone knows, its own before the remote's; the close deletes it again, the ledger names that branch's last
+commit, and `sdlc tidy` lists the branch once the ledger on the integration branch records it closed. A harvest reads completed cycles and nothing else:
 a cycle in flight is read by no aspect and counts toward no rule, and one that passed verify and has not merged waits,
 and the overview says so. An abandoned cycle gives selectively: its abandonment reason may become a decision, its
 findings count toward rules, its suggestions may be taken further — and its plan's approach is never offered as a
@@ -7625,14 +7629,19 @@ decision, because that approach is what was abandoned.
 **Why.** Since D-181 the pull request is where a person accepts a build. A cycle that passed verify and whose pull
 request was closed or sent back was never accepted, and choices lifted from it would be choices a person refused. An
 approval was the old provenance, and a cycle approved and still in flight has findings nobody has settled. Merged or
-abandoned is the one moment a person has said the cycle is over.
+abandoned is the one moment a person has said the cycle is over. An abandonment needs no merge because writing it is
+already that moment, and what a harvest keeps from the cycle reaches the integration branch through the harvest's own
+pull request — its folder never needs to.
 
 **Rejected.** *Passed verify*: sooner, and it records what a person may reject at the pull request. *Approved cycles,
 as D-70 read*: a plan approved and then built differently, or abandoned after approval, is not settled. *Abandoned
 cycles giving everything*: an abandoned approach would come back as a recommended choice. *Abandoned cycles giving
 nothing*: the reason a person stopped is the clearest decision in the record, and dropping it invites the same
 attempt again. *Harvesting on the cycle's branch before the merge (D-111)*: the merge is the acceptance it would be
-reading ahead of.
+reading ahead of. *An abandoned cycle merged before it is read*: a pull request carrying a folder only so the close
+can delete it again — ceremony that decided nothing, for a cycle the person had already ended. *Reading it from
+the branch in place, without bringing it in*: every reader reads the working tree, and a second way of reading would
+be a second set of readers to keep in step.
 
 ### D-189 — A decision is a choice future cycles will meet again; a person's words qualify once, an agent's must recur
 

@@ -91,7 +91,10 @@ public static class HarvestReport
     /// <param name="Cycle">The cycle.</param>
     /// <param name="Abandoned">Whether it was abandoned rather than passed.</param>
     /// <param name="Missing">The aspects no sitting has answered for it, in the order the playbook runs them.</param>
-    public sealed record OpenCycle(CycleId Cycle, bool Abandoned, IReadOnlyList<HarvestAspect> Missing);
+    /// <param name="Branch">
+    /// The branch an abandoned cycle was read from when its abandonment never reached the integration branch, or null.
+    /// </param>
+    public sealed record OpenCycle(CycleId Cycle, bool Abandoned, IReadOnlyList<HarvestAspect> Missing, string? Branch = null);
 
     /// <summary>The report.</summary>
     /// <param name="Aspect">The aspect it reads, or null for the overview.</param>
@@ -126,7 +129,7 @@ public static class HarvestReport
     /// Every successor marked <c>framework:</c>, for a person to take to the framework rather than build here (D-173).
     /// </param>
     /// <param name="Open">Every completed cycle not closed yet, with the aspects it still needs.</param>
-    /// <param name="Unmerged">Finished cycles whose folders are not on the integration branch yet: they wait.</param>
+    /// <param name="Unmerged">Cycles that passed verify whose pull requests have not merged yet: they wait.</param>
     /// <param name="IntegrationBranch">The integration branch.</param>
     public sealed record Response(
         HarvestAspect? Aspect,
@@ -184,7 +187,7 @@ public static class HarvestReport
             string state = open.Missing.Count == 0
                 ? "every aspect answered -- ready to close"
                 : "to answer: " + string.Join(", ", open.Missing.Select(HarvestAspects.NameOf));
-            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {open.Cycle}{(open.Abandoned ? " (abandoned)" : string.Empty)}  {state}"));
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {open.Cycle}{(open.Branch is { } branch ? " (abandoned on " + branch + ", never merged)" : open.Abandoned ? " (abandoned)" : string.Empty)}  {state}"));
         }
 
         Waiting(text, response);
@@ -256,7 +259,7 @@ public static class HarvestReport
     {
         foreach (CycleId cycle in response.Unmerged)
         {
-            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  waiting: {cycle} is finished but not merged into {response.IntegrationBranch} yet"));
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  waiting: {cycle} passed verify but is not merged into {response.IntegrationBranch} yet"));
         }
     }
 
@@ -692,13 +695,18 @@ public static class HarvestReport
                     continue;
                 }
 
-                if (Completion.MergeOf(repository, solution.Path, integration, cycle.Id) is null)
+                // An abandonment needs no merge (D-190); a passed verify waits for its pull request.
+                if (!cycle.IsAbandoned && Completion.MergeOf(repository, solution.Path, integration, cycle.Id) is null)
                 {
                     unmerged.Add(cycle.Id);
                     continue;
                 }
 
-                open.Add(new OpenCycle(cycle.Id, cycle.IsAbandoned, ledger.Missing(cycle.Id.ToString())));
+                open.Add(new OpenCycle(
+                    cycle.Id,
+                    cycle.IsAbandoned,
+                    ledger.Missing(cycle.Id.ToString()),
+                    cycle.IsAbandoned ? Completion.AbandonedOn(repository, solution.Path, integration, cycle.Id) : null));
             }
 
             List<CycleId> completed = [.. open.Select(cycle => cycle.Cycle)];
@@ -829,7 +837,7 @@ public static class HarvestReport
             ledger.Find(id.ToString()) is not null
                 ? string.Create(CultureInfo.InvariantCulture, $"{id} is closed already; 'sdlc harvest --history' lists when.")
                 : unmerged.Contains(id)
-                    ? string.Create(CultureInfo.InvariantCulture, $"{id} is finished but its pull request has not merged, so nobody has accepted it yet.")
+                    ? string.Create(CultureInfo.InvariantCulture, $"{id} passed verify but its pull request has not merged, so nobody has accepted it yet.")
                     : completed.Contains(id) && aspect is { } answered
                         ? string.Create(CultureInfo.InvariantCulture, $"{id} has answered {HarvestAspects.NameOf(answered)} already.")
                         : string.Create(CultureInfo.InvariantCulture, $"{id} is not a completed cycle here: its verify has not passed and nobody abandoned it, or there is no such cycle. 'sdlc cycles' lists them.");

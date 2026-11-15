@@ -9,11 +9,10 @@ namespace Sdlc.Core.Harvest;
 /// Whether a cycle is completed, which is the only kind a harvest reads (D-190).
 /// </summary>
 /// <remarks>
-/// <para><strong>Completed is finished and merged.</strong> Finished: its verify passed, or a person abandoned it.
-/// Merged: its folder is on the integration branch. Since D-181 the pull request is where a person accepts a build,
-/// so a cycle whose verify passed and whose pull request was closed, or sent back, was never accepted, and its
-/// choices wait until it merges. An abandoned cycle's folder reaches the integration branch the same way, which is
-/// also what lets a closed cycle's folder be deleted through a pull request.</para>
+/// <para><strong>Completed is passed and merged, or abandoned.</strong> Since D-181 the pull request is where a person
+/// accepts a build, so a cycle whose verify passed and whose pull request was closed, or sent back, was never accepted,
+/// and its choices wait until it merges. An abandonment needs no merge: the person ended the cycle by writing it, and a
+/// cycle stopped before any of it merged lives only on its own branch, where a harvest reads it (D-190).</para>
 /// </remarks>
 public static class Completion
 {
@@ -75,4 +74,39 @@ public static class Completion
 
         return null;
     }
+
+    /// <summary>
+    /// The branch an abandoned cycle is read from when its abandonment never reached the integration branch, or null
+    /// when it did, or when no branch of the cycle carries one.
+    /// </summary>
+    /// <remarks>
+    /// A local branch is asked before the remote's: it is the person's own, and holds at least what they pushed.
+    /// </remarks>
+    /// <param name="repository">The repository.</param>
+    /// <param name="root">The solution's root.</param>
+    /// <param name="integration">The integration branch's name.</param>
+    /// <param name="cycle">The cycle.</param>
+    /// <returns>The branch, or null.</returns>
+    public static string? AbandonedOn(IRepository repository, string root, string integration, CycleId cycle)
+    {
+        ArgumentNullException.ThrowIfNull(repository);
+
+        string abandoned = AbandonedPath(cycle);
+
+        if (new[] { "origin/" + integration, integration }.Any(name => repository.RefExists(root, name) && repository.PathExistsAt(root, name, abandoned)))
+        {
+            return null;
+        }
+
+        return repository.Branches(root, CycleId.BranchPrefix + cycle + "/")
+            .OrderBy(name => name.StartsWith("origin/", StringComparison.Ordinal))
+            .ThenBy(name => name, StringComparer.Ordinal)
+            .FirstOrDefault(name => repository.PathExistsAt(root, name, abandoned));
+    }
+
+    /// <summary>A cycle's abandonment record, relative to the root with forward slashes.</summary>
+    /// <param name="cycle">The cycle.</param>
+    /// <returns>The path.</returns>
+    internal static string AbandonedPath(CycleId cycle) =>
+        string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, cycle.ToString(), "abandoned.md");
 }

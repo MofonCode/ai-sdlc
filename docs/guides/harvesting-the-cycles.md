@@ -18,6 +18,12 @@ read by nothing here.
 findings still count as evidence for rules, and its suggestions can become new intents. Its plan's approach is never
 offered as a decision, because that approach is what you abandoned.
 
+**An abandoned cycle needs no merge.** If you stopped it before any of it reached the integration branch, it lives
+only on its own `cycle/<id>/...` branch. `sdlc harvest` finds it there, among the branches this clone knows (yours
+before the remote's), and brings its folder into your working tree, untracked, so every aspect reads it like the rest.
+What you keep from it reaches the integration branch through the harvest's own pull request; its folder never does. A
+branch that only exists on somebody else's machine is not seen: push it if it should be harvested.
+
 You do not have to harvest after every cycle. The three-cycle bar — one cycle is an instance, two a coincidence,
 three a pattern — is easier to see with several cycles in front of you.
 
@@ -99,7 +105,9 @@ harvest when it carries only the records, the ledger, successors and the removed
 
 **Nothing is lost when a folder goes.** It is in git at the merge commit the ledger names, and what later harvests
 need — the rules it cited, the files it touched, the areas its plan proposed — is kept in the ledger.
-`sdlc harvest --history` shows it.
+`sdlc harvest --history` shows it. A cycle read from its own branch is at that branch's last commit instead, and the
+folder brought into your working tree is deleted again. Once the pull request merges, `sdlc tidy` lists that branch
+for deletion; until then it keeps it, so nothing is deleted before it is harvested.
 
 ## When it refuses
 

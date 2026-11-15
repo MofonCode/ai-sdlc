@@ -52,11 +52,16 @@ public static class CloseHarvest
     /// <param name="Branch">The branch the removal was committed on.</param>
     /// <param name="IntegrationBranch">The branch its pull request goes to.</param>
     /// <param name="Waiting">Completed cycles that stay open, with the aspects each still needs.</param>
+    /// <param name="ReadFrom">
+    /// The cycle branches closed cycles were read from because their abandonment never merged: their folders never
+    /// reach the integration branch, and once this pull request merges <c>sdlc tidy</c> lists each for deletion.
+    /// </param>
     public sealed record Response(
         IReadOnlyList<HarvestedCycle> Closed,
         string Branch,
         string IntegrationBranch,
-        IReadOnlyList<HarvestReport.OpenCycle> Waiting);
+        IReadOnlyList<HarvestReport.OpenCycle> Waiting,
+        IReadOnlyList<string> ReadFrom);
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository, TimeProvider clock) : IRequestHandler<Command, Response>
     {
@@ -115,21 +120,29 @@ public static class CloseHarvest
 
             foreach (HarvestReport.OpenCycle open in closing)
             {
-                closed.Add(await Husk(new Cycle(open.Cycle, solution.Path), integration, now, report.Value, cancellationToken).ConfigureAwait(false));
+                closed.Add(await Husk(new Cycle(open.Cycle, solution.Path), open.Branch, integration, now, report.Value, cancellationToken).ConfigureAwait(false));
             }
 
             HarvestLedger written = report.Value.Ledger.Closing(closed);
             await File.WriteAllTextAsync(HarvestLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
 
-            foreach (HarvestedCycle husk in closed)
+            foreach (HarvestReport.OpenCycle open in closing)
             {
+                // A cycle read from its own branch was restored here untracked, over whatever of it had merged, so its
+                // tracked part is removed even though it differs, and what git never tracked is deleted from disk.
+                Cycle cycle = new(open.Cycle, solution.Path);
                 Result<string> removed = repository.Git(solution.Path, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"rm -r -q -- \"{Cycle.SdlcDirectoryName}/{Cycle.CyclesDirectoryName}/{husk.Cycle}\""));
+                    $"rm -r -q{(open.Branch is null ? string.Empty : " -f")} --ignore-unmatch -- \"{Cycle.SdlcDirectoryName}/{Cycle.CyclesDirectoryName}/{open.Cycle}\""));
 
                 if (removed.IsFailed)
                 {
                     return removed.ToResult<Response>();
+                }
+
+                if (Directory.Exists(cycle.Directory))
+                {
+                    Directory.Delete(cycle.Directory, recursive: true);
                 }
             }
 
@@ -154,10 +167,10 @@ public static class CloseHarvest
 
             return committed.IsFailed
                 ? committed
-                : Result.Ok(new Response(closed, branch, integration, waiting));
+                : Result.Ok(new Response(closed, branch, integration, waiting, [.. closing.Select(open => open.Branch).OfType<string>()]));
         }
 
-        private async Task<HarvestedCycle> Husk(Cycle cycle, string integration, DateTimeOffset now, HarvestReport.Response report, CancellationToken cancellationToken)
+        private async Task<HarvestedCycle> Husk(Cycle cycle, string? branch, string integration, DateTimeOffset now, HarvestReport.Response report, CancellationToken cancellationToken)
         {
             string planPath = cycle.PathOf(ArtifactKind.Plan);
             string plan = File.Exists(planPath) ? await File.ReadAllTextAsync(planPath, cancellationToken).ConfigureAwait(false) : string.Empty;
@@ -170,7 +183,7 @@ public static class CloseHarvest
 
             return new HarvestedCycle(
                 cycle.Id.ToString(),
-                Completion.MergeOf(repository, solution.Path, integration, cycle.Id),
+                branch is null ? Completion.MergeOf(repository, solution.Path, integration, cycle.Id) : repository.CommitOf(solution.Path, branch),
                 now,
                 cycle.IsAbandoned,
                 DeclaredFiles.Read(plan),

@@ -160,6 +160,7 @@ public static class SdlcServices
         services.AddReadAreasRequestHandler();
         services.AddRecordHarvestRequestHandler();
         services.AddCloseHarvestRequestHandler();
+        services.AddGatherAbandonedRequestHandler();
         services.AddVerifyHarvestRequestHandler();
 
         // Where the build bent the approved documents, and what it chose that they left open (deviations), and

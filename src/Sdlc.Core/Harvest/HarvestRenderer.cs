@@ -43,6 +43,13 @@ public static class HarvestRenderer
         text.AppendLine("Their folders are removed in that commit, with the ledger and the records you placed. Each folder is still");
         text.AppendLine("in git at the merge the ledger names.");
 
+        if (response.ReadFrom.Count > 0)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Read from their own branches, never merged: {string.Join(", ", response.ReadFrom)}. Each folder is at its branch's last commit; 'sdlc tidy' lists the branch for deletion once this merges."));
+        }
+
         foreach (HarvestReport.OpenCycle open in response.Waiting)
         {
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  stays open: {open.Cycle} still needs {string.Join(", ", open.Missing.Select(HarvestAspects.NameOf))}"));

@@ -60,7 +60,7 @@ public sealed class HarvestTests
         HarvestReport.Response unmerged = await Report(workspace, new FakeRepository());
         Assert.AreEqual(0, unmerged.Open.Count, "Passing verify is not acceptance: the pull request is (D-181).");
         CollectionAssert.AreEqual(new[] { workspace.Cycle.Id }, unmerged.Unmerged.ToArray());
-        StringAssert.Contains(HarvestReport.RenderOverview(unmerged), "is finished but not merged into development yet");
+        StringAssert.Contains(HarvestReport.RenderOverview(unmerged), "passed verify but is not merged into development yet");
 
         HarvestReport.Response merged = await Report(workspace, Merged(workspace));
         HarvestReport.OpenCycle open = merged.Open.Single();
@@ -69,15 +69,69 @@ public sealed class HarvestTests
     }
 
     [TestMethod]
-    public async Task An_abandoned_cycle_is_completed_once_merged()
+    public async Task An_abandoned_cycle_is_completed_whether_or_not_any_of_it_merged()
     {
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
         workspace.Abandon();
 
-        HarvestReport.OpenCycle open = (await Report(workspace, Merged(workspace))).Open.Single();
+        HarvestReport.OpenCycle merged = (await Report(workspace, Merged(workspace))).Open.Single();
+        HarvestReport.OpenCycle never = (await Report(workspace, new FakeRepository())).Open.Single();
 
-        Assert.IsTrue(open.Abandoned);
+        Assert.IsTrue(merged.Abandoned);
+        Assert.IsTrue(never.Abandoned, "An abandonment is the person ending the cycle; it waits for no merge (D-190).");
+    }
+
+    [TestMethod]
+    public async Task An_abandoned_cycle_that_never_merged_is_brought_in_from_its_branch()
+    {
+        using var workspace = CycleWorkspace.Create();
+        string id = workspace.Cycle.Id.ToString();
+        string branch = "cycle/" + id + "/plan";
+        FakeRepository git = Merged(workspace, branch: "development");
+        git.Refs.Add(branch);
+        git.PathsAt.Add(branch + ":.sdlc/cycles/" + id + "/abandoned.md");
+
+        GatherAbandoned.Response gathered = await Gather(workspace, git);
+
+        Assert.AreEqual(branch, gathered.Cycles.Single().Branch);
+        Assert.IsTrue(git.Ran.Any(run => run.Arguments == "restore --source=\"" + branch + "\" --worktree -- \".sdlc/cycles/" + id + "\""), "Restored untracked: nothing checked out, nothing staged.");
+
+        git.PathsAt.Add(Integration + ":.sdlc/cycles/" + id + "/abandoned.md");
+        Assert.AreEqual(0, (await Gather(workspace, git)).Cycles.Count, "An abandonment on the integration branch is read from there.");
+
+        git.PathsAt.Remove(Integration + ":.sdlc/cycles/" + id + "/abandoned.md");
+        await WriteLedger(workspace, Husk(id));
+        Assert.AreEqual(0, (await Gather(workspace, git)).Cycles.Count, "A closed cycle is not brought back.");
+    }
+
+    [TestMethod]
+    public async Task A_cycle_read_from_its_branch_closes_at_its_branch_and_leaves_the_working_tree()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.Abandon();
+        string id = workspace.Cycle.Id.ToString();
+        string branch = "cycle/" + id + "/plan";
+        FakeRepository git = new() { Branch = "development" };
+        git.Refs.Add(Integration);
+        git.Refs.Add(branch);
+        git.PathsAt.Add(branch + ":.sdlc/cycles/" + id + "/abandoned.md");
+
+        Assert.AreEqual(branch, (await Report(workspace, git)).Open.Single().Branch);
+
+        foreach (HarvestAspect aspect in HarvestAspects.All)
+        {
+            Assert.IsTrue((await Record(workspace, git, aspect, await Proposals(workspace, string.Empty))).IsSuccess);
+        }
+
+        CloseHarvest.Response closed = (await Close(workspace, git)).Value;
+
+        Assert.AreEqual(branch, closed.Closed.Single().Merge, "Its folder is in git at its branch's last commit, never on the integration branch.");
+        CollectionAssert.AreEqual(new[] { branch }, closed.ReadFrom.ToArray());
+        Assert.IsTrue(git.Ran.Any(run => run.Arguments.StartsWith("rm -r -q -f --ignore-unmatch -- ", StringComparison.Ordinal)));
+        Assert.IsFalse(Directory.Exists(workspace.Cycle.Directory), "What git never tracked is deleted from disk.");
+        StringAssert.Contains(HarvestRenderer.RenderClosed(closed), "'sdlc tidy' lists the branch");
     }
 
     [TestMethod]
@@ -160,7 +214,7 @@ public sealed class HarvestTests
         Assert.AreEqual("merged", husk.Merge, "The newest commit on the integration branch that touched the folder.");
         StringAssert.StartsWith(closed.Branch, CloseHarvest.BranchPrefix);
         CollectionAssert.AreEqual(new[] { closed.Branch }, git.Created);
-        Assert.IsTrue(git.Ran.Any(run => run.Arguments.Contains("rm -r -q -- \".sdlc/cycles/" + workspace.Cycle.Id + "\"", StringComparison.Ordinal)));
+        Assert.IsTrue(git.Ran.Any(run => run.Arguments.Contains("rm -r -q --ignore-unmatch -- \".sdlc/cycles/" + workspace.Cycle.Id + "\"", StringComparison.Ordinal)));
         CollectionAssert.Contains(git.Commits.Single().ToArray(), ".sdlc/" + HarvestLedger.FileName);
         Assert.IsNotNull((await HarvestLedger.Read(workspace.Root, CancellationToken.None)).Value.Find(workspace.Cycle.Id.ToString()));
         StringAssert.Contains(HarvestRenderer.RenderClosed(closed), "git push -u origin " + closed.Branch);
@@ -431,6 +485,14 @@ public sealed class HarvestTests
     {
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
         return await gate.Send<RecordHarvest.Command, RecordHarvest.Response>(new RecordHarvest.Command(aspect, proposals));
+    }
+
+    private static async Task<GatherAbandoned.Response> Gather(CycleWorkspace workspace, FakeRepository git)
+    {
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        Result<GatherAbandoned.Response> gathered = await gate.Send<GatherAbandoned.Command, GatherAbandoned.Response>(new GatherAbandoned.Command());
+        Assert.IsTrue(gathered.IsSuccess, string.Join("; ", gathered.Errors.Select(error => error.Message)));
+        return gathered.Value;
     }
 
     private static async Task<Result<CloseHarvest.Response>> Close(CycleWorkspace workspace, FakeRepository git)

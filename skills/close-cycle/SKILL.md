@@ -24,7 +24,9 @@ Run it **on the integration branch**, where the cycles merged and the drafts wer
   its file. Say what is missing in one line and stop: the aspect is the harvest skill's, the rename the person's.
 - **Otherwise** it records each closed cycle in `.sdlc/harvested.json` — its merge commit, and what later harvests
   read — and on a new `harvest/<date>` branch commits the removal of their folders with the ledger and the records
-  the person placed. Every folder is still in git at the merge the ledger names.
+  the person placed. Every folder is still in git at the merge the ledger names. A cycle abandoned before any of it
+  merged was read from its own branch: its folder is deleted from the working tree, the ledger names its branch's
+  last commit, and the output names the branch.
 
 ## 2. Push and open the pull request
 
@@ -42,4 +44,6 @@ a harvest**: it carries only the records, the ledger, successors and the removed
 
 ## Hand back
 
-One line: which cycles closed, the pull request's link, and any cycle that stays open with what it still needs.
+One line: which cycles closed, the pull request's link, and any cycle that stays open with what it still needs. When
+the output names branches closed cycles were read from, add that `sdlc tidy` lists them for deletion once the pull
+request merges.

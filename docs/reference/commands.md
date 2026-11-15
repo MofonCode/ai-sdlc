@@ -83,7 +83,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc slices <slug> <id> <id>...` | binary | the git command that composes `slices/<slug>/plan` from the siblings' plan branches, so one pull request admits a slicing's plans. Refuses a plan that needs what only a sibling creates. `/sdlc:pr <id>... --plan` runs it |
 | `sdlc admit` | binary | in a sandbox, the git command that takes its approved cycles and the successors it wrote onto an admission branch beside it; what is not approved stays. `sdlc build` and `/sdlc:pr --plan` run it |
 | `sdlc discard` | binary | in a sandbox, what throwing it away would lose; prints the removal once nothing worth recording is left unrecorded |
-| `sdlc tidy` | binary | the worktrees and local branches whose work has reached the integration branch, and the commands that remove them, for you to run. Deletes nothing |
+| `sdlc tidy` | binary | the worktrees and local branches whose work has reached the integration branch, or whose cycle a harvest there has closed, and the commands that remove them, for you to run. Deletes nothing |
 | `sdlc upgrade [<release>]` | binary | everything that moves to take a release, in order, with what each is on now: this machine's tool, the plugin, the solution's pin and what `sdlc init` writes, the factory's images, and the open cycles still pinning an older release. Answered by this machine's release, never the pinned one. Runs nothing (D-170) |
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |

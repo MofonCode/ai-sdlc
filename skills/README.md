@@ -1780,7 +1780,7 @@ mechanical, so it belongs below a constraint, where it can fail a build.
 ## Harvesting
 
 Seven skills that take back what the completed cycles settled, then close them. **A cycle is completed** once its
-pull request merged after a passing verify — a person accepted it — or a person abandoned it (D-190). A cycle in
+pull request merged after a passing verify — a person accepted it — or a person abandoned it, merged or not (D-190). A cycle in
 flight, or one whose verify passed and whose pull request has not merged, is read by none of them. What a harvest
 places binds the **next** cycle, never one in flight.
 
@@ -2182,7 +2182,9 @@ records the person placed. The skill pushes that branch and opens its pull reque
 **A cycle closes only once there is nothing left it can give** (D-192): every aspect answered for it, every draft
 placed or refused. The binary decides that, so no skill judges it, and an aspect run on its own never closes a
 cycle. Nothing reaches the integration branch unreviewed: the removal arrives by pull request, and every folder is
-still in git at the merge the ledger names.
+still in git at the merge the ledger names. A cycle abandoned before any of it merged was read from its own branch:
+its folder never reaches the integration branch, the ledger names that branch's last commit, and `sdlc tidy` lists the
+branch for deletion once the pull request merges (D-190).
 
 #### See also
 

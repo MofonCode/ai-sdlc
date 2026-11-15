@@ -20,7 +20,8 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Write, G
 | close the cycles every aspect has answered | `close-cycle` |
 
 **Only completed cycles are read** (D-190): a cycle whose pull request merged after a passing verify — a person
-accepted it — or one a person abandoned. A cycle still in flight, or one that passed verify and has not merged, is
+accepted it — or one a person abandoned, merged or not: one stopped before any of it merged is brought in from its own
+branch by `sdlc harvest`, untracked. A cycle still in flight, or one that passed verify and has not merged, is
 read by nothing here, and the overview says it is waiting. What a harvest places binds the **next** cycle, never one
 in flight.
 

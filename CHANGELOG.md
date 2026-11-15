@@ -75,7 +75,9 @@ leaves the stage skills**: `intent`, `spec` and `plan` each write their document
 interrogate-and-refine loop on each — the intent's first — handing back once (D-188, reversing D-29).
 
 **Mining becomes a harvest, read one aspect at a time, and only from completed cycles** (D-189..D-192). A cycle is
-**completed** once its pull request merged after a passing verify, or a person abandoned it; nothing still in flight,
+**completed** once its pull request merged after a passing verify, or a person abandoned it, merged or not: a cycle
+stopped before any of it merged is read from its own branch, only what the harvest keeps reaches the integration
+branch, and `sdlc tidy` lists the branch once the harvest merges; nothing still in flight,
 and nothing that passed verify without merging, is read or counted (D-190). The `harvest` playbook runs five skills,
 each one aspect and callable alone — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`,
 `harvest-stack`, `harvest-areas` — one at a time, each handing back a short report for the person to mark before the

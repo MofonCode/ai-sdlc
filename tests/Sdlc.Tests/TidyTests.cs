@@ -2,6 +2,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
+using Sdlc.Core.Harvest;
 
 namespace Sdlc.Tests;
 
@@ -38,6 +39,20 @@ public sealed class TidyTests
         Assert.AreEqual($"git worktree remove /repo.cycles/{Merged}", review.Commands[0]);
         StringAssert.StartsWith(review.Commands[1], "git branch -D ");
         StringAssert.Contains(TidyRenderer.Render(review), "Once the person confirms");
+    }
+
+    [TestMethod]
+    public async Task A_cycle_abandoned_on_its_branch_goes_only_once_a_harvest_on_the_integration_branch_closed_it()
+    {
+        FakeRepository git = new() { Base = "base" };
+        git.Refs.UnionWith([At, $"cycle/{Dropped}/plan"]);
+
+        Assert.AreEqual(0, (await Review(git)).Removable.Count, "Not harvested yet: deleting the branch would lose the cycle.");
+
+        HarvestedCycle husk = new(Dropped, "tip", DateTimeOffset.UnixEpoch, true, [], [], [], [], new Dictionary<string, int>(), 0, []);
+        git.Files[$"{At}:.sdlc/{HarvestLedger.FileName}"] = HarvestLedger.Empty.Closing([husk]).Write();
+
+        StringAssert.Contains((await Review(git)).Removable.Single().Why, "closed by a harvest");
     }
 
     [TestMethod]

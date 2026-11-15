@@ -150,7 +150,8 @@ internal static class Usage
                                      work has reached the integration branch: a plan branch once
                                      its plan is there, a build once its verification passes there,
                                      a slicing or sandbox once every cycle it carries is, anything
-                                     of an abandoned cycle. Prints the removal for a person to run.
+                                     of an abandoned cycle, and anything of a cycle the harvest
+                                     ledger there records closed. Prints the removal for a person to run.
                                      Deletes nothing, and leaves remote branches alone.
             upgrade [<release>]      Everything that moves to take a release, in order, with what
                                      each is on now: this machine's tool, the plugin, this
@@ -363,7 +364,9 @@ internal static class Usage
                                      cycle not closed yet, the aspects it still needs answered, and
                                      the next step. A cycle is completed once its pull request
                                      merged after a passing verify, or a person abandoned it; one
-                                     still in flight is read by nothing here.
+                                     still in flight is read by nothing here. An abandoned cycle
+                                     none of which merged is brought into the working tree from
+                                     its own branch, untracked, and read like the rest.
             harvest <aspect> [--cycles <id>,<id>]
                                      One aspect -- constraints, decisions, suggestions, stack or
                                      areas -- for the completed cycles that have not answered it,

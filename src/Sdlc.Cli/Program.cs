@@ -2102,6 +2102,16 @@ static async Task<(bool Parsed, List<CycleId>? Cycles)> CyclesOption(CommandLine
 
 static async Task<int> Harvest(Workspace workspace, HarvestAspect? aspect, IReadOnlyList<CycleId>? cycles)
 {
+    // A cycle abandoned before any of it merged is read from its own branch (D-190).
+    Result<GatherAbandoned.Response> gathered = await workspace
+        .Send<GatherAbandoned.Command, GatherAbandoned.Response>(new GatherAbandoned.Command())
+        .ConfigureAwait(false);
+
+    if (gathered.IsFailed)
+    {
+        return await Report(gathered, ExitCode.Refused).ConfigureAwait(false);
+    }
+
     Result<HarvestReport.Response> result = await workspace
         .Send<HarvestReport.Query, HarvestReport.Response>(new HarvestReport.Query(aspect, cycles))
         .ConfigureAwait(false);
