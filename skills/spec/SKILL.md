@@ -1,12 +1,15 @@
 ---
 name: spec
-description: Derive testable acceptance criteria from an approved-shape intent, producing the spec of a cycle. Use after an intent has a clean interrogation round.
+description: Derive testable acceptance criteria from a clean intent, writing the spec of a cycle and nothing else. The to-plan playbook runs it and then checks the spec with its loop. Use after an intent has a clean interrogation round.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author a spec
+
+**A single-responsibility skill** (D-186): it writes the spec, and nothing after. The `to-plan` playbook runs it,
+then checks what it wrote with fresh readers and has `refine` apply what they find (D-188).
 
 A spec says **what done means**. Every criterion is something that can be observed and checked, and
 nothing in it was invented here: each criterion traces to something the intent asked for.
@@ -27,7 +30,7 @@ user's path through an interaction the intent asked for, the hostile input to a 
 
 **An item the intent does not ask for gets no criterion.** Name it in `Out of scope` — *not asked for by
 the intent* — with the perspective's name, so the approval shows the gap and the person can take it in
-with `/sdlc:steer`. Writing the criterion anyway is the scope creep `CON_05` blocks: a list that arrives
+with `/sdlc:steer`. Writing the criterion anyway is the scope creep `CON_26` blocks: a list that arrives
 with every cycle is not the person asking.
 
 ## Which cycle
@@ -53,7 +56,7 @@ sdlc status <cycle id> --stage intent
   from an intent that is still being argued about means deriving them twice.
 - **A spec already exists?** Stop, and name what the person probably meant, in plain words: to carry
   it on to a plan, *take it to plan* (`/sdlc:to-plan <id>`), which also finishes the spec's check if it
-  stopped part way; to change it, tell you what should be different (`/sdlc:steer <id> "..."`). Do not
+  stopped part way; to change it, tell you what should be different (`/sdlc:to-plan <id> "..."`). Do not
   overwrite a spec.
 
 ## Keep a task list, if your host has one
@@ -65,10 +68,7 @@ each done as it finishes. If it does not, carry on without one — nothing below
 2. derive the criteria: every outcome covered whole, and each one able to fail
 3. dispose of every open item the intent carries
 4. write the spec
-5. interrogate and refine until a round is clean
-6. hand back
-
-**The loop is one item, however many rounds it takes.**
+5. hand back
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
 person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
@@ -84,7 +84,7 @@ spec says what *should be*.
 **Then run `sdlc decisions --for spec`.** What the solution already settled is a standing criterion this spec
 inherits, and the spec's reader is handed the same record: in full what applies everywhere, the rest by
 headline, and `sdlc decisions show DEC_nn` for one a criterion reaches (D-151). A criterion requiring what a decision set aside
-is a blocking finding under `CON_24` unless the intent declares that departure with a line opening
+is a blocking finding under `CON_27` unless the intent declares that departure with a line opening
 `Departs from DEC_nn` — and a spec declares none of its own, because the intent is where an outcome is
 settled with a person. If a criterion you need contradicts a decision and the intent is silent, stop and
 say so: the route is `/sdlc:steer`, not a criterion that quietly overrides the record.
@@ -150,7 +150,7 @@ think of, and each fresh reader thinks of one more.
 
 **So the list is where the argument about cases happens, once, here.** Take each case from the intent's
 own words. A case the intent names and the list leaves out is a gap under `CON_16`, unless it is in `Out
-of scope` by name. A case the intent never names is not yours to add: that is creep under `CON_05`, and
+of scope` by name. A case the intent never names is not yours to add: that is creep under `CON_26`, and
 widening an outcome, which D-128 sends to a successor. A criterion with one case is its own sentence and
 needs no list.
 
@@ -186,7 +186,8 @@ Five traps worth naming:
 - **A criterion about data cannot be proven against an in-memory provider.** It does not translate
   SQL, so it passes queries a real database rejects.
 - **A failure has two audiences, and each gets a criterion.** `CON_17` is the person who met it, `CON_20`
-  is whoever investigates afterwards. Write the second one's check as causing the failure and reading
+  is whoever investigates afterwards. **Name the rule in the criterion** — *(required by `CON_20`)* — because
+  the intent rarely states either, and `CON_26` counts such a criterion as supported only by the rule it names. Write the second one's check as causing the failure and reading
   what it left: a log line no test reads is one a refactor deletes for free.
 - **A criterion about the run is not a criterion about the code.** How long the suite takes, whether
   it passes again in another mode or on another machine, whether it is free of flakes: real outcomes,
@@ -211,7 +212,8 @@ and verify checks the spec — so an intent question nobody carried forward is n
 
 ## Stay inside the intent
 
-`CON_05` forbids a criterion no statement in the intent supports. Scope added here was never approved
+`CON_26` forbids a criterion no statement in the intent supports — **unless another rule in force for the spec
+requires it** (`CON_17`, `CON_20`), and then the criterion names that rule. Scope added here was never approved
 by whoever approved the intent, and it arrives carrying the authority of an approved artifact.
 
 The two fail differently and are remedied differently, which is why they are separate rules: a gap
@@ -224,7 +226,7 @@ owe something nobody asked for is creep however sensible it is.
 
 **If the intent is missing something it should have asked for, say so, and do not write the
 criterion.** Name it in `Out of scope`. If a reader raised it as a suggestion, the person takes it in
-with `/sdlc:steer <id> <finding id> …`, which writes it into the intent with their name on it and
+with `/sdlc:to-plan <id> <finding id> …`, whose `steer` writes it into the intent with their name on it and
 carries it down; if nobody raised it, it is a new cycle.
 
 ## Write it
@@ -259,54 +261,14 @@ cycle: <id>
 A spec carries no `Fixed decisions` section and needs none: its criteria derive from the intent, so a
 decision appearing here would derive from nothing.
 
-## Run the loop, then hand back
+## Hand back
 
-**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
-person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
-how one person ended up asking "what is dev 1 - 5?".
-
-Interrogate, refine, interrogate again until a round is clean, a reader reports a conflict, or the
-panel's `Loop` line says the loop is stuck. The three exits for a finding are the same as the intent's —
-healed, assumed, asked — except that a spec has no decisions region, so an assumption here is almost
-always a sign the intent is the thing to fix.
-
-**"Nothing further can be settled" is no longer your call to make.** It used to be, and it was the one
-judgement in this loop that the session running it had no standing to make — the whole interrogate and
-refine split exists so that the thing being judged is not the judge. The `Loop` line on the panel is the
-answer now: silence means keep going, a rule that *has come back* means look for an exit instead of
-editing the same words again, and *stuck on* means stop and hand back to a person. Nothing caps the
-rounds, so a slow convergence is never a reason to stop.
-
-See the intent skill's loop section for the full table; it is the same loop.
-
-**First, the suggestions the spec's rounds left open, if there are any.** Ask once, from a file, in
-free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an
-answer, and the commonest one — skip all of this when nothing is open.
-
-1. `sdlc suggestions <id>` — the list, and the count the file must hold.
-2. Write `.sdlc/reports/<id>-spec-suggestions.md`: themes, each a heading, a short summary of what its
-   findings mean **for this change**, whether it sharpens an outcome the intent already wants (name it)
-   or adds or widens one (a successor, D-128), what taking it in costs now against later, and a suggested
-   answer with its reason; beneath it each finding's id and one line of what it found and where. **The themes only group** — every
-   open suggestion once, none merged, none left out.
-3. Ask one question in free text, never from a picker: name the file, each theme in one line, and what
-   to take in, decline or leave.
-4. Map the answer to finding ids and **read it back before acting** — take in to sharpen a named
-   outcome, decline with the reason, make a successor of one that adds or widens, leave. A theme named whole is every id beneath it; a decline without a reason is asked for one; words
-   with no finding behind them are not taken in here — a change to *how* is a correction for
-   `/sdlc:steer`, and something no reader raised is a cycle of its own.
-5. Once they confirm, `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words, which
-   writes each into the intent with their name on it and re-interrogates down to here (D-97). **Never
-   take one in on their behalf**: a suggestion nobody chose is exactly what the spec may not derive from.
+**Run by `to-plan`, hand straight back to it**: it checks the spec next. Run on its own:
 
 ```
 sdlc status <id> --stage spec --brief
 ```
 
-Show it verbatim, then stop. The person decides whether to move to the plan. **Close with one plain
-offer**, in a line of your own: say *take it to plan* (or `/sdlc:to-plan`) to carry on to the plan, or
-say what should change first.
-
-**Say nothing else beyond two sentences.** The panel carries the cycle, the counts, the gate and the next
-command; prose around it competes with the only lines worth reading. Drop `--brief` when somebody asks
-for the whole panel.
+Show it verbatim, then stop. **Close with one plain offer**, in a line of your own: *take it to plan*
+(`/sdlc:to-plan`) checks this spec with fresh readers and carries on to the plan; or say what should change
+first. **Say nothing else beyond two sentences.**

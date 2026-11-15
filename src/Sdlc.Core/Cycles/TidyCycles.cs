@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Git;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
@@ -17,7 +18,8 @@ namespace Sdlc.Core.Cycles;
 /// leaves every branch unmerged as far as git can tell, which is why one person removed twelve worktrees and fifteen
 /// branches by hand. A plan branch is done once its plan is on the integration branch; any other cycle branch once
 /// the verification there passes; a slicing or a sandbox once every cycle it changed is; and every branch of a cycle
-/// once its abandonment is there.</para>
+/// once its abandonment is there, or once the harvest ledger there records it closed: a cycle abandoned before any of
+/// it merged is harvested from its branch, and never reaches the integration branch any other way.</para>
 /// <para><strong>It reports and never deletes</strong>, as <c>discard</c> does: a worktree is removed without
 /// <c>--force</c>, so git refuses one holding uncommitted work, and a branch is deleted with <c>-D</c>, because
 /// <c>-d</c> asks git the question a squash merge makes it answer wrongly. Remote branches are left alone.</para>
@@ -146,6 +148,16 @@ public static class TidyCycles
                 if (repository.PathExistsAt(root, at, folder + "abandoned.md"))
                 {
                     return string.Create(CultureInfo.InvariantCulture, $"{id} is recorded abandoned on {at}");
+                }
+
+                // A cycle abandoned before any of it merged is read from its branch and closed by a harvest, so its
+                // branches are done once the ledger on the integration branch records it (D-190).
+                string ledgerPath = Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName;
+
+                if (repository.ReadAt(root, at, ledgerPath) is { } ledger
+                    && HarvestLedger.Parse(ledger, ledgerPath).ValueOrDefault?.Find(id.ToString()) is not null)
+                {
+                    return string.Create(CultureInfo.InvariantCulture, $"{id} is closed by a harvest on {at}");
                 }
 
                 if (branch.EndsWith("/" + CycleBranch.NameOf(CycleBranchKind.Plan), StringComparison.Ordinal))

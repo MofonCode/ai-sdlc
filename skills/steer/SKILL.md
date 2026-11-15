@@ -1,12 +1,16 @@
 ---
 name: steer
-description: Carry a person's mid-cycle correction down the artifact chain, editing the intent, spec and plan rather than regenerating them. Use when someone wants to change how a cycle in progress is being done, or to take in or decline suggestions a reader raised in it.
+description: Carry a person's mid-cycle correction down the artifact chain, editing the intent, spec and plan rather than regenerating them; to-plan runs it and checks them again. A single-responsibility skill. Use when someone wants to change how a cycle in progress is being done, or to take in or decline suggestions a reader raised in it.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>] [<finding id>...] [\"what to change\"]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Steer a cycle already underway
+
+**A single-responsibility skill** (D-186): it writes the person's correction into the documents it reaches, and
+nothing else. Checking them again is `to-plan`'s loop, from the highest document edited down (D-188): run by
+`to-plan`, this hands straight back to it; run on its own, its hand-back says *take it to plan*.
 
 A comment arrives mid-cycle: *"use the existing cache abstraction rather than a new one"*. Doing that by
 hand means editing the intent, re-interrogating it, editing the spec, re-interrogating that, and then
@@ -59,7 +63,8 @@ cost of getting this wrong is a cycle whose intent no longer describes the work,
 whole chain exists to prevent.
 
 **Why a raised suggestion may change what, and a comment may not** (D-97). The spec may only derive
-from what the intent states (`CON_05`), so a concern a perspective found — keyboard use, where a key is
+from what the intent states (`CON_26`) — or what another rule in force requires, naming it — so a concern a
+perspective found — keyboard use, where a key is
 kept, what is logged on a failure — reaches a criterion only through the intent, and only because a
 person chose it. A suggestion was raised by a fresh reader against this cycle's own documents: the
 person is choosing from what the cycle was found to lack, not inventing a new piece of work midway. A
@@ -90,7 +95,7 @@ the same intent, finished later. Two limits stay:
 
 **Write the change into the section it belongs to, not into `Fixed decisions`.** An outcome the person
 added is a wanted outcome; an approach they settled is a fixed decision, with attribution as below. Then
-run the intent's loop — step 4 below, which here is the intent alone — and report.
+hand back, as step 4 says.
 
 **When the intent now holds more than one atomic piece, say so in a line** and offer
 `/sdlc:intent --reslice <id>`. Every outcome multiplies what the spec and plan must prove, and an intent
@@ -98,9 +103,9 @@ that grew while being read is the commonest way a cycle becomes two.
 
 ## What to do
 
-**Take every finding id the person named in one run.** Each run re-interrogates the chain from the intent
-down to where the cycle has got to, so three suggestions taken in one at a time cost three passes and
-the same three taken together cost one. A correction in words may come in the same run.
+**Take every finding id the person named in one run.** Every edit sends the chain from the intent down to
+where the cycle has got to through another round of checks, so three suggestions taken in one at a time cost
+three passes and the same three taken together cost one. A correction in words may come in the same run.
 
 **1. Interview, briefly.** One or two questions, not the intent interview again. What you need is
 enough to record the decision in the person's own terms: what to do instead, and why they want it. For
@@ -164,7 +169,7 @@ keyboard one"* is a decision the listing cannot see.
 
 **An area suggestion — an id starting `areas.` — is never taken in.** The plan raised it by naming the
 part of the code its files belong to, and an area is not something this cycle delivers (D-128): it is
-placed between cycles, by `/sdlc:mine`, once three cycles' plans name it (D-150). A `taking in` line naming
+placed between cycles, by `/sdlc:harvest-areas`, once three cycles' plans name it (D-150). A `taking in` line naming
 one accepts nothing. Declining one is allowed, and says the name was wrong.
 
 **No finding's disposition is set here.** A disposition moves only on a fresh reader's silence (D-49):
@@ -184,24 +189,20 @@ Regenerating would discard the rounds already spent and the wording already argu
 history belongs to these documents; a regenerated artifact has a history about a document that no
 longer exists.
 
-**4. Re-interrogate from the top, one document at a time.** Not optional, and checked: a round records
-the hash of what it judged and of the artifact above it, and `sdlc round` refuses a spec round until the
-intent is settled and a plan round until the spec is. So run `/sdlc:interrogate` on the highest document
-you edited, refine until its round is clean, and only then move down — **never two documents' rounds at
-once**. You may edit a lower document while an upper one is being judged; its round simply waits.
-
-Each downstream round carries a `note` saying what moved above it and what this document did about it.
-A spec left unchanged by a corrected intent says so there, with why — the next reader of the history
-should meet a decision, not a gap.
-
-**5. Report what changed, one line per artifact** — and nothing about whether the correction was a good
-one. Then:
+**4. Hand back.** One line per document: what changed, and nothing about whether the correction was a good
+one. Then name **the highest document you edited** and, for each document below it, what moved above it and
+what it did about it — a spec left unchanged by a corrected intent says so, with why. That is the `note` the
+next round of each carries (`interrogate`), so the next reader of the history meets a decision, not a gap.
 
 ```
 sdlc status <id>
 ```
 
-Show it verbatim and stop.
+Show it verbatim and stop. **Checking again is not optional, and not yours**: a round records the hash of what
+it judged and of the document above it, so the gate refuses the cycle until each edited document has a clean
+round again. **Run by `to-plan`**, hand straight back: it runs the loop from the highest document you edited
+down. **Run on its own**, close with one plain offer: *take it to plan* (`/sdlc:to-plan <id>`) checks what
+changed from the top down.
 
 ## Why this is not a finding
 

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Sdlc.Core.Factory;
 
-/// <summary>Renders the factory's queue for a person and for the batch-build skill.</summary>
+/// <summary>Renders the factory's queue for a person and for the build playbook's unattended run.</summary>
 /// <remarks>
 /// One cycle per line, id first, so a skill can take the ids from the queued block and a person can read
 /// the reason beside every cycle that was passed over.

@@ -70,7 +70,8 @@ internal sealed record ReaderBody(
 /// <param name="Findings">What it raised, ids normalised.</param>
 /// <param name="Conflicts">The conflicts it declared.</param>
 /// <param name="Rows">Its row per criterion or outcome, under each rule judged item by item.</param>
-/// <param name="Demoted">A perspective's blockers made suggestions, because they cite no rule it lists.</param>
+/// <param name="Demoted">Blockers made suggestions: a perspective's citing no rule it lists, and any citing a rule not
+/// handed to that reader (D-174).</param>
 internal sealed record ReadBody(
     IReadOnlyList<Finding> Findings,
     IReadOnlyList<Conflict> Conflicts,
@@ -153,7 +154,7 @@ public static class ReaderAnswers
     /// Whether this round leaves the perspectives out: a verify round once the cycle has recorded one (D-164).
     /// </summary>
     /// <remarks>
-    /// In six MarketSense cycles no perspective blocked at verify, and a perspective's suggestion there can only
+    /// In six real cycles no perspective blocked at verify, and a perspective's suggestion there can only
     /// become a successor. A later verify round re-reads a verdict moved to answer the rules or the diff reader,
     /// so the perspectives' look at the built change is taken once, in the first.
     /// </remarks>
@@ -345,7 +346,7 @@ public static class ReaderAnswers
     /// </summary>
     /// <remarks>
     /// <para>A perspective's ids are its own, so they are put under its name whatever prefix it wrote, and
-    /// <c>perspective</c> is set on each: the field is what <c>propose constraints</c> counts by (D-90).</para>
+    /// <c>perspective</c> is set on each: the field is what <c>harvest constraints</c> counts by (D-90).</para>
     /// <para><strong>A perspective's blocker citing a rule it does not list is a suggestion.</strong> Only a
     /// rule the perspective lists may block on its account, and this applies that, rather than refusing an
     /// answer whose finding is otherwise sound and paying for a rerun to hear it again.</para>
@@ -354,25 +355,27 @@ public static class ReaderAnswers
     /// <param name="perspective">The perspective that read, or null for the rules reader.</param>
     /// <returns>The findings, conflicts and rows, and the ids made suggestions; or a refusal.</returns>
     internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective) =>
-        FindingsOf(answer, perspective, prefix: null);
+        FindingsOf(answer, perspective, prefix: null, inForce: null);
 
     /// <summary>One reader's findings, by the reader's name: its perspective, or its own prefix.</summary>
     /// <remarks>
     /// The diff reader's ids go under <c>diff.</c>, as a perspective's go under its name, so they cannot
-    /// collide with the rules reader's in the same round. It names no perspective: <c>propose
+    /// collide with the rules reader's in the same round. It names no perspective: <c>harvest
     /// constraints</c> counts by perspective, and the diff reader is not one.
     /// </remarks>
     /// <param name="answer">The answer.</param>
     /// <param name="reader">The reader's name.</param>
+    /// <param name="inForce">The rules that reader was handed, as <see cref="CitedRules"/> keys; a blocker citing
+    /// anything else is made a suggestion (D-174). Null checks nothing.</param>
     /// <returns>The findings, or a refusal.</returns>
-    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader) => reader switch
+    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader, IReadOnlySet<string>? inForce = null) => reader switch
     {
-        Rules => FindingsOf(answer, perspective: null, prefix: null),
-        Diff => FindingsOf(answer, perspective: null, prefix: Diff),
-        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null),
+        Rules => FindingsOf(answer, perspective: null, prefix: null, inForce),
+        Diff => FindingsOf(answer, perspective: null, prefix: Diff, inForce),
+        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null, inForce),
     };
 
-    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix)
+    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix, IReadOnlySet<string>? inForce)
     {
         ArgumentNullException.ThrowIfNull(answer);
 
@@ -427,12 +430,32 @@ public static class ReaderAnswers
                 return Refuse<ReadBody>(answer, $"uses the id {id} twice");
             }
 
-            if (perspective is not null
-                && severity == Severity.Blocking
-                && (given.Cites?.Id is not { Length: > 0 } rule || !perspective.Rules.Contains(rule, StringComparison.Ordinal)))
+            string statement = given.Statement.Trim();
+            string? cited = CitedRules.Key(given.Cites?.Id);
+
+            // A blocker stands only on a rule this reader was handed (D-174), and a perspective's only on one its
+            // document lists as a rule it blocks on (D-175). Either way it is kept as a suggestion rather than
+            // refused: the observation may be sound, and a rerun to hear it again buys nothing.
+            if (severity == Severity.Blocking && cited is not null && inForce is not null && !inForce.Contains(cited))
             {
                 severity = Severity.Suggestion;
                 demoted.Add(id);
+                statement += string.Create(
+                    CultureInfo.InvariantCulture,
+                    $" (Raised as blocking under `{given.Cites!.Id!.Trim()}`, which is not a rule in force for this document, so it does not block.)");
+            }
+            else if (perspective is not null
+                && severity == Severity.Blocking
+                && (cited is null || !perspective.BlocksOn.Select(CitedRules.Key).Contains(cited, StringComparer.Ordinal)))
+            {
+                severity = Severity.Suggestion;
+                demoted.Add(id);
+
+                // Said in the finding, as the not-in-force case says it, so whoever reads the suggestion knows it
+                // was raised as a blocker and why it does not block.
+                statement += cited is null
+                    ? string.Create(CultureInfo.InvariantCulture, $" (Raised as blocking with no rule, and {perspective.Name} blocks only on a rule its document lists, so it does not block.)")
+                    : string.Create(CultureInfo.InvariantCulture, $" (Raised as blocking under `{given.Cites!.Id!.Trim()}`, which {perspective.Name} does not list as a rule it blocks on, so it does not block.)");
             }
 
             findings.Add(new Finding(
@@ -440,7 +463,7 @@ public static class ReaderAnswers
                 severity,
                 Disposition.Open,
                 given.Cites,
-                given.Statement.Trim(),
+                statement,
                 given.Locus,
                 given.Remedy,
                 Perspective: perspective?.Name,

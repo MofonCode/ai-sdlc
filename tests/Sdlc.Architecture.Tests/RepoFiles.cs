@@ -13,7 +13,7 @@ namespace Sdlc.Architecture.Tests;
 /// <para>
 /// <strong>Locating the root is the part that has already gone wrong once, in the repository this is
 /// ported from.</strong> That version looked for the solution file and treated the directory holding
-/// it as the root. The solution lived at <c>src/MarketSense.slnx</c>, so the root resolved to
+/// it as the root. The solution lived at <c>src/Product.slnx</c>, so the root resolved to
 /// <c>src/</c>, the scan then looked in <c>src/src</c> and <c>src/tests</c> — neither of which
 /// exists — and a <c>.Where(Directory.Exists)</c> discarded both. The test examined zero files, found
 /// zero violations and passed. It had never checked anything, and that was proven by adding a real

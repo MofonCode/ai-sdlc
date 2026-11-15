@@ -588,7 +588,8 @@ public sealed class EvidenceTests
         StringAssert.Contains(rendered, "undeclared  src/Unexpected.cs");
         StringAssert.Contains(rendered, "undelivered src/Thing.cs");
         StringAssert.Contains(rendered, "not a refusal");
-        StringAssert.Contains(rendered, "outcome-based");
+        StringAssert.Contains(rendered, "What blocks: the build");
+        StringAssert.Contains(rendered, "(CON_25)");
     }
 
     /// <summary>
@@ -665,6 +666,26 @@ public sealed class EvidenceTests
         Assert.IsTrue(recorded.RetiredVerdict);
         Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "The next verify starts from this run.");
         StringAssert.Contains(EvidenceRenderer.Render(recorded), "the blocked verify.md was removed");
+    }
+
+    [TestMethod]
+    public async Task A_passed_verdict_is_retired_only_when_a_change_was_asked_for()
+    {
+        // D-185. A person asking for a change at the pull request is a new run over a pass; anything else
+        // re-recording over a pass is still the stale-verdict defect the refusal above exists for.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "pass");
+
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = ["src/Roll.cs"] });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null, RetirePass: true));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
+        Assert.IsTrue(result.Value.RetiredVerdict);
+        Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "The next verify starts from this run.");
     }
 
     [TestMethod]

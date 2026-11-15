@@ -92,7 +92,7 @@ public sealed class DocumentCopyTests
         string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data-views.md"));
 
         foreach (string name in Sdlc.Core.Hooks.ProtectedPaths.Names
-            .Append(Sdlc.Core.Mining.MinedLedger.FileName)
+            .Append(Sdlc.Core.Harvest.HarvestLedger.FileName)
             .Append(Sdlc.Core.Findings.SuggestionLedger.FileName)
             .Append(Sdlc.Core.Findings.UsageLedger.FileName))
         {
@@ -101,12 +101,20 @@ public sealed class DocumentCopyTests
     }
 
     [TestMethod]
-    public void Reading_across_cycles_is_listed_as_mining_and_convergence_is_gone_from_help()
+    public void Reading_across_cycles_is_listed_as_a_harvest_and_the_old_names_are_gone_from_help()
     {
-        // D-148. 'converge' is a document's rounds settling; the cross-cycle act is mining. The old names are
-        // answered for a release, so they must not also be offered as commands.
-        Assert.IsTrue(Lists("mine"), "'sdlc help' does not list 'sdlc mine'.");
-        Assert.IsTrue(Lists("draft mining <file>"), "'sdlc help' does not list 'sdlc draft mining <file>'.");
+        // D-148, D-191. 'converge' is a document's rounds settling; the cross-cycle act was mining and is now a
+        // harvest, one aspect at a time. The old names are answered with the new ones, so they must not also be
+        // offered as commands.
+        Assert.IsTrue(Lists("harvest"), "'sdlc help' does not list 'sdlc harvest'.");
+        Assert.IsTrue(Lists("harvest close"), "'sdlc help' does not list 'sdlc harvest close'.");
+        Assert.IsTrue(Lists("draft harvest <file>"), "'sdlc help' does not list 'sdlc draft harvest <file>'.");
+
+        foreach (string gone in new[] { "mine", "draft mining", "propose constraints", "propose decisions", "propose theme" })
+        {
+            Assert.IsFalse(Lists(gone), $"'sdlc help' still offers '{gone}'.");
+        }
+
         Assert.IsFalse(Usage.Text.Contains("convergence", StringComparison.OrdinalIgnoreCase), "'sdlc help' still offers convergence.");
     }
 

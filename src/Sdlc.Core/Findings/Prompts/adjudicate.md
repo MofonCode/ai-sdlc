@@ -40,13 +40,16 @@ reason — and say that is what you are citing.
 Where the build could not follow the approved text, it recorded a **deviation**, listed above with whether
 it is in force. A deviation in force replaces the approved text it quotes:
 
-- a **criterion** deviation narrows that criterion. Adjudicate the narrowed criterion, never the dropped
-  part, which became a successor;
 - a **proof** deviation replaces the planned proof. Hold the new proof to the same bar: it must reach its
   criterion, and the tests it names must have run and passed;
-- a **plan** or **decision** deviation changes how the work was done, not what any criterion asks.
+- a **plan** or **decision** deviation changes how the work was done, not what any criterion asks;
+- a **criterion** deviation changes nothing you adjudicate. A deviation never changes what done means, so
+  adjudicate the criterion as the spec states it. Only one a person accepted in the approval ledger, before
+  the pull request became where deviations are accepted, narrows it: adjudicate the narrowed criterion then,
+  never the dropped part, which became a successor.
 
-A declined deviation replaces nothing: adjudicate against the approved text. Never widen a criterion
+A **choice** records something the approved text left open and changes nothing any criterion asks. One the
+person asked to change replaces nothing: adjudicate against the approved text. Never widen a criterion
 because a deviation describes more than it asked.
 
 **Adjudicate the run that was recorded.** A verdict describing any other run is new evidence rather than an
@@ -113,7 +116,7 @@ What a perspective adds here is its questions of the **evidence** — did the ab
 refused, did the vulnerable-package scan run and what did it report (D-90). An answer that breaks a rule the
 perspective lists is a criterion not met, citing that rule. **Anything else it finds is not yours to
 record here**: the interrogation of this document that follows runs every perspective's reader against the
-same evidence, and writes what they find with the perspective named, which is where `sdlc propose
+same evidence, and writes what they find with the perspective named, which is where `sdlc harvest
 constraints` counts it. Writing it into `verify.md` as well would put it in a file nothing counts. It never
 adds a criterion the spec did not state.
 

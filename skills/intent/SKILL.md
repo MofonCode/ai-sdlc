@@ -1,12 +1,16 @@
 ---
 name: intent
-description: Interview a person into a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
+description: Turn a request into governed intents -- propose how to slice the work, open each cycle in a sandbox, and interview a person into the intent that says why it exists. Writes the intent and nothing else; take it to plan checks it. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[--type bug|add|change] [--from <lead>] | --reslice <cycle id>..."
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author an intent
+
+**A single-responsibility skill** (D-186): turning a request into intents — the slicing, the cycles it opens, and
+the interview — and nothing after. Checking what you wrote is `to-plan`'s, which runs the intent's loop before it
+writes the spec (D-188).
 
 An intent says **why** work exists. It is the only artifact written by interview, and your job is to
 **elicit, not draft**. The person knows what they want; they do not yet know what is underspecified
@@ -23,7 +27,7 @@ nothing. Ask from where it leaves off.
 aside under `Instead of`. Where the solution has areas, an intent touches none of them — it is the business
 case, not the design — so it gets every decision that applies everywhere in full and the rest by headline;
 `sdlc decisions show DEC_nn` prints one when the interview reaches it (D-151). They are standing criteria this cycle inherits: the spec, the plan and the code
-are each judged against them, and `CON_24` asks a departure to be declared where it arises — here, for an
+are each judged against them, and `CON_27` asks a departure to be declared where it arises — here, for an
 outcome. Two uses in the interview:
 
 - **Do not ask what is settled.** A question a decision already answers spends the person's attention on
@@ -50,11 +54,7 @@ done as it finishes. If it does not, carry on without one — nothing below depe
 4. interview, one question at a time
 5. pin down the one word
 6. write the intent
-7. interrogate and refine until a round is clean
-8. report and hand back
-
-**The loop is one item, however many rounds it takes.** A list that grows a line per round reads as
-progress while an artifact goes round in circles.
+7. hand back
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
 person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
@@ -124,10 +124,10 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
   refuses.
 
 **4. Interview each opened piece in turn**, from §2 on, in the sandbox: write each intent under its own
-`.sdlc/cycles/<id>/`, run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
+`.sdlc/cycles/<id>/`, and hand back once at the end with each piece's panel. A piece's interview starts from its
 accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
-same work item — and say in the hand-back that `/sdlc:to-plan` takes them all to plan, and that what is
-approved goes to the integration branch together by one plan pull request, `/sdlc:pr --plan` in the sandbox.
+same work item — and say in the hand-back that `/sdlc:to-plan` takes them all to plan, and that once each is
+approved, *build it* takes it out of the sandbox and builds it (D-178).
 
 ## 0a. Re-slice intents already written: `--reslice <id>...`
 
@@ -138,7 +138,7 @@ scoping decision, exactly as at §0, and nothing is cut unattended.
 **Refuse first**, naming each cycle that fails and what to do instead:
 
 - **It has a spec.** Something already derives from its intent, and cutting it would throw that away.
-  The move is `/sdlc:steer <id>`, which carries a change down instead.
+  The move is `/sdlc:to-plan <id>` with what should change, which carries it down instead.
 - **It is approved or abandoned**, or **does not exist**. Say which.
 
 **1. Read every named intent whole**, with its rounds' open suggestions — `sdlc suggestions <id>` — and
@@ -153,7 +153,7 @@ or keep everything as it was.
 **3. Apply it, editing rather than regenerating:**
 
 - **The first named cycle keeps its id** and becomes the first piece. Edit its intent down to that piece:
-  its rounds stay, and its loop judges the edit.
+  its rounds stay, and `to-plan`'s loop judges the edit.
 - **Each further piece that needs nothing unmerged opens as a cycle** — as §1 says — and its intent is
   written from what moved into it, then interviewed only for what that left unsaid. Record the same
   `lead:` the original carried, if any.
@@ -165,7 +165,8 @@ or keep everything as it was.
   rounds hold a fixed decision or a declined suggestion somebody may want later, recommend recording it
   instead: `sdlc draft abandon <id>`, which a person places.
 
-**4. Run each changed intent's loop** — §5 — and **hand back once**, as §6 says, with every piece's panel.
+**4. Hand back once**, as §5 says, with every piece's panel: `/sdlc:to-plan` checks each changed intent with
+fresh readers before it writes anything below it.
 
 ## 1. Open the cycle and its sandbox
 
@@ -200,8 +201,9 @@ switched, so nothing uncommitted rides in. **A sandbox starts from what the inte
 file the person placed and did not commit — a declared stack, say — is not in it, so if a command there says
 one is missing, ask them to commit it and open the sandbox again.
 
-What the person approves leaves by `/sdlc:pr --plan` in the sandbox, and `git worktree remove` clears it once
-what it held has merged.
+What the person approves leaves the sandbox when they say *build it*: `sdlc build` admits it and builds it
+(D-178, D-187). `/sdlc:pr --plan` in the sandbox is the other way out — a plan pull request that hands approved plans to
+the factory. `git worktree remove` clears the sandbox once what it held has merged.
 
 **Only when the person asks to keep one working copy**, `sdlc branch <id> plan` prints the `git switch` that
 moves this checkout instead. It refuses while anything is uncommitted, naming the files: the switch would
@@ -465,7 +467,8 @@ suggestions"* is the person adopting your wording, so the read-back is what they
 
 What the person picks becomes a wanted outcome **in their words**, and an answer that is a decision
 (*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do not take up, you do
-not write.** The spec may only derive from what the intent states (`CON_05`), so a concern added here
+not write.** The spec may only derive from what the intent states (`CON_26`) — apart from a criterion another
+rule in force requires, such as what a failure tells somebody, which names that rule — so a concern added here
 without being asked is the scope creep the rule exists to stop, moved one stage earlier. The fresh
 readers will raise what was left, and the hand-back offers it again.
 
@@ -578,139 +581,19 @@ or is it a belief? Every belief goes to `Fixed decisions` marked unconfirmed, or
 settle it yet, in this one pass. One real intent took four rounds because each round's reader found one
 more unknown stated as fact; a reader finds them one at a time, and you can find them all at once.
 
-## 5. Run the loop
+## 5. Hand back
 
-You are not done when the file is written. Interrogate it, apply what comes back, and interrogate
-again until a round raises nothing blocking or nothing further can be settled:
-
-```
-sdlc constraints --for intent
-# interrogate in a fresh process -- see the interrogate skill
-# apply the findings -- see the refine skill
-```
-
-Every finding has exactly three exits:
-
-| Exit | When | Where it shows |
-|---|---|---|
-| **healed** | fixable from what is already on the page | the artifact changes; say what changed |
-| **assumed** | something had to be supplied to proceed | `Fixed decisions`, marked unconfirmed |
-| **asked** | it cannot proceed without a person | `## Open`, and you stop and ask |
-
-**Never assume silently.** A report is read once; a section is read every time the artifact is read,
-and it is what a reviewer's eye lands on at the gate.
-
-**Stop on convergence, on conflict, or on a halt — never on a count.** A round producing no new
-findings is convergence. Two constraints whose remedies exclude each other is a conflict: report it as
-one rather than picking a side. A halt is the panel's `Loop` line saying one rule has come back three
-times, which means the loop is refighting ground it already won.
-
-**There is no round limit, and the `Loop` line is not one.** A loop that is converging scores nothing
-however many rounds it takes, and eleven rounds has been worth it before now. What is counted is a rule
-answered and then raised again — going backwards, not going slowly.
-
-| The `Loop` line says | What to do |
-|---|---|
-| nothing | keep going. There is no cap to run out of |
-| a rule *has come back* | **look for an exit, not another edit of the same words.** The line names what the rule is caught against: can the remainder be named in `Out of scope`, or does the question belong under `## Open`? Another lap at the same approach is what the warning exists to prevent |
-| *stuck on* a rule | **stop and hand back.** Show the panel and say which rule, what it is against, and that the exits are a correction with `/sdlc:steer`, a scope change, a rule change, or abandoning the cycle |
-
-**A halt is not a verdict on the artifact.** It says automation got stuck, and the open blockers are
-still what decides whether anything advances. Do not describe a halt as a conflict unless a reader
-declared one: the count cannot tell a genuine conflict from a refiner repeating a mistake, and both want
-a person.
-
-## 6. Report and hand back
-
-**Name every finding, deviation, criterion and rule by what it says, with its id trailing at most.** The
-person has not read the round: *"the die has no label (S_04)"*, never *"S_04"* alone. A list of ids is
-how one person ended up asking "what is dev 1 - 5?".
-
-**First, the suggestions the intent's rounds left open, if there are any.** Ask once, from a file, in
-free text (D-114). Leaving them is an answer, and the commonest one — skip all of this when nothing is
-open.
-
-**1. List them.** `sdlc suggestions <id>` — what it prints is the list, and its count is the count the
-file must hold.
-
-**2. Write `.sdlc/reports/<id>-intent-suggestions.md`, grouped by theme.** The readers raise more than
-a person can weigh one line at a time — the trading solution's first intent raised twenty — so you read
-them all and the person reads the themes:
-
-```markdown
-# Open suggestions — 0007 intent
-
-Answer in chat, in your own words: name a theme or a finding, or say what you want.
-Anything you don't mention stays open in `sdlc suggestions` for a later cycle.
-
-## A. Errors say too much and record too little
-The page shows the provider's raw error, and a failed fetch is logged nowhere. This sharpens
-outcome 1, "a reader sees today's rate": it says what failing looks like. Taking it in now is one
-message and one log line; after the build, tests will already assert the current text.
-Suggest: take in beneath outcome 1 — the feed this cycle adds is the thing that fails.
-- security.S_02 — the provider's raw error is shown to the user
-- operability.S_01 — a failed fetch is recorded nowhere
-
-## B. Nobody said how keyboard and screen reader users roll
-...
-```
-
-A theme is a heading, a short summary of what its findings mean **for this change**, whether it
-**sharpens** an outcome the intent already wants — name which — or **adds or widens** one, what taking it
-in costs now against later, and a suggested answer with its reason. **Only a sharpening may be taken in**
-(D-128): one that adds an outcome, or carries one to more states, devices, failure paths or audiences, is
-suggested as a successor, which keeps its id and opens once this cycle merges. Every outcome multiplies
-what the spec and plan must prove, and that is how one intent grew from one outcome to fourteen in a day.
-Beneath it, each finding's id and one line of what it found and where. **The themes only group**: every open suggestion appears once, under one theme — none
-merged, none left out — so the person can check any summary against what was actually raised. Two
-that contradict share a theme, and the summary says so.
-
-**3. Ask one question, in free text, never from a picker**: name the file, give each theme in one line,
-and ask what to take in, what to decline, and what to leave.
-
-**4. Map the answer to finding ids, and read it back before acting:**
-
-> **Take in** A, beneath outcome 1 — `security.S_02`, `operability.S_01` — as *"errors say what failed,
-> never the provider's message, and every failure is logged"*
-> **Decline** B — `accessibility.S_01`, `accessibility.S_02` — *"a personal page, only I use it"*
-> **Successor** C — `operability.S_03` — *"rates for every currency"* widens outcome 1, so it waits as
-> `successor:all-currencies`
-> **Leave** the rest. Go?
-
-A theme named whole is every id beneath it. A decline needs a reason — ask once if the answer gave none.
-An answer that covers part of a theme takes in what it covers, and the read-back names the rest as left
-open, so a gap is shown rather than assumed. **Words with no finding behind them are not taken in
-here**: say so, and name where they go — a change to *how* is a correction for `/sdlc:steer`, and
-something no reader raised is the opening of a cycle of its own, because it has had none of the scrutiny
-a raised suggestion has (D-97).
-
-**5. Once they confirm,** `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words,
-which writes each into the intent with their name on it and re-interrogates down to here. **Never take
-one in on their behalf**: a suggestion nobody chose is exactly what the spec may not derive from, and
-*"go with your suggestions"* is a choice only because the read-back showed what it chose.
-
-This is the cheapest point to answer them: a suggestion taken in now costs one more intent round, and
-nothing downstream exists yet to carry it.
-
-Then:
+**Name every decision, open item and rule by what it says, with its id trailing at most.**
 
 ```
 sdlc status <id> --stage intent --brief
 ```
 
-Show what it prints **verbatim**. Do not summarise it, reformat it, or add a recommendation about
-whether to keep interrogating — that judgement is the owner's, and the panel deliberately withholds
-it.
+Show what it prints **verbatim**: the intent's headline and sections, and that no reader has judged it yet.
+**Say nothing else beyond two sentences**, then stop. The person reads the intent; whether to carry on is their
+decision, and a skill that chained straight into the next stage would remove it while appearing to be helpful.
 
-**Say nothing else beyond two sentences.** The panel already carries the cycle, the counts, the gate and
-the next command, so prose around it is noise competing with the only lines worth reading. Drop
-`--brief` when somebody asks for the whole panel; the full form is the same answer with the round
-history and the hashes.
-
-Then stop. The person decides whether to take it to plan. That decision is the human-in-the-loop
-point, and a skill that chained straight into the spec would remove it while appearing to be helpful.
-
-**Close with one plain offer**, in a line of your own: when they are happy with it, they can say *take it
-to plan* — or type `/sdlc:to-plan` — and if anything reads wrong, they can just say what, and you will
-change it first. It can carry on in this session: an interview leaves little behind, and the session worth
-starting fresh is the build's (D-158).
+**Close with one plain offer**, in a line of your own: when they are happy with it, they can say *take it to
+plan* — or type `/sdlc:to-plan` — which checks the intent with fresh readers first, then writes the spec and the
+plan; and if anything reads wrong, they can just say what, and you will change it first. It can carry on in this
+session: an interview leaves little behind, and the build runs in a process of its own (D-178).

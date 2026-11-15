@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using FluentResults;
 using Sdlc.Core.Artifacts;
 
@@ -40,6 +41,22 @@ public sealed record Perspective(
     string Rules,
     string Evidence)
 {
+    private static readonly Regex _blocksOn = new(
+        @"^\s*-\s+`(?<id>(?:CON|PRO|LOC)_[0-9]{2,4}(?:\.[0-9]{1,3})?)`",
+        RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.Multiline,
+        TimeSpan.FromSeconds(1));
+
+    /// <summary>
+    /// The ids of the rules its reader may block on: each a bullet in its Rules section opening with the id (D-175).
+    /// </summary>
+    /// <remarks>
+    /// <strong>Parsed, never searched for.</strong> The section is prose for a person as well, and an id named in a
+    /// sentence -- "<c>CON_25</c> already forbids that" -- is a reference, not a rule this reader blocks on. Matching
+    /// the id anywhere in the text let a perspective with no rules of its own block on the rule its sentence mentioned.
+    /// </remarks>
+    public IReadOnlyList<string> BlocksOn =>
+        [.. _blocksOn.Matches(Rules).Select(match => match.Groups["id"].Value)];
+
     /// <summary>The sections every perspective document carries.</summary>
     public static IReadOnlyList<string> Required { get; } = ["Method", "Cover this", "Questions", "Rules", "Evidence"];
 

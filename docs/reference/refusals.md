@@ -19,9 +19,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | Refusal | Resolution |
 |---|---|
 | **Adopting — `sdlc init`** | |
-| [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform` and `--integration-branch` only; the stack is the draft it writes |
+| [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform`, `--integration-branch` and the global `--solution` only; the stack is the draft it writes |
 | [an integration branch the record disagrees with](../guides/handling-refusals.md#an-integration-branch-the-record-disagrees-with) | leave the option out, or change the key with `sdlc draft solution` and a rename |
-| **Opening a cycle — `sdlc new`** | |
+| **Opening a cycle — `sdlc new`, and `sdlc branch <id> plan`** | |
 | [no declared stack](../guides/handling-refusals.md#no-declared-stack) | fill in `techstack.draft.md`, rename it into place, commit it |
 | [uncommitted work](../guides/handling-refusals.md#uncommitted-work) | commit, stash or discard the files it names and switch again, or plan in a sandbox, which switches nothing |
 | **Before a build — `sdlc gate`** | |
@@ -41,9 +41,11 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [something above it is unsettled](../guides/handling-refusals.md#something-above-it-is-unsettled) | settle the highest document it names, then come down one at a time |
 | [a known finding comes back in other words](../guides/handling-refusals.md#a-known-finding-comes-back-in-other-words) | carry the finding as the ledger holds it; a new objection takes a new id |
 | [a new blocker has no gist](../guides/handling-refusals.md#a-new-blocker-has-no-gist) | have the reader that raised it give one plain sentence; never write it in this session |
+| [a new blocker cites a rule not in force for it](../guides/handling-refusals.md#a-new-blocker-cites-a-rule-not-in-force-for-it) | make it a suggestion, or cite the rule in force it breaks: `sdlc constraints --for <artifact>` |
+| [a new finding quotes its rule in other words](../guides/handling-refusals.md#a-new-finding-quotes-its-rule-in-other-words) | put the rule's own line back, which the refusal prints, or collect the round again |
 | [a suggestion does not fit the cycle's suggestions](../guides/handling-refusals.md#a-suggestion-does-not-fit-the-cycles-suggestions) | number a new one past the cycle's `S_` ids, carry a restated one under its id, answer it only where it was raised |
 | [a declared file with no area](../guides/handling-refusals.md#a-declared-file-with-no-area) | name its area in the plan's `## Areas`: `- new <name>: <files>`, or `- none: <files>` |
-| [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:mine` for new globs, or correct the `Files:` line by hand |
+| [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:harvest-areas` for new globs, or correct the `Files:` line by hand |
 | [a blocked verdict on evidence a round already judged](../guides/handling-refusals.md#a-blocked-verdict-on-evidence-a-round-already-judged) | `/sdlc:remediate <id>`; the run it records gets a full round |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
@@ -51,11 +53,14 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Amending an admitted plan — `sdlc draft approval --reopen`, `sdlc branch`** | |
 | [a reopen on the build branch](../guides/handling-refusals.md#a-reopen-on-the-build-branch) | `sdlc branch <id> plan`, reopen and approve there, `/sdlc:pr <id> --plan`; then keep or delete the build branch |
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
-| **Deviations — `sdlc draft approval`, `sdlc deviations`, `sdlc verify-chain`** | |
-| [a reopen with deviations unanswered](../guides/handling-refusals.md#a-reopen-with-deviations-unanswered) | `sdlc draft approval <id>`, answer each one, then reopen |
-| [a deviation unanswered](../guides/handling-refusals.md#a-deviation-unanswered) | `sdlc draft approval <id>`: `accepted: true`, or `false` with a note saying why |
-| [a deviation that does not hold](../guides/handling-refusals.md#a-deviation-that-does-not-hold) | the stage that wrote it corrects the quote, or writes the successor; a claimed file is not a deviation |
-| [a declined deviation not verified again](../guides/handling-refusals.md#a-declined-deviation-not-verified-again) | `/sdlc:remediate <id>`, which verifies again |
+| **Deviations — `sdlc deviations`, `sdlc report`, `sdlc verify-chain`** | |
+| [a deviation that does not hold](../guides/handling-refusals.md#a-deviation-that-does-not-hold) | the stage that wrote it corrects the quote; a narrowed criterion is taken out and the cycle escalates; a claimed file is not a deviation |
+| **The build — `sdlc build`** | |
+| [the build's process cannot start](../guides/handling-refusals.md#the-builds-process-cannot-start) | install the host's command line; the build never runs in your session instead |
+| [the build ended without a report](../guides/handling-refusals.md#the-build-ended-without-a-report) | fix what it printed, and say *build it* again |
+| **Starting readers — `sdlc round run`** | |
+| [no host to start a reader with](../guides/handling-refusals.md#no-host-to-start-a-reader-with) | install the host's command line, and run the round again |
+| [a reader returned nothing](../guides/handling-refusals.md#a-reader-returned-nothing) | fix what the message names; `sdlc round run` again starts only the readers with no answer |
 | **Successors — `sdlc successor`, `sdlc lead show successor:`** | |
 | [a successor that is not ready](../guides/handling-refusals.md#a-successor-that-is-not-ready) | wait until `sdlc successors` says `ready`; for a stuck one, correct `succeeds:` or delete the file |
 | [a loop through succeeds](../guides/handling-refusals.md#a-loop-through-succeeds) | correct one file's `succeeds:` so the loop opens |
@@ -74,14 +79,18 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [no release to move to](../guides/handling-refusals.md#no-release-to-move-to) | name the release: `sdlc upgrade <release>` |
 | **A promotion's pull request — `sdlc promotion`** | |
 | [a branch that may not promote](../guides/handling-refusals.md#a-branch-that-may-not-promote) | open it into the integration branch as a cycle, and promote from there or from a `release/*` branch |
-| **Mining — `sdlc mine record`, and its pull request** | |
-| [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename each draft into place or delete it, then record again |
-| [a mining pull request carries something that is not mining's](../guides/handling-refusals.md#a-mining-pull-request-carries-something-that-is-not-minings) | take out what is not a husk's deletion, and fix the record the check names |
+| **A harvest — `sdlc harvest record`, `sdlc harvest close`, and its pull request** | |
+| [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename the draft into place or delete it, then run the command again |
+| [nothing left to record](../guides/handling-refusals.md#nothing-left-to-record) | `sdlc harvest` shows what each cycle still needs; copy `## Cycles` as the report wrote it |
+| [an aspect is still unanswered](../guides/handling-refusals.md#an-aspect-is-still-unanswered) | run that aspect's skill, or `/sdlc:harvest`, then close again |
+| [not on the integration branch](../guides/handling-refusals.md#not-on-the-integration-branch) | switch to the integration branch and close again |
+| [a harvest pull request carries something that is not a harvest's](../guides/handling-refusals.md#a-harvest-pull-request-carries-something-that-is-not-a-harvests) | take out what is not a closed cycle's deletion, and fix the record the check names |
+| [a command that was renamed](../guides/handling-refusals.md#a-command-that-was-renamed) | run the name it gives: `sdlc harvest`, `sdlc draft harvest`, `sdlc theme`, or `sdlc constraints --new` |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
-| [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | a verdict that did not block: delete `verify.md`, record again, verify again. A blocked one is retired by the recording |
-| [git cannot say where the branch diverged](../guides/handling-refusals.md#git-cannot-say-where-the-branch-diverged) | read the branch name in the message; rename yours to `cycle/<id>` |
+| [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | a pass a person asked to change: record with `--retire-pass`. Otherwise delete `verify.md`, record again, verify again. A blocked one is retired by the recording |
+| [git cannot say where the branch diverged](../guides/handling-refusals.md#git-cannot-say-where-the-branch-diverged) | `git fetch origin` and ask again; if it still refuses, work on the branch `sdlc branch <id> build` prints |
 | [an empty patch beside a changed file](../guides/handling-refusals.md#an-empty-patch-beside-a-changed-file) | `git status --short`; the evidence is wrong, not the code |
 | [no results file](../guides/handling-refusals.md#no-results-file) | point `--tests` at the directory holding the `.trx` files |
 | [one test name with two outcomes](../guides/handling-refusals.md#one-test-name-with-two-outcomes) | rename one test, or run the projects separately |
@@ -94,9 +103,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Denied to an agent — the pre-tool hook\*** | |
 | writing `approval.md` | `sdlc draft approval <id>`, then rename |
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |
-| writing `constraints.md` | `sdlc propose constraints`, then paste |
-| writing `decisions.md` | `sdlc propose decisions`, then paste |
-| writing `areas.md` | `/sdlc:mine`, then `sdlc draft mining <file>` and rename |
+| writing `constraints.md` | `sdlc harvest constraints` or `sdlc constraints --new`, then paste |
+| writing `decisions.md` | `sdlc harvest decisions`, then paste |
+| writing `areas.md` | `/sdlc:harvest-areas`, then `sdlc draft harvest <file>` and rename |
 | writing `solution.md` | `sdlc draft solution`, then rename |
 | writing `techstack.md` | `sdlc draft techstack`, then rename |
 | running the adoption command | run it yourself; `sdlc help` for its options |
@@ -107,7 +116,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the working tree has moved since the evidence](../guides/handling-refusals.md#the-working-tree-has-moved-since-the-evidence) | build and test what is there now, and record it |
 | [when it says nothing](../guides/handling-refusals.md#when-it-says-nothing) | expected off a `cycle/` branch and before a plan; the pipeline check is the guarantee |
 
-\* **The pre-tool hook's eight denials are absolute: no mode, no flag.** Run the command the denial
+\* **The pre-tool hook's nine denials are absolute: no mode, no flag.** Run the command the denial
 names, and place what it produces yourself. A command that only *mentions* one of these files beside a
 write verb is denied too — for a commit message, use `git commit -F` with the message in a file. The pre-tool hook section of
 `../guides/handling-refusals.md` has why each is a person's.

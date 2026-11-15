@@ -83,7 +83,11 @@ public static class RecordEvidence
     /// <param name="Coverage">
     /// A cobertura report, or a directory holding every one a run wrote. Null when there is none.
     /// </param>
-    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null, string? Coverage = null)
+    /// <param name="RetirePass">
+    /// Whether a <c>pass</c> verdict is retired by this run as a blocked one is: true only when a person asked for
+    /// a change to a cycle that passed, which is what remediate is doing then (D-185).
+    /// </param>
+    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null, string? Coverage = null, bool RetirePass = false)
         : IRequest<Response>;
 
     /// <summary>
@@ -155,11 +159,16 @@ public static class RecordEvidence
                 Result<FrontmatterDocument> split = await Frontmatter.ReadFile(verdict, cancellationToken).ConfigureAwait(false);
                 string? outcome = split.IsSuccess ? Frontmatter.Key(split.Value.Yaml, "outcome") : null;
 
-                if (!string.Equals(outcome, "blocked", StringComparison.OrdinalIgnoreCase))
+                // A pass is retired the same way when a person asked for a change after it (D-185): the change is
+                // what this run measures, and a verdict over the run before it would cite evidence that is gone.
+                // Only on request, so a stray re-recording still cannot quietly unseat a verdict.
+                bool asked = request.RetirePass && string.Equals(outcome, "pass", StringComparison.OrdinalIgnoreCase);
+
+                if (!asked && !string.Equals(outcome, "blocked", StringComparison.OrdinalIgnoreCase))
                 {
                     return Result.Fail<Response>(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Its outcome is '{outcome ?? "unreadable"}', and only a blocked verdict is retired by recording a new run. Recording one would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
+                        $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Its outcome is '{outcome ?? "unreadable"}', and only a blocked verdict is retired by recording a new run -- or a pass, with --retire-pass, when a person asked for a change. Recording one would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
                 }
 
                 retire = true;

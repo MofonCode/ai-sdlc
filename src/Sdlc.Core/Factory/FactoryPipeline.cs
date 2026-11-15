@@ -4,7 +4,7 @@ using Sdlc.Core.Init;
 namespace Sdlc.Core.Factory;
 
 /// <summary>
-/// The factory's pipeline: a run a person starts, of <c>batch-build --pr --unattended</c> against the integration
+/// The factory's pipeline: a run a person starts, of <c>/sdlc:build --unattended</c> (D-187) against the integration
 /// branch, one run at a time, inside a time limit, and publishes the sitrep (D-84).
 /// </summary>
 /// <remarks>
@@ -118,7 +118,7 @@ public static class FactoryPipeline
                 "        run: |",
                 .. Credential("          ", check: false),
                 .. Asked("          "),
-                "          sdlc claude -p '/sdlc:batch-build '\"$CYCLE\"' --pr --unattended' --permission-mode bypassPermissions < /dev/null",
+                "          sdlc claude -p '/sdlc:build '\"$CYCLE\"' --unattended' --permission-mode bypassPermissions < /dev/null",
                 string.Empty,
                 "      # The morning starts from this page, whatever the run above did.",
                 "      - name: the sitrep",
@@ -208,7 +208,7 @@ public static class FactoryPipeline
                 "            - script: |",
                 .. Credential("                ", check: false),
                 .. Asked("                "),
-                "                sdlc claude -p '/sdlc:batch-build '\"$CYCLE\"' --pr --unattended' --permission-mode bypassPermissions < /dev/null",
+                "                sdlc claude -p '/sdlc:build '\"$CYCLE\"' --unattended' --permission-mode bypassPermissions < /dev/null",
                 "              displayName: build the queue",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",

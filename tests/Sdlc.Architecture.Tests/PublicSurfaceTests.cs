@@ -46,7 +46,6 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Approvals.ApprovalLedger",
         "Sdlc.Core.Approvals.ApprovalRenderer",
         "Sdlc.Core.Approvals.ApprovalText",
-        "Sdlc.Core.Approvals.ApprovalText+DeviationAnswers",
         "Sdlc.Core.Approvals.ApprovalText+Query",
         "Sdlc.Core.Approvals.ApprovalText+Response",
         "Sdlc.Core.Approvals.GateDecision",
@@ -82,20 +81,6 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.ReadFindings",
         "Sdlc.Core.Findings.ReadFindings+Query",
         "Sdlc.Core.Findings.ReadFindings+Response",
-        "Sdlc.Core.Proposals.DraftMining",
-        "Sdlc.Core.Proposals.DraftMining+Command",
-        "Sdlc.Core.Proposals.DraftMining+Operation",
-        "Sdlc.Core.Proposals.DraftMining+Proposal",
-        "Sdlc.Core.Proposals.DraftMining+Record",
-        "Sdlc.Core.Proposals.ProposeMining",
-        "Sdlc.Core.Proposals.ProposeMining+Group",
-        "Sdlc.Core.Proposals.ProposeMining+Query",
-        "Sdlc.Core.Proposals.ProposeMining+Response",
-        // How each cycle went, which the report renders (D-112). Public because Response carries them.
-        "Sdlc.Core.Proposals.ProposeMining+CycleRecord",
-        "Sdlc.Core.Proposals.ProposeMining+Reopen",
-        "Sdlc.Core.Proposals.ProposeMining+Verdict",
-        "Sdlc.Core.Proposals.ProposeMining+DeviationRecord",
         "Sdlc.Core.Evidence.CheckEvidence",
         "Sdlc.Core.Evidence.CheckEvidence+Query",
         "Sdlc.Core.Evidence.CheckEvidence+Response",
@@ -107,6 +92,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Evidence.TimedTest",
         "Sdlc.Core.Evidence.CoverageSummary",
         "Sdlc.Core.Findings.RecordRound",
+        "Sdlc.Core.Findings.RunRound",
+        "Sdlc.Core.Findings.RunRound+Command",
+        "Sdlc.Core.Findings.RunRound+Reader",
+        "Sdlc.Core.Findings.RunRound+Response",
         "Sdlc.Core.Findings.RecordRound+Command",
         "Sdlc.Core.Findings.RecordRound+Response",
         "Sdlc.Core.Findings.ReaderPrompts",
@@ -162,8 +151,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Chain.VerifyUpgrade",
         "Sdlc.Core.Chain.VerifyUpgrade+Query",
         "Sdlc.Core.Chain.VerifyUpgrade+Response",
-        "Sdlc.Core.Chain.VerifyMining",
-        "Sdlc.Core.Chain.VerifyMining+Query",
+        "Sdlc.Core.Chain.VerifyHarvest",
+        "Sdlc.Core.Chain.VerifyHarvest+Query",
         "Sdlc.Core.Constraints.Constraint",
         "Sdlc.Core.Constraints.JudgedPer",
         "Sdlc.Core.Constraints.ConstraintDetail",
@@ -233,6 +222,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.TidyRenderer",
 
         // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
+        "Sdlc.Core.Cycles.BuildRun",
+        "Sdlc.Core.Cycles.BuildRun+Launch",
+        "Sdlc.Core.Cycles.BuildRun+Place",
+        "Sdlc.Core.Cycles.BuildRun+Prepare",
         "Sdlc.Core.Cycles.ComposeAdmission",
         "Sdlc.Core.Cycles.ComposeAdmission+Query",
         "Sdlc.Core.Cycles.ComposeAdmission+Response",
@@ -280,17 +273,45 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Leads.ReadLead+Response",
         "Sdlc.Core.Leads.TrackerItem",
 
-        // Mining's ledger, the record of a sitting, and the husks it names (D-152).
-        "Sdlc.Core.Mining.MinedArea",
-        "Sdlc.Core.Mining.MinedCycle",
-        "Sdlc.Core.Mining.MinedDecline",
-        "Sdlc.Core.Mining.MinedLedger",
-        "Sdlc.Core.Mining.MiningRenderer",
-        "Sdlc.Core.Mining.MiningRun",
-        "Sdlc.Core.Mining.RecordMining",
-        "Sdlc.Core.Mining.RecordMining+Command",
-        "Sdlc.Core.Mining.RecordMining+Response",
-        "Sdlc.Core.Mining.Watched",
+        // A harvest: its report, one aspect at a time, the ledger, the record of a sitting, the close that
+        // makes husks, its readers, and the drafter of what a person marked (D-152, D-191, D-192).
+        "Sdlc.Core.Harvest.Completion",
+        "Sdlc.Core.Harvest.CloseHarvest",
+        "Sdlc.Core.Harvest.CloseHarvest+Command",
+        "Sdlc.Core.Harvest.CloseHarvest+Response",
+        "Sdlc.Core.Harvest.DraftHarvest",
+        "Sdlc.Core.Harvest.DraftHarvest+Command",
+        "Sdlc.Core.Harvest.DraftHarvest+Operation",
+        "Sdlc.Core.Harvest.DraftHarvest+Proposal",
+        "Sdlc.Core.Harvest.DraftHarvest+Record",
+        "Sdlc.Core.Harvest.GatherAbandoned",
+        "Sdlc.Core.Harvest.GatherAbandoned+Command",
+        "Sdlc.Core.Harvest.GatherAbandoned+Gathered",
+        "Sdlc.Core.Harvest.GatherAbandoned+Response",
+        "Sdlc.Core.Harvest.HarvestAspect",
+        "Sdlc.Core.Harvest.HarvestAspects",
+        "Sdlc.Core.Harvest.HarvestDecline",
+        "Sdlc.Core.Harvest.HarvestedArea",
+        "Sdlc.Core.Harvest.HarvestedCycle",
+        "Sdlc.Core.Harvest.HarvestLedger",
+        "Sdlc.Core.Harvest.HarvestReaders",
+        "Sdlc.Core.Harvest.HarvestReaders+Read",
+        "Sdlc.Core.Harvest.HarvestReaders+Review",
+        "Sdlc.Core.Harvest.HarvestRenderer",
+        "Sdlc.Core.Harvest.HarvestReport",
+        "Sdlc.Core.Harvest.HarvestReport+CycleRecord",
+        "Sdlc.Core.Harvest.HarvestReport+DeviationRecord",
+        "Sdlc.Core.Harvest.HarvestReport+Group",
+        "Sdlc.Core.Harvest.HarvestReport+OpenCycle",
+        "Sdlc.Core.Harvest.HarvestReport+Query",
+        "Sdlc.Core.Harvest.HarvestReport+Reopen",
+        "Sdlc.Core.Harvest.HarvestReport+Response",
+        "Sdlc.Core.Harvest.HarvestReport+Verdict",
+        "Sdlc.Core.Harvest.HarvestSitting",
+        "Sdlc.Core.Harvest.RecordHarvest",
+        "Sdlc.Core.Harvest.RecordHarvest+Command",
+        "Sdlc.Core.Harvest.RecordHarvest+Response",
+        "Sdlc.Core.Harvest.Watched",
 
         // 'sdlc operate': production's errors filed as leads (D-89). The store and the filer are
         // interfaces so the suite needs neither a network nor a CLI.
@@ -414,7 +435,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.Suggestions+Response",
         "Sdlc.Core.Findings.SuggestionsRenderer",
 
-        // 'sdlc propose constraints': the operation, the three shapes it hands back, and its renderer.
+        // 'sdlc harvest constraints' and 'sdlc constraints --new': the operation, the three shapes it hands back, and its renderer.
         // Public for the reason the suggestions listing is -- Sdlc.Cli dispatches the request and renders
         // the response -- and the three records are part of that response rather than types of their own
         // standing. The renderer is here and not in Constraints because this reads the findings as well
@@ -433,7 +454,7 @@ public sealed class PublicSurfaceTests
         // so there is no state here for a handler to own.
         "Sdlc.Core.Reports.ReportFile",
 
-        // 'sdlc propose decisions': the operation, its response, and the two shapes that response
+        // 'sdlc harvest decisions': the operation, its response, and the two shapes that response
         // carries. DecisionSource is public because Candidate exposes it.
         "Sdlc.Core.Proposals.Candidate",
         "Sdlc.Core.Proposals.DecisionSource",
@@ -461,6 +482,9 @@ public sealed class PublicSurfaceTests
 
         // 'sdlc deviations': where the build bent the approved documents, against what a person answered.
         // The operation, the shapes its response exposes, the file's parser and the renderer.
+        "Sdlc.Core.Deviations.BuildReport",
+        "Sdlc.Core.Deviations.BuildReport+Query",
+        "Sdlc.Core.Deviations.BuildReport+Response",
         "Sdlc.Core.Deviations.CycleDeviations",
         "Sdlc.Core.Deviations.CycleDeviations+Query",
         "Sdlc.Core.Deviations.CycleDeviations+Response",
@@ -473,7 +497,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Deviations.DeviationsRenderer",
         "Sdlc.Core.Deviations.DeviationsState",
 
-        // 'sdlc theme' and 'sdlc propose theme': the register, its one slot shape, the operation
+        // 'sdlc theme': the register, its one slot shape, the operation
         // that reads it and the renderer that both shows and proposes one. Theme is public rather
         // than internal because ReadTheme.Response exposes it and Sdlc.Cli renders it.
         "Sdlc.Core.Themes.Theme",
@@ -535,6 +559,10 @@ public sealed class PublicSurfaceTests
         // Public because two assemblies need the stamped release version and they would otherwise
         // read it twice: 'sdlc version' in the CLI, and the pipeline template here that pins the
         // binary a pull request restores.
+        "Sdlc.Core.AgentExit",
+        "Sdlc.Core.AgentLaunch",
+        "Sdlc.Core.CliAgentProcess",
+        "Sdlc.Core.IAgentProcess",
         "Sdlc.Core.PinnedRelease",
         "Sdlc.Core.Release",
         "Sdlc.Core.SdlcServices",

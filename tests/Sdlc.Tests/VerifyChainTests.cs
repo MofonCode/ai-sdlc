@@ -18,6 +18,22 @@ namespace Sdlc.Tests;
 public sealed class VerifyChainTests
 {
     [TestMethod]
+    public void A_build_from_a_slicings_admission_carries_its_siblings_plans_and_nothing_judges_them_as_its_change()
+    {
+        // A build of one cycle in a slicing starts from slices/sandbox-<id>/plan, which holds every approved cycle the
+        // sandbox admitted, so its pull request carries the siblings' planning paperwork too. That is admission, not
+        // change: what admit composed is what the gate let through, and the siblings' documents are each judged by
+        // their own cycle. The change's readers and the declared-files comparison never see them, because both leave
+        // .sdlc/ out (D-187).
+        Assert.IsTrue(CycleId.TryParse("20260929_1500_00", out CycleId? parsed));
+        CycleId sibling = parsed.Value;
+        string plan = ".sdlc/cycles/" + sibling + "/plan.md";
+
+        Assert.IsTrue(Sdlc.Core.Evidence.DeclaredFiles.IsFrameworkOwned(plan), "A sibling's plan would be judged as this change.");
+        Assert.IsTrue(VerifyChain.AdmitsAsPlan(sibling, [plan, ".sdlc/cycles/" + sibling + "/approval.md"]), "A sibling's paperwork is not read as planning.");
+    }
+
+    [TestMethod]
     public async Task A_complete_approved_cycle_holds()
     {
         using CycleWorkspace workspace = Sound();
@@ -392,11 +408,13 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    [DataRow(null, null, false, DisplayName = "unanswered")]
-    [DataRow(true, null, true, DisplayName = "accepted")]
-    [DataRow(false, "Fix the fixture instead.", true, DisplayName = "declined")]
-    public async Task Every_deviation_is_answered_before_the_pull_request(bool? accepted, string? note, bool holds)
+    [DataRow(null, null, DisplayName = "recorded")]
+    [DataRow(true, null, DisplayName = "accepted before D-181")]
+    [DataRow(false, "Fix the fixture instead.", DisplayName = "declined before D-181")]
+    public async Task Nothing_waits_for_a_deviation_to_be_answered_before_the_pull_request(bool? accepted, string? note)
     {
+        // D-181: the pull request leads with the deviations and merging it accepts them, so the check asks only
+        // that each is sound. An answer from before D-181 is still read, and changes nothing here.
         using CycleWorkspace workspace = Sound();
         string sha = Deviate(workspace);
 
@@ -407,38 +425,36 @@ public sealed class VerifyChainTests
 
         VerifyChain.Response verdict = await Check(workspace);
 
-        VerifyChain.ChainCheck answered = verdict.Checks.Single(check => check.Name == "every deviation is answered");
-        Assert.AreEqual(holds, answered.Passed, answered.Detail);
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name == "every deviation is answered"), Describe(verdict));
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name == "the verdict follows the deviations declined"), Describe(verdict));
         Assert.IsTrue(verdict.Checks.Single(check => check.Name == "the deviations are sound").Passed, Describe(verdict));
-
-        if (!holds)
-        {
-            StringAssert.Contains(answered.Detail, "DEV_01 has no answer. 'sdlc draft approval");
-        }
     }
 
     [TestMethod]
-    [DataRow("2026-10-01T10:00:00Z", false)]
-    [DataRow("2026-10-03T10:00:00Z", true)]
-    public async Task A_declined_deviation_is_verified_again_before_the_pull_request(string verifiedAt, bool holds)
+    public async Task A_criterion_the_build_narrowed_on_its_own_is_refused()
     {
-        // A decline means the build redoes that part, so a verdict from before it judged code the person
-        // turned down.
+        // D-179: what done means is the spec's, and a deviation never changes it.
         using CycleWorkspace workspace = Sound();
-        AnswerDeviation(workspace, Deviate(workspace), accepted: false, "Fix the fixture instead.");
-        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Verify, 1), $$"""
-            { "framework_version": "1.0.0", "cycle": "{{workspace.Cycle.Id}}", "artifact": "verify.md",
-              "upstream_sha256": "{{workspace.HashOf(ArtifactKind.Plan)}}", "interrogated_at": "{{verifiedAt}}",
-              "round": 1, "findings": [] }
+        CycleWorkspace.WriteRaw(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle), $"""
+            ## DEV_01 — Criterion 1 is narrowed to the happy path
+
+            Kind: criterion
+            Departs from: spec.md, Acceptance criteria
+            > cycle: {workspace.Cycle.Id}
+            Blocker: the failure path cannot be reached in the test host
+            Deviation: only the happy path is proved.
+            Why: the host has no way to fail.
+            Successor: failure-path — the rest of criterion 1
+
             """);
 
         VerifyChain.Response verdict = await Check(workspace);
 
-        VerifyChain.ChainCheck follows = verdict.Checks.Single(check => check.Name == "the verdict follows the deviations declined");
-        Assert.AreEqual(holds, follows.Passed, follows.Detail);
+        VerifyChain.ChainCheck sound = verdict.Checks.Single(check => check.Name == "the deviations are sound");
+        Assert.IsFalse(sound.Passed);
+        StringAssert.Contains(sound.Detail, "never changes what done means");
     }
 
-    // Records one plan deviation quoting the plan's own frontmatter, and returns its hash.
     private static string Deviate(CycleWorkspace workspace)
     {
         CycleWorkspace.WriteRaw(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle), $"""
@@ -538,50 +554,50 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    [DataRow(false, "changed only after", DisplayName = "mined after the verify")]
+    [DataRow(false, "changed only after", DisplayName = "placed after the verify")]
     [DataRow(true, "changed before", DisplayName = "changed before the verify")]
     public async Task When_the_rule_files_changed_against_the_verify_is_reported_and_never_refused(
         bool changedBeforeVerify,
         string says)
     {
-        // A person changes these files inside a cycle for reasons that are not mining -- the stack
+        // A person changes these files inside a cycle for reasons of their own -- the stack
         // row a plan calls for, a decision amended mid-build -- and git cannot tell the two apart. So the
-        // order is said, and the chain holds either way (D-113). MarketSense's second cycle did both.
+        // order is said, and the chain holds either way (D-113). One real solution's second cycle did both.
         using CycleWorkspace workspace = Sound();
-        FakeRepository repository = Mining(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
+        FakeRepository repository = Placing(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
 
         VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/decisions.md", "src/Thing.cs"]);
-        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("mining", StringComparison.Ordinal));
+        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("records it carries", StringComparison.Ordinal));
 
         Assert.IsTrue(order.Passed, order.Detail);
         StringAssert.Contains(order.Detail, ".sdlc/decisions.md " + says);
     }
 
     [TestMethod]
-    public async Task Mining_with_no_verify_written_says_the_order_cannot_be_shown()
+    public async Task Records_with_no_verify_written_say_the_order_cannot_be_shown()
     {
         using CycleWorkspace workspace = Sound();
         FakeRepository repository = new() { Committed = [] };
 
         VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/constraints.md"]);
-        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("mining", StringComparison.Ordinal));
+        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("records it carries", StringComparison.Ordinal));
 
         Assert.IsTrue(order.Passed, order.Detail);
         StringAssert.Contains(order.Detail, "no commit wrote");
     }
 
     [TestMethod]
-    public async Task A_pull_request_that_mines_nothing_says_nothing_about_mining()
+    public async Task A_pull_request_that_places_no_record_says_nothing_about_them()
     {
         using CycleWorkspace workspace = Sound();
-        FakeRepository repository = Mining(workspace, ["src/Thing.cs"]);
+        FakeRepository repository = Placing(workspace, ["src/Thing.cs"]);
 
         VerifyChain.Response verdict = await Check(workspace, repository, ["src/Thing.cs"]);
 
-        Assert.IsFalse(verdict.Checks.Any(check => check.Name.Contains("mining", StringComparison.Ordinal)), Describe(verdict));
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name.Contains("records it carries", StringComparison.Ordinal)), Describe(verdict));
     }
 
-    private static FakeRepository Mining(CycleWorkspace workspace, IReadOnlyList<string> beforeVerify)
+    private static FakeRepository Placing(CycleWorkspace workspace, IReadOnlyList<string> beforeVerify)
     {
         FakeRepository repository = new() { Committed = beforeVerify };
         repository.Touched["HEAD:.sdlc/cycles/" + workspace.Cycle.Id + "/verify.md"] =

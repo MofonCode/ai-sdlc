@@ -40,7 +40,7 @@ internal sealed record PlanArea(PlanAreaKind Kind, string? Name, IReadOnlyList<s
 /// `tools/once.ps1`</c>). Which files are uncovered is a listing, so the binary checks it; what to call them is
 /// language, so the plan says it.</para>
 /// <para>A proposed name becomes a suggestion of kind <c>area</c> in the cycle's suggestions ledger when the
-/// plan's round is recorded. Mining collects them; <c>steer</c> never takes one in, because an area is not
+/// plan's round is recorded. A harvest collects them; <c>steer</c> never takes one in, because an area is not
 /// something the cycle delivers (D-128).</para>
 /// </remarks>
 internal static class PlanAreas

@@ -25,14 +25,15 @@
     <Company>MofonCode</Company>
     <Title>ai-sdlc gate</Title>
 
-    <!-- Describes the binary rather than the framework, which is not the same thing and is why this
-         is not a copy of the plugin's description. The package is one of two halves: it decides, and
-         the plugin carries the skills that ask it to. Somebody who installs only this gets a working
-         gate and no stages, so the description says so. -->
+    <!-- Opens with the framework's definition, worded as the README states it, and then describes the
+         binary, which is not the same thing and is why the rest is not a copy of the plugin's
+         description. The package is one of two halves: it decides, and the plugin carries the skills
+         that ask it to. Somebody who installs only this gets a working gate and no stages, so the
+         description says so. -->
     <!-- One line, unindented, because whitespace in here reaches the feed page verbatim. -->
-    <Description>The gate for an ai-sdlc governed solution. A change moves through intent, spec, plan, build, verify and land; each artifact is challenged against a fixed set of rules before it advances, a person approves the three planning documents against a hash of each, and nothing merges unless the chain is complete, approved and hash-matched. This is the deterministic half: the `sdlc` command that every host hook, git hook and pipeline step calls. The stages need language and ship separately as the plugin.</Description>
+    <Description>The deterministic half of ai-sdlc, which holds an AI coding agent, and the people directing it, to what was written down. Every change is planned before any code exists, challenged by a reader that never saw it written, approved by a person against the exact text, and proved from recorded evidence, against rules and decisions that live in the repository and carry from one cycle to the next. This is the `sdlc` command every host hook and pipeline step calls: it decides everything a program can, including the pull-request check that refuses a change whose chain is incomplete, unapproved or hash-mismatched. The stages need language and ship separately as the plugin.</Description>
 
-    <PackageTags>sdlc;governance;constraints;code-review;agent;hooks;dotnet-tool</PackageTags>
+    <PackageTags>sdlc;governance;constraints;decisions;code-review;agent;ai;hooks;dotnet-tool</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Sources and symbols, so a stack trace from somebody else's machine is readable. The gate

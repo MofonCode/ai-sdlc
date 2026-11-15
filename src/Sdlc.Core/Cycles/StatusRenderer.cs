@@ -269,8 +269,8 @@ public static class StatusRenderer
     /// bent nothing.
     /// </summary>
     /// <remarks>
-    /// On both panels: an unanswered deviation is what the pull request waits on, and a person reading the
-    /// panel is the one who answers it.
+    /// On both panels: the pull request leads with them and a person merging it accepts them (D-181), so the
+    /// panel shows them before that, as the report will.
     /// </remarks>
     private static void Deviating(StringBuilder output, ReadCycleStatus.Response status)
     {
@@ -594,13 +594,17 @@ public static class StatusRenderer
     private static (string Command, string Why) AfterTheGate(ReadCycleStatus.Response status, string id, SupportedHost? host) =>
         status.Outcome switch
         {
+            // Build it verifies its own run, so evidence with no verdict is a build whose process stopped short. The
+            // queue will not take a cycle back that has gone this far, so the step is the verification (D-185).
             null when status.Built => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
-                "the build recorded its evidence"),
+                "evidence recorded, no verdict - verify it"),
 
+            // Build it goes all the way: admits, implements, verifies, fixes what it can and opens the pull
+            // request, in a process of its own (D-178). No new session to name any more.
             null => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
-                "the gate is satisfied - in a new session"),
+                "the gate is satisfied - build it, to the pull request"),
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase)
                 && status.MergedOn is { } merged => (
@@ -613,17 +617,21 @@ public static class StatusRenderer
                 string.Create(CultureInfo.InvariantCulture, $"sdlc verify-chain {id}"),
                 "verified, but the chain does not hold"),
 
+            // The build opens its own pull request; this is the step when it could not, and the pull request is
+            // where the person accepts what the report says (D-181).
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"pr {id}")),
-                "verified clean - open the pull request"),
+                "verified - the pull request is where you accept"),
 
+            // Remediation is how a blocked verdict is answered; build it would meet a queue that holds back a cycle
+            // already verified (D-185).
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
                 "a criterion is not met - fix it"),
 
             string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc status {id}"),
-                "escalated - this one needs a person"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
+                "escalated - say what to do, then fix it"),
 
             _ => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),

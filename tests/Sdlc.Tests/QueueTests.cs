@@ -137,6 +137,67 @@ public sealed class QueueTests
         StringAssert.Contains(nowhere.Errors[0].Message, "no such cycle");
     }
 
+    [TestMethod]
+    [DataRow("cycle/20261101_0900_00/plan", DisplayName = "on its own plan branch")]
+    [DataRow("slices/sandbox-20261101_0900_00/plan", DisplayName = "on a sandbox's admission")]
+    public async Task A_named_cycle_admitted_only_on_this_machine_is_queued(string admission)
+    {
+        // D-178: build it admits the plan locally, pushing nothing, and starts the run from the person's own
+        // checkout, which does not carry the plan yet.
+        using CycleWorkspace workspace = Approved();
+        FakeRepository git = Admitted(admission, approved: true);
+
+        ListQueuedCycles.Response queue = await Read(workspace, git, LocalId);
+
+        Assert.AreEqual(LocalId, queue.Cycles.Single().Id);
+        Assert.AreEqual("Roll a die", queue.Cycles.Single().Headline);
+    }
+
+    [TestMethod]
+    public async Task A_local_admission_that_is_unapproved_verified_or_taken_is_refused_with_why()
+    {
+        using CycleWorkspace workspace = Approved();
+        string admission = "cycle/20261101_0900_00/plan";
+
+        FakeRepository unapproved = Admitted(admission, approved: false);
+        FakeRepository verified = Admitted(admission, approved: true);
+        verified.PathsAt.Add(admission + ":.sdlc/cycles/20261101_0900_00/verify.md");
+        FakeRepository taken = Admitted(admission, approved: true);
+        taken.Remote = ["cycle/20261101_0900_00/build-unattended"];
+
+        StringAssert.Contains((await Send(workspace, unapproved, LocalId)).Errors[0].Message, "not approved there");
+        StringAssert.Contains((await Send(workspace, verified, LocalId)).Errors[0].Message, "already has a verify");
+        StringAssert.Contains((await Send(workspace, taken, LocalId)).Errors[0].Message, "factory run has taken it");
+    }
+
+    [TestMethod]
+    public async Task The_unnamed_queue_never_reads_a_local_admission()
+    {
+        // The factory's queue is what the integration branch holds; a plan on one person's machine is not on it.
+        using CycleWorkspace workspace = Approved();
+
+        ListQueuedCycles.Response queue = await Read(workspace, Admitted("cycle/20261101_0900_00/plan", approved: true));
+
+        Assert.IsFalse(queue.Cycles.Any(cycle => cycle.Id == LocalId));
+    }
+
+    private static CycleId LocalId => CycleId.TryParse("20261101_0900_00", out CycleId? id) ? id.Value : throw new InvalidOperationException();
+
+    private static FakeRepository Admitted(string admission, bool approved)
+    {
+        const string Directory = ".sdlc/cycles/20261101_0900_00/";
+        FakeRepository git = new();
+
+        git.Refs.Add(admission);
+        git.PathsAt.Add(admission + ":" + Directory + "plan.md");
+        git.Files[admission + ":" + Directory + "intent.md"] = "---\ncycle: 20261101_0900_00\n---\n\n# Roll a die\n";
+        git.Files[admission + ":" + Directory + "approval.md"] = approved
+            ? "---\ncycle: 20261101_0900_00\ndecisions:\n  - decision: approved\n    by: Peter Almanzar\n    at: 2026-11-01T12:00:00Z\n---\n"
+            : "---\ncycle: 20261101_0900_00\ndecisions:\n  - decision: changes_requested\n    by: Peter Almanzar\n    at: 2026-11-01T12:00:00Z\n    reason: The plan names no proof.\n---\n";
+
+        return git;
+    }
+
     private static CycleWorkspace Approved(string? release = null)
     {
         var workspace = CycleWorkspace.Create();

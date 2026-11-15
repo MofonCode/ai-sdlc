@@ -20,7 +20,7 @@ public sealed class ProofSourcesTests
     [TestMethod]
     public async Task A_test_the_patch_never_mentions_is_handed_over_from_the_file_that_defines_it()
     {
-        // MarketSense's cycle _59: a criterion guarding existing behaviour, proven by a test the change left
+        // A real cycle: a criterion guarding existing behaviour, proven by a test the change left
         // alone, so its assertion was in no evidence and the Met could quote nothing.
         using CycleWorkspace workspace = Recorded(proofs: 2);
         FakeRepository git = Git("+public void Thing_does_the_thing_1() { Assert.IsTrue(rolled); }\n");
@@ -119,7 +119,7 @@ public sealed class ProofSourcesTests
     [TestMethod]
     public void A_named_test_is_handed_over_as_its_block_rather_than_its_file()
     {
-        // Whole files took one MarketSense cycle's sources to 186 KB for every reader.
+        // Whole files took one real cycle's sources to 186 KB for every reader.
         string[] csharp =
         [
             "public sealed class RollTests",

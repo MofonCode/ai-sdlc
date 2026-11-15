@@ -13,6 +13,9 @@ namespace Sdlc.Cli;
 /// the panel printing <c>sdlc spec &lt;id&gt;</c> and the binary replying "Unknown command" would make the
 /// most-read output in the plugin wrong, and the person would conclude the install is broken.
 /// </para>
+/// <para><strong><c>build</c> is not here, because the binary runs it</strong> (D-187): <c>sdlc build</c> starts the
+/// build's own process, which is the one stage a command can carry, so the step a person says and the command they
+/// type share one name.</para>
 /// </remarks>
 internal static class Stages
 {
@@ -24,13 +27,12 @@ internal static class Stages
         ["plan"] = "decides how, and what will prove each criterion",
         ["interrogate"] = "judges one artifact against the rules, in a fresh process",
         ["refine"] = "applies an artifact's findings to that artifact",
-        ["steer"] = "carries a mid-cycle correction down the chain",
-        ["build"] = "implements the plan and records what happened as evidence",
+        ["steer"] = "writes a mid-cycle correction into the chain; to-plan runs it and checks again",
+        ["implement"] = "changes code and tests to do what it is handed, and records the evidence",
         ["verify"] = "adjudicates the build against the spec, from the evidence alone",
-        ["remediate"] = "applies a blocked verification's findings to source and tests",
-        ["pr"] = "pushes, opens the pull request, and links the work item",
-        ["batch-build"] = "completes every approved cycle, concurrently where the claims allow",
-        ["resolve-conflict"] = "resolves a collision on a file no cycle can claim exclusively",
+        ["remediate"] = "fixes what a verification found, or applies a change the person asked for, and verifies again",
+        ["pr"] = "pushes and opens a pull request by hand; the build opens its own",
+        ["resolve-conflict"] = "brings a conflicting pull request up to date inside its declared files; remediate runs it, then verifies",
     };
 
     /// <summary>Whether a verb names a stage skill.</summary>

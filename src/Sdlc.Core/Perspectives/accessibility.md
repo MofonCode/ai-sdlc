@@ -108,7 +108,7 @@ cannot reach is a defect nobody on the team will ever see by using it the way th
 ## Rules
 
 None of its own yet. A finding this method makes that no rule forbids is a suggestion; one that keeps
-recurring across cycles is what `sdlc propose constraints` turns into a rule.
+recurring across cycles is what `/sdlc:harvest-constraints` turns into a rule.
 
 ## Evidence
 

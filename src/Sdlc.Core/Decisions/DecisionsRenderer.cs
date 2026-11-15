@@ -60,8 +60,8 @@ public static class DecisionsRenderer
         {
             output.AppendLine("No decisions recorded.");
             output.AppendLine();
-            output.AppendLine("This solution has no decision record yet. 'sdlc propose decisions' reads the");
-            output.AppendLine("approved cycles and proposes entries for a person to place.");
+            output.AppendLine("This solution has no decision record yet. 'sdlc harvest decisions' reads the");
+            output.AppendLine("completed cycles and proposes entries for a person to place.");
             return output.ToString();
         }
 
@@ -132,14 +132,14 @@ public static class DecisionsRenderer
         }
 
         output.AppendLine();
-        output.AppendLine("A cycle may depart from any of these, and CON_24 asks it to say so where the");
+        output.AppendLine("A cycle may depart from any of these, and CON_27 asks it to say so where the");
         output.AppendLine("departure arises: an outcome in the intent, under Fixed decisions; an approach in");
         output.AppendLine("the plan, under Shape and departures. Write it as one line, '- Departs from DEC_nn");
         output.AppendLine("(the decision in brief): what this cycle does instead', with who and why. Departing");
         output.AppendLine("is legal; departing in silence is not. The spec, the plan and the code are each read");
         output.AppendLine("against this record, and rely on a departure declared above them.");
 
-        // Information, never a refusal: the file is a person's, and mining proposes the rewording (D-149).
+        // Information, never a refusal: the file is a person's, and a harvest proposes the rewording (D-149).
         List<string> overBudget = [.. response.Decisions
             .Where(decision => decision.IsStanding)
             .Select(decision => (decision.Id, Overruns: EntryBudget.Of(decision)))
@@ -153,7 +153,7 @@ public static class DecisionsRenderer
                 CultureInfo.InvariantCulture,
                 $"Over the word budget -- a {EntryBudget.Headline}-word title, {EntryBudget.Clause} words a clause -- so a reader"));
             output.AppendLine("handed only the headline gets less than it should: " + string.Join("; ", overBudget) + ".");
-            output.AppendLine("'/sdlc:mine' proposes rewording them; nothing is refused.");
+            output.AppendLine("'/sdlc:harvest-decisions' proposes rewording them; nothing is refused.");
         }
 
         if (response.Superseded > 0 && detail == DecisionDetail.Brief)

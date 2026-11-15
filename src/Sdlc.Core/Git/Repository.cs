@@ -196,7 +196,7 @@ public interface IRepository
 
     /// <summary>Every commit reachable from a reference that touched a path, oldest first.</summary>
     /// <remarks>
-    /// What the mining report reads a cycle's verify history from: each verdict was a commit of
+    /// What the harvest report reads a cycle's verify history from: each verdict was a commit of
     /// <c>verify.md</c>, and only the last survives on disk.
     /// </remarks>
     /// <param name="workingDirectory">Where to ask from.</param>
@@ -255,6 +255,19 @@ public interface IRepository
     string? CommonDirectory(string workingDirectory);
 
     /// <summary>
+    /// Runs one git command the binary decided on, and says what went wrong when it fails.
+    /// </summary>
+    /// <remarks>
+    /// For the commands the binary used to print for an agent to run -- a worktree, an admission -- and now runs
+    /// itself, so that no skill needs a multi-command shell line to get there (D-183, D-184). Never a command a
+    /// person typed: what this is handed is composed in the binary from refs and paths it read.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to run it.</param>
+    /// <param name="arguments">The arguments, after the word git.</param>
+    /// <returns>What git printed, or a failure carrying what it said.</returns>
+    Result<string> Git(string workingDirectory, string arguments);
+
+    /// <summary>
     /// The files a commit holds that contain a word, as a whole word, with the directories given left out.
     /// </summary>
     /// <remarks>
@@ -301,6 +314,18 @@ public sealed class GitRepository : IRepository
     {
         string? name = Run(workingDirectory, "config user.name")?.Trim();
         return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
+
+    /// <inheritdoc />
+    public Result<string> Git(string workingDirectory, string arguments)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(arguments);
+
+        (string? output, string? error) = Ask(workingDirectory, arguments);
+
+        return output is not null
+            ? Result.Ok(output)
+            : Result.Fail<string>(error ?? string.Create(CultureInfo.InvariantCulture, $"git {arguments} could not be started. Is git on the PATH?"));
     }
 
     /// <inheritdoc />
@@ -765,7 +790,7 @@ public sealed class GitRepository : IRepository
     /// <strong>And a failure carries git's message.</strong> Every failure used to return null, so
     /// git's own reason was thrown away and <c>Commit</c> reported "git could not stage what init
     /// created" with nothing to act on -- which contradicts the framework's own standard that a
-    /// refusal says what has to change, and <c>CON_10.2</c> is that rule.
+    /// refusal says what has to change, and <c>CON_10.3</c> is that rule.
     /// </para>
     /// </remarks>
     /// <param name="workingDirectory">Where to run it.</param>

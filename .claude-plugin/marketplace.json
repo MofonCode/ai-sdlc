@@ -1,6 +1,6 @@
 {
   "name": "ai-sdlc",
-  "description": "The ai-sdlc process framework: a constraint-governed cycle from intent to merged change.",
+  "description": "ai-sdlc: holds an AI coding agent, and the people directing it, to what was written down.",
   "owner": {
     "name": "MofonCode"
   },
@@ -8,7 +8,7 @@
     {
       "name": "sdlc",
       "source": "./",
-      "description": "Supervised intent, spec and plan; build and verify with bounded remediation; nothing advances on assertion."
+      "description": "Planned before code, challenged by a fresh reader, approved by a person, proved from evidence, and refused at merge if a link is missing. Rules and decisions live in the repository across cycles."
     }
   ]
 }

@@ -54,6 +54,26 @@ internal sealed class Workspace
             ? Path.GetFullPath(root)
             : Directory.GetCurrentDirectory();
 
+        return await RunAt(solutionRoot, body).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Opens a workspace on another working copy of the same repository -- a sandbox, a build's worktree -- runs
+    /// <paramref name="body"/> in it, and closes it.
+    /// </summary>
+    /// <remarks>
+    /// For the one command that moves between working copies on a person's behalf, <c>build</c> (D-184, D-187): the
+    /// admission is composed in the sandbox the plan was approved in, and the report read in the worktree the build
+    /// wrote. Each through its own container, so no request is ever answered about one copy from another's files.
+    /// </remarks>
+    /// <param name="solutionRoot">The working copy's root.</param>
+    /// <param name="body">What to do with the workspace.</param>
+    /// <returns>What <paramref name="body"/> returned, or a failing exit code when the library override is wrong.</returns>
+    public static async Task<int> RunAt(string solutionRoot, Func<Workspace, Task<int>> body)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solutionRoot);
+        ArgumentNullException.ThrowIfNull(body);
+
         // Null is a result, not an absence: it means the copy the binary carries. Only a configured
         // override pointing at nothing fails, and it fails rather than quietly binding a different set
         // of rules than the person asked for.

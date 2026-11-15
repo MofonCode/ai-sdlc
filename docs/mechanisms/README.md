@@ -23,7 +23,7 @@ the framework names, and its row links here when there is a page.
 them; the pre-tool hook on each host and the two rules it applies — one to file writes, one to the text
 of a shell command; and what it deliberately does not guard, including you.
 
-What it does not cover: making a change to one of the six, which is What your solution owns in
+What it does not cover: making a change to one of the seven, which is What your solution owns in
 `../guides/adopting-the-framework.md`; why each file in particular is a person's, which is the denial
 table in `../guides/handling-refusals.md`; and every refusal the hook gives, which is the same.
 

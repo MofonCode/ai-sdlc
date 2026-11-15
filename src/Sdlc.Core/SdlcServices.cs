@@ -13,7 +13,7 @@ using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Leads;
-using Sdlc.Core.Mining;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Operate;
 using Sdlc.Core.Perspectives;
 using Sdlc.Core.Hooks;
@@ -74,6 +74,7 @@ public static class SdlcServices
 
         // Work trackers, read through the platforms' own CLIs so the binary never holds a token (D-89).
         services.TryAddSingleton<ITracker, CliTracker>();
+        services.TryAddSingleton<IAgentProcess, CliAgentProcess>();
         services.TryAddSingleton<IBranchPolicies, CliBranchPolicies>();
 
         // Operate's store and the tracker it files into, both through the platforms' CLIs (D-89).
@@ -98,11 +99,14 @@ public static class SdlcServices
         services.AddChangedSectionsRequestHandler();
         services.AddReaderPromptsRequestHandler();
         services.AddCollectRoundRequestHandler();
+        services.AddRunRoundRequestHandler();
+        services.AddHarvestReadersRequestHandlers();
         services.AddWriteVerdictRequestHandler();
 
         services.AddListCyclesRequestHandler();
         services.AddResolveCycleRequestHandler();
         services.AddComposeAdmissionRequestHandler();
+        services.AddBuildRunRequestHandlers();
         services.AddDiscardSandboxRequestHandler();
         services.AddTidyCyclesRequestHandler();
         services.AddUpgradeChecklistRequestHandler();
@@ -142,23 +146,27 @@ public static class SdlcServices
 
         services.AddSuggestionsRequestHandler();
 
-        // Reads the whole history rather than one cycle, and proposes rather than places: the only
+        // Reads the completed record rather than one cycle, and proposes rather than places: the only
         // operation that forms an opinion about the rules, and still writes nothing that binds.
         services.AddProposeConstraintsRequestHandler();
 
-        // The other two subjects of the same verb. Constraints are mined backward from findings;
-        // decisions are captured forward from what an approved cycle stated, because a choice that
-        // never collided with a rule produced no finding to mine. A theme is neither -- it is a
-        // register, and what is proposed is the shape rather than the values.
+        // A harvest reads what the completed cycles can give back, one aspect at a time (D-191). Constraints are
+        // earned backward from findings; decisions are captured forward from what a completed cycle stated,
+        // because a choice that never collided with a rule produced no finding to count. Closing a cycle
+        // waits until every aspect has been answered for it.
         services.AddProposeDecisionsRequestHandler();
-        services.AddProposeMiningRequestHandler();
-        services.AddDraftMiningRequestHandler();
+        services.AddHarvestReportRequestHandler();
+        services.AddDraftHarvestRequestHandler();
         services.AddReadAreasRequestHandler();
-        services.AddRecordMiningRequestHandler();
-        services.AddVerifyMiningRequestHandler();
+        services.AddRecordHarvestRequestHandler();
+        services.AddCloseHarvestRequestHandler();
+        services.AddGatherAbandonedRequestHandler();
+        services.AddVerifyHarvestRequestHandler();
 
-        // Where the build bent the approved documents, against what a person answered (deviations).
+        // Where the build bent the approved documents, and what it chose that they left open (deviations), and
+        // the report a build ends on, which the pull request leads with (D-181).
         services.AddCycleDeviationsRequestHandler();
+        services.AddBuildReportRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

@@ -1,7 +1,6 @@
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
-using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
@@ -9,30 +8,28 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Proposals;
 
-/// <summary>Which section a candidate decision was taken from.</summary>
+/// <summary>Where a candidate decision was taken from.</summary>
 public enum DecisionSource
 {
     /// <summary>
     /// An intent's <c>Fixed decisions</c> — a choice a person had already taken when the cycle opened.
     /// </summary>
     /// <remarks>
-    /// The strongest material here, and §19 item 6 is that nothing reads it: a fixed decision like
-    /// <em>"keep it very simple — nothing fancy"</em> is recorded with attribution, survives every gate,
-    /// and no stage acts on it. These are a person's own words, which is why they need no further
-    /// provenance than the approval.
+    /// A person's own words, so one statement is enough (D-189). An entry marked unconfirmed is left out: it is
+    /// a figure or a belief nobody measured, an assumption rather than a choice.
     /// </remarks>
     Intent,
 
     /// <summary>A plan's <c>Shape and departures</c> — which approach, and what it departed from.</summary>
     /// <remarks>
-    /// §4.4 calls this the plan's <em>decision</em>, as against the <c>Files</c> estimate that nothing
-    /// judges. A departure argued here once is a local choice; the same departure argued across cycles is
-    /// a default that has actually moved, and only a reader can tell which.
+    /// An agent's prose, so it qualifies only when the same choice appears in two or more cycles (D-189): a
+    /// departure argued once is a local choice, the same one argued across cycles is a default that has actually
+    /// moved, and only a reader can tell whether two passages are one choice.
     /// </remarks>
     Plan,
 
     /// <summary>
-    /// A departure an approved cycle declared from a recorded decision (D-139).
+    /// A departure a completed cycle declared from a recorded decision (D-139).
     /// </summary>
     /// <remarks>
     /// The one candidate whose proposal is already known: a supersede of the decision it names. Left
@@ -40,10 +37,17 @@ public enum DecisionSource
     /// this one set aside.
     /// </remarks>
     Departure,
+
+    /// <summary>Why a person abandoned the cycle, from its <c>abandoned.md</c>.</summary>
+    /// <remarks>
+    /// The only passage an abandoned cycle gives (D-189). The reason is a person's decision, usually naming what
+    /// they refused; the plan's approach is what was abandoned, so it is never offered as a choice to keep.
+    /// </remarks>
+    Abandoned,
 }
 
 /// <summary>
-/// One passage from an approved cycle that may hold a decision worth recording.
+/// One passage from a completed cycle that may hold a decision worth recording.
 /// </summary>
 /// <remarks>
 /// A passage rather than a parsed decision. Whether prose records a real choice, what its alternatives
@@ -56,20 +60,19 @@ public enum DecisionSource
 public sealed record Candidate(CycleId Cycle, DecisionSource Source, string Passage);
 
 /// <summary>
-/// Reads the choices a solution's approved cycles settled, for a person to record. Writes nothing.
+/// Reads the choices a solution's completed cycles settled, for a person to record. Writes nothing.
 /// </summary>
 /// <remarks>
-/// <para><strong>Captured forward, because a decision cannot be mined.</strong> A constraint is earned
-/// backward from findings — the same rule blocking three cycles says a rule is missing. A decision never
+/// <para><strong>Captured forward, because a decision cannot be counted from findings.</strong> A constraint is
+/// earned backward from findings — the same rule blocking three cycles says a rule is missing. A decision never
 /// collides with a rule at all: a colour, a layout convention, a code-style choice produces no finding,
 /// so no amount of history review surfaces it. What can be read instead is the place a choice was
 /// *stated* — an intent's fixed decisions and a plan's shape — and that is what this walks.</para>
 ///
-/// <para><strong>Only approved cycles, and that is the whole provenance story.</strong> An approval
-/// records a hash of the intent, the spec and the plan against a person's name, so a passage from an
-/// approved cycle is one a person signed off on those exact bytes. Reading unapproved cycles would make
-/// the record a place where an agent's draft prose became doctrine that later cycles align to — which is
-/// the authorship problem this shape exists to answer.</para>
+/// <para><strong>Only completed cycles, and that is the whole provenance story</strong> (D-190). A cycle is
+/// completed when its pull request merged after a passing verify — a person accepted it — or a person abandoned
+/// it. Reading a cycle still in flight would make the record a place where an agent's draft prose became doctrine
+/// that later cycles align to. The caller names the completed cycles; this reads those and no others.</para>
 ///
 /// <para><strong>It proposes and never places.</strong> <c>decisions.md</c> is a person's file and the
 /// hook denies every agent write to it, for the reason the rule file is protected: a stage reads the
@@ -78,6 +81,9 @@ public sealed record Candidate(CycleId Cycle, DecisionSource Source, string Pass
 /// </remarks>
 public static class ProposeDecisions
 {
+    /// <summary>The word that marks a fixed decision as a belief nobody measured.</summary>
+    public const string Unconfirmed = "unconfirmed";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -88,11 +94,12 @@ public static class ProposeDecisions
         return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
-    /// <summary>Asks what this solution's approved cycles settled.</summary>
-    public sealed record Query : IRequest<Response>;
+    /// <summary>Asks what the named completed cycles settled.</summary>
+    /// <param name="Completed">The completed cycles to read; every other cycle is skipped.</param>
+    public sealed record Query(IReadOnlyCollection<CycleId> Completed) : IRequest<Response>;
 
     /// <summary>
-    /// What the approved record holds.
+    /// What the completed record holds.
     /// </summary>
     /// <param name="NextId">
     /// The next free decision id, one past the highest ever used. Stated once: a refused proposal must
@@ -104,16 +111,16 @@ public static class ProposeDecisions
     /// judgement about prose.
     /// </param>
     /// <param name="Candidates">The passages, oldest cycle first.</param>
-    /// <param name="Unapproved">
-    /// How many cycles were skipped for having no standing approval. Reported so a thin result says why
-    /// it is thin rather than reading as a solution that decided nothing.
+    /// <param name="Skipped">
+    /// How many cycles were not read for not being completed, or for not being this sitting's. Reported so a thin
+    /// result says why it is thin rather than reading as a solution that decided nothing.
     /// </param>
     /// <param name="Cycles">How many cycles the solution holds.</param>
     public sealed record Response(
         DecisionId NextId,
         IReadOnlyList<Decision> Standing,
         IReadOnlyList<Candidate> Candidates,
-        int Unapproved,
+        int Skipped,
         int Cycles)
     {
         /// <summary>Whether there is anything to read.</summary>
@@ -121,11 +128,10 @@ public static class ProposeDecisions
     }
 
     /// <summary>
-    /// Walks the approved cycles and collects what they stated.
+    /// Walks the completed cycles and collects what they stated.
     /// </summary>
     /// <param name="solution">The root of the solution being read.</param>
-    /// <param name="mediator">How a cycle with no approval is put to the gate, under 'approval: none'.</param>
-    private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Query, Response>
+    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
@@ -146,18 +152,28 @@ public static class ProposeDecisions
             IReadOnlyList<Cycle> cycles = CycleIndex.All(solution.Path);
 
             List<Candidate> candidates = [];
-            int unapproved = 0;
-            ApprovalRequirement requirement = await SolutionDocument
-                .ApprovalOf(solution.Path, cancellationToken)
-                .ConfigureAwait(false);
+            int skipped = 0;
 
             foreach (Cycle cycle in cycles)
             {
-                if (!await IsApproved(cycle, cancellationToken).ConfigureAwait(false)
-                    && !(requirement == ApprovalRequirement.None
-                        && await AdmittedByDeclaration(cycle, cancellationToken).ConfigureAwait(false)))
+                if (!request.Completed.Contains(cycle.Id))
                 {
-                    unapproved++;
+                    skipped++;
+                    continue;
+                }
+
+                // An abandoned cycle gives its reason and nothing else: its approach is what was refused.
+                if (cycle.IsAbandoned)
+                {
+                    Result<AbandonRecord> abandon = AbandonRecord.Read(
+                        await File.ReadAllTextAsync(cycle.AbandonedPath, cancellationToken).ConfigureAwait(false),
+                        cycle.AbandonedPath);
+
+                    if (abandon.IsSuccess && !string.IsNullOrWhiteSpace(abandon.Value.Reason))
+                    {
+                        candidates.Add(new Candidate(cycle.Id, DecisionSource.Abandoned, abandon.Value.Reason.ReplaceLineEndings(" ").Trim()));
+                    }
+
                     continue;
                 }
 
@@ -181,62 +197,8 @@ public static class ProposeDecisions
                 DecisionParser.NextId(recorded.Value),
                 [.. recorded.Value.Where(decision => decision.IsStanding)],
                 candidates,
-                unapproved,
+                skipped,
                 cycles.Count));
-        }
-
-        /// <summary>
-        /// Whether a person has approved this cycle, and it has not been withdrawn or stopped.
-        /// </summary>
-        /// <remarks>
-        /// <para>Read from the ledger rather than from the file's existence. The ledger is append-only and
-        /// the last entry stands, so a cycle approved and then reopened is not approved — and a passage
-        /// taken from one would be prose a person had explicitly sent back.</para>
-        /// <para>A stopped cycle contributes nothing either. §16.1 keeps its directory because the
-        /// objection that killed it is readable history, and a decision lifted out of work somebody
-        /// abandoned is the opposite of a settled choice.</para>
-        /// <para>An unreadable ledger reads as unapproved. It is the conservative direction: the cost is a
-        /// passage not offered, where trusting it would put unsigned prose in a record whose whole value
-        /// is that a person signed it.</para>
-        /// </remarks>
-        private static async Task<bool> IsApproved(Cycle cycle, CancellationToken cancellationToken)
-        {
-            if (cycle.IsAbandoned || !File.Exists(cycle.ApprovalPath))
-            {
-                return false;
-            }
-
-            string text = await File
-                .ReadAllTextAsync(cycle.ApprovalPath, cancellationToken)
-                .ConfigureAwait(false);
-
-            Result<ApprovalLedger> ledger = ApprovalLedger.Read(text, cycle.ApprovalPath);
-
-            return ledger.IsSuccess && ledger.Value.IsApproved;
-        }
-
-        /// <summary>
-        /// Whether a cycle with no approval passes the gate in a solution that declares none is required.
-        /// </summary>
-        /// <remarks>
-        /// Without this a solution under <c>approval: none</c> would never be offered a decision, because no
-        /// cycle of its has a signature. The signature this record needs is still a person's: nothing here
-        /// writes <c>decisions.md</c>, and a passage reaches it only when a person places it (D-137). A cycle
-        /// whose documents moved after their clean rounds, or that carries a blocker, is passed over exactly
-        /// as an approved-then-reopened one is.
-        /// </remarks>
-        private async Task<bool> AdmittedByDeclaration(Cycle cycle, CancellationToken cancellationToken)
-        {
-            if (cycle.IsAbandoned || File.Exists(cycle.ApprovalPath))
-            {
-                return false;
-            }
-
-            Result<ApprovalGate.Response> gate = await mediator
-                .Send<ApprovalGate.Query, ApprovalGate.Response>(new ApprovalGate.Query(cycle.Id), cancellationToken)
-                .ConfigureAwait(false);
-
-            return gate.IsSuccess && gate.Value.MayBuildUnapproved;
         }
 
         /// <summary>
@@ -271,18 +233,35 @@ public static class ProposeDecisions
 
             foreach (string paragraph in Paragraphs(lines))
             {
+                // A belief nobody measured is an assumption, not a choice (D-189).
+                if (source == DecisionSource.Intent && paragraph.Contains(Unconfirmed, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 candidates.Add(new Candidate(cycle.Id, source, paragraph));
             }
         }
 
-        /// <summary>Groups a section's lines into paragraphs, dropping the blank runs between them.</summary>
+        /// <summary>
+        /// Groups a section's lines into paragraphs, dropping the blank runs between them; each list item starts
+        /// one of its own, because an intent writes one fixed decision per bullet.
+        /// </summary>
         private static IEnumerable<string> Paragraphs(IReadOnlyList<string> lines)
         {
             List<string> current = [];
 
             foreach (string line in lines)
             {
-                if (line.Trim().Length == 0)
+                string trimmed = line.Trim();
+
+                if (current.Count > 0 && (trimmed.StartsWith("- ", StringComparison.Ordinal) || trimmed.StartsWith("* ", StringComparison.Ordinal)))
+                {
+                    yield return string.Join(' ', current);
+                    current = [];
+                }
+
+                if (trimmed.Length == 0)
                 {
                     if (current.Count > 0)
                     {
@@ -293,7 +272,7 @@ public static class ProposeDecisions
                     continue;
                 }
 
-                current.Add(line.Trim());
+                current.Add(trimmed);
             }
 
             if (current.Count > 0)

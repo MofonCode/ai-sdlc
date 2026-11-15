@@ -14,7 +14,7 @@ public sealed class PluginHooksTests
     public void An_adopted_solution_answers_both_hooks_itself_from_any_directory_inside_it()
     {
         // Claude Code merges identical hooks across settings files, never a plugin's with a settings file's: every
-        // turn-end message in MarketSense appeared twice.
+        // turn-end message in a governed solution appeared twice.
         string root = Solution(Templates.HookConfig(HookHost.Claude));
         string inside = Directory.CreateDirectory(Path.Combine(root, "src", "Dice")).FullName;
 

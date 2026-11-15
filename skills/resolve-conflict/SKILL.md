@@ -1,9 +1,9 @@
 ---
 name: resolve-conflict
-description: Bring one cycle's pull request up to date with the integration branch when it conflicts, or goes red after another merge -- resolve inside the cycle's declared files, rebuild, record fresh evidence, and verify again in a fresh process. Use when a pull request into the integration branch conflicts or its re-check fails.
+description: Bring one cycle's pull request up to date with the integration branch when it conflicts, or goes red after another merge -- resolve inside the cycle's declared files, rebuild, and record fresh evidence. A single-responsibility skill: remediate runs it first when a pull request conflicts, then verifies. Use when a pull request into the integration branch conflicts or its re-check fails.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Resolve a cycle's conflict with the integration branch
@@ -12,19 +12,24 @@ Every cycle builds from the same base, so two that touch the same thing meet whe
 request is merged (`CONCEPT.md` §10.5, D-86). A person merges one pull request at a time; when the next one
 conflicts, or its re-check goes red because an earlier merge broke it, this brings it up to date.
 
-**It edits, and it does not judge its own work.** A resolution changes code, so the cycle's verify is void
-the moment it is made. What proves the resolution regressed nothing is the suite and a **fresh** verify, in a
-new process, against the spec — never this session's opinion of what it did (D-01).
+**A single-responsibility skill** (D-186): it brings the integration branch in and records what the code now is,
+and nothing else. **It edits, and it does not judge its own work.** A resolution changes code, so the cycle's
+verify is void the moment it is made. What proves the resolution regressed nothing is the suite and a **fresh**
+verify, in a new process, against the spec — never this session's opinion of what it did (D-01). That verify, and
+the pull request's update, are `remediate`'s: a person says *fix it* on a pull request that conflicts, and
+`remediate` runs this first, then its loop.
 
 ## 1. Get on the cycle's branch and bring the integration branch in
 
 ```
 sdlc status <id> --brief
 git fetch origin
+sdlc branch <id> remediate
 ```
 
-Check out the cycle's build branch — `cycle/<id>/build-unattended`, `cycle/<id>/build`, or an older cycle's
-bare `cycle/<id>`; its pull request names it — then merge the integration branch into it:
+**Run by `remediate`, you are already there.** Otherwise `sdlc branch` prints the path of a worktree on the
+branch the cycle's pull request is from, creating it if absent; every step below runs there, and the person's own
+checkout is left alone. Merge the integration branch into it:
 
 ```
 git merge origin/<integration branch>
@@ -56,7 +61,7 @@ git merge --abort
 | code: the integration branch changed what this cycle uses — a rename, a moved type, a new parameter | adapt this cycle's code to the integration branch as it now is, keeping what the plan said this cycle does. The integration branch's change is merged work; it is not yours to undo |
 | no textual conflict, and the re-check is red | the same: read the failure, adapt this cycle's code inside its declared files |
 
-**Keep what the plan described, nothing more.** `CON_07.2` still binds: a resolution is not the moment to
+**Keep what the plan described, nothing more.** `CON_25` still binds: a resolution is not the moment to
 tidy something you noticed. Record it as a `Noticed:` line in the commit instead.
 
 ## 4. Prove it, from fresh
@@ -74,7 +79,7 @@ git rm .sdlc/cycles/<id>/verify.md
 sdlc evidence <id> --tests TestResults --build-log <path> --coverage TestResults
 ```
 
-**If the branch carries mining** — the person's own commit changing the solution's constraints,
+**If the branch carries a placed record** — the person's own commit changing the solution's constraints,
 decisions or declared stack after the old verify — it comes out before the verify is written again, and
 goes back on top once the new one passes. Ask the person to revert it; the files are theirs. Left in, the
 new verify's rounds read rules it placed — which the pull-request check reports but does not refuse, so
@@ -84,16 +89,13 @@ Run the tests with `--coverage --coverage-output-format cobertura --results-dire
 build stage does. **A conflict on `.sdlc/coverage.json` is expected** when another cycle merged first:
 take the integration branch's side, and recording the evidence writes the new value over it.
 
-Commit the evidence, then run the **verify stage** — in a fresh process, as it always runs. It may come back
-`blocked`; that is the verify working, and `remediate` is the next step, on this branch.
+Commit the evidence. **Push nothing**: the branch has no verify now, and a pull request updated before one is
+written would show a red check for no reason a reviewer could act on.
 
-## 5. Push, and report
+## 5. Hand back
 
-```
-git push
-```
-
-The pull request updates and its check runs again. **Do not merge it** — a person does, having read it.
-
-**Report at most five lines**: the cycle, what conflicted, what you kept from each side, the new verify
-outcome, and anything you declined to resolve. Then stop.
+**Report at most five lines**: the cycle, what conflicted, what you kept from each side, and anything you
+declined to resolve. **Run by `remediate`**, hand straight back: it verifies, goes round while that converges,
+and updates the pull request. **Run on its own**, close with one plain offer: *fix it* (`/sdlc:remediate <id>`)
+verifies the resolution in a fresh process and updates the pull request. **Never merge it** — a person does,
+having read it.

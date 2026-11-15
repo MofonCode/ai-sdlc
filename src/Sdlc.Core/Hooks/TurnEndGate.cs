@@ -214,7 +214,7 @@ public static class TurnEndGate
         /// </summary>
         /// <remarks>
         /// Every refusal names the next step. The framework holds its own gate to that -- a refusal that
-        /// does not say what has to change is what <c>CON_10.2</c> forbids -- and a hook is read in worse
+        /// does not say what has to change is what <c>CON_10.3</c> forbids -- and a hook is read in worse
         /// conditions than a gate verdict, because it arrives in the middle of somebody else's work.
         /// </remarks>
         private static HookVerdict Deny(CycleId id, string why) => new(

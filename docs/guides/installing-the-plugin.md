@@ -10,13 +10,13 @@ louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | twenty-one skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
+| the plugin | twenty-seven skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
 [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
 Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
-twenty-one skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
+twenty-seven skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 Claude Code runs both copies, so the plugin's steps aside wherever the repository's `.claude/settings.json`
@@ -55,7 +55,7 @@ on the path wherever a skill or a hook calls it:
 dotnet tool install --global MofonCode.Sdlc.Cli
 ```
 
-**Until the first release reaches nuget.org**, or when you are changing the framework itself, build it
+**When you are changing the framework itself**, build it
 from a clone of this repository and install the package that build produces. One command per block. A package
 packed on your machine is a local build — its version ends in `-local` — and no cycle it judges opens a pull
 request; inside a solution that pins a published release, the pin runs instead. To run a cycle on a change you

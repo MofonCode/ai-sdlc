@@ -38,6 +38,62 @@ public sealed class CollectRoundTests
     }
 
     [TestMethod]
+    public async Task A_blocker_citing_a_rule_not_in_force_for_the_document_is_drafted_as_a_suggestion_saying_so()
+    {
+        // CON_06 is superseded, and was never an intent's rule. The observation may be sound, so it is kept; it
+        // cannot stop the cycle on a rule that does not bind here (D-174).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string directory = await Answers(workspace, rules: Blocker.Replace("CON_01", "CON_06", StringComparison.Ordinal));
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Finding finding = drafted.Raised.Single();
+        Assert.AreEqual(Severity.Suggestion, finding.Severity);
+        StringAssert.Contains(finding.Statement, "under `CON_06`, which is not a rule in force for this document");
+        CollectionAssert.Contains(drafted.Demoted.ToArray(), finding.Id);
+    }
+
+    [TestMethod]
+    [DataRow("An intent names the problem and not a fix", DisplayName = "a paraphrase")]
+    [DataRow("", DisplayName = "no line at all")]
+    public async Task A_finding_quoting_its_rule_in_other_words_is_drafted_with_the_rules_own_line(string quoted)
+    {
+        // The citation is the reader's; the words beside it are the library's, so the binary copies them (D-177).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string directory = await Answers(workspace, rules: Blocker.Replace("An intent states the problem, not the solution", quoted, StringComparison.Ordinal));
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Assert.AreEqual("An intent states the problem, not the solution", drafted.Raised.Single().Cites!.Heading);
+        Assert.AreEqual(Severity.Blocking, drafted.Raised.Single().Severity, "Copying the line changes nothing else.");
+    }
+
+    [TestMethod]
+    [DataRow("maintainability", "CON_25", DisplayName = "a rule its prose mentions and does not list")]
+    [DataRow("operability", "CON_20", DisplayName = "a rule it lists, at a stage the rule does not bind")]
+    public async Task A_perspective_blocks_only_on_a_rule_it_lists_that_binds_this_document(string perspective, string rule)
+    {
+        // Matched by searching its Rules prose, maintainability could block on the CON_25 its sentence names, and
+        // operability on a spec's rule at the intent (D-175).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string blocker = Blocker.Replace("CON_01", rule, StringComparison.Ordinal);
+        string directory = perspective == "maintainability"
+            ? await Answers(workspace, maintainability: blocker)
+            : await Answers(workspace, operability: blocker);
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Assert.AreEqual(Severity.Suggestion, drafted.Raised.Single().Severity);
+        Assert.AreEqual(perspective, drafted.Raised.Single().Perspective);
+    }
+
+    [TestMethod]
     public async Task A_restatement_is_carried_under_the_standing_id_in_the_ledgers_words()
     {
         using var workspace = CycleWorkspace.Create();

@@ -141,7 +141,7 @@ public static class ReaderPrompts
             await File(block, ".sdlc/" + Cycle.TechStackFileName, stack, "This solution has no techstack.md: it declares nothing.", cancellationToken).ConfigureAwait(false);
         }
 
-        // The decisions are standing criteria every stage inherits, judged by CON_24 at every one (D-139):
+        // The decisions are standing criteria every stage inherits, judged by CON_27 at every one (D-139):
         // a reader not handed them can only catch a departure the document admits to.
         block.Append("What this solution has already decided, and what each decision set aside:\n\n");
         await Decisions(block, cycle, artifact, cancellationToken).ConfigureAwait(false);
@@ -252,26 +252,27 @@ public static class ReaderPrompts
     }
 
     /// <summary>
-    /// Where the build bent the approved documents: which deviations are in force and which a person declined,
-    /// then the file itself. A cycle with none is said to have none.
+    /// Where the build bent the approved documents, and the choices it made that they left open: which entries are
+    /// in force and which the person asked to change, then the file itself. A cycle with none is said to have none.
     /// </summary>
     /// <remarks>
-    /// A deviation in force -- accepted, or not yet answered -- replaces the approved text it quotes, so every
-    /// verify reader judges against the documents as deviated. A declined one replaces nothing, and code still
-    /// doing what it described departs from the approved text again. History, answered before a reopen, is left
-    /// out: the amended documents already say what it said.
+    /// A deviation in force replaces the approved text it quotes, so every verify reader judges against the
+    /// documents as deviated. One the person asked to change replaces nothing, and code still doing what it
+    /// described departs from the approved text again. A choice gives no leave at all: it is a change like any
+    /// other, judged against the plan's purpose and the recorded decisions (D-180). History, recorded before a
+    /// reopen, is left out: the amended documents already say what it said.
     /// </remarks>
     private static async Task Deviated(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
     {
         DeviationsState deviations = await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false);
 
-        block.Append("Where the build bent the approved documents. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; a declined one replaces nothing:\n\n");
+        block.Append("Where the build bent the approved documents, and the choices it made that they left open. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; one the person asked to change replaces nothing; a choice gives no leave and is judged like any other change, against the plan's purpose and the recorded decisions:\n\n");
 
         if (!deviations.Recorded || deviations.Current.Count == 0)
         {
             block.Append(deviations.Recorded && deviations.Problems.Count > 0
                 ? "deviations.md cannot be read: " + string.Join(" ", deviations.Problems) + "\n\n"
-                : "None. The build recorded no deviation, so the approved documents stand as written.\n\n");
+                : "None. The build recorded no deviation and no choice, so the approved documents stand as written.\n\n");
             return;
         }
 
@@ -279,9 +280,10 @@ public static class ReaderPrompts
         {
             string standing = state.Standing switch
             {
+                DeviationStanding.Declined => "changed at the person's request, not in force: " + state.Note,
+                _ when !state.Deviation.Bends => "a choice the approved text left open, instead of " + state.Deviation.Alternative + "; no leave",
                 DeviationStanding.Accepted => "in force, accepted",
-                DeviationStanding.Declined => "declined, not in force: " + state.Note,
-                _ => "in force, awaiting the person's answer",
+                _ => "in force, recorded by the build",
             };
 
             block.Append("- ").Append(DeviationsFile.Line(state.Deviation)).Append(" -- ").Append(standing).Append('\n');
@@ -402,7 +404,7 @@ public static class ReaderPrompts
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:mine' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
+                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:harvest-areas' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
             }
 
             bool adjudicating = string.Equals(request.Reader, ReaderAnswers.Adjudicate, StringComparison.Ordinal);
@@ -441,7 +443,7 @@ public static class ReaderPrompts
             }
 
             // A verdict that concedes on the evidence the last round judged goes to remediate whatever a round says,
-            // and the next run's evidence gets a full one (D-165). One MarketSense verify spent 1.1M tokens four
+            // and the next run's evidence gets a full one (D-165). One real verify spent 1.1M tokens four
             // minutes after the last, on the same evidence, to confirm a concession.
             if (request.Artifact == ArtifactKind.Verify
                 && !adjudicating
@@ -619,7 +621,7 @@ public static class ReaderPrompts
             string stage = request.Artifact switch
             {
                 ArtifactKind.Verify => "\nEach Met quotes the assertion it rests on from `diff.patch`, or from `proof-sources.txt` when the proof lives\nin code the change did not touch. Find each quote where it says it is, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is in neither file, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n",
-                ArtifactKind.Spec => "\nThe evidence each criterion will be judged on is one recorded run: each test's name and outcome, the\nassertions in the diff, coverage and the build log. A criterion is shown only by an assertion some test in\nthat run makes. One whose check is a property of the run itself -- how long the whole run or suite takes,\nwhether a run in another mode, with other workers or on another machine passes, whether repeated runs are\nfree of flakes -- has nothing in the evidence to show it, and breaks `CON_12`. A test that times one\noperation, or runs the code two ways, and asserts the result is admissible.\n",
+                ArtifactKind.Spec => "\nThe evidence each criterion will be judged on is one recorded run: each test's name and outcome, the\nassertions in the diff, coverage and the build log. A criterion is shown only by an assertion some test in\nthat run makes. One whose check is a property of the run itself -- how long the whole run or suite takes,\nwhether a run in another mode, with other workers or on another machine passes, whether repeated runs are\nfree of flakes -- has nothing in the evidence to show it, and breaks `CON_12.2`. A test that times one\noperation, or runs the code two ways, and asserts the result is admissible.\n",
                 _ => string.Empty,
             };
 
@@ -705,6 +707,15 @@ public static class ReaderPrompts
         {
             List<Finding> raised = [];
 
+            // The reconciler sees each finding as the round will record it, so a blocker citing a rule its reader
+            // was not handed reaches it as the suggestion it becomes (D-174).
+            Result<CitedRules.Handed> handed = await CitedRules.For(mediator, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (handed.IsFailed)
+            {
+                return handed.ToResult<string>();
+            }
+
             foreach (string reader in readers)
             {
                 Result<ReaderAnswer> answer = await ReaderAnswers.Read(request.Directory, reader, cancellationToken).ConfigureAwait(false);
@@ -714,7 +725,7 @@ public static class ReaderPrompts
                     return answer.ToResult<string>();
                 }
 
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader, handed.Value.Of(reader));
 
                 if (body.IsFailed)
                 {

@@ -74,6 +74,27 @@ internal sealed class FakeRepository : IRepository
 
     public string? CommonDirectory(string workingDirectory) => Common;
 
+    /// <summary>Every git command <see cref="Git"/> was asked to run, as working directory and arguments, in order.</summary>
+    public List<(string Directory, string Arguments)> Ran { get; } = [];
+
+    /// <summary>What <see cref="Git"/> answers when a command starts with one of these: a failure saying so.</summary>
+    public Dictionary<string, string> GitFailures { get; } = new(StringComparer.Ordinal);
+
+    public Result<string> Git(string workingDirectory, string arguments)
+    {
+        Ran.Add((workingDirectory, arguments));
+
+        foreach ((string prefix, string why) in GitFailures)
+        {
+            if (arguments.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return Result.Fail<string>(why);
+            }
+        }
+
+        return Result.Ok(string.Empty);
+    }
+
     public Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message)
     {
         Commits.Add(paths);

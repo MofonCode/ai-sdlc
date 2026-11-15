@@ -5,12 +5,12 @@ using Sdlc.Core.Evidence;
 namespace Sdlc.Core.Areas;
 
 /// <summary>
-/// What the cycles say about the solution's areas, for mining: the names plans proposed, how often each area
+/// What the cycles say about the solution's areas, for a harvest: the names plans proposed, how often each area
 /// would have matched, and changed files no area covers (D-150).
 /// </summary>
 /// <remarks>
 /// <para><strong>Counts, never names.</strong> Whether two proposals over overlapping files are one area is a
-/// judgement, so this groups by the name written and leaves the reconciling to the mining skill. What it does
+/// judgement, so this groups by the name written and leaves the reconciling to the harvest skill. What it does
 /// decide is a listing: which cycles proposed what, and which files each glob covers.</para>
 /// <para><strong>The replay</strong> re-matches each cycle's declared files against an area, so a proposal can
 /// be judged on whether it would ever narrow anything: an area every plan touches hides nothing.</para>
@@ -36,18 +36,19 @@ public static class AreaHistory
     /// <param name="Unmatched">Files the cycles changed that no defined area covers.</param>
     public sealed record Reading(int Plans, IReadOnlyList<Candidate> Candidates, IReadOnlyList<Replay> Defined, IReadOnlyList<string> Unmatched);
 
-    /// <summary>Reads every cycle in the tree.</summary>
+    /// <summary>Reads the completed cycles in the tree, and the closed ones from the ledger.</summary>
     /// <param name="solutionRoot">The solution's root.</param>
     /// <param name="defined">The areas the solution defines.</param>
+    /// <param name="completed">The completed cycles to read, or null for every cycle here (D-190).</param>
     /// <param name="cancellationToken">Token observed while reading.</param>
     /// <returns>The reading.</returns>
-    public static async Task<Reading> Read(string solutionRoot, IReadOnlyList<Area> defined, CancellationToken cancellationToken)
+    public static async Task<Reading> Read(string solutionRoot, IReadOnlyList<Area> defined, IReadOnlyCollection<CycleId>? completed, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(defined);
 
         List<(CycleId Cycle, IReadOnlyList<string> Declared, IReadOnlyList<PlanArea> Lines, IReadOnlyList<string> Changed)> cycles = [];
 
-        foreach (Cycle cycle in CycleIndex.All(solutionRoot))
+        foreach (Cycle cycle in CycleIndex.All(solutionRoot).Where(cycle => completed?.Contains(cycle.Id) != false))
         {
             string planPath = cycle.PathOf(ArtifactKind.Plan);
 
@@ -65,10 +66,10 @@ public static class AreaHistory
             cycles.Add((cycle.Id, DeclaredFiles.Read(plan), PlanAreas.Read(plan).ValueOrDefault ?? [], changed));
         }
 
-        // A mined cycle whose folder is gone is read from the ledger, which kept exactly what this needs (D-152).
-        Result<Mining.MinedLedger> mined = await Mining.MinedLedger.Read(solutionRoot, cancellationToken).ConfigureAwait(false);
+        // A closed cycle whose folder is gone is read from the ledger, which kept exactly what this needs (D-152).
+        Result<Harvest.HarvestLedger> harvested = await Harvest.HarvestLedger.Read(solutionRoot, cancellationToken).ConfigureAwait(false);
 
-        foreach (Mining.MinedCycle husk in (mined.ValueOrDefault ?? Mining.MinedLedger.Empty).Cycles)
+        foreach (Harvest.HarvestedCycle husk in (harvested.ValueOrDefault ?? Harvest.HarvestLedger.Empty).Cycles)
         {
             if (CycleId.TryParse(husk.Cycle, out CycleId? id) && !cycles.Exists(cycle => cycle.Cycle == id.Value))
             {

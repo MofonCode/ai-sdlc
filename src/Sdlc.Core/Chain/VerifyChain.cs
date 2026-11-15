@@ -105,9 +105,9 @@ public static class VerifyChain
         : IRequest<Response>;
 
     /// <summary>
-    /// The files mining changes, relative to the root (D-104, D-111, D-150).
+    /// The record files a harvest changes, relative to the root (D-104, D-111, D-150).
     /// </summary>
-    public static IReadOnlyList<string> Mined { get; } =
+    public static IReadOnlyList<string> Records { get; } =
     [
         Cycle.SdlcDirectoryName + "/" + FileConstraintDocuments.SolutionConstraintsFileName,
         Cycle.SdlcDirectoryName + "/" + DecisionParser.FileName,
@@ -343,7 +343,7 @@ public static class VerifyChain
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Deviated(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
-            MinedAfterVerify(cycle, request, checks);
+            RecordsAfterVerify(cycle, request, checks);
 
             return Result.Ok(new Response(cycle, checks, Unapproved: declared));
         }
@@ -355,19 +355,19 @@ public static class VerifyChain
         /// <remarks>
         /// <para><strong>Why it is said at all.</strong> A rule placed while a cycle is still being judged
         /// re-judges what was already argued -- about twenty blockers, the one time it happened (D-104).
-        /// After the passing verify nothing in the cycle is judged again, so mining committed then
+        /// After the passing verify nothing in the cycle is judged again, so a record committed then
         /// binds only what comes next. Somebody reading the pull request should see which of the two it
         /// was.</para>
         /// <para><strong>Why it never fails the chain.</strong> All three files are a person's, and a
-        /// person changes them inside a cycle for reasons that are not mining: the stack row the
+        /// person changes them inside a cycle for reasons of their own: the stack row the
         /// plan calls for, a decision amended mid-build, the last cycle's decisions placed before this
         /// one's first round. Git says that a file changed before the verify; it cannot say why. Refused,
-        /// MarketSense's second cycle -- which did exactly the first two -- would have failed a chain it
+        /// a real cycle -- which did exactly the first two -- would have failed a chain it
         /// rightly passed (D-113). The order stays the skills' to keep.</para>
         /// <para>Silent when the pull request changes none of the three, and when nothing said what it
         /// changes.</para>
         /// </remarks>
-        private void MinedAfterVerify(Cycle cycle, Query request, List<ChainCheck> checks)
+        private void RecordsAfterVerify(Cycle cycle, Query request, List<ChainCheck> checks)
         {
             if (request.Changed is not { } changed || request.Divergence is not { } divergence)
             {
@@ -375,14 +375,14 @@ public static class VerifyChain
             }
 
             HashSet<string> carried = [.. changed.Select(path => path.Replace('\\', '/').TrimStart('/'))];
-            List<string> mined = [.. Mined.Where(carried.Contains)];
+            List<string> placed = [.. Records.Where(carried.Contains)];
 
-            if (mined.Count == 0)
+            if (placed.Count == 0)
             {
                 return;
             }
 
-            const string Name = "when the mining it carries was committed";
+            const string Name = "when the records it carries were committed";
             string verify = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/" + cycle.Id + "/"
                 + Cycle.FileNameOf(ArtifactKind.Verify);
 
@@ -393,7 +393,7 @@ public static class VerifyChain
                     true,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"it changes {string.Join(", ", mined)}, and no commit wrote {verify}, so the order cannot be shown. Reported, not refused (D-113).")));
+                        $"it changes {string.Join(", ", placed)}, and no commit wrote {verify}, so the order cannot be shown. Reported, not refused (D-113).")));
                 return;
             }
 
@@ -409,7 +409,7 @@ public static class VerifyChain
             }
 
             HashSet<string> early = [.. before.Select(path => path.Replace('\\', '/'))];
-            List<string> premature = [.. mined.Where(early.Contains)];
+            List<string> premature = [.. placed.Where(early.Contains)];
             string at = verdict.Commit[..Math.Min(8, verdict.Commit.Length)];
 
             checks.Add(new ChainCheck(
@@ -418,10 +418,10 @@ public static class VerifyChain
                 premature.Count == 0
                     ? string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{string.Join(", ", mined)} changed only after {at} wrote the verify, so it binds the next cycle and judged nothing in this one")
+                        $"{string.Join(", ", placed)} changed only after {at} wrote the verify, so it binds the next cycle and judged nothing in this one")
                     : string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{string.Join(", ", premature)} changed before {at} wrote the verify, so rounds after that change read it. A person's change in the cycle, or mining placed early: reported, not refused, because git cannot say which (D-113).")));
+                        $"{string.Join(", ", premature)} changed before {at} wrote the verify, so rounds after that change read it. A person's change in the cycle, or a record placed early: reported, not refused, because git cannot say which (D-113).")));
         }
 
         /// <summary>
@@ -656,16 +656,15 @@ public static class VerifyChain
         }
 
         /// <summary>
-        /// Where the build bent the approved documents, every bend is sound and a person answered it, and a
-        /// declined one was redone before the verdict that stands.
+        /// Where the build bent the approved documents, or made a choice they left open, every entry is sound.
         /// </summary>
         /// <remarks>
         /// <para><strong>Only where the cycle recorded any.</strong> A cycle that followed its plan has no
         /// <c>deviations.md</c>, and nothing here is asked of it.</para>
-        /// <para><strong>Accepted or declined, never unanswered.</strong> A declined deviation no longer bends
-        /// anything, so the diff reader holds the code to the approved text again; what this asks is that a
-        /// verify ran after the decline, or the passing verdict is one about code the person turned down. Under
-        /// <c>approval: none</c> every deviation is accepted by the setting and the pull request is the review.</para>
+        /// <para><strong>Sound, not answered.</strong> The pull request leads with every deviation and choice, and
+        /// merging it is how a person accepts them (D-181), so nothing here waits for an answer. A change the person
+        /// asks for is code the build redoes, and <c>the verify was judged against this evidence</c> already refuses
+        /// a verdict older than the code it would vouch for.</para>
         /// </remarks>
         private static async Task Deviated(
             Cycle cycle,
@@ -683,40 +682,8 @@ public static class VerifyChain
                 "the deviations are sound",
                 deviations.Problems.Count == 0,
                 deviations.Problems.Count == 0
-                    ? string.Create(CultureInfo.InvariantCulture, $"{deviations.Current.Count} since the approval that stands, each quoting the approved text it departs from")
+                    ? string.Create(CultureInfo.InvariantCulture, $"{deviations.InForce.Count} in force, each quoting the approved text it departs from, and {deviations.Choices.Count} choice{(deviations.Choices.Count == 1 ? string.Empty : "s")} the approved text left open")
                     : string.Join(" ", deviations.Problems)));
-
-            IReadOnlyList<DeviationState> pending = deviations.Pending;
-
-            checks.Add(new ChainCheck(
-                "every deviation is answered",
-                pending.Count == 0,
-                pending.Count == 0
-                    ? deviations.AcceptedBySetting
-                        ? "accepted by 'approval: none'; the pull request is the review"
-                        : string.Create(CultureInfo.InvariantCulture, $"{deviations.Current.Count(state => state.Standing == DeviationStanding.Accepted)} accepted, {deviations.Declined.Count} declined")
-                    : string.Create(CultureInfo.InvariantCulture, $"{string.Join(", ", pending.Select(state => state.Deviation.Id))} {(pending.Count == 1 ? "has" : "have")} no answer. 'sdlc draft approval {cycle.Id}' drafts one for a person to mark and place.")));
-
-            if (deviations.Declined.Count == 0 || deviations.LastAnswered is not { } answered)
-            {
-                return;
-            }
-
-            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
-                .ReadHistory(cycle, ArtifactKind.Verify, cancellationToken)
-                .ConfigureAwait(false);
-
-            bool after = history.IsSuccess
-                && history.Value.Count > 0
-                && history.Value[^1].InterrogatedAt is { } at
-                && at > answered;
-
-            checks.Add(new ChainCheck(
-                "the verdict follows the deviations declined",
-                after,
-                after
-                    ? string.Create(CultureInfo.InvariantCulture, $"verified again after {string.Join(", ", deviations.Declined.Select(state => state.Deviation.Id))} {(deviations.Declined.Count == 1 ? "was" : "were")} declined")
-                    : string.Create(CultureInfo.InvariantCulture, $"{string.Join(", ", deviations.Declined.Select(state => state.Deviation.Id))} {(deviations.Declined.Count == 1 ? "was" : "were")} declined at {answered:yyyy-MM-dd HH:mm}, and the latest verify round predates it. Remediate with the note as the instruction, record the evidence, and verify again.")));
         }
 
         /// <summary>
@@ -729,7 +696,7 @@ public static class VerifyChain
         /// <para><strong>Any round, not only the one that let the cycle advance.</strong> Every round shaped what
         /// came after it, so a cycle one local round touched is a test run all the way down. The rounds record
         /// their release (D-131), so this reads them rather than asking anybody.</para>
-        /// <para>Silent when it holds, like the mining report: it is a line about a test run, and a
+        /// <para>Silent when it holds, like the harvest report: it is a line about a test run, and a
         /// chain that never saw one has nothing to say about it.</para>
         /// </remarks>
         private static async Task Published(

@@ -8,7 +8,7 @@ using Sdlc.Core.Decisions;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
-using Sdlc.Core.Proposals;
+using Sdlc.Core.Harvest;
 
 namespace Sdlc.Tests;
 
@@ -259,11 +259,11 @@ public sealed class AreasTests
         await Task.CompletedTask;
 
         Assert.IsTrue(ProtectedPaths.IsProtected(".sdlc/areas.md", out ProtectedFile? file));
-        StringAssert.Contains(file!.Reason, "sdlc draft mining");
+        StringAssert.Contains(file!.Reason, "sdlc draft harvest");
     }
 
     [TestMethod]
-    public async Task Mining_drafts_an_area_and_tags_an_entry_and_refuses_a_tag_nobody_defined()
+    public async Task A_harvest_drafts_an_area_and_tags_an_entry_and_refuses_a_tag_nobody_defined()
     {
         using var workspace = CycleWorkspace.Create();
         CycleWorkspace.WriteRaw(
@@ -273,7 +273,7 @@ public sealed class AreasTests
         await File.WriteAllTextAsync(proposals, "## Areas\n\n### [x] add trade-import — importing trades from brokers\n**Files:** src/Brokers/**\n\n### [x] tag DEC_01 — trade-import\n");
 
         using var gate = Gate.For(workspace.Root);
-        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+        DraftResult drafted = (await gate.Send<DraftHarvest.Command, DraftResult>(new DraftHarvest.Command(proposals))).Value;
 
         Assert.IsTrue(drafted.MayDraft, drafted.Instructions);
         string areas = await File.ReadAllTextAsync(Path.Combine(workspace.Root, ".sdlc", "areas.draft.md"));
@@ -284,7 +284,7 @@ public sealed class AreasTests
         StringAssert.Contains(drafted.Instructions, ".sdlc/areas.draft.md .sdlc/areas.md");
 
         await File.WriteAllTextAsync(proposals, "## Areas\n\n### [x] tag DEC_01 — nobody-defined\n");
-        DraftResult refused = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+        DraftResult refused = (await gate.Send<DraftHarvest.Command, DraftResult>(new DraftHarvest.Command(proposals))).Value;
 
         Assert.IsFalse(refused.MayDraft);
         StringAssert.Contains(refused.Instructions, "DEC_01 names 'nobody-defined'");
@@ -294,10 +294,10 @@ public sealed class AreasTests
     public void A_rename_reaches_every_entry_carrying_the_area_and_a_remove_leaves_them_global()
     {
         const string decisions = "## DEC_01 — one feed\n\n**Areas:** market-data, persistence\n\n**Decided:** a.\n\n**Because:** b.\n\n**Instead of:** c.\n\n**From:** d.\n";
-        DraftMining.Proposal rename = new(DraftMining.Record.Areas, DraftMining.Operation.Rename, "market-data quotes", "a clearer word", string.Empty, Accepted: true);
-        DraftMining.Proposal remove = new(DraftMining.Record.Areas, DraftMining.Operation.Remove, "persistence", "every plan touched it", string.Empty, Accepted: true);
+        DraftHarvest.Proposal rename = new(DraftHarvest.Record.Areas, DraftHarvest.Operation.Rename, "market-data quotes", "a clearer word", string.Empty, Accepted: true);
+        DraftHarvest.Proposal remove = new(DraftHarvest.Record.Areas, DraftHarvest.Operation.Remove, "persistence", "every plan touched it", string.Empty, Accepted: true);
 
-        (string areas, _, string? after) = DraftMining.ApplyAreas(Areas, null, decisions, [rename, remove]).Value;
+        (string areas, _, string? after) = DraftHarvest.ApplyAreas(Areas, null, decisions, [rename, remove]).Value;
 
         CollectionAssert.AreEqual(new[] { "quotes" }, AreaParser.Parse(areas, "areas").Value.Select(area => area.Name).ToArray());
         CollectionAssert.AreEqual(new[] { "quotes" }, DecisionParser.Parse(after!, "d").Value[0].InAreas.ToArray());
@@ -352,7 +352,7 @@ public sealed class AreasTests
                     Plan("- new trade-import: `src/Brokers/**`", id));
             }
 
-            return AreaHistory.Read(workspace.Root, [], CancellationToken.None).GetAwaiter().GetResult();
+            return AreaHistory.Read(workspace.Root, [], null, CancellationToken.None).GetAwaiter().GetResult();
         }
     }
 }

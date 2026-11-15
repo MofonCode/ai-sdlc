@@ -3,7 +3,7 @@ name: interrogate
 description: Judge one artifact against the constraints in force, in a fresh process, and write a findings round. Never edits. Use to challenge an intent, spec, plan or verify document.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>] <intent|spec|plan|verify>"
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Glob, Grep
 ---
 
 # Interrogate an artifact
@@ -27,65 +27,35 @@ yourself** — the cycle a skill acts on is not a guess.
 ## The fresh process is the whole mechanism
 
 The reader must not have seen the artifact being made. Run the judgement in a **new process**, not in
-this session and not as a subagent. **The binary writes every reader's prompt** (D-117); you start the
-readers and nothing else:
+this session and not as a subagent. **The binary writes every reader's prompt, starts every reader, and
+collects every answer** (D-117); you run three commands and judge nothing yourself:
 
 ```bash
 sdlc round prompt <id> <artifact> --dir <scratch>/round
-( cd <scratch>/round
-  SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
-    --append-system-prompt-file shared.md < rules.prompt.md > rules.json &
-  sleep 5
-  for p in *.prompt.md; do
-    r=${p%.prompt.md}
-    case $r in
-      rules) ;;
-      diff) SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
-              < "$p" > "$r.json" & ;;
-      *) SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
-           --append-system-prompt-file shared.md < "$p" > "$r.json" & ;;
-    esac
-  done; wait )
+sdlc round run <id> <artifact> --dir <scratch>/round
+sdlc round collect <id> <artifact> --dir <scratch>/round
 ```
 
-`<scratch>` is any directory outside the repository that your host gives you to write in. What the
-command prints names every reader the round runs — the rules reader, the diff reader on a verify, then one
-per active perspective — and
-the path each answer goes to. They run concurrently, because none sees another's answer.
+`<scratch>` is any directory outside the repository that your host gives you to write in. `round prompt`
+writes every reader's prompt there and prints what the round runs — the rules reader, the diff reader on a
+verify, then one per active perspective. **`round run` starts them**: each in a fresh process of its own,
+from that directory rather than the checkout, with no tools and no MCP servers, marked as a reader, and
+writes each answer beside its prompt. **No skill starts a reader itself** — the binary does, with every flag
+fixed, on every host, so there is nothing here to get wrong and nothing that needs a permission this session
+does not already have (`Bash(sdlc *)`).
 
-**`shared.md` is the block the rules reader and every perspective open with** — the document and what it
-is judged against — and each of their prompt files is only what that reader is asked. **Hand it over as
-the system prompt, and start the rules reader five seconds before the rest** (D-163). A host caches a
-prompt only up to a point it marks, and it marks the end of the system prompt: piped in with the rest, the
-shared block was paid for in full by every reader, and started together, no reader finds another's copy
-warm. Measured on one plan round, the two together halved what it cost. **The diff reader's prompt is
-whole** — it is composed from what its question needs, not from the shared block — so it takes no system
-prompt. A host with no way to take a system prompt from a file pipes `shared.md` and the prompt in that
-order, which is the same bytes one file used to hold.
+What `round run` does for you, so you know what you are waiting on and never try to reproduce it:
 
-**Start every reader from the round's directory, never from the repository** (D-163). A host started in a
-checkout hands its process what it knows about that checkout before the prompt: Claude Code adds the
-project's memory — the notes earlier sessions kept about this solution — its git status and its latest commit
-messages, about 4,800 tokens measured on one solution, to every reader. That is the author's context the
-fresh process exists to leave out, paid for again by each reader. The parentheses keep the `cd` to the
-readers, so this session stays in the checkout and `sdlc round collect` still finds the solution.
-
-**The launch line is fixed, flag for flag** (D-118). **`--tools=`** — no tools, because everything a
-reader may read is in its prompt, and a reader that could open a file could read past what the round
-allows. Spell it exactly so: **never `--tools ""`**, which Windows PowerShell drops to nothing, leaving the
-reader every tool without a word. **`--strict-mcp-config`** — no MCP servers. **`--no-session-persistence`**
-— no session file nobody will resume. **`--output-format json`** — one result object carrying the answer
-and what it cost, which `sdlc round collect` reads.
-
-**Start every fresh process with `SDLC_READER=1`** — this one, each perspective's, the reconciler's. In
-PowerShell that is `$env:SDLC_READER = '1'` before the call. The reader inherits the cycle's branch, and
-without the mark a red build's turn-end hook answers the reader's last turn instead of letting it end, so
-the verdict you were waiting for never arrives. The mark stands down only that hook; the reader still may
-not write a protected file. **Never switch the hooks off to get a reader through** — that is the
-safeguard the mark exists so nobody has to remove.
-
-**Pipe the prompt in; never pass it as an argument.** A plan with its upstream and stack runs to tens
-of kilobytes, and `claude -p "$(…)"` fails on Windows with `Argument list too long` long before that.
+- **The shared block is the system prompt, and the rules reader starts first** (D-163). Every reader but the
+  diff reader opens with the same document and what it is judged against; handed over as the system prompt,
+  with one reader started before the rest, the host caches it and the others read it warm. Measured on one
+  plan round, that halved what it cost.
+- **Readers start outside the checkout** (D-163), so they are not handed the project's memory, its git status
+  and its commit messages — the author's context the fresh process exists to leave out.
+- **No tools, no MCP servers, no session file** (D-118). Everything a reader may read is in its prompt; a
+  reader that could open a file could read past what the round allows.
+- **Every reader is marked** `SDLC_READER=1` (D-109), so a red build's turn-end hook lets its turn end with its
+  answer. The mark stands down only that hook; a reader still may not write a protected file.
 
 **Never edit a prompt, and never add to it.** Each is what the round is judged from, the same bytes in
 every session, and the material a reader may read is decided by the binary rather than by what this
@@ -93,8 +63,9 @@ session thinks would help: the constraints, the document above, the stack file o
 evidence on a verify (D-58). Nothing about the conversation, the drafts or what the author meant — every
 one of those is the bias you just paid to remove.
 
-Any non-interactive invocation of the host will do; what matters is that the model reading the
-artifact is not the one that wrote it.
+**If `round run` refuses** — the host's command line is not on the path, or a reader returned nothing — it
+says which and why; answer that, and run it again. Never start a reader by hand to get past it, and never
+switch a hook off.
 
 **What this buys and what it does not.** It removes *investment bias* — the reader never saw the
 interview, the drafts, or the author's reasoning, so it has nothing to defend. It does **not** remove
@@ -113,8 +84,8 @@ kind: it assembles, and judges nothing.
 each citing one rule by its id and the line its heading states, copied rather than summarised.
 
 **The diff reader**, on a verify only, judges the change itself rather than the verdict: handed the intent,
-the plan, the decisions and `diff.patch`, it asks whether the change did anything it was not given leave to
-do — `CON_07.2`, `CON_11`, `CON_24` (D-139). Its ids start `diff.`, and its blockers go to `remediate`.
+the spec, the plan, the decisions, the deviations, the evidence and `diff.patch`, it asks whether the change did anything it was not given leave to
+do — `CON_25`, `CON_09`, `CON_11`, `CON_27` (D-139, D-176). Its ids start `diff.`, and its blockers go to `remediate`.
 
 **Every reader of an intent, a spec, a plan and a verify is handed the standing decisions**, in short form,
 so a document is judged against what the solution already settled and not only against the rules.
@@ -128,16 +99,18 @@ and diff readers', and `sdlc round prompt` names the perspectives it leaves out.
 report; it is the design, not a gap.
 
 > **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
-> method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
+> method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc harvest constraints`
 > turns into a rule; a perspective reader inventing a blocker is the waiver of D-27 run backwards.
 
 Then **one reconciling reader**, in a fresh process of its own, once every other reader has answered:
 
 ```bash
 sdlc round prompt <id> <artifact> --dir <scratch>/round --reader reconcile
-( cd <scratch>/round && SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config \
-  --no-session-persistence < reconcile.prompt.md > reconcile.json )
+sdlc round run <id> <artifact> --dir <scratch>/round
 ```
+
+`round run` starts only the readers in the directory with no answer yet, so the second run starts the
+reconciler alone.
 
 Its prompt carries the artifact, every finding this round's readers raised, the findings still open on
 this artifact and **the cycle's open suggestions from every document** — and nothing else. It is asked two
@@ -162,7 +135,7 @@ sdlc round collect <id> <artifact> --dir <scratch>/round --host claude
 
 **The binary reads every answer and drafts the round** (D-117), as `<scratch>/round/round.json`. It refuses
 an answer that is not the JSON asked for, a blocker with no one-line gist, and a round with findings and no
-reconciler's answer — each time naming the reader to **start again**. Never repair an answer yourself: a
+reconciler's answer — each time naming the reader; `sdlc round run` again starts it. Never repair an answer yourself: a
 repaired finding is this session writing it. What it applies, so that you do not:
 
 - **A restatement is carried under the id that stands** (D-108), at the disposition it stands at and in the
@@ -170,10 +143,14 @@ repaired finding is this session writing it. What it applies, so that you do not
   another document raised is carried under its id and recorded against this one.
 - **Every other id is new, and numbered past what the ledgers hold**: a blocker's past this document's, a
   suggestion's past the cycle's, under the reader's prefix — `maintainability.S_04`. Each perspective's
-  findings carry `perspective`, which is what `sdlc propose constraints` counts them by.
+  findings carry `perspective`, which is what `sdlc harvest constraints` counts them by.
 - **A suggestion raised again as a blocker** keeps neither id: the blocker is new, and the suggestion is
   withdrawn in the same round.
-- **A perspective's blocker citing a rule it does not list is a suggestion.**
+- **A blocker citing a rule its reader was not handed is a suggestion** (D-174), with a note saying which rule
+  it named — a superseded one, an invented one, or one that does not apply to this document. **A
+  perspective's blocker citing a rule it does not list** as a bullet is a suggestion too (D-175).
+- **Every new finding carries its rule's own line**, copied by the binary from the library in force
+  (D-177): a reader's paraphrase is replaced. Recording refuses a draft whose new finding quotes it otherwise.
 - **A pair that cannot both be answered** becomes two suggestions naming each other when neither cites a
   rule; the one citing no rule becomes a suggestion naming the rule it ran into; two rules become a
   `conflict` between them (D-64).

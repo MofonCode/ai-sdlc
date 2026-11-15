@@ -420,7 +420,7 @@ public sealed class StructureTests
     /// restart; <c>test</c> leaves Aspire's random suffixes and dynamic ports in place, so two runs side by
     /// side -- a developer's and a test's, or two cycles building at once -- never collide. A profile is
     /// what a person picks when they press run, so each one sets <c>SDLC_RUN_MODE</c> rather than leaving
-    /// the mode to a variable nobody sees. <c>batch-build</c> exports the same variable, which wins over
+    /// the mode to a variable nobody sees. The framework's build exports the same variable, which wins over
     /// the profile.</para>
     /// <para>The group is two labels on every container -- <c>com.docker.compose.project</c> and
     /// <c>com.docker.compose.config-hash</c>, which Docker Desktop needs before it groups anything -- so

@@ -42,7 +42,8 @@ public static class CollectRound
     /// <param name="Path">Where the draft was written.</param>
     /// <param name="Raised">Each finding the draft carries, under the id it will be recorded with.</param>
     /// <param name="Restated">Each reader's id the reconciler named a restatement, and the id it is carried under.</param>
-    /// <param name="Demoted">A perspective's blockers made suggestions, because they cite no rule it lists.</param>
+    /// <param name="Demoted">Blockers made suggestions: a perspective's citing no rule it lists, and any citing a rule
+    /// not handed to that reader (D-174, D-175).</param>
     /// <param name="Conflicts">The conflicts the draft carries.</param>
     /// <param name="NotRaised">Findings still open on this document that no reader raised again.</param>
     /// <param name="Usage">What each reader cost.</param>
@@ -125,6 +126,14 @@ public static class CollectRound
             }
 
             IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name), verifiedBefore.Value);
+
+            Result<CitedRules.Handed> handed = await CitedRules.For(mediator, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (handed.IsFailed)
+            {
+                return handed.ToResult<Response>();
+            }
+
             List<Finding> raised = [];
             List<Conflict> conflicts = [];
             List<string> demoted = [];
@@ -151,7 +160,7 @@ public static class CollectRound
                     return answer.ToResult<Response>();
                 }
 
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader, handed.Value.Of(reader));
 
                 if (body.IsFailed)
                 {
@@ -187,7 +196,13 @@ public static class CollectRound
                     }
                 }
 
-                raised.AddRange(body.Value.Findings);
+                // The binary copies the rule's own line rather than trusting a reader to (D-177): a citation is
+                // the reader's choice, the words beside it are the library's, and a paraphrase there is a second
+                // version of the rule.
+                raised.AddRange(body.Value.Findings.Select(finding =>
+                    handed.Value.Misquoted(finding.Cites) is { } line
+                        ? finding with { Cites = finding.Cites! with { Heading = line } }
+                        : finding));
                 conflicts.AddRange(body.Value.Conflicts);
                 demoted.AddRange(body.Value.Demoted);
                 usage.Add(answer.Value.Usage);

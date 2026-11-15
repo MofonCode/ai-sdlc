@@ -18,12 +18,18 @@ namespace Sdlc.Core.Findings;
 /// a finding answered by one pass and raised again by the next.
 /// </param>
 /// <param name="Circles">Approved text the cycle's deviations bent three times or more.</param>
+/// <param name="RelapsesPerRound">
+/// How many relapses the verify rounds had counted by each round, in round order, so a pass that undid earlier
+/// work can be placed in the sequence rather than only known to have happened. Null reads every relapse as the
+/// latest pass's.
+/// </param>
 public sealed record RemediationState(
     int Spent,
     IReadOnlyList<int> OpenPerRound,
     IReadOnlyList<Finding> OpenBlockers,
     OscillationState Loop,
-    IReadOnlyList<DeviationCircle>? Circles = null)
+    IReadOnlyList<DeviationCircle>? Circles = null,
+    IReadOnlyList<int>? RelapsesPerRound = null)
 {
     /// <summary>Whether anything still blocks.</summary>
     public bool Blocked => OpenBlockers.Count > 0;
@@ -52,6 +58,18 @@ public sealed record RemediationState(
         && last.All(reduced => !reduced);
 
     /// <summary>
+    /// How many times the passes stopped converging: a pass that undid earlier work, or two in a row that reduced
+    /// nothing. After the first, the very next pass has to reduce what is open; one that does not is the second.
+    /// </summary>
+    public int Stops => Walk().Stops;
+
+    /// <summary>
+    /// Whether remediation has stopped converging once and the pass that answers it is still to come: it may take a
+    /// different approach than the approved text described, recorded as a deviation, before it escalates (D-179).
+    /// </summary>
+    public bool MayDeviate => Blocked && !Circling && Walk() is { Stops: 1, Pending: true };
+
+    /// <summary>
     /// Whether the cycle cannot be made to pass and should stop rather than open a pull request.
     /// </summary>
     /// <remarks>
@@ -62,8 +80,11 @@ public sealed record RemediationState(
     /// failed an honest cycle that needed a fourth pass and let a cycle making no progress at all spend
     /// all three. There is deliberately no ceiling behind the predicate (D-66), so termination rests on
     /// it entirely.</para>
+    /// <para><strong>The first stop is not the end (D-179).</strong> When the passes stop converging the build may
+    /// take one different approach, recorded as a deviation, and the next pass must then reduce what is open. It
+    /// escalates on the second stop, or when a third deviation bends the same approved text.</para>
     /// </remarks>
-    public bool Escalated => Blocked && (Regressed || Stalled || Circling);
+    public bool Escalated => Blocked && (Stops >= 2 || Circling);
 
     /// <summary>
     /// Whether three deviations or more bend the same approved text and the verification still blocks.
@@ -85,6 +106,63 @@ public sealed record RemediationState(
         {
             yield return OpenPerRound[round] < OpenPerRound[round - 1];
         }
+    }
+
+    /// <summary>Whether each pass undid earlier work, in order: the relapse count rose over it.</summary>
+    private bool RegressedAt(int pass)
+    {
+        if (RelapsesPerRound is not { } relapses || relapses.Count != OpenPerRound.Count)
+        {
+            // Without the sequence every relapse is the latest pass's, which is where a fresh one shows.
+            return pass == OpenPerRound.Count - 1 && Regressed;
+        }
+
+        return relapses[pass] > relapses[pass - 1];
+    }
+
+    // The passes in order, counting the times they stopped converging. After the first stop the next pass is the
+    // one a deviation answers, and it has to reduce what is open; Pending says it has not been made yet.
+    private (int Stops, bool Pending) Walk()
+    {
+        int stops = 0;
+        int flat = 0;
+        bool answering = false;
+        List<bool> reduced = [.. Passes()];
+
+        for (int index = 0; index < reduced.Count; index++)
+        {
+            int pass = index + 1;
+            bool regressed = RegressedAt(pass);
+
+            if (answering)
+            {
+                answering = false;
+                flat = 0;
+
+                if (regressed || !reduced[index])
+                {
+                    stops++;
+                }
+
+                continue;
+            }
+
+            bool stopped = regressed || (!reduced[index] && ++flat >= 2);
+
+            if (reduced[index] && !regressed)
+            {
+                flat = 0;
+            }
+
+            if (stopped)
+            {
+                stops++;
+                flat = 0;
+                answering = stops == 1;
+            }
+        }
+
+        return (stops, answering);
     }
 }
 
@@ -137,12 +215,16 @@ public static class RemediationBudget
         // attempt to answer what one found, so the count is rounds after the first.
         int spent = Math.Max(0, rounds.Count - 1);
 
+        // The relapses counted by each round, so a pass that undid earlier work is placed where it happened.
+        List<int> relapses = [.. Enumerable.Range(1, rounds.Count).Select(count => Oscillation.Count([.. rounds.Take(count)]).Rules.Sum(rule => rule.Relapses))];
+
         return Result.Ok(new RemediationState(
             spent,
             FindingsReader.OpenBlockersPerRound(rounds),
             FindingsReader.StandingBlockers(rounds),
             Oscillation.Count(rounds),
-            (await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false)).Circles));
+            (await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false)).Circles,
+            relapses));
     }
 
     /// <summary>
@@ -168,6 +250,13 @@ public static class RemediationBudget
                     $"cleared after {Count(state.Spent, "pass", "passes")}");
         }
 
+        if (state.MayDeviate)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Count(state.OpenBlockers.Count, "finding", "findings")} open after {Count(state.Spent, "pass", "passes")}, and the passes stopped converging: the next may take a different approach, recorded as a deviation, and must reduce what is open or the cycle escalates");
+        }
+
         if (!state.Escalated)
         {
             return string.Create(
@@ -175,9 +264,9 @@ public static class RemediationBudget
                 $"{Count(state.OpenBlockers.Count, "finding", "findings")} open, {Count(state.Spent, "pass", "passes")} spent and making progress");
         }
 
-        // Which of the two stopped it, because they call for different things. A regression says the
-        // last pass broke what an earlier one fixed, so somebody should look at what it did; a stall
-        // says nothing is moving, so somebody should look at whether the finding is answerable at all.
+        // Which stopped it, because they call for different things. Three deviations at one place say the
+        // approved text there is wrong; a second stop says a different approach did not help either, so somebody
+        // should look at whether the finding is answerable at all.
         if (state.Circling)
         {
             DeviationCircle circle = state.Circles![0];
@@ -186,13 +275,9 @@ public static class RemediationBudget
                 $"escalated: {string.Join(", ", circle.Ids)} bend the same text in {circle.Document}, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}");
         }
 
-        return state.Regressed
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"escalated: a pass undid earlier work, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}")
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"escalated: the last two passes reduced nothing, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}");
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"escalated: the passes stopped converging again after a different approach, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}");
     }
 
     private static string Count(int number, string singular, string plural) => string.Create(

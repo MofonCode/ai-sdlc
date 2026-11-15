@@ -10,7 +10,7 @@ namespace Sdlc.Core.Decisions;
 /// <para><strong>The headline is the entry's own title.</strong> A reader is handed every entry's headline
 /// and only some entries' bodies, so a title that runs to thirty words is a body nobody asked for. There is
 /// no new field: the title is kept short.</para>
-/// <para><strong>A budget is held where an entry is written, never where one is read.</strong> Mining's
+/// <para><strong>A budget is held where an entry is written, never where one is read.</strong> A harvest's
 /// drafter refuses a new entry over it, so the person shortens the wording before placing it; an entry
 /// already on the page is noted and proposed for rewording, never refused, because the file is a person's
 /// and refusing what they placed would refuse the record itself.</para>

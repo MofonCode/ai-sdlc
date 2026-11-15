@@ -111,6 +111,35 @@ public sealed class ResolveCycleTests
     }
 
     [TestMethod]
+    [DataRow("blocked", true)]
+    [DataRow("escalated", true)]
+    [DataRow("pass", true)]
+    public async Task Remediate_takes_a_blocked_an_escalated_or_an_unmerged_passed_cycle(string outcome, bool ready)
+    {
+        // D-185: blocked is what it fixes; escalated is a person's instruction to follow; passed is a change a
+        // person asked for at the pull request.
+        using CycleWorkspace workspace = ClearIntent();
+        workspace.WriteVerify(outcome);
+
+        ResolveCycle.Response resolved = await Resolve(workspace, new FakeRepository { Branch = "cycle/" + workspace.Cycle.Id + "/build" }, NextStep.Remediate);
+
+        Assert.AreEqual(ready, resolved.Only is not null);
+    }
+
+    [TestMethod]
+    public async Task A_passed_cycle_whose_verdict_has_merged_is_not_remediated()
+    {
+        // Once the integration branch holds the verdict the pull request has merged, and a change is a new cycle.
+        using CycleWorkspace workspace = ClearIntent();
+        workspace.WriteVerify("pass");
+        FakeRepository git = new() { Branch = "cycle/" + workspace.Cycle.Id + "/build" };
+        git.Refs.Add("origin/development");
+        git.PathsAt.Add("origin/development:.sdlc/cycles/" + workspace.Cycle.Id + "/verify.md");
+
+        Assert.IsNull((await Resolve(workspace, git, NextStep.Remediate)).Only);
+    }
+
+    [TestMethod]
     [DataRow("spec", NextStep.Spec)]
     [DataRow("Remediate", NextStep.Remediate)]
     [DataRow("to-plan", NextStep.ToPlan)]

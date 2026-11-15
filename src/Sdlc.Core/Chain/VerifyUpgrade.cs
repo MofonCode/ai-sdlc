@@ -357,7 +357,7 @@ public static class VerifyUpgrade
     /// framework's missing or edited, and it is refused.</para>
     /// <para><strong>Outside the steps each section is the base's or this release's</strong>: the triggers, the
     /// schedule, the parameters, the pool, each on its own. Whole, it could never pass for a team that runs on its own
-    /// pool once a release moved another section, which is how 0.38's factory, started by a person, met MarketSense's
+    /// pool once a release moved another section, which is how 0.38's factory, started by a person, met a governed solution's
     /// own agents. A section is a key and everything under it; a key that holds a step list is only a container, and
     /// the keys inside it are sections in turn. Comments and blank lines are not compared, because neither runs.</para>
     /// <para><strong>What it lets through</strong>: a step of the team's own dropped in the upgrade. That weakens the

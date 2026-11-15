@@ -154,7 +154,7 @@ public sealed class SetupTests
             "its own constraints",
             "constraints.md",
             Setup.ConstraintsDraftFileName,
-            "sdlc propose constraints",
+            "sdlc constraints --new",
             "a rule of its own",
             progress,
             Optional: true);

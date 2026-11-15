@@ -1,7 +1,7 @@
 # Running the factory
 
 Many cycles, built unattended: the integration branch, the factory's pipeline, the run you start, and what
-you do with what it opened. `running-a-cycle.md` is one cycle by hand; this is what changes when a pipeline builds them.
+you do with what it opened. `running-a-cycle.md` is one cycle, built when you say *build it*; this is what changes when a pipeline builds them.
 
 **The factory automates four things and nothing else** — finding approved plans, building, verifying,
 opening pull requests (`CONCEPT.md` D-84) — and **you start every run**; nothing schedules it (D-143). Everything after the pull request is yours: reviewing,
@@ -58,7 +58,7 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
    only a person writes and fails the run if the file appears, because a host whose hooks did not load would
    build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
    in writes nothing either, and would pass
-3. runs `/sdlc:batch-build --pr --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
+3. runs `/sdlc:build --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
    branch, independently, and a pull request for each — **a draft for one that did not pass**. Given one cycle
    id, that cycle alone: the binary checks it is queued before the agent sees it, and the run stops with why
    if it is not
@@ -96,7 +96,7 @@ The same page the run published, against the state now. In the order it lists:
 |---|---|
 | **Ready to merge, in this order** | review each and squash-merge it, one at a time, in the order given. The more contained cycle comes first |
 | an overlap under one of them | expect the named pull request to conflict after this one merges |
-| **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
+| **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, say what to do and `/sdlc:remediate <id>`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
 | **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
 | **Backlog** | always shown, empty or not. *Ready now*: a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>`, and a parked cycle whose predecessor merged, with `sdlc unpark <id>` — `/sdlc:next` takes all of them, and the factory never does. *Still waiting*: each with what it waits on. *No merge makes these ready*: stuck behind an abandoned cycle, or naming something that does not exist — correct its `succeeds:` or `waits_on:`. It ends by naming what it cannot see: cycles still being planned in a sandbox are on no branch it reads until admitted, so `sdlc backlog` in the sandbox is where they show |
@@ -104,12 +104,13 @@ The same page the run published, against the state now. In the order it lists:
 **When a pull request conflicts, or goes red after an earlier merge:**
 
 ```
-/sdlc:resolve-conflict <id>
+/sdlc:remediate <id>
 ```
 
-It merges `development` into the cycle's branch, resolves inside the files the plan declared — or hands back
-when it would need one the plan never named, because that is a change of plan — then rebuilds, records fresh
-evidence and verifies again in a fresh process. It never merges the pull request.
+*Fix it* runs `resolve-conflict` first: it merges `development` into the cycle's branch, resolves inside the files
+the plan declared — or hands back when it would need one the plan never named, because that is a change of plan —
+then rebuilds and records fresh evidence. Remediate then verifies again in a fresh process, goes round while that
+converges, and updates the pull request. Nothing merges it but a person.
 
 **Every open pull request is re-checked when another merges**, if the policy's build expiration is
 *Immediately* — the adoption guide sets out the cheaper settings. That is what catches two pull requests
@@ -156,7 +157,7 @@ again (D-88). The release branch needs the same build validation policy.
 | | |
 |---|---|
 | setting the factory up, once | `setting-up-the-factory.md` |
-| one cycle by hand, stage by stage | `running-a-cycle.md` |
+| one cycle, from intent to *build it* | `running-a-cycle.md` |
 | a blocked verification, or an escalated one | `handling-blockers.md` |
 | something refused | `handling-refusals.md` |
 | why it works this way | `../../CONCEPT.md` §10.4, §10.5, and D-83 to D-88 |
