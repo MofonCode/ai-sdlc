@@ -200,7 +200,7 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the eight ways a round is refused
+## `sdlc round` — the nine ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
@@ -255,6 +255,18 @@ already holds is never judged again.
 
 **Next:** make the finding a suggestion, or cite the rule in force it actually breaks —
 `sdlc constraints --for <artifact>` lists them, and `sdlc perspective show <name>` a perspective's.
+
+### a new finding quotes its rule in other words
+
+The round carries a finding the ledger has not seen, and the line beside its citation is not the line of the rule
+it cites. A finding carries its rule's own words so a cycle read later shows what it was judged under, and a
+paraphrase there is a second version of the rule shown to the person at the gate as the rule (D-63, D-177).
+`sdlc round collect` already copies the rule's line in; this refusal meets a draft edited after that. Whitespace,
+quotes and dashes are evened out before comparing, and nothing else. A finding the ledger already holds keeps the
+line it was recorded with.
+
+**Next:** put the rule's line back as it is — the refusal prints it, and `sdlc constraints --for <artifact>` prints
+every one — or run `sdlc round collect` again, which copies it.
 
 ### a suggestion does not fit the cycle's suggestions
 

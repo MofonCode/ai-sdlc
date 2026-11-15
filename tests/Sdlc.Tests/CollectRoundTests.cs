@@ -56,6 +56,23 @@ public sealed class CollectRoundTests
     }
 
     [TestMethod]
+    [DataRow("An intent names the problem and not a fix", DisplayName = "a paraphrase")]
+    [DataRow("", DisplayName = "no line at all")]
+    public async Task A_finding_quoting_its_rule_in_other_words_is_drafted_with_the_rules_own_line(string quoted)
+    {
+        // The citation is the reader's; the words beside it are the library's, so the binary copies them (D-177).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string directory = await Answers(workspace, rules: Blocker.Replace("An intent states the problem, not the solution", quoted, StringComparison.Ordinal));
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Assert.AreEqual("An intent states the problem, not the solution", drafted.Raised.Single().Cites!.Heading);
+        Assert.AreEqual(Severity.Blocking, drafted.Raised.Single().Severity, "Copying the line changes nothing else.");
+    }
+
+    [TestMethod]
     [DataRow("maintainability", "CON_25", DisplayName = "a rule its prose mentions and does not list")]
     [DataRow("operability", "CON_20", DisplayName = "a rule it lists, at a stage the rule does not bind")]
     public async Task A_perspective_blocks_only_on_a_rule_it_lists_that_binds_this_document(string perspective, string rule)

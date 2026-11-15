@@ -196,7 +196,13 @@ public static class CollectRound
                     }
                 }
 
-                raised.AddRange(body.Value.Findings);
+                // The binary copies the rule's own line rather than trusting a reader to (D-177): a citation is
+                // the reader's choice, the words beside it are the library's, and a paraphrase there is a second
+                // version of the rule.
+                raised.AddRange(body.Value.Findings.Select(finding =>
+                    handed.Value.Misquoted(finding.Cites) is { } line
+                        ? finding with { Cites = finding.Cites! with { Heading = line } }
+                        : finding));
                 conflicts.AddRange(body.Value.Conflicts);
                 demoted.AddRange(body.Value.Demoted);
                 usage.Add(answer.Value.Usage);

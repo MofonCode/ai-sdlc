@@ -774,7 +774,9 @@ rule that moves a finding to `answered`. Absent and empty mean the same thing, u
 **A citation is the id and the rule's own line, as one object.** §7.1 calls that pair a constraint's
 *name*, and this is that pair rather than a second arrangement of it. The heading is copied verbatim
 from the set the round was judged against and frozen there (D-63), so a finding can be read without
-resolving its id against a library that has since moved. One citation and not a list: a finding is one
+resolving its id against a library that has since moved. **The binary does the copying**: `round collect`
+puts the rule's own line beside every new citation, and `sdlc round` refuses a new finding quoting it otherwise
+(D-177). One citation and not a list: a finding is one
 objection resting on one rule. Two rules whose remedies exclude each other is a conflict, which §6
 makes an ending of the loop rather than something a finding carries.
 
@@ -2732,12 +2734,9 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    version worth considering first is having the plan stage show the bound beside the shape it chose,
    and leave the judgement to the person at the gate. Open because the mechanism is undecided, not
    because the gap is in doubt.
-7. **A frozen citation heading can drift from the library, and nothing checks.** D-63 freezes the rule's
-   own line into a findings round deliberately, so a cycle read months later shows the wording it was
-   judged under. The cost is that a reader told to copy the line verbatim could paraphrase it, and
-   nothing would notice. **The write path now has a home for the check**: `sdlc round` writes every round
-   (D-101), and it already refuses a citation with no heading — but not one whose heading differs from the
-   rule it cites. It belongs there, or in `sdlc doctor`, which reports and never repairs; neither is built.
+7. ~~**A frozen citation heading can drift from the library, and nothing checks.**~~ Closed by D-177: `sdlc
+   round collect` copies the rule's own line into every new finding, and `sdlc round` refuses a draft whose new
+   finding quotes it otherwise. A line frozen in a recorded round stays as it was judged (D-63).
 8. **Where an adopted codebase's first rules come from.** `propose constraints` mines cycle history
    (D-69), and a repository adopted with existing code has none — so on the day it most wants rules it
    gets the empty form. Three paths, none chosen. *The interview that already exists*: §9 has `init` ask
@@ -7507,6 +7506,30 @@ stage, and operability could block on `CON_20`, a spec's rule, at the intent, th
 **Rejected.** *A frontmatter key listing the ids.* A second place to keep in step with the prose a person reads,
 which is the drift D-90 put the rules in the document to avoid. *Rewording the prose so no id appears in it.* The
 next sentence naming a rule would reopen it; a parse does not depend on anybody remembering.
+
+### D-177 — A finding carries its rule's own line, copied by the binary and held at record
+
+**Governs:** §6.1, §6.2, §19
+
+**Decision.** Every new finding's citation carries the line of the rule it cites as the set its reader was handed
+renders it — the current revision's. `sdlc round collect` puts that line in place of whatever the reader wrote
+beside the id, including nothing. `sdlc round` refuses a draft whose new finding still quotes it otherwise, naming
+the finding, the line it carries and the rule's own, and pointing at `sdlc constraints --for` and at collecting the
+round again. Lines are compared after evening out whitespace, quotes and dashes, and nothing else. A finding the
+ledger or the suggestion ledger already holds keeps the line it was recorded with, and a citation of a rule no
+reader was handed is left to D-174.
+
+**Why.** D-63 freezes the rule's line into the round so a cycle read months later shows the words it was judged
+under, and the reader was told to copy it verbatim — with nothing checking that it had. A paraphrase there is the
+second version of a rule the frozen copy exists to prevent, shown to the person at the gate as the rule. Since
+D-101 the binary writes every round, so the check has a home on the write path, and the line is text the binary
+already owns: copying it is D-162's *the binary copies what was decided* rather than a judgement.
+
+**Rejected.** *Refusing the reader's answer at collect.* The reader chose the rule, which is the judgement; the
+words beside it are the library's, so a rerun to retype them buys nothing. *Fuzzy matching.* A match forgiving a
+changed word forgives exactly the paraphrase this exists to stop. *Re-checking recorded rounds against today's
+library.* A revision since is not a misquote; the frozen line is the point (D-63). *A `doctor` report instead.* It
+would find the drift after the round that carried it was approved.
 
 ### D-174 — A blocking finding cites a rule its reader was handed, or it does not block
 

@@ -424,6 +424,39 @@ public static class RecordRound
     /// recorded is not a reader's honest mistake. A blocker the ledger already holds is never judged again: a round
     /// recorded under an earlier library stands as it was read.
     /// </remarks>
+    /// <summary>
+    /// A finding new in this round whose rule line is not the line of the rule it cites (D-177).
+    /// </summary>
+    /// <remarks>
+    /// <c>round collect</c> already copies the rule's own line in, so this meets only a draft edited after it. A finding
+    /// the ledger or the suggestion ledger already holds is never judged again: its line is what its reader was handed
+    /// then, frozen on purpose (D-63), and a revision since is not a misquote. A citation of a rule no reader was handed
+    /// has no line to be held to here; D-174 answers it.
+    /// </remarks>
+    private static string? Misquoted(FindingsRound given, FindingsLedger ledger, SuggestionLedger suggestions, CitedRules.Handed handed, Command request)
+    {
+        HashSet<string> recorded = [.. ledger.Findings.Select(finding => finding.Id)];
+        List<string> reasons = [];
+
+        foreach (Finding finding in given.Findings)
+        {
+            if (recorded.Contains(finding.Id) || suggestions.Find(finding.Id) is not null || handed.Misquoted(finding.Cites) is not { } line)
+            {
+                continue;
+            }
+
+            reasons.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{finding.Id} quotes {finding.Cites!.Id} as \"{finding.Cites.Heading}\", and its line is \"{line}\""));
+        }
+
+        return reasons.Count == 0
+            ? null
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{request.From}: a finding carries its rule's own line, word for word, and {(reasons.Count == 1 ? "this one does" : "these do")} not: {string.Join("; ", reasons)}. Put the rule's line back as it is -- 'sdlc constraints --for {Cycle.NameOf(request.Artifact)}' prints each -- or run 'sdlc round collect' again, which copies it.");
+    }
+
     private static string? Unfounded(FindingsRound given, FindingsLedger ledger, CitedRules.Handed handed, Command request)
     {
         HashSet<string> recorded = [.. ledger.Findings.Select(finding => finding.Id)];
@@ -610,6 +643,11 @@ public static class RecordRound
             if (Unfounded(given.Value, ledger, handed.Value, request) is { } unfounded)
             {
                 return Result.Fail<Response>(unfounded);
+            }
+
+            if (Misquoted(given.Value, ledger, suggestions.Value, handed.Value, request) is { } misquoted)
+            {
+                return Result.Fail<Response>(misquoted);
             }
 
             // Merged rather than appended verbatim (D-107): a new id is a finding, a moved one a

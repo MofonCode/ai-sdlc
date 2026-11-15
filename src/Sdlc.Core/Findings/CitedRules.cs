@@ -18,6 +18,9 @@ namespace Sdlc.Core.Findings;
 /// <para><strong>Which set a reader was handed.</strong> The rules reader and a perspective get the document's own;
 /// the diff reader gets the change's, <c>diff</c>; a perspective reading a verification reads the change too, so it
 /// gets both.</para>
+/// <para><strong>And the line each rule is quoted by</strong> (D-177). A finding carries its rule's own line beside the
+/// id (D-63), copied verbatim from the set its reader was handed, so the set's lines are what a quoted line is held
+/// to. The current revision's line is the one handed, so it is the one compared.</para>
 /// </remarks>
 internal static class CitedRules
 {
@@ -38,21 +41,49 @@ internal static class CitedRules
     internal static string Key(ConstraintId id) =>
         string.Create(CultureInfo.InvariantCulture, $"{ConstraintId.PrefixOf(id.Tier)}_{id.Number}");
 
-    /// <summary>The rules in force for one artifact name, as keys.</summary>
+    /// <summary>The rules in force for one artifact name, each key mapped to the rule's own line.</summary>
     /// <param name="mediator">To ask for the effective set.</param>
     /// <param name="artifact">The artifact name, as <c>sdlc constraints --for</c> takes it.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
-    /// <returns>The keys, or why the set could not be read.</returns>
-    internal static async Task<Result<HashSet<string>>> InForce(Mediator mediator, string artifact, CancellationToken cancellationToken)
+    /// <returns>The keys and their lines, or why the set could not be read.</returns>
+    internal static async Task<Result<Dictionary<string, string>>> InForce(Mediator mediator, string artifact, CancellationToken cancellationToken)
     {
         Result<EffectiveConstraints.Response> set = await mediator
             .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(artifact), cancellationToken)
             .ConfigureAwait(false);
 
-        return set.IsFailed
-            ? set.ToResult<HashSet<string>>()
-            : Result.Ok(new HashSet<string>(set.Value.Constraints.Select(rule => Key(rule.Id)), StringComparer.Ordinal));
+        if (set.IsFailed)
+        {
+            return set.ToResult<Dictionary<string, string>>();
+        }
+
+        Dictionary<string, string> lines = new(StringComparer.Ordinal);
+
+        foreach (Constraint rule in set.Value.Constraints)
+        {
+            lines[Key(rule.Id)] = rule.Statement;
+        }
+
+        return Result.Ok(lines);
     }
+
+    /// <summary>Whether a quoted line is the rule's own, after only whitespace, quotes and dashes are evened out.</summary>
+    /// <remarks>
+    /// Not fuzzy, on purpose: a paraphrase is the second version of a rule D-63 exists to prevent, and a match that
+    /// forgave a changed word would forgive exactly that. What it forgives is what a copy through JSON, a terminal or a
+    /// model's typography changes without changing a word.
+    /// </remarks>
+    /// <param name="quoted">The line a finding carries.</param>
+    /// <param name="line">The rule's own line.</param>
+    /// <returns>True when they are the same words.</returns>
+    internal static bool SameLine(string? quoted, string line) =>
+        string.Equals(Even(quoted), Even(line), StringComparison.Ordinal);
+
+    private static string Even(string? text) =>
+        string.Join(' ', (text ?? string.Empty)
+            .Replace('‘', '\'').Replace('’', '\'').Replace('“', '"').Replace('”', '"')
+            .Replace('–', '-').Replace('—', '-').Replace('‑', '-').Replace('−', '-')
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     /// <summary>What each kind of reader of one document was handed.</summary>
     /// <param name="mediator">To ask for the effective sets.</param>
@@ -61,36 +92,58 @@ internal static class CitedRules
     /// <returns>The sets, or why one could not be read.</returns>
     internal static async Task<Result<Handed>> For(Mediator mediator, ArtifactKind artifact, CancellationToken cancellationToken)
     {
-        Result<HashSet<string>> own = await InForce(mediator, Cycle.NameOf(artifact), cancellationToken).ConfigureAwait(false);
+        Result<Dictionary<string, string>> own = await InForce(mediator, Cycle.NameOf(artifact), cancellationToken).ConfigureAwait(false);
 
         if (own.IsFailed)
         {
             return own.ToResult<Handed>();
         }
 
-        Result<HashSet<string>> change = await InForce(mediator, DiffArtifact, cancellationToken).ConfigureAwait(false);
+        Result<Dictionary<string, string>> change = await InForce(mediator, DiffArtifact, cancellationToken).ConfigureAwait(false);
 
         if (change.IsFailed)
         {
             return change.ToResult<Handed>();
         }
 
-        HashSet<string> perspectives = new(own.Value, StringComparer.Ordinal);
+        HashSet<string> document = new(own.Value.Keys, StringComparer.Ordinal);
+        HashSet<string> changed = new(change.Value.Keys, StringComparer.Ordinal);
+        HashSet<string> perspectives = new(document, StringComparer.Ordinal);
 
         if (artifact == ArtifactKind.Verify)
         {
-            perspectives.UnionWith(change.Value);
+            perspectives.UnionWith(changed);
         }
 
-        return Result.Ok(new Handed(own.Value, change.Value, perspectives));
+        Dictionary<string, string> lines = new(own.Value, StringComparer.Ordinal);
+
+        foreach ((string key, string line) in change.Value)
+        {
+            lines.TryAdd(key, line);
+        }
+
+        return Result.Ok(new Handed(document, changed, perspectives, lines));
     }
 
     /// <summary>The rules each kind of reader of one document was handed, as keys.</summary>
     /// <param name="Document">The rules reader's: the document's own.</param>
     /// <param name="Change">The diff reader's.</param>
     /// <param name="Perspectives">A perspective's, before its own list narrows it.</param>
-    internal sealed record Handed(IReadOnlySet<string> Document, IReadOnlySet<string> Change, IReadOnlySet<string> Perspectives)
+    /// <param name="Lines">Every handed rule's own line, by key: what a quoted line is held to (D-177).</param>
+    internal sealed record Handed(
+        IReadOnlySet<string> Document,
+        IReadOnlySet<string> Change,
+        IReadOnlySet<string> Perspectives,
+        IReadOnlyDictionary<string, string> Lines)
     {
+        /// <summary>The rule's own line when a citation quotes it otherwise, or null when it matches or no handed rule is cited.</summary>
+        /// <param name="cites">The citation.</param>
+        /// <returns>The line it should carry, or null.</returns>
+        internal string? Misquoted(Citation? cites) =>
+            Key(cites?.Id) is { } key && Lines.TryGetValue(key, out string? line) && !SameLine(cites!.Heading, line)
+                ? line
+                : null;
+
         /// <summary>The set a reader of this name was handed.</summary>
         /// <param name="reader">The reader: <c>rules</c>, <c>diff</c>, or a perspective's name.</param>
         /// <returns>Its set.</returns>
