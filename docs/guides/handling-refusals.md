@@ -197,8 +197,8 @@ Under `approval: none` the rounds are the only record of what was judged, so a r
 recorded their subject is refused this way too: no person read the bytes instead.
 
 **Next:** re-interrogate the downstream artifact — `/sdlc:interrogate <id> spec`, and the plan after it
-if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
-documents by hand.
+if the spec changed. *Take it to plan* (`/sdlc:to-plan`) does this for you, after `steer` when you said what
+should change, which is the reason to use it rather than editing documents by hand.
 
 ## `sdlc round` — the nine ways a round is refused
 
@@ -451,7 +451,7 @@ is not atomic: it needs the sibling merged first. The check names the plan, the 
 **Next:** make the dependent piece a successor of its sibling — abandon its cycle, and write
 `.sdlc/successors/<slug>.md` with `succeeds:` naming the sibling — or merge the two pieces into one cycle.
 Files two plans both name *without* one creating them for the other are only reported: their pull requests
-may conflict at merge, which `/sdlc:resolve-conflict` is for.
+may conflict at merge, which *fix it* (`/sdlc:remediate`) resolves through `resolve-conflict`.
 
 ### a slicing that carries more than plans
 

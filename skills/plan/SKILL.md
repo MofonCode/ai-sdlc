@@ -57,7 +57,7 @@ sdlc status <cycle id> --stage spec
 
 No spec, or a spec that is not clean: stop. A plan already there: stop, and name what the person
 probably meant, in plain words: *take it to plan* (`/sdlc:to-plan <id>`) finishes the plan's check if it
-stopped part way, and to change it they tell you what should be different (`/sdlc:steer <id> "..."`).
+stopped part way, and to change it they tell you what should be different (`/sdlc:to-plan <id> "..."`).
 
 ## Keep a task list, if your host has one
 

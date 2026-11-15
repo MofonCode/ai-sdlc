@@ -56,7 +56,7 @@ sdlc status <cycle id> --stage intent
   from an intent that is still being argued about means deriving them twice.
 - **A spec already exists?** Stop, and name what the person probably meant, in plain words: to carry
   it on to a plan, *take it to plan* (`/sdlc:to-plan <id>`), which also finishes the spec's check if it
-  stopped part way; to change it, tell you what should be different (`/sdlc:steer <id> "..."`). Do not
+  stopped part way; to change it, tell you what should be different (`/sdlc:to-plan <id> "..."`). Do not
   overwrite a spec.
 
 ## Keep a task list, if your host has one
@@ -226,7 +226,7 @@ owe something nobody asked for is creep however sensible it is.
 
 **If the intent is missing something it should have asked for, say so, and do not write the
 criterion.** Name it in `Out of scope`. If a reader raised it as a suggestion, the person takes it in
-with `/sdlc:steer <id> <finding id> …`, which writes it into the intent with their name on it and
+with `/sdlc:to-plan <id> <finding id> …`, whose `steer` writes it into the intent with their name on it and
 carries it down; if nobody raised it, it is a new cycle.
 
 ## Write it

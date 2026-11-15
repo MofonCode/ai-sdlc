@@ -1,6 +1,6 @@
 ---
 name: remediate
-description: Fix it -- take a blocked verification, an escalated cycle with a person's instruction, or a change a person asks of a built cycle, and go round implement and verify while each pass converges, deviating within limits before it escalates, then update the pull request and report. A playbook: implement changes the code, verify judges it, pr updates the pull request. Use after verify recorded a blocked outcome, when a person says what to do with an escalated cycle, or when a person reviewing the pull request says what to change.
+description: Fix it -- take a blocked verification, an escalated cycle with a person's instruction, a change a person asks of a built cycle, or a pull request that conflicts with the integration branch, and go round implement and verify while each pass converges, deviating within limits before it escalates, then update the pull request and report. A playbook: resolve-conflict brings the integration branch in, implement changes the code, verify judges it, pr updates the pull request. Use after verify recorded a blocked outcome, when a person says what to do with an escalated cycle, when a person reviewing the pull request says what to change, or when that pull request conflicts or went red after another merge.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
@@ -9,13 +9,14 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *)
 # Fix it
 
 **A playbook** (D-186, D-187): it decides what `implement` is handed and runs the loop, and it changes no code
-itself. Three ways in (D-185):
+itself. Four ways in (D-185, D-186):
 
 | Way in | Where | What `implement` is handed |
 |---|---|---|
 | **a verification found a criterion unmet** — `blocked` | usually inside the build's own process, where the `build` playbook runs this with nobody watching | the unmet criteria and open findings |
 | **the build escalated**, and the person has said what to do — the panel offered *say what to do, then fix it* | a person's session | their instruction |
 | **the cycle passed, its pull request is open, and a person reviewing it says what to change** — *change deviation 2: use X instead*, *revert that choice* | a person's session | their instruction, on the same pull request (D-181) |
+| **its pull request conflicts with the integration branch, or went red after another merge** | a person's session | nothing at first: **`resolve-conflict`** brings the integration branch in and records fresh evidence, and the loop starts at step 2. A conflict it hands back as a change of plan, or two plans disagreeing about one setting, stops here: say what it said |
 
 ## Which cycle
 
@@ -54,7 +55,8 @@ instruction that would is a reopen or a successor, and you say so rather than ac
 ## The loop
 
 1. **`implement`**, handed the findings or the instruction. On a cycle that passed, it records the evidence with
-   `--retire-pass`.
+   `--retire-pass`. On a conflict, the first pass is **`resolve-conflict`** instead, and later passes are
+   `implement` with the findings.
 2. **`verify`**, in a fresh process that never saw the change. **You run the loop; you never write the verdict**
    (D-159): you do not adjudicate, edit `verify.md`, or argue a Not met back to Met.
 3. **Read where the loop stands:**
@@ -84,7 +86,7 @@ if you are repeating yourself, say so and stop.
 
 ## The pull request
 
-**On `pass`, or on `escalated`, the `pr` skill updates the pull request**: the push to the branch it was opened
+On `pass`, or on `escalated`, **`pr`** updates the pull request: the push to the branch it was opened
 from, and its body's report refreshed from `sdlc report <id>`. Inside the build's own process, the `build`
 playbook opens the first one; here you only update one that exists.
 

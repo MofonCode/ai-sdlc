@@ -1,8 +1,8 @@
 ---
 name: to-plan
-description: Take an intent to a plan -- one cycle, or every one this branch carries -- checking the intent, writing each cycle's spec and then its plan, running the interrogate and refine loop on each until it is clean, picking up wherever a cycle stopped, and hand back once with every panel, one question about suggestions, and the approvals drafted. A playbook: intent, spec and plan write the documents, interrogate judges, refine edits. Use when a person is happy with their intent and says take it to plan.
+description: Take an intent to a plan -- one cycle, or every one this branch carries -- checking the intent, writing each cycle's spec and then its plan, running the interrogate and refine loop on each until it is clean, picking up wherever a cycle stopped, carrying a person's correction or chosen suggestions through steer first when they give one, and hand back once with every panel, one question about suggestions, and the approvals drafted. A playbook: spec and plan write the documents, steer writes a correction into them, interrogate judges, refine edits. Use when a person is happy with their intent and says take it to plan, or says what should change in a cycle being planned.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[<cycle id>]"
+argument-hint: "[<cycle id>] [<finding id>...] [\"what to change\"]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -19,7 +19,7 @@ person never needs to know that a document is written, checked and refined on th
 | write the plan | `plan` |
 | judge a document | `interrogate` |
 | apply its findings | `refine` |
-| take in a suggestion a person chose | `steer` |
+| write a person's correction, or a suggestion they chose, into the documents | `steer` |
 
 **It stops at the plan.** Approving is a person's, one cycle at a time. It drafts the approval, because drafting
 is not deciding; it never places one.
@@ -39,6 +39,11 @@ ready — already planned, approved, or abandoned — and `sdlc cycles --here` l
 one you leave out, with `sdlc status <id>` for why.
 
 **Say what you will take, in one line per cycle, and go.**
+
+**Given a correction or finding ids** — the person said what should change, at a hand-back or on their own —
+run **`steer`** with their words and the ids first, then pick the cycle up as §2 says: the documents it edited
+are no longer clean, so the loop starts at the highest of them and works down. Steering is a sentence, never a
+step of its own (D-182, D-188).
 
 ## Keep a task list, if your host has one
 
@@ -90,7 +95,7 @@ the thing being judged is not the judge.
 |---|---|
 | nothing | keep going. There is no cap to run out of |
 | a rule *has come back* | **tell `refine` to look for an exit, not another edit of the same words.** The line names what the rule is caught against: can the remainder be named in `Out of scope`, or does the question belong under `## Open`? |
-| *stuck on* a rule | **stop this cycle.** Say which rule, what it is against, and that the exits are a correction with `/sdlc:steer`, a scope change, a rule change, or abandoning the cycle |
+| *stuck on* a rule | **stop this cycle.** Say which rule, what it is against, and that the exits are a correction in words, which this playbook carries through `steer`, a scope change, a rule change, or abandoning the cycle |
 
 **A halt is not a verdict on the document.** The open blockers still decide whether anything advances. Do not
 call a halt a conflict unless a reader declared one.
@@ -163,10 +168,11 @@ themes (D-114). Leaving them is an answer, and the commonest one — skip all of
    > **Leave** the rest. Go?
 
    A theme named whole is every id beneath it. A decline needs a reason — ask once if the answer gave none. **Words
-   with no finding behind them are not taken in here**: a change to *how* is a correction for `/sdlc:steer`, and
+   with no finding behind them are not taken in here**: a change to *how* is a correction, carried the same way, and
    something no reader raised is a cycle of its own (D-97).
-5. **Once they confirm**, run **`steer`** with the finding ids, one run per cycle, carrying the person's words.
-   **Never take one in on their behalf.**
+5. **Once they confirm**, run **`steer`** with the finding ids, one run per cycle, carrying the person's words,
+   then pick each cycle up again as §2 says and hand back once more when its loops are clean. **Never take one in
+   on their behalf.**
 
 ### Then draft the approvals
 

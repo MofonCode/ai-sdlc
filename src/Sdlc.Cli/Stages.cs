@@ -27,12 +27,12 @@ internal static class Stages
         ["plan"] = "decides how, and what will prove each criterion",
         ["interrogate"] = "judges one artifact against the rules, in a fresh process",
         ["refine"] = "applies an artifact's findings to that artifact",
-        ["steer"] = "carries a mid-cycle correction down the chain",
+        ["steer"] = "writes a mid-cycle correction into the chain; to-plan runs it and checks again",
         ["implement"] = "changes code and tests to do what it is handed, and records the evidence",
         ["verify"] = "adjudicates the build against the spec, from the evidence alone",
         ["remediate"] = "fixes what a verification found, or applies a change the person asked for, and verifies again",
         ["pr"] = "pushes and opens a pull request by hand; the build opens its own",
-        ["resolve-conflict"] = "resolves a collision on a file no cycle can claim exclusively",
+        ["resolve-conflict"] = "brings a conflicting pull request up to date inside its declared files; remediate runs it, then verifies",
     };
 
     /// <summary>Whether a verb names a stage skill.</summary>

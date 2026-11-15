@@ -86,7 +86,7 @@ What it does not cover: the daily routine once it runs, which is `running-the-fa
 
 **Many cycles, built unattended.** The integration branch, admitting a plan to it with `pr --plan`, what
 the factory's pipeline does, and the morning: reading the sitrep, merging one pull request at a time, resolving a conflict with
-`resolve-conflict`, picking up a draft. It closes with a fix found on a release.
+*fix it*, picking up a draft. It closes with a fix found on a release.
 
 What it does not cover: setting it up, which is `setting-up-the-factory.md`; the stages themselves, which are
 `running-a-cycle.md`; or promotion to main, which is the team's process and not the framework's.

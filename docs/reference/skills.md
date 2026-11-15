@@ -9,8 +9,8 @@ intent (`intent`), take it to plan (`to-plan`, with `steer` to have it otherwise
 (`build`, which verifies, remediates and opens the pull request), and review the pull request — merging it, or
 asking for a change (`remediate`). The rest are run by those, or are for after a cycle.
 
-**Two kinds** (D-186): a **playbook** — `to-plan`, `next`, `steer`, `build`, `remediate`, `resolve-conflict` —
-orchestrates and names the skills it runs; every other skill does one job and starts none. The skills index has
+**Two kinds** (D-186): a **playbook** — `to-plan`, `next`, `build`, `remediate` —
+composes the skills it runs and does no stage work; every other skill does one job and starts none, whoever starts it. The skills index has
 the table.
 
 In Claude Code a skill is also `/sdlc:<name> <arguments>`. On a host that loads skills through Agent Plugins
@@ -24,23 +24,23 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
 | [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | `to-plan`, or a person |
 | [`plan`](../../skills/README.md#plan) | `[<cycle id>]` | decides how, and what will prove each criterion | `to-plan`, or a person |
-| [`to-plan`](../../skills/README.md#to-plan) | `[<cycle id>]` | takes an intent to a plan — one cycle, or every one this branch carries — picking up where each stopped, and hands back once with the approvals drafted | a person |
+| [`to-plan`](../../skills/README.md#to-plan) | `[<cycle id>] [<finding id>...] ["what to change"]` | takes an intent to a plan — one cycle, or every one this branch carries — picking up where each stopped, and hands back once with the approvals drafted; given what should change, runs `steer` first and checks again | a person |
 | [`next`](../../skills/README.md#next) | `` | pulls the next wave from the backlog, plans it in one sandbox, and stops at the approvals | a person |
 | **Judging and editing** | | | |
-| [`interrogate`](../../skills/README.md#interrogate) | `[<cycle id>] <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | `to-plan` and `steer` in their loop, or a person |
-| [`refine`](../../skills/README.md#refine) | `[<cycle id>] <intent\|spec\|plan>` | applies a round's findings to that document. Never judges | `to-plan` and `steer` in their loop, or a person |
+| [`interrogate`](../../skills/README.md#interrogate) | `[<cycle id>] <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | `to-plan` in its loop, or a person |
+| [`refine`](../../skills/README.md#refine) | `[<cycle id>] <intent\|spec\|plan>` | applies a round's findings to that document. Never judges | `to-plan` in its loop, or a person |
 | **Correction** | | | |
-| [`steer`](../../skills/README.md#steer) | `[<cycle id>] [<finding id>...] ["what to change"]` | carries a change of mind, or suggestions taken in or declined, down the intent, spec and plan | a person, or a stage's hand-back |
+| [`steer`](../../skills/README.md#steer) | `[<cycle id>] [<finding id>...] ["what to change"]` | writes a change of mind, or suggestions taken in or declined, into the intent, spec and plan; checking them again is `to-plan`'s | `to-plan`, or a person |
 | **The gate** | | | |
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |
 | [`build`](../../skills/README.md#build) | `[<cycle id>] [--unattended]` | a playbook: carries the approved cycle — or every one, given none — to its pull request. `sdlc build` admits the plan and starts it again in a process of its own, which runs `implement`, `verify`, `remediate` and `pr`; hands back the report | a person, or the factory |
 | [`implement`](../../skills/README.md#implement) | `<cycle id>` | changes code and tests to do what it is handed — the plan, a verification's findings, or a person's instruction — records deviations and choices, and records the evidence | `build` or `remediate` |
-| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | `build`, `remediate`, `resolve-conflict`, or a person |
-| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | a playbook, *fix it*: after a `blocked` verification, an escalation with your instruction, or a change you ask for at the pull request, runs `implement` and `verify` while it converges, deviating once before it escalates, and `pr` updates the pull request | `build`, or a person |
+| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | `build`, `remediate`, or a person |
+| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | a playbook, *fix it*: after a `blocked` verification, an escalation with your instruction, a change you ask for at the pull request, or a pull request that conflicts — `resolve-conflict` first on a conflict — runs `implement` and `verify` while it converges, deviating once before it escalates, and `pr` updates the pull request | `build`, or a person |
 | **Pull requests and conflicts** | | | |
 | [`pr`](../../skills/README.md#pr) | `[<cycle id>...] [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; started by hand, it asks before the push, and the build's own process opens one without asking, because saying *build it* was the consent | a person\*, `build`, or `remediate` |
-| [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<cycle id>` | a playbook: brings a pull request up to date with the integration branch when it conflicts or goes red, inside the declared files, then runs `verify` | a person |
+| [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<cycle id>` | brings a pull request up to date with the integration branch when it conflicts or goes red, inside the declared files, and records fresh evidence; `remediate` verifies | `remediate`, or a person |
 | **Reading and deciding** | | | |
 | [`status`](../../skills/README.md#status) | `[<cycle id>] [intent\|spec\|plan]` | where a cycle stands, and the next command | anyone |
 | [`constraints`](../../skills/README.md#constraints) | `[intent\|spec\|plan\|diff\|verify]` | the rules in force, all tiers resolved | every stage skill, first |

@@ -192,10 +192,11 @@ request is how the person accepts what the report says; asking for a change send
 same pull request.
 
 **The loop is a playbook's, not a stage's** (D-188). `intent`, `spec` and `plan` each write their document and
-nothing else; the playbook that drives them — `to-plan` for all three, and `steer` and `next` the same way — runs
-interrogate, refine, interrogate again until the round is clean, a reader reports a conflict, or the loop is stuck,
-then reports and hands back. **A playbook orchestrates and does no stage work; a single-responsibility skill does one
-job and starts no other skill** (D-186).
+nothing else; the playbook that drives them — `to-plan` for all three, after `steer` when a person said what should
+change, and `next` through `to-plan` — runs interrogate, refine, interrogate again until the round is clean, a
+reader reports a conflict, or the loop is stuck, then reports and hands back. **A playbook composes other skills and
+does no stage work; a single-responsibility skill does one job and starts no other skill; the kind is what a skill
+does, never who starts it** (D-186).
 
 A stage will not run until the artifact before it has an interrogation round with no open blocking
 findings (§5.4).
@@ -250,9 +251,11 @@ after a merge reaches the integration branch.
 ### 3.2 Steering a cycle that is already underway
 
 `steer <id> "comment"` interviews, records the decision in the intent's `Fixed decisions` with
-attribution, and carries the change down the chain — updating and re-interrogating the spec, and the
-plan when one exists. It requires an intent, edits rather than regenerates, reports what changed, and
-refuses on an approved cycle until a reopen is recorded (D-17).
+attribution, and carries the change down the chain — updating the spec, and the plan when one exists. It
+requires an intent, edits rather than regenerates, reports what changed and the highest document it edited,
+and refuses on an approved cycle until a reopen is recorded (D-17). **Checking again is `to-plan`'s**: a person
+says the correction and `to-plan` runs `steer`, then the loop from the highest document edited down, so steering
+stays one sentence (D-186).
 
 **Before the spec, the person is still writing the intent** (D-141): nothing derives from it yet, so a correction
 in words may add, drop or reword a wanted outcome as well as settle how — never replace the problem.
@@ -262,8 +265,8 @@ named by its id, may be taken in or declined**, several in one run, and with onl
 part of the request is a finding id. A suggestion taken in sharpens a wanted outcome the intent already
 holds — written beneath it, in the person's words — and a declined one is a fixed decision, each
 attributed and naming the finding. One that would add an outcome or widen one is a successor, and an
-outcome of its own carrying `taking in` is refused by the intent's shape (D-128); the intent, spec and plan
-hand-backs each ask once which to take in — from a file grouping every open suggestion by theme, answered
+outcome of its own carrying `taking in` is refused by the intent's shape (D-128); `to-plan`'s hand-back asks
+once which to take in — from a file grouping every open suggestion by theme, answered
 in free text and read back as finding ids before anything is written (D-114). A comment that changes the
 problem is a different intent, and a new outcome nobody raised is a new cycle (D-97).
 
@@ -2322,10 +2325,11 @@ It never names a step the build's queue would refuse.
 
 ## 15. Skills
 
-**Two kinds** (D-186). A **playbook** is a step a person says, or the factory runs: it orchestrates by naming the
-skills it runs and does no stage work of its own, and it may run another playbook. A **single-responsibility skill**
-does one job and starts no other skill. [`skills/README.md`](skills/README.md) carries each skill's kind, and the suite
-holds that every skill has one and every skill a playbook names exists.
+**Two kinds** (D-186), decided by what a skill does and never by who starts it. A **playbook** composes: it runs
+other skills, written in bold code where it runs them, does no stage work of its own, and may run another playbook,
+never looping back. A **single-responsibility skill** does one job — one kind of output — and starts no other skill.
+[`skills/README.md`](skills/README.md) carries each skill's kind, and the suite holds that every skill has one, that a
+playbook's steps and its row agree both ways, that a single skill runs nothing, and that nothing loops.
 
 | Skill | Kind | Does |
 |---|---|---|
@@ -2333,16 +2337,16 @@ holds that every skill has one and every skill a playbook names exists.
 | `intent` | single | slices a request into atomic cycles and interviews a person into each intent; writes `intent.md` and nothing else — D-188 |
 | `spec` | single | derives testable criteria from the intent; writes `spec.md` and nothing else — D-188 |
 | `plan` | single | reads the spec and the existing code; writes `plan.md` and nothing else — D-188 |
-| `to-plan` | playbook | takes an intent to a plan — one cycle, or every one this branch carries: the intent's loop if it is not clean, then `spec` and its loop, then `plan` and its loop, picking up where each stopped, and hands back once with the approvals drafted — D-142, D-158, D-188 |
+| `to-plan` | playbook | takes an intent to a plan — one cycle, or every one this branch carries: `steer` first when a person said what should change, the intent's loop if it is not clean, then `spec` and its loop, then `plan` and its loop, picking up where each stopped, and hands back once with the approvals drafted — D-142, D-158, D-186, D-188 |
 | `next` | playbook | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox through the same steps, and stops at the approvals — D-147 |
-| `steer` | playbook | carries a correction down the chain from an existing intent, editing each document and running its loop again — §3.2 |
+| `steer` | single | writes a correction into the chain from an existing intent, editing each document it reaches; `to-plan` runs it and checks again from the highest document edited — §3.2, D-186 |
 | `interrogate` | single | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | single | applies an artifact's findings to that artifact |
 | `build` | playbook | *build it*: in a person's session, checks the gate, runs `sdlc build [<id>]` and hands back what it prints. Unattended — its own process, and the factory — for the cycle named or every queued one: `implement`, `verify`, `remediate` while it converges, the pull request, the report — D-178, D-187 |
 | `implement` | single | changes code and tests to do what it is handed — the plan, a verification's findings, or a person's instruction; records deviations and choices; builds, tests, commits, records the evidence — D-187 |
 | `verify` | single | adjudicates the build against the spec from evidence alone |
-| `remediate` | playbook | *fix it*: a blocked verdict, an escalation with the person's instruction, or a passed cycle with a change they asked for — `implement`, `verify`, again while it converges, within D-179's limits, then the pull request updated and the report — D-159, D-179, D-181, D-185 |
-| `resolve-conflict` | playbook | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in a fresh verify — D-86 |
+| `remediate` | playbook | *fix it*: a blocked verdict, an escalation with the person's instruction, a passed cycle with a change they asked for, or a pull request that conflicts — `resolve-conflict` first on a conflict, then `implement`, `verify`, again while it converges, within D-179's limits, then the pull request updated and the report — D-159, D-179, D-181, D-185, D-186 |
+| `resolve-conflict` | single | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in fresh evidence; `remediate` runs it and verifies — D-86, D-186 |
 | `pr` | single | pushes the cycle's branch, opens the pull request into the integration branch led by the report, links the work item; the build opens its own, so a person uses this by hand, with `--plan` to admit an approved plan for the factory, or `--draft` for a build that did not pass — D-85, D-178 |
 | `draft` | single | prints a protected file's entry for a person to place — §5.3 |
 | `propose` | single | reads the record and proposes what it is missing — a `LOC_` rule from the findings, a decision from approved cycles, or a theme's roles — with the evidence — D-69, D-70, D-71 |
@@ -2392,12 +2396,12 @@ mechanical rather than promised.
 | `build` | the gate satisfied, and the plan admitted — or only in a sandbox, which `sdlc build` admits itself (D-184); unattended, a queued cycle (§10.1) | the gate refuses; admission refuses; the build's process cannot start; unattended, a cycle held back by a branch on the remote is not built, and the sitrep says why | through `sdlc build`, in a process of its own: what `implement`, `verify` and `remediate` write, the pull request, and the report it hands back (D-178, D-187) |
 | `implement` | an approved plan on the build's branch; or a verification's findings, or a person's instruction, handed by a playbook | the gate refuses; uncommitted work that is not its own | code, tests, `deviations.md`, evidence (D-187) |
 | `verify` | evidence exists | no evidence | `verify.md` |
-| `remediate` | verify blocked; or escalated, with the person's instruction; or passed, with a change the person asked for before the merge (D-185) | nothing to fix and nothing asked; a second stop, or three deviations at one place, escalates it (D-179) | code, tests and `deviations.md`, in the build's worktree (`sdlc branch <id> remediate`) |
+| `remediate` | verify blocked; or escalated, with the person's instruction; or passed, with a change the person asked for before the merge, or a pull request that conflicts (D-185, D-186) | nothing to fix and nothing asked; a second stop, or three deviations at one place, escalates it (D-179) | code, tests and `deviations.md`, in the build's worktree (`sdlc branch <id> remediate`) |
 | `pr` | verify passed; with `--plan`, the gate satisfied; with `--draft`, verify blocked or escalated | not passed; escalated — except as `--draft`; the chain broken | push, pull request |
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
 | `constraints` | nothing | nothing | nothing; it prints |
 | `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69). With `--renumber`, the cycle's suggestions ledger: each id recorded twice takes the next free one (D-171) |
-| `resolve-conflict` | a cycle whose pull request conflicts with the integration branch or went red after another merge | a resolution needing a file the plan never declared — a change of plan, handed back; or two settings carry one key with different values | the cycle's declared files, its evidence and its verify (D-86) |
+| `resolve-conflict` | a cycle whose pull request conflicts with the integration branch or went red after another merge | a resolution needing a file the plan never declared — a change of plan, handed back; or two settings carry one key with different values | the cycle's declared files and its evidence, with the old verify removed; the fresh verify is `remediate`'s (D-86, D-186) |
 | `mine` | nothing; on a cycle's branch, a passing verify | a draft left beside its file when recording; on a cycle's branch, no passing verify — the skill stops (D-111) | nothing that binds: the report, drafts for a person to rename, and with `record` the mining ledger (D-152) |
 | `propose` | nothing | nothing; an unreadable rule file, decision record or theme is reported rather than worked around | nothing that binds; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
 
@@ -6928,7 +6932,7 @@ decision about the product, not the change.
 **Why the forward pull request is opened by the cycle.** The next release is cut from `development`, so a
 fix that reached only the release branch ships its bug again. A list of fixes awaiting a forward port is
 a list people learn to stop reading. A clean cherry-pick is checked by build and tests, as a clean merge
-is; one that conflicts goes through `resolve-conflict`, which ends in a fresh verify — because the record
+is; one that conflicts goes through *fix it* — `resolve-conflict`, then a fresh verify (D-186) — because the record
 it carries verified the release's code, not `development`'s.
 
 **Rejected.**
@@ -7534,7 +7538,8 @@ its refusal still apply.
 
 **Decision.** `intent`, `spec` and `plan` each write their document and nothing else. The interrogate → refine →
 interrogate loop is the playbook's that drives them: `to-plan` runs the intent's loop when it is not clean, then `spec`
-and its loop, then `plan` and its loop, and hands back once; `steer` and `next` run loops through the same steps.
+and its loop, then `plan` and its loop, and hands back once; `next` runs them through `to-plan`, and a correction
+reaches them through `to-plan` too, which runs `steer` first and then the loop (D-186).
 `intent` keeps the slicing and the interview, because turning a request into intents is one job. The exits are
 unchanged (§6.4): clean, a reader reporting a conflict, or the oscillation counter calling it stuck (D-65).
 
@@ -7590,22 +7595,42 @@ at which every solution moves to the new ones.
 
 **Governs:** §3, §15
 
-**Decision.** A **playbook** is a step a person says, or the factory runs: it orchestrates by naming the skills it
-runs, does no stage work of its own, and may run another playbook. A **single-responsibility skill** does one job and
-starts no other skill. Playbooks: `to-plan`, `build`, `remediate`, `steer`, `next`, `resolve-conflict`.
-Single: `init`, `intent`, `spec`, `plan`, `implement`, `interrogate`, `refine`, `verify`, `pr`, `draft`, `status`,
-`constraints`, `suggestions`, `propose`, `mine`. Where it is held: this decision; the kinds in §15 and in
-`skills/README.md`, each skill's row; AGENTS.md, as how the skills are written; and the suite, which holds that every
-skill declares a kind and that every skill a playbook names exists.
+**Decision.** A skill's kind is decided by what it does, never by who starts it, and it is one kind or the other,
+never both. A **single-responsibility skill** does one job — one kind of output: a document written, edited or
+judged, the code changed, the pull request opened — and starts no other skill. A **playbook** composes: it runs
+other skills, in order, and does no stage work of its own; it may run another playbook, and what runs what never
+loops back. A person may start either kind, and a skill only ever run by another is always single. **A job that
+grows a second output is split**: the second becomes a single skill of its own, and a playbook runs both. Playbooks:
+`to-plan`, `build`, `remediate`, `next`. Single: `init`, `intent`, `spec`, `plan`, `steer`, `implement`,
+`interrogate`, `refine`, `verify`, `resolve-conflict`, `pr`, `draft`, `status`, `constraints`, `suggestions`,
+`propose`, `mine`. **A playbook writes a skill it runs in bold code** — **`verify`** — where it runs it; plain code
+is a mention, such as a route or a hand-back's offer.
+
+- **`steer`** writes a person's correction into the documents and hands back; checking them again is `to-plan`'s
+  loop, from the highest document edited. `to-plan` takes a correction in words or suggestions by id and runs
+  `steer` first, so steering stays a sentence (D-182).
+- **`resolve-conflict`** brings the integration branch in and records fresh evidence, and pushes nothing; the fresh
+  verify and the pull request's update are `remediate`'s, which has a fourth way in — a pull request that
+  conflicts or went red after another merge — and runs `resolve-conflict` as its first pass (D-185).
+
+Where it is held: this decision; the kinds in §15 and in `skills/README.md`, each skill's row; AGENTS.md, as how the
+skills are written; and the suite, which holds that every skill declares a kind and a playbook runs at least one
+skill, that a playbook's bold-code steps and its row name the same skills in both directions, that a single skill
+writes no other skill in bold code, and that what runs what never loops back.
 
 **Why.** A skill holding two contexts is read whole by an agent that needs half of it, and its halves drift: the build
 skill carried a person's playbook and the build's own work in one file, and the stage skills each carried the same
 loop. One job per skill keeps each the keeper of its responsibility, and a playbook that names what it runs rather than
-restating it is the one place the order lives.
+restating it is the one place the order lives. Deciding the kind by who starts a skill mixed two questions: `steer`
+and `resolve-conflict` were called playbooks because a person says them, while each did a job of its own and then
+ran the checking after it — the two-job shape this rule removes.
 
 **Rejected.** *A rule in `CONSTRAINTS.md`*: a constraint judges what a governed solution writes, and this is how the
-framework's own skills are written. *A test that a single skill names no other skill*: a hand-back offering the next
-step names one legitimately, so no test can read the difference between naming and running; a reviewer reads it.
+framework's own skills are written. *The kind decided by who starts a skill* — a person's step a playbook, the rest
+single: `intent`, `status` and `mine` are a person's steps and do one job, and `steer` did two under the playbook
+name. *A test reading verbs* — "run `verify`" — *for whether a skill runs another*: the skills say it a dozen ways,
+and the bold-code convention is one the playbooks already kept. *`steer` keeping the loop because a correction is one
+sentence*: `to-plan` taking the correction keeps it one sentence without a second copy of the loop.
 
 ### D-185 — Remediation has three ways in: blocked, escalated with a person's instruction, and passed with a change asked for
 
@@ -7613,6 +7638,9 @@ step names one legitimately, so no test can read the difference between naming a
 
 **Amends D-161:** `sdlc evidence` retires a passed verdict too, with `--retire-pass`. **Amends D-179 and D-181:** the
 escalation and the change they promise a person now have a way in.
+
+**Amended by D-186:** a fourth way in — a pull request that conflicts with the integration branch, or went red after
+another merge — whose first pass is `resolve-conflict` rather than `implement`.
 
 **Decision.**
 

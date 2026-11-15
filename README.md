@@ -153,9 +153,10 @@ pull request, and **merging is where you accept it**. To change anything in it, 
 deviation 2: use X instead* — and the agent changes the code, verifies again, and updates the same pull request.
 If the build escalates instead, its pull request is a draft: say what to do, then *fix it*.
 
-**Each step a person says is a playbook** (D-186): it runs skills that each do one job — `implement` writes the
-code, `verify` judges it, `remediate` goes round them, `pr` opens the pull request — and does no stage work
-itself. [`skills/README.md`](skills/README.md) has the table.
+**Skills compose** (D-186). A step that takes several jobs — *take it to plan*, *build it*, *fix it* — is a
+playbook: it runs skills that each do one job — `implement` writes the code, `verify` judges it, `pr` opens the
+pull request — and does no stage work itself. A step that is one job, like beginning an intent, is a single skill.
+[`skills/README.md`](skills/README.md) has the table.
 
 **The binary starts every process** (D-183) — each reader, the verification, the build's own — with its tools
 named and the host's permission checks left on. No skill launches one itself, so nothing a cycle runs needs a
@@ -186,8 +187,8 @@ documents together, immediately before the build. A team may declare that no app
 `approval: none` in `solution.md`, which only a person writes; every other check stays
 ([running a cycle](docs/guides/running-a-cycle.md), under *Running without approvals*).
 
-**Two loops, one on each side of that gate, and neither is open-ended.** `/sdlc:steer` carries a correction
-down the chain before you approve, editing the intent, spec and plan rather than regenerating them; it changes
+**Two loops, one on each side of that gate, and neither is open-ended.** A correction said before you approve
+is carried down the chain by `/sdlc:steer`, which `to-plan` runs, editing the intent, spec and plan rather than regenerating them; it changes
 **how, not what**, and a correction that changes the problem is a different cycle. `/sdlc:remediate` fixes code
 and tests against a verification that blocked, and runs **while each pass reduces what is open** — the bound is
 on progress, not on passes (D-66), with one deviation allowed before it escalates (D-179), which is the only
@@ -206,7 +207,7 @@ cycles and which only fixtures.
 | **Slicing** | A large piece of work becomes one sprawling pull request nobody can review | Before any cycle opens, `intent` proposes cutting the work into pieces that can each be built and merged on their own. A piece that needs another's code waits as a *successor* and reports itself ready when that code merges |
 | **Spec with cases** | *Done* is vague, so edge cases get argued at review — after the code exists | Every criterion can fail, and lists the cases it covers. The list closes the criterion: a listed case left unmet blocks, and a case nobody listed can only be a suggestion later |
 | **Plan with proofs** | Tests pass and prove nothing about what was asked | The plan names the test that proves each criterion and says what files it will touch. Where it rests on how a platform behaves, a throwaway *probe* makes that behaviour happen first, and the plan quotes what it showed |
-| **Steer** | Correcting direction halfway means regenerating the documents and losing what was settled | `/sdlc:steer` carries a correction down the chain, editing the intent, spec and plan rather than rewriting them, and has everything downstream of the edit read again |
+| **Steer** | Correcting direction halfway means regenerating the documents and losing what was settled | `/sdlc:steer` carries a correction down the chain, editing the intent, spec and plan rather than rewriting them, and `/sdlc:to-plan`, which runs it, has everything downstream of the edit read again |
 
 ### Challenging it
 

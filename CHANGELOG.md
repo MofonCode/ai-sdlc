@@ -58,10 +58,14 @@ instruction after an escalation, reach remediate: `sdlc cycles --here --for reme
 `sdlc evidence --retire-pass` retires a pass a person asked to change. The panel sends a blocked cycle to
 remediate. A deviation never narrows a criterion: one the code cannot meet escalates (D-179).
 
-**Every skill is a playbook or does one job, and building has one name** (D-186..D-188). A **playbook** is a step a
-person says, or the factory runs: it names the skills it runs and does no stage work itself — `to-plan`, `next`,
-`steer`, `build`, `remediate`, `resolve-conflict`. Every other skill does one job and starts no other. The skills
-index declares each one's kind in a table the suite holds, and AGENTS.md states the rule. **`build` is the one
+**Every skill is a playbook or does one job, and building has one name** (D-186..D-188). The kind is what a skill
+does, never who starts it. A **playbook** composes: it runs other skills and does no stage work itself — `to-plan`,
+`next`, `build`, `remediate` — and what runs what never loops back. Every other skill does one job, one kind of
+output, and starts no other. **`steer` and `resolve-conflict` are single skills now**: `steer` writes a correction
+and `to-plan` checks again after it — `/sdlc:to-plan <id> "what to change"`, or just saying it, is how a person
+steers — and `resolve-conflict` resolves and records evidence, pushing nothing, while *fix it* (`remediate`) runs it
+first on a pull request that conflicts, then verifies and updates the pull request. The skills index declares each
+one's kind in a table the suite holds, with four tests, and AGENTS.md states the rule. **`build` is the one
 name for building**: given an id it builds that cycle, given none every approved one, and with `--unattended` it is
 the build's own process and the factory's run. `batch-build` and `sdlc build-run` are gone, with no alias: `sdlc
 build [<id>]` starts the build, and is the one stage name the binary runs rather than answers. **`implement`** is a

@@ -219,21 +219,31 @@ protected file's name -- *Move techstack.md into place* -- is refused too: pass 
 
 ## Skills: playbooks and single-responsibility skills
 
-**Every skill is one of two kinds** (D-186), and a new one is either or it is not finished:
+**Every skill is one of two kinds** (D-186), decided by what it does and never by who starts it, and a new one is
+one or the other — never both — or it is not finished. It is single responsibility and composition:
 
-- **A playbook** is a step a person says, or the factory runs. It orchestrates — it names the skills it runs, in
-  order — and **does no stage work itself**: no code, no document written, no verdict. A playbook may run another
-  playbook.
-- **A single-responsibility skill** does one job — writes one document, judges one, changes the code, opens the
-  pull request — and **starts no other skill**. It hands back to whatever ran it.
+- **A single-responsibility skill** does one job — **one kind of output**: a document written, edited or judged,
+  the code changed, the pull request opened — and **starts no other skill**. It hands back to whatever ran it. A
+  person may start one directly; a skill only ever run by another is always one.
+- **A playbook** composes: it runs other skills, in order, and **does no stage work itself** — no code, no document
+  written, no verdict. A playbook may run another playbook, and **what runs what never loops back**.
+
+**A job that grows a second output is split**: the second becomes a single skill of its own, or goes to one that
+exists, and a playbook runs both. `steer` and `resolve-conflict` showed it — each did its job and then ran the
+checking after it — so that checking moved to `to-plan` and `remediate`, which run them.
+
+**How a skill is named in a skill's text.** A playbook writes a skill it runs in bold code — **`verify`** — where it
+runs it. Plain code is a mention: a route, or a hand-back's offer of the next step. A single skill never writes
+another skill in bold code.
 
 **Why.** One job per skill keeps each one readable and replaceable, and keeps the orchestration in one place
 instead of copied into every stage. The loop is the case that showed it: written into each stage skill (D-29), it
 was three copies of one procedure drifting apart; it is `to-plan`'s now (D-188).
 
 **Where it is held.** The table under *Two kinds of skill* in [`skills/README.md`](skills/README.md) declares each
-skill's kind and the skills each playbook runs, and two tests in `tests/Sdlc.Tests/PluginTests.cs` hold it: every
-skill on disk has a kind, and every skill a playbook runs exists and is named in the playbook. **Whether a single
+skill's kind and the skills each playbook runs, and four tests in `tests/Sdlc.Tests/PluginTests.cs` hold it: every
+skill on disk has a kind and a playbook runs at least one skill; a playbook's bold-code steps and its row name the
+same skills, both ways; a single skill writes no other skill in bold code; and what runs what never loops back. **Whether a single
 skill quietly does two jobs, or a playbook does stage work of its own, no test can read** — that is a reviewer's
 question, and the one to ask of every change to a skill.
 

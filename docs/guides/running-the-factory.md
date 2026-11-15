@@ -104,12 +104,13 @@ The same page the run published, against the state now. In the order it lists:
 **When a pull request conflicts, or goes red after an earlier merge:**
 
 ```
-/sdlc:resolve-conflict <id>
+/sdlc:remediate <id>
 ```
 
-It merges `development` into the cycle's branch, resolves inside the files the plan declared — or hands back
-when it would need one the plan never named, because that is a change of plan — then rebuilds, records fresh
-evidence and verifies again in a fresh process. It never merges the pull request.
+*Fix it* runs `resolve-conflict` first: it merges `development` into the cycle's branch, resolves inside the files
+the plan declared — or hands back when it would need one the plan never named, because that is a change of plan —
+then rebuilds and records fresh evidence. Remediate then verifies again in a fresh process, goes round while that
+converges, and updates the pull request. Nothing merges it but a person.
 
 **Every open pull request is re-checked when another merges**, if the policy's build expiration is
 *Immediately* — the adoption guide sets out the cheaper settings. That is what catches two pull requests

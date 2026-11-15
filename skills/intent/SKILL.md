@@ -138,7 +138,7 @@ scoping decision, exactly as at §0, and nothing is cut unattended.
 **Refuse first**, naming each cycle that fails and what to do instead:
 
 - **It has a spec.** Something already derives from its intent, and cutting it would throw that away.
-  The move is `/sdlc:steer <id>`, which carries a change down instead.
+  The move is `/sdlc:to-plan <id>` with what should change, which carries it down instead.
 - **It is approved or abandoned**, or **does not exist**. Say which.
 
 **1. Read every named intent whole**, with its rounds' open suggestions — `sdlc suggestions <id>` — and

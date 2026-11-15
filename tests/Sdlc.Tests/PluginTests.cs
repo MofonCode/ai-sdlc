@@ -684,9 +684,10 @@ public sealed class PluginTests
     [TestMethod]
     public void Every_skill_declares_whether_it_is_a_playbook_or_does_one_job()
     {
-        // D-186. A playbook orchestrates and does no stage work; a single-responsibility skill does one job and
-        // starts no other skill. The kind is declared once, in the index's table, so a skill added without one
-        // fails here rather than arriving as a third kind nobody chose.
+        // D-186. A playbook composes other skills and does no stage work; a single-responsibility skill does one job
+        // and starts no other skill. The kind is declared once, in the index's table, so a skill added without one
+        // fails here rather than arriving as a third kind nobody chose -- and a playbook that runs nothing is a
+        // single skill under the wrong name.
         Dictionary<string, (string Kind, string Runs)> kinds = Kinds();
         HashSet<string> disk = [.. Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!)];
 
@@ -703,24 +704,87 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_skill_a_playbook_runs_exists_and_the_playbook_names_it()
+    public void What_a_playbook_runs_and_its_row_in_the_kinds_table_agree_in_both_directions()
     {
-        // D-186. A playbook delegates by naming the skill whose step it runs rather than restating it, so a skill
-        // it names has to exist, and the playbook's own text has to name it -- a Runs cell the playbook never acts
-        // on is a claim nobody checked. Whether a single skill quietly does two jobs is a reader's call, not this
-        // test's: AGENTS.md says so.
+        // D-186. A playbook writes a skill it runs in bold code -- **`verify`** -- where it runs it, and a skill it
+        // only mentions in plain code. So its text and its Runs cell can be compared both ways: a Runs cell the
+        // playbook never acts on is a claim nobody checked, and a step its text runs that the table leaves out is
+        // a composition nobody can see from the index.
         foreach ((string name, (string kind, string runs)) in Kinds().Where(entry => entry.Value.Kind == "playbook"))
         {
-            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+            string[] declared = [.. RunsCell(runs)];
 
-            foreach (string run in System.Text.RegularExpressions.Regex.Matches(runs, "`(?<name>[a-z-]+)`").Select(match => match.Groups["name"].Value))
+            foreach (string run in declared)
             {
                 Assert.IsTrue(
                     Directory.Exists(Path.Combine(Root, "skills", run)),
                     $"{name} runs '{run}', and there is no such skill.");
-                StringAssert.Contains(text, "`" + run + "`", $"{name} is declared to run '{run}' and never names it.");
+            }
+
+            CollectionAssert.AreEquivalent(
+                declared.Order(StringComparer.Ordinal).ToArray(),
+                SkillsRunIn(name).Order(StringComparer.Ordinal).ToArray(),
+                $"{name}: the skills its text runs, in bold code, and its Runs cell in the kinds table differ.");
+        }
+    }
+
+    [TestMethod]
+    public void A_single_responsibility_skill_runs_no_other_skill()
+    {
+        // D-186. A single skill does one job and hands back to whatever ran it; a step that runs another skill is
+        // a second job, and belongs to a playbook. It may still mention another skill in plain code -- a route, a
+        // hand-back's offer -- because naming where a person goes next is not running it. Whether a single skill
+        // does two jobs in its own words no test can read: a reviewer does, as AGENTS.md says.
+        foreach ((string name, _) in Kinds().Where(entry => entry.Value.Kind == "single"))
+        {
+            string[] runs = [.. SkillsRunIn(name)];
+
+            Assert.AreEqual(0, runs.Length, $"{name} is a single skill and runs {string.Join(", ", runs)}: move that step to a playbook.");
+        }
+    }
+
+    [TestMethod]
+    public void What_runs_what_never_loops_back()
+    {
+        // D-186. A playbook may run another playbook, so the skills form a graph; one that reached itself would
+        // never hand back. `sdlc build` starting the build playbook again in a process of its own is the binary
+        // starting a process, not a skill running a skill, so it is no edge here.
+        var edges = Kinds().ToDictionary(entry => entry.Key, entry => RunsCell(entry.Value.Runs).ToArray(), StringComparer.Ordinal);
+
+        foreach (string start in edges.Keys)
+        {
+            Stack<(string Skill, string Path)> pending = new([(start, start)]);
+            HashSet<string> seen = new(StringComparer.Ordinal);
+
+            while (pending.TryPop(out (string Skill, string Path) at))
+            {
+                foreach (string next in edges.GetValueOrDefault(at.Skill, []))
+                {
+                    Assert.AreNotEqual(start, next, $"What runs what loops back: {at.Path} -> {next}.");
+
+                    if (seen.Add(next))
+                    {
+                        pending.Push((next, at.Path + " -> " + next));
+                    }
+                }
             }
         }
+    }
+
+    // The skills a Runs cell names; none for a single skill's dash.
+    private static IEnumerable<string> RunsCell(string runs) =>
+        System.Text.RegularExpressions.Regex.Matches(runs, "`(?<name>[a-z-]+)`").Select(match => match.Groups["name"].Value);
+
+    // The other skills a skill's text runs: each written in bold code, as a playbook writes a step.
+    private static IEnumerable<string> SkillsRunIn(string name)
+    {
+        HashSet<string> skills = [.. Directory.GetDirectories(Path.Combine(Root, "skills")).Select(path => Path.GetFileName(path))];
+        string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+        return System.Text.RegularExpressions.Regex.Matches(text, @"\*\*`(?:/sdlc:)?(?<name>[a-z-]+)`\*\*")
+            .Select(match => match.Groups["name"].Value)
+            .Where(run => run != name && skills.Contains(run))
+            .Distinct(StringComparer.Ordinal);
     }
 
     // Each row of the kinds table in skills/README.md: the skill, its kind, and the skills it runs.

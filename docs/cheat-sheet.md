@@ -14,7 +14,7 @@ Each step can be said in a sentence; the slash form is there if you prefer it. E
 the next one.
 
 1. **Begin an intent** — say what you want to add, fix or change, or `/sdlc:intent`. It slices bigger work into atomic cycles once you accept, then interviews you one question at a time
-2. **Take it to plan** — *take it to plan*, or `/sdlc:to-plan`. Spec, then plan, each checked by its own readers, and one hand-back. **Read the plan closely**; to have it otherwise, *in that plan, make it … instead* (`/sdlc:steer`)
+2. **Take it to plan** — *take it to plan*, or `/sdlc:to-plan`. Spec, then plan, each checked by its own readers, and one hand-back. **Read the plan closely**; to have it otherwise, *in that plan, make it … instead* (`/sdlc:to-plan` runs `steer`, then checks again)
 3. **Approve** — it drafts the approval; read it and **rename it into place yourself**. That rename is the approval, skipped when the solution declares `approval: none`
 4. **Build it** — *build it*, or `/sdlc:build`. In a process of its own: builds, verifies, fixes what it can, opens the pull request, and reports every deviation, choice and concern
 5. **Review the pull request** — merging accepts it, report and all; to change anything, say what instead (`/sdlc:remediate`), and the same pull request updates

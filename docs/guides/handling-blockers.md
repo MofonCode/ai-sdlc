@@ -38,7 +38,7 @@ blocker that could be waived would be waived exactly when it mattered.
 
 | Loop | Judges | Blocker | Answered by |
 |---|---|---|---|
-| interrogate, then refine — run by `to-plan`, and by `steer` | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
+| interrogate, then refine — run by `to-plan`, including after a correction | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
 | verify, then remediate — verify run by a green build, then by remediate after each pass | the build, from its recorded evidence, against the spec | a `blocked` verification | `remediate`, which edits source and tests — say *fix it* |
 
 **The two editors have opposite guards, and the asymmetry is the whole design.** Refine edits a
@@ -72,7 +72,7 @@ you see the list when you approve (D-132).
 
 **`/sdlc:to-plan` runs this loop for you** (D-188): on the intent, then on the spec and the plan it has `spec`
 and `plan` write, it interrogates, refines and repeats until a round raises nothing blocking, then hands back.
-`/sdlc:steer` runs the same loop on whatever it edited. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
+A correction goes through `to-plan` too: it has `steer` write it in, then runs the same loop from the highest document that moved. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
 when a refusal elsewhere names one.
 
 ### What it stops
@@ -162,14 +162,14 @@ longer exists, with every approval hash still matching. The gate refuses it.
 Do not edit the documents by hand, and do not refine around a problem you have changed your mind about.
 
 ```
-/sdlc:steer <id> "what to change"
+/sdlc:to-plan <id> "what to change"
 ```
 
-Steer carries the correction down the chain — editing the intent, spec and plan rather than regenerating
-them — records it with your name on it, and re-interrogates everything downstream of what it touched,
-which is what keeps rounds from going stale. **Steering changes *how*, not *what*.** A correction that
+`to-plan` has `steer` carry the correction down the chain — editing the intent, spec and plan rather than
+regenerating them, with your name on it — then checks everything downstream of what it touched again, which
+is what keeps rounds from going stale. **Steering changes *how*, not *what*.** A correction that
 changes the problem is a different cycle, and the skill says so and offers one. The exception is a
-suggestion a reader raised: name its id — `/sdlc:steer <id> accessibility.S_01 security.S_02` — to take
+suggestion a reader raised: name its id — `/sdlc:to-plan <id> accessibility.S_01 security.S_02` — to take
 it into the intent with your name on it, or to decline it. Name every one you want in the same run.
 
 ### After approval

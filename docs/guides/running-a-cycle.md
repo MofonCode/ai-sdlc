@@ -14,7 +14,7 @@ the cheat sheet, `../cheat-sheet.md`, is this same walk as one line per step.
 | | Say | Or type |
 |---|---|---|
 | 1 | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
-| 2 | *take it to plan* — and, reading the plan, *make it … instead* if you want it otherwise | `/sdlc:to-plan`, `/sdlc:steer` |
+| 2 | *take it to plan* — and, reading the plan, *make it … instead* if you want it otherwise | `/sdlc:to-plan` |
 | 3 | — you rename the approval it drafted | — |
 | 4 | *build it* | `/sdlc:build` |
 | 5 | merge the pull request to accept it — or say what to change | `/sdlc:remediate` |
@@ -101,14 +101,14 @@ successor instead, because every outcome you add is more the spec and plan must 
 
 ### Have it otherwise: steer
 
-At any point before you approve, tell it what should be different, or `/sdlc:steer`:
+At any point before you approve, tell it what should be different, or `/sdlc:to-plan` with your words:
 
 ```
-/sdlc:steer "use the existing cache abstraction rather than a new one"
+/sdlc:to-plan "use the existing cache abstraction rather than a new one"
 ```
 
-It edits the intent, spec and plan rather than regenerating them, records the correction with your name on
-it, and checks again from the highest document it touched down. **Once a spec exists, steering changes
+Or just say it. `steer` edits the intent, spec and plan rather than regenerating them and records the
+correction with your name on it; then `to-plan` checks again from the highest document it touched down. **Once a spec exists, steering changes
 *how*, not *what*** — a correction that changes the problem is a different cycle, and the skill says so and
 offers one. Before the spec, it may change the intent's outcomes too.
 
@@ -232,8 +232,9 @@ Its pull request is a draft, and the report says what stopped it. **Say what to 
 until it passes or needs you again. When what stopped it is a criterion the code cannot meet, the instruction is a
 reopen: no deviation changes what *done* means (D-179). `handling-blockers.md` has the rest.
 
-**When the next pull request conflicts**, or goes red because an earlier merge broke it,
-`/sdlc:resolve-conflict <id>` brings it up to date inside the cycle's declared files and verifies it again.
+**When the next pull request conflicts**, or goes red because an earlier merge broke it, *fix it*
+(`/sdlc:remediate <id>`): `resolve-conflict` brings it up to date inside the cycle's declared files, then it is
+verified again in a fresh process and the pull request updated.
 
 ## Afterwards
 

@@ -39,7 +39,7 @@ skill's §1 says, and every other opens inside it.
 
 ## 3. Successors: interview each from where the slicing left it
 
-For each ready successor, **follow the `intent` skill with `--from successor:<slug>`**: it fetches the outcome and
+For each ready successor, run **`intent`** with `--from successor:<slug>`: it fetches the outcome and
 why the slicing left, starts the successor in this sandbox, and interviews the person against the code that
 merged. Most of each interview is short. Do not stop at its hand-back, since the run hands back once, in §6; the
 intent is checked in §5, where `to-plan` runs its loop.
@@ -63,7 +63,7 @@ leave by the same admission as the rest.
 
 ## 5. Plan the new intents
 
-Then follow the `to-plan` playbook for this sandbox: every intent this wave opened checked, then its spec and its
+Then run the **`to-plan`** playbook for this sandbox: every intent this wave opened checked, then its spec and its
 plan, one cycle at a time, each with its loop and its `sdlc park` check — **a cycle this wave planned may itself be parked**,
 behind one of its siblings, and that is the next wave forming.
 

@@ -71,10 +71,17 @@ refusal further on, but the two are answered in different places: a refusal in
 
 ## Two kinds of skill
 
-**A playbook** is a step a person says, or the factory runs. It orchestrates: it names the skills it runs, in
-order, and does no stage work itself. **A single-responsibility skill** does one job — writes one document,
-judges one, changes the code, opens the pull request — and starts no other skill. A playbook may run another
-playbook (D-186).
+**Every skill is one of two kinds, decided by what it does and never by who starts it** (D-186). **A
+single-responsibility skill** does one job — one kind of output: a document written, edited or judged, the code
+changed, the pull request opened — and starts no other skill. **A playbook** composes: it runs other skills, in
+order, and does no stage work itself. A playbook may run another playbook, and what runs what never loops back.
+A person may start either kind — `intent`, `status` and `mine` are single skills a person says; `to-plan` and
+`build` are playbooks — and a skill only ever run by another skill is always single.
+
+**A job that grows a second output is split**: the second job becomes a single skill of its own, or an existing
+one, and a playbook runs both. `steer` and `resolve-conflict` are the cases that showed it: each did its job and
+then ran the checking that follows it, so that checking moved to the playbooks that run them — `to-plan` and
+`remediate`.
 
 Why: one job per skill keeps each one readable and replaceable, and the orchestration lives in one place rather
 than copied into every stage. The interrogate-and-refine loop is the clearest case — it used to be a mode of each
@@ -90,22 +97,24 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`next`](#next) | playbook | `intent`, `to-plan` |
 | [`interrogate`](#interrogate) | single | — |
 | [`refine`](#refine) | single | — |
-| [`steer`](#steer) | playbook | `interrogate`, `refine` |
+| [`steer`](#steer) | single | — |
 | [`draft`](#draft) | single | — |
 | [`build`](#build) | playbook | `implement`, `verify`, `remediate`, `pr` |
 | [`implement`](#implement) | single | — |
 | [`verify`](#verify) | single | — |
-| [`remediate`](#remediate) | playbook | `implement`, `verify`, `pr` |
+| [`remediate`](#remediate) | playbook | `resolve-conflict`, `implement`, `verify`, `pr` |
 | [`pr`](#pr) | single | — |
-| [`resolve-conflict`](#resolve-conflict) | playbook | `verify`, `remediate` |
+| [`resolve-conflict`](#resolve-conflict) | single | — |
 | [`status`](#status) | single | — |
 | [`constraints`](#constraints) | single | — |
 | [`suggestions`](#suggestions) | single | — |
 | [`propose`](#propose) | single | — |
 | [`mine`](#mine) | single | — |
 
-The suite holds that every skill on disk is in this table with a kind, and that every skill a playbook runs exists
-and is named in the playbook. Whether a single skill quietly does two jobs no test can read; a reviewer does.
+The suite holds that every skill on disk is in this table with a kind; that a playbook runs at least one skill;
+that what a playbook's text says it runs and its row here name the same skills, in both directions; that a single
+skill's text never tells the agent to run another skill; and that what runs what never loops back. Whether a single
+skill quietly does two jobs no test can read; a reviewer does.
 
 ---
 
@@ -287,7 +296,7 @@ stack and the spec.
 | a placed file is not committed | the sandbox starts from the integration branch as committed, so it lacks the file, and a command there says so | commit it on the integration branch, and open the sandbox again |
 | one working copy was asked for, and anything is uncommitted | `sdlc branch <id> plan` refuses and names the files, because the switch would carry them into the cycle | the skill asks what you want done with them — commit, stash or discard |
 | `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
-| `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:steer <id>`, which carries a change down instead |
+| `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:to-plan <id>` with what should change, which carries it down instead |
 | `--reslice` names a cycle approved, abandoned or missing | refuses on that cycle, saying which | — |
 
 #### Example
@@ -387,8 +396,8 @@ entry ends in exactly one of three places — a criterion, `Out of scope` with a
 |---|---|---|
 | there is no intent | refuses | `/sdlc:intent` |
 | the intent is not clean | refuses | `/sdlc:refine <id> intent`, then a fresh interrogation |
-| a spec already exists | refuses, and never overwrites one | *take it to plan* (`/sdlc:to-plan`), which finishes its check, or `/sdlc:steer` to change it — it names both |
-| the intent is missing something it should have asked for | writes no criterion, and names it in `Out of scope` | `/sdlc:steer <id> <finding id>...` when a reader raised it; a new cycle when nobody did |
+| a spec already exists | refuses, and never overwrites one | *take it to plan* (`/sdlc:to-plan`), which finishes its check, or `/sdlc:to-plan` with what should change — it names both |
+| the intent is missing something it should have asked for | writes no criterion, and names it in `Out of scope` | `/sdlc:to-plan <id> <finding id>...` when a reader raised it; a new cycle when nobody did |
 
 #### Example
 
@@ -463,7 +472,7 @@ confirms each one ran and passed.
 |---|---|---|
 | there is no spec | refuses | `/sdlc:spec <id>` |
 | the spec is not clean | refuses | `/sdlc:refine <id> spec`, then a fresh interrogation |
-| a plan already exists | refuses | *take it to plan* (`/sdlc:to-plan`), which finishes its check, or `/sdlc:steer` to change it — it names both |
+| a plan already exists | refuses | *take it to plan* (`/sdlc:to-plan`), which finishes its check, or `/sdlc:to-plan` with what should change — it names both |
 | the plan would declare one of the seven files only a person writes | never declares one; the schema refuses a plan that does | — |
 
 #### Example
@@ -534,20 +543,22 @@ Takes an intent to a plan — one cycle, or every one this branch carries — ch
 cycle's spec and its plan, and running **the loop** on each, picking a cycle up wherever its planning stopped.
 **The one place the interrogate-and-refine loop lives** (D-188). It hands back once, with every
 panel, one question about suggestions, and the approvals drafted (D-142, D-158). **It is the step a person
-takes after an intent**: they never need to run `spec`, `plan`, `interrogate` or `refine` themselves.
+takes after an intent**: they never need to run `spec`, `plan`, `interrogate` or `refine` themselves. **It is
+also where a correction goes**: given what should change, or suggestions by id, it runs `steer` first and checks
+again from the highest document that moved.
 
 | | |
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | the planning chain, from an intent to a plan a person can approve |
-| Started by | a person happy with their intent, who says *take it to plan* |
+| Started by | a person happy with their intent, who says *take it to plan*; or a person saying what should change in a cycle being planned |
 | Reads | `sdlc cycles --here --for to-plan` for the work, or the cycle named; then what `spec` and `plan` read, per cycle |
 | Writes | what `spec` and `plan` write, for each cycle; one suggestions report under `.sdlc/reports/`; an approval draft for each planned cycle |
 
 #### Syntax
 
 ```
-/sdlc:to-plan [<cycle id>]
+/sdlc:to-plan [<cycle id>] [<finding id>...] ["what to change"]
 ```
 
 #### Parameters
@@ -555,6 +566,8 @@ takes after an intent**: they never need to run `spec`, `plan`, `interrogate` or
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the one cycle to take to plan. Optional: without it, `sdlc cycles --here --for to-plan` lists every cycle this branch carries with an intent, a plan not yet clean and no standing approval, and it takes them all |
+| `<finding id>...` | open suggestions of the cycle to take in or decline, handed to `steer` before the loops run |
+| `"what to change"` | a correction in the person's words, handed to `steer` before the loops run |
 
 #### Output
 
@@ -591,7 +604,7 @@ the same one taken in after the plan; one question across every cycle is the tra
 
 #### See also
 
-- [`spec`](#spec), [`plan`](#plan), [`interrogate`](#interrogate), [`refine`](#refine) — what it runs for each cycle
+- [`spec`](#spec), [`plan`](#plan), [`interrogate`](#interrogate), [`refine`](#refine), [`steer`](#steer) — what it runs for each cycle
 - [`draft`](#draft) — what drafts each approval, which a person places by the rename
 - [`build`](#build) — the same shape for building
 
@@ -669,7 +682,7 @@ round. Never edits.
 |---|---|
 | Kind | single — one job, and it starts no other skill |
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
-| Started by | the loop `to-plan` and `steer` run, or a person |
+| Started by | the loop `to-plan` runs, or a person |
 | Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence — each reader's prompt written by `sdlc round prompt`, every answer read back by `sdlc round collect` |
 | Writes | the next round of `.sdlc/cycles/<id>/findings/<artifact>.json`, the artifact's findings ledger, through `sdlc round` |
 
@@ -771,7 +784,7 @@ judges.
 |---|---|
 | Kind | single — one job, and it starts no other skill |
 | Stage | the loop, after an interrogation round raised blocking findings and while the cycle is not yet approved |
-| Started by | the loop `to-plan` and `steer` run, or a person |
+| Started by | the loop `to-plan` runs, or a person |
 | Reads | the findings, the panel's `Loop` line, and the artifact |
 | Writes | that one planning document |
 
@@ -853,11 +866,11 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 
 | | |
 |---|---|
-| Kind | playbook — it names the skills it runs and does no stage work itself |
+| Kind | single — it writes the correction into the documents, and checking them again is `to-plan`'s loop |
 | Stage | correction, from a written intent until the gate. Before the spec, the person revising their own intent (D-141); after it, a change of *how* carried down |
-| Started by | a person who has changed their mind about *how* a cycle is being done, or the intent, spec or plan hand-back once a person has said which suggestions to take in |
+| Started by | `to-plan`, given a correction or the suggestions a person chose; or a person directly |
 | Reads | the correction, each named finding, and each artifact it reaches |
-| Writes | the intent's `Fixed decisions` and `Wanted outcomes`, each artifact it reaches, and fresh rounds on everything downstream of what it touched |
+| Writes | the intent's `Fixed decisions` and `Wanted outcomes`, and each artifact it reaches. No rounds: those are `to-plan`'s loop |
 
 #### Syntax
 
@@ -870,7 +883,7 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the cycle in progress. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
-| `<finding id>...` | open suggestions from this cycle's latest rounds — `F_03`, `accessibility.F_01` — each to be taken in or declined. Name every one in one run: the chain is re-interrogated once |
+| `<finding id>...` | open suggestions from this cycle's latest rounds — `F_03`, `accessibility.F_01` — each to be taken in or declined. Name every one in one run: the chain is checked again once |
 | `"what to change"` | the correction, in the person's words |
 
 #### Output
@@ -882,8 +895,9 @@ cycle* fixed decision, each naming the finding. A suggestion that would add or w
 declined into a successor that keeps its id (D-128); the next round's reader finds it settled and records it `answered`. Edits rather
 than regenerates — a regenerated artifact has a findings history about a document that no longer exists.
 Usually the spec needs nothing and the plan's `Shape and departures`, `Files` and often `Proof` change.
-The re-interrogation is checked rather than trusted: a round records the hash of the artifact above it,
-so editing the intent makes the spec's latest round stale.
+Checking again is held rather than trusted: a round records the hash of the artifact above it, so editing
+the intent makes the spec's latest round stale, and the gate refuses until `to-plan`'s loop has run again from
+the highest document edited.
 
 #### Refusals
 
@@ -898,11 +912,11 @@ so editing the intent makes the spec's latest round stale.
 #### Example
 
 ```
-/sdlc:steer 20261002_1414_12 "use the existing cache abstraction rather than a new one"
+/sdlc:to-plan 20261002_1414_12 "use the existing cache abstraction rather than a new one"
 ```
 
-Expect a question about why, a new dated and attributed line in the intent's `Fixed decisions`, edits to
-the plan, and fresh rounds on everything below the intent.
+`to-plan` runs `steer`, which asks why, adds a dated and attributed line to the intent's `Fixed decisions` and
+edits the plan; then `to-plan` checks again from the intent down.
 
 #### Remarks
 
@@ -919,11 +933,12 @@ a new cycle, and a raised suggestion may only sharpen an outcome the intent alre
 or widens is a successor (D-128).
 
 One or two questions — what to do instead, and why — then it records the correction, edits each artifact
-it reaches, re-interrogates everything downstream of what it touched, reports one line per artifact, and
-shows `sdlc status <id>` verbatim.
+it reaches, reports one line per artifact and the highest one it edited, and shows `sdlc status <id>` verbatim.
+Run on its own, it offers *take it to plan*, which checks what changed (D-186, D-188).
 
 #### See also
 
+- [`to-plan`](#to-plan) — what runs it, and checks again after it
 - [`intent`](#intent), [`refine`](#refine)
 - [Running a cycle](../docs/guides/running-a-cycle.md)
 
@@ -1203,7 +1218,7 @@ see the build. Never edits code.
 |---|---|
 | Kind | single — one job, and it starts no other skill |
 | Stage | build and verify, after the build has recorded its evidence |
-| Started by | the `build` playbook after `implement`, `remediate` after each pass, `resolve-conflict`, or a person |
+| Started by | the `build` playbook after `implement`, `remediate` after each pass, or a person |
 | Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha`, `build.log` where there is one, and `proof-sources.txt` when a proof lives in code the change did not touch, all in the adjudicator's prompt |
 | Writes | `.sdlc/cycles/<id>/verify.md` |
 
@@ -1278,18 +1293,19 @@ may disagree with the plan — a test that passed but does not reach its criteri
 
 ### `remediate`
 
-**A playbook: *fix it*.** Takes a blocked verification, an escalated cycle with the person's instruction, or a
-change a person asks for at the pull request, in words, and goes round `implement` and `verify` while each pass
+**A playbook: *fix it*.** Takes a blocked verification, an escalated cycle with the person's instruction, a
+change a person asks for at the pull request, in words, or a pull request that conflicts — which `resolve-conflict`
+brings up to date first — and goes round `implement` and `verify` while each pass
 converges. When it stalls it may deviate once, within limits, before it escalates (D-179). Then `pr` updates the
 pull request (D-185, D-187). It changes no code itself.
 
 | | |
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
-| Stage | build and verify, after verify recorded `blocked`; after an escalation, with the person's instruction; or at the pull request, when a person says what to change |
+| Stage | build and verify, after verify recorded `blocked`; after an escalation, with the person's instruction; or at the pull request, when a person says what to change or it conflicts |
 | Started by | the `build` playbook, inside its own process; or a person, with what they want instead |
 | Reads | `sdlc cycles --here --for remediate`, `sdlc pr-ready <id>`, and the verify outcome |
-| Writes | nothing itself: what `implement`, `verify` and `pr` write, in the worktree `sdlc branch <id> remediate` prints |
+| Writes | nothing itself: what `resolve-conflict`, `implement`, `verify` and `pr` write, in the worktree `sdlc branch <id> remediate` prints |
 
 #### Syntax
 
@@ -1436,15 +1452,16 @@ eligible, including one somebody has forgotten.
 ### `resolve-conflict`
 
 Brings one cycle's pull request up to date with the integration branch when it conflicts, or goes red after
-another merge — inside the cycle's declared files, ending in fresh evidence and a fresh verify.
+another merge — inside the cycle's declared files, ending in fresh evidence. The fresh verify is `remediate`'s,
+which runs this first.
 
 | | |
 |---|---|
-| Kind | playbook — it names the skills it runs and does no stage work itself |
+| Kind | single — it resolves and records evidence; the verify and the pull request's update are `remediate`'s |
 | Stage | merging, when a pull request into the integration branch conflicts or its re-check fails |
-| Started by | a person |
+| Started by | `remediate`, when a person says *fix it* on a pull request that conflicts; or a person directly |
 | Reads | the cycle's plan for its declared files, the integration branch, and the failure |
-| Writes | a merge commit on the cycle's branch, fresh evidence, and a fresh verify; pushes the branch |
+| Writes | a merge commit on the cycle's branch, with the old verify removed and fresh evidence recorded, in the worktree `sdlc branch <id> remediate` prints. Pushes nothing |
 
 #### Syntax
 
@@ -1461,8 +1478,8 @@ another merge — inside the cycle's declared files, ending in fresh evidence an
 #### Output
 
 The integration branch merged into the cycle's branch and the conflict resolved, the suite run, the old
-verify removed, fresh evidence recorded and a fresh verify run in its own process, the branch pushed, and a
-report of at most five lines. **It never merges the pull request.**
+verify removed, fresh evidence recorded, and a report of at most five lines. Run on its own, it offers *fix it*,
+which verifies the resolution and updates the pull request. **It never merges the pull request.**
 
 #### Refusals
 
@@ -1478,7 +1495,7 @@ report of at most five lines. **It never merges the pull request.**
 /sdlc:resolve-conflict 20261015_2002_17
 ```
 
-Expect what conflicted, what was kept from each side, and the new verify outcome.
+Expect what conflicted, what was kept from each side, and the offer of *fix it*.
 
 #### Remarks
 
@@ -1486,7 +1503,7 @@ Expect what conflicted, what was kept from each side, and the new verify outcome
 passed is void; what proves nothing regressed is the suite and a fresh verify against the spec. That is
 what answers the old reason this skill was confined to a list of additive files — *a skill that resolved
 whatever happened to conflict would quietly become the thing that merges real code* — because every
-resolution is rebuilt, re-verified and reviewed on its pull request before anybody merges it.
+resolution is rebuilt, re-verified by `remediate` and reviewed on its pull request before anybody merges it.
 
 **It stays inside the declared files.** A conflict that cannot be resolved there is a change of plan.
 
@@ -1495,7 +1512,8 @@ lands.
 
 #### See also
 
-- [`verify`](#verify), [`remediate`](#remediate), [`build`](#build)
+- [`remediate`](#remediate) — what runs it, then verifies
+- [`verify`](#verify), [`build`](#build)
 
 ---
 
