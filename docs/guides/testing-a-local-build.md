@@ -73,7 +73,7 @@ done again later.
 Every stage runs as it normally does. The status panel says when a cycle's rounds came from more than one
 release, so a cycle you started on a published release and continued on your build says that too.
 
-**`/sdlc:pr` is where it stops.** `sdlc pr-ready` refuses a cycle any of whose rounds a local build wrote, and
+**The pull request is where it stops** — the step *build it* ends on, or `/sdlc:pr` by hand. `sdlc pr-ready` refuses a cycle any of whose rounds a local build wrote, and
 so does `sdlc verify-chain`, which is the solution's pull-request check — so a pull request opened by hand is
 refused as well. The refusal names each round. [Handling refusals](handling-refusals.md#a-test-run) has the
 entry.
@@ -106,7 +106,8 @@ Remove-Item Env:SDLC_DEV_BUILD
    ```
 
    Commit, and open a pull request. One that only moves the pin needs no cycle (D-133).
-3. **Open the cycle again** on the preview, from its intent, and run it through to `/sdlc:pr`.
+3. **Open the cycle again** on the preview, from its intent, and run it through to *build it*, which ends at the
+   pull request.
 
 ## Pinning a local build in a sandbox
 

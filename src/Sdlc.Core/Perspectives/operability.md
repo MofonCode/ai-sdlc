@@ -83,7 +83,7 @@ only read what the code writes down — a change that fails silently is one no l
 
 ## Rules
 
-- `CON_20` — a spec says what is recorded when the action fails. It is this perspective's spec question,
+- `CON_20` — A spec says what is recorded when the action fails. It is this perspective's spec question,
   *could a criterion be met while the failure leaves no trace at all?*, made a rule after two trial
   solutions raised it at every stage as a suggestion and both built the gap anyway.
 

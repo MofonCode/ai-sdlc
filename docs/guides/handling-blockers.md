@@ -238,7 +238,7 @@ something it was not given leave to:
 | It cites | It means | You |
 |---|---|---|
 | `CON_25` | the change does something neither the plan nor a deviation in force describes: a drive-by refactor, an unrelated fix, in a file the plan named or one it did not. Judged by what each change is for, never by which files it touched | take it back out; keep it as a `Noticed:` line for a later cycle |
-| `CON_27` | the change takes what a recorded decision set aside, and neither the intent, the plan nor an accepted `decision` deviation declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — remediate records a `decision` deviation quoting it, for you to answer (D-156) |
+| `CON_27` | the change takes what a recorded decision set aside, and neither the intent, the plan nor a `decision` deviation in force declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — remediate records a `decision` deviation quoting it; the pull request leads with it, and merging accepts it (D-181) |
 
 It is handed two more rules, as every reader of a change is — `CON_09`, which applies to every artifact, and
 `CON_11`, which judges a change adding a rule — and a cycle's change rarely meets either.
@@ -273,10 +273,10 @@ it.
 
 **Remediate will not adjust the spec to match the code, and neither stage stops to ask you.** When the
 approved text cannot be followed — a file the fix has to touch that the plan did not declare, a test whose
-name has to change, a criterion no finite proof meets, a decision the work cannot keep — build or remediate
-does the work and records a **deviation** in `deviations.md` (D-156). Each one quotes the approved text it
-departs from, word for word, names the blocker with its evidence, and says what was done instead. A
-criterion may only be narrowed, and the part dropped becomes a successor.
+name has to change, a decision the work cannot keep — build or remediate does the work and records a
+**deviation** in `deviations.md` (D-156). Each one quotes the approved text it departs from, word for word, names
+the blocker with its evidence, and says what was done instead. **A criterion is never deviated from** (D-179): a
+criterion the code cannot be made to meet escalates, and you reopen the plan.
 
 **A deviation doesn't excuse a blocker. It replaces the approved text the blocker was measured against,
 and you accept the replacement by merging.** Every verify reader reads them and judges against the documents as
@@ -315,6 +315,12 @@ which the check will not let merge (D-85). Its body leads with the criteria mark
 blocker's rule, gist, place and fix. An escalated cycle is waiting for a person: read what the passes
 actually did, then decide whether the plan needs reopening, the work needs a different approach, or the
 cycle should stop.
+
+**A different approach is said in words, then *fix it*.** Tell the agent what to do instead, and `/sdlc:remediate`
+starts from your instruction — in the worktree `sdlc branch <id> remediate` prints, on the draft's branch — and goes
+round until the verification passes or it needs you again. It will not act on an instruction that does not say what
+to do. **A criterion the code cannot meet is a reopen**, never an instruction: no deviation changes what *done*
+means (D-179).
 
 ```pwsh
 sdlc draft abandon <id>

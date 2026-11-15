@@ -707,10 +707,13 @@ object to a departure the plan had already admitted to (D-58).
 
 **The binary assembles and collects; the readers judge** (D-117). `sdlc round prompt` writes every
 reader's prompt — the block they share once, as `shared.md`, and each reader's own part in a file of its
-own — and the skill starts one fresh non-interactive process per prompt with no tools, no MCP servers and
-no session file (D-118), from the round's directory rather than the checkout, handing `shared.md` over as
-the system prompt and starting the rules reader a few seconds ahead, so the others find it cached (D-163). `sdlc round collect` reads the answers, applies the reconciler, numbers new ids and
-drafts the round, with each reader's usage beside it; the skill decides the dispositions of what no reader
+own — and **`sdlc round run` starts them**: one fresh non-interactive process per prompt with no tools, no MCP
+servers and no session file (D-118), from the round's directory rather than the checkout, handing `shared.md`
+over as the system prompt and starting the rules reader a few seconds ahead, so the others find it cached
+(D-163). **No skill starts a reader itself**, so a skill needs no permission beyond `Bash(sdlc *)` to run a
+round. `sdlc round collect` reads the answers, applies the reconciler, demotes a blocker citing a rule its reader
+was not handed (D-174), copies each new finding's rule line from the library (D-177), numbers new ids and drafts
+the round, with each reader's usage beside it; the skill decides the dispositions of what no reader
 raised again and collects once more with `--answered`/`--withdrawn`, which copy them in from the ledger,
 records with `sdlc round`, and shows `sdlc status <id> --stage <artifact>` verbatim with at
 most two lines of its own. A rule marked `Judged: per criterion` or `per outcome` is answered with a row
@@ -1091,16 +1094,17 @@ remember — it is why there is no point reporting done over a red build.
 What it runs, in order:
 
 1. `sdlc cycles --here --for build` without an id, then `sdlc gate <id>`, and stops if it refuses
-2. `sdlc admit` and the git command it prints, when the plan is only in its sandbox and the solution has an
-   integration branch
-3. `sdlc claude -p "/sdlc:batch-build <id> --pr --unattended"`, in the background where the host can — the
-   factory's own path for this one cycle, asking nothing — and waits for it
-4. inside that process: implements the plan — running `sdlc scaffold <id>` where the plan declares the
+2. `sdlc build-run <id>`, which commits the approval a person placed if it is uncommitted, admits the plan when
+   it is only in its sandbox, prepares the build's worktree on `cycle/<id>/build-unattended`, and starts the
+   build in a process of its own there — the factory's path for this one cycle, its tools named, never with
+   permission checks off, asking nothing — and waits for it
+3. inside that process: implements the plan — running `sdlc scaffold <id>` where the plan declares the
    solution skeleton or a build settings file the repository does not have — `dotnet build` and `dotnet test`
    reading the test count rather than the exit code, commits the change with any `Noticed:` lines, `sdlc
    evidence <id> --tests <directory> --build-log <path> --coverage <directory>` and commits the evidence; the
    batch then verifies, remediates and opens the pull request
-5. shows `sdlc report <id>` and `sdlc status <id> --brief` verbatim, with the pull request's link
+4. shows what `build-run` printed — the report and the pull request's link — and `sdlc status <id> --brief`,
+   verbatim
 
 #### See also
 
@@ -1146,7 +1150,7 @@ that every criterion has an entry and that a `pass` rests on named tests that pa
 | Condition | Result | What to do |
 |---|---|---|
 | the evidence is missing | says so and stops — that is a build that did not finish | `/sdlc:build <id>` |
-| the outcome is `blocked` | does not start remediating; you decide | say *fix it* (`/sdlc:remediate`) |
+| the outcome is `blocked` | does not start remediating | `/sdlc:remediate` — inside *build it*, the build goes round on its own |
 
 #### Example
 
@@ -1168,8 +1172,8 @@ with no evidence behind it.
 
 **The session that runs it does not adjudicate** (D-01). It is often the session that built the change,
 so it has `sdlc round prompt` write the adjudicator's prompt — the plan, the spec, the evidence, the
-constraints, the perspectives' questions and the method — starts a fresh process with no tools and
-`SDLC_READER=1` to write the verdict criterion by criterion, and records what that returns byte for byte
+constraints, the perspectives' questions and the method — and `sdlc round run` start a fresh process with no
+tools to write the verdict criterion by criterion, and records what that returns byte for byte
 with `sdlc round verdict`, which refuses an answer that is not a verify document. Before the round,
 `sdlc evidence check` reports what the verdict cites that the evidence does not hold, and refuses nothing
 (D-120). It interrogates the verify document like any other artifact, and
@@ -1198,8 +1202,8 @@ code, never a planning document.
 
 | | |
 |---|---|
-| Stage | build and verify, after verify recorded `blocked` or left a `diff.` finding open; or at the pull request, when a person says what to change |
-| Started by | `batch-build`, inside the build's own process; or a person, with what they want instead |
+| Stage | build and verify, after verify recorded `blocked` or left a `diff.` finding open; after an escalation, with the person's instruction; or at the pull request, when a person says what to change |
+| Started by | `batch-build`, inside the build's own process; or a person, with what they want instead, in the worktree `sdlc branch <id> remediate` prints |
 | Reads | the criteria `verify.md` marks Not met, the verify findings, `sdlc pr-ready <id>`, and the code |
 | Writes | source and tests, fresh evidence, `deviations.md` where the approved text cannot be followed, and a commit on the cycle's branch |
 
@@ -1213,7 +1217,7 @@ code, never a planning document.
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the blocked cycle. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
+| `<cycle id>` | the cycle — `blocked`, `escalated`, or passed with its pull request open. Optional: without it, `sdlc cycles --here --for remediate` names the one this working copy carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -1224,7 +1228,7 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 
 | Condition | Result | What to do |
 |---|---|---|
-| the criterion itself looks wrong | records a `criterion` deviation narrowing it, and names the successor the dropped part becomes | it is in the report; merging accepts it, or say what instead |
+| the criterion itself looks wrong, or the code cannot be made to meet it | escalates: no deviation changes what *done* means (D-179) | reopen the plan — `sdlc draft approval <id> --reopen` |
 | a fix needs the intent changed, a wider scope, or a file another cycle claims | stops | a successor, or `sdlc draft approval <id> --reopen` |
 | a regression, or two passes in a row reducing nothing, with no deviation taken since | takes one different approach, recorded as a deviation, and goes round again | — |
 | the same again after that deviation | stops: escalated | — |
@@ -1245,9 +1249,11 @@ report.
 
 `refine` and `remediate` are two editors with opposite guards, and the asymmetry is the whole design: if
 a failing test could cause an agent to adjust the spec, the criteria become whatever the code happens to
-do. So when the honest conclusion is "the criterion is wrong", the skill never edits it: it records a
-deviation quoting it, which reaches the person in the report and is accepted by the merge (D-181). One the
-person wants otherwise is changed from their words, recorded on the entry.
+do. So when the honest conclusion is "the criterion is wrong", the skill never edits it and never deviates from
+it: no deviation changes what *done* means (D-179), and the cycle escalates for a person to reopen the plan. Where
+the plan's text cannot be followed, it records a deviation, which reaches the person in the report and is
+accepted by the merge (D-181). One the person wants otherwise is changed from their words, recorded on the
+entry.
 
 **It stops when it is not getting anywhere, not after a set number of tries.** When a pass undoes what an
 earlier one answered, or two passes in a row reduce nothing, it may take one different approach — never
@@ -1259,12 +1265,13 @@ deliberately no ceiling behind the progress rule now (D-66).
 
 It reads `sdlc pr-ready <id>` to know whether the loop is still making progress, works the open
 blockers `sdlc findings <id> --stage verify` prints, then `dotnet build`, `dotnet test` and
-`sdlc evidence <id> --tests <results> --build-log <log> --coverage <results>`, commits on the cycle's branch, and shows
+`sdlc evidence <id> --tests <results> --build-log <log> --coverage <results>` — with `--retire-pass` when a
+person asked for a change on a cycle that passed — commits on the cycle's branch, and shows
 `sdlc status <id>` verbatim. A pass is a verify findings round after the first, so progress is read from
 what happened rather than from a counter anybody could edit.
 
 **It does not adjudicate its own remediation.** After each pass it runs the `verify` stage, whose adjudicator
-is a fresh process that never saw the fix; the session starts it and reads what it returns, and never edits
+is a fresh process that never saw the fix; `sdlc round run` starts it, the session reads what it returns, and never edits
 `verify.md`. A verdict written by the session that wrote the fix is the investment bias the separation exists
 to remove, and it stays removed because the judge is a separate process (D-159).
 
@@ -1272,8 +1279,10 @@ to remove, and it stays removed because the judge is a separate process (D-159).
 progress rule, the one deviation and the third-deviation stop bound it.
 
 **At the pull request it takes a person's change in words** (D-181) — *change deviation 2: use X instead*,
-*revert that choice* — records their words on the entry, changes the code and tests, verifies, and pushes to the
-same pull request with the report refreshed. It never acts on a "no" that does not say what to do instead.
+*revert that choice* — in the worktree `sdlc branch <id> remediate` prints, records their words on the entry,
+changes the code and tests, verifies, and pushes to the same pull request with the report refreshed. It never
+acts on a "no" that does not say what to do instead. After an escalation it starts the same way, from the
+person's instruction.
 
 #### See also
 

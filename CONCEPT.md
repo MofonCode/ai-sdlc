@@ -31,7 +31,8 @@ missing a link. The solution's rules and decisions live in the repository beside
 cycle to the next, so every stage of every change is read against everything settled before it. Whatever
 contradicts them is brought into the open, for the person and the model alike, rather than slipping through.
 
-That statement is carried word for word by the README and both plugin manifests. This document is the
+That statement is carried word for word by the README and both plugin manifests; `marketplace.json` carries its
+first sentence, and the package's page and `<Description>` open with it. This document is the
 argument for each part of it. Three things it exists to make possible:
 
 - **A person approves a plan before code exists**, and the approval is recorded against the exact
@@ -46,8 +47,8 @@ argument for each part of it. Three things it exists to make possible:
   arises and shown to a person at the pull request rather than made silently (§7, §8.1, D-139, D-181).
 
 **Approved plans can then build unattended**, one or many at a time (§10). That is a capability the three
-make safe rather than a reason of its own: a cycle that cannot be made to pass stops and escalates instead of
-opening a pull request.
+make safe rather than a reason of its own: a cycle that cannot be made to pass stops and escalates, and its pull
+request stays a draft nobody merges until a person decides (D-85).
 
 The change moves through phases, each producing a file the next phase reads, and each file is challenged
 against a fixed set of rules before it advances. Nothing advances on assertion. It is host-agnostic: the hooks
@@ -129,7 +130,9 @@ turn end with its verdict (D-109).
 **The binary assembles what a reader reads and collects what it says; the reader judges** (D-117). Which
 files, in which order, under which headings is deterministic, so `sdlc round prompt` writes every
 reader's prompt and `sdlc round collect` validates every answer into a draft round. A reader is started
-with no tools, because everything it may read is in its prompt (D-118).
+with no tools, because everything it may read is in its prompt (D-118). **The binary starts it too**: `sdlc round
+run` launches every reader, mining's readers and the build's own process are started the same way, and no skill
+types a launch line or runs with the host's permission checks switched off (D-183).
 
 ### 2.6 Flexibility comes from making compliance cheap
 
@@ -212,8 +215,9 @@ The intent's sections are the same for every type: the questions vary, the contr
 **Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125). **The
 pieces are planned together, in one sandbox** (D-144), and what is approved leaves it by `sdlc admit`: an
 admission branch the pull-request check already knows, which `/sdlc:pr --plan` pushes as a plan pull request into
-the integration branch, and which a solution with no remote builds from. A plan only in a sandbox does not build
-while there is an integration branch to admit it to (D-162).
+the integration branch, and which a solution with no remote builds from. A plan only in a sandbox is admitted before
+it builds while there is an integration branch to admit it to, and *build it* runs that admission itself (D-162,
+D-184).
 `intent` may first propose the most atomic slicing it can find: a piece is **atomic** when it can be built,
 verified and merged against the integration branch as it stands, without any other open cycle. The person
 accepts it once — merging pieces, or marking one atomic — and nothing is sliced unattended. Each piece that
@@ -267,7 +271,7 @@ problem is a different intent, and a new outcome nobody raised is a new cycle (D
 | Phase | Stages | Who | Ends at |
 |---|---|---|---|
 | **Define** | intent, spec, plan | a person, locally | the planning approval (§5.1) |
-| **Build** | build, verify, pull request | the factory unattended, or a person by hand | a person merging the pull request |
+| **Build** | build, verify, pull request | the factory unattended, or *build it* — the same headless process, started by a person (D-178) | a person merging the pull request |
 | **Operate** | — | a person, with `sdlc operate` (D-143) | a lead a person may take into Define (§3.4) |
 
 **A phase is a label, never a command** (D-82). Nothing runs Define: each stage is still a moment where a
@@ -356,12 +360,12 @@ separating "the part that is judged".
 |---|---|---|
 | `intent` | `Problem` | `CON_01`; `spec` derives criteria from it |
 | | `Wanted outcomes` | `CON_16` — this is its left-hand side |
-| | `Fixed decisions` | `CON_01` routes decisions-already-taken here, and `CON_24` a departure from a recorded one; `plan` cites them; `steer` writes here |
+| | `Fixed decisions` | `CON_01` routes decisions-already-taken here, and `CON_27` a departure from a recorded one; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
-| | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
-| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_24` |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_26`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
+| | `Out of scope` | `CON_26`, `CON_16`; a disposal destination (§5.4) |
+| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_27` |
 | | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
 | | `Proof` | `CON_21`, and `verify`'s criterion table |
@@ -415,7 +419,7 @@ carries the check.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_24` |
+| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_27` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 A plan holds a file table, never diffs. Line-level change is the build artifact — the branch and
@@ -763,7 +767,7 @@ A round may also carry the loop's third ending:
 "conflicts": [
   {
     "between": [
-      { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+      { "id": "CON_26", "heading": "a spec introduces no scope its intent did not ask for, beyond what a rule in force requires" },
       { "id": "CON_16", "heading": "a spec covers every outcome its intent asks for, and all of each one" }
     ],
     "statement": "...why each remedy excludes the other",
@@ -1125,7 +1129,7 @@ nobody.
 | `CON_23` | a criterion that ranges over cases lists them | spec |
 | `CON_25` | a change does only what its plan, or a deviation in force, describes — wherever it lands | diff |
 | `CON_26` | a spec introduces no scope its intent did not ask for, beyond what a rule in force requires | spec |
-| `CON_27` | a departure from a recorded decision is declared where it arises, or accepted as a deviation, and later stages rely on it | intent, spec, plan, diff |
+| `CON_27` | a departure from a recorded decision is declared where it arises, or recorded as a deviation, and later stages rely on it | intent, spec, plan, diff |
 
 **Eight ids are absent because they no longer bind**, and each is explained once below.
 
@@ -1161,8 +1165,9 @@ on it — judged at the intent, the spec, the plan and the change (D-139).
 rule's words. `CON_07.2` forbade creep *within a declared file* while its reader was told a file the plan did not
 list is not a finding; `CON_25` forbids a change no plan or deviation in force describes, wherever it lands.
 `CON_05` had no word for a failure criterion another rule requires; `CON_26` counts that rule as support.
-`CON_24` named only the intent and the plan as places a departure is declared, while a decision deviation a person
-accepted is one too; `CON_27` names it (D-176).
+`CON_24` named only the intent and the plan as places a departure is declared, while a decision deviation in force
+is one too; `CON_27` names it (D-176). In force means recorded by the build and not asked to change: a person accepts
+it by merging, after the verification that reads it (D-181).
 
 `CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
@@ -1271,11 +1276,12 @@ reversed entry takes a new id while the old one stays on the page, as §20's own
 
 **Departing is legal; departing in silence is not.** The decisions are standing criteria every cycle
 inherits, as it inherits the constraints, so every stage that writes reads them and every reader that
-judges is handed them, in short form: id, statement and `Instead of`. `CON_24` asks a departure to be
+judges is handed them, in short form: id, statement and `Instead of`. `CON_27` asks a departure to be
 declared once, where it arises — an outcome in the intent's `Fixed decisions`, with who and why; an
 approach in the plan's `Shape and departures`, with what the decision would have cost — as one line
 opening `Departs from DEC_nn`. A spec, a plan or a change taking what a decision set aside with no such
-line above it is a blocking finding; one that merely seems relevant is a suggestion. The verify round's
+line above it is a blocking finding — at the change, a `decision` deviation in force declares it too (D-176) —
+and one that merely seems relevant is a suggestion. The verify round's
 diff reader holds the change to it. The binary parses the lines and reports them — first and apart
 in the approval draft, in `sdlc status`, in the pull request — and `propose decisions` offers each one an
 approved cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
@@ -1490,7 +1496,8 @@ and reports. Run by a person it works from that working copy; run by the factory
 the integration branch (D-83, §10.5).
 
 1. `sdlc cycles --queued` lists the work: approved, no verify, not abandoned, not parked (D-145), and no
-   `cycle/<id>/...` branch on the remote (D-85).
+   `cycle/<id>/...` branch on the remote (D-85). With one cycle named, a plan admitted only on this machine is
+   queued from its local admission branch, which is how *build it* builds before anything is pushed (D-178, D-184).
 2. Every cycle builds **independently**, from the same base, in its own git worktree on its own
    `cycle/<id>/build-unattended` branch. None waits for another or is rebased onto another (D-86).
 3. With `--pr`, every cycle that reached an outcome gets a pull request — a draft when it did not pass —
@@ -2198,6 +2205,8 @@ implies.
   `## Open` as a limit of the proof — the one exit `CON_14` does not cover, because it binds an intent,
   a spec and a plan and not a verify (§4.3)
 - the outcome in `verify.md` is `pass`
+- **the deviations are sound** — none misquotes the approved text, takes a file another cycle claims, or narrows a
+  criterion — and none waits on an answer, because merging the pull request is what accepts them (D-179, D-181)
 - the change's added lines are at least 70% covered, and a codebase under the solution's floor has not fallen
   below its baseline (D-103, D-157)
 - **no round was written by a local build, and the solution pins none** — the admission check asks this too,
@@ -2301,6 +2310,11 @@ the rule keeps coming back it says to look for an exit rather than editing the s
 loop halts it says a person decides what gives. It is absent above because nothing has relapsed,
 which is the ordinary case.
 
+**After the gate the panel's step is *build it*, which goes all the way** (D-178). A pass points at the pull
+request, where the person accepts (D-181); a blocked verdict at *fix it*; an escalation at *say what to do, then
+fix it*; and evidence with no verdict — a build whose process stopped short — at the verification (D-182, D-185).
+It never names a step the build's queue would refuse.
+
 ---
 
 ## 15. Skills
@@ -2343,8 +2357,9 @@ small without the person managing sessions. The plan's hand-back says what *buil
 verifies, fixes what it can and opens the pull request — because saying it is the consent to push.
 
 **Every hand-back closes with one plain offer** of the next step, in words a person can say back — *take it
-to plan*, *build it*, *fix it*, *open the pull request* — with the slash form beside it. The panel names the
-step a person takes, never `interrogate` or `refine`, which each stage runs inside its own loop (D-158).
+to plan*, *build it*, and the pull request to review, or *fix it* when a build escalated — with the slash form
+beside it. The panel names the step a person takes, never `interrogate` or `refine`, which each stage runs inside
+its own loop (D-182).
 
 **Three documents list these, and the suite holds all three against disk.** This inventory,
 [`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
@@ -2366,9 +2381,9 @@ mechanical rather than promised.
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
 | `steer` | an intent | a cut or a join, which is `intent --reslice`'s; approved without a reopen | intent, spec, plan — whichever exist |
 | `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
-| `build` | the gate satisfied, and the plan where a build can start from it — the integration branch, an admission branch, or the sandbox when there is no integration branch (D-162) | the gate refuses; the plan is only in a sandbox while there is an integration branch to admit it to | code, evidence |
+| `build` | the gate satisfied, and the plan admitted — or only in a sandbox, which `build-run` admits itself (D-184) | the gate refuses; admission refuses; the build's process cannot start | through `sdlc build-run`, in a process of its own: code, evidence, `verify.md`, `deviations.md`, the pull request, and the report it hands back (D-178) |
 | `verify` | evidence exists | no evidence | `verify.md` |
-| `remediate` | verify blocked, or a change the person asked for | not blocked and nothing asked; escalated — a second stop, or three deviations at one place (D-179) | code, tests and `deviations.md` |
+| `remediate` | verify blocked; or escalated, with the person's instruction; or passed, with a change the person asked for before the merge (D-185) | nothing to fix and nothing asked; a second stop, or three deviations at one place, escalates it (D-179) | code, tests and `deviations.md`, in the build's worktree (`sdlc branch <id> remediate`) |
 | `pr` | verify passed; with `--plan`, the gate satisfied; with `--draft`, verify blocked or escalated | not passed; escalated — except as `--draft`; the chain broken | push, pull request |
 | `batch-build` | a queued cycle (§10.1) | nothing; a cycle held back by a branch on the remote is not built, and the sitrep says why | code, evidence and a verify document per cycle, each on its own branch. Never pushes without `--pr` (D-22) |
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
@@ -2406,31 +2421,35 @@ they print verbatim.
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `deviations <id>` | where the build bent the approved documents, and the choices it made that they left open: each entry, whether it is in force or was changed at the person's request, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, a criterion narrowed (D-156, D-179, D-180). Exits 1 when anything is |
+| `build-run <id>` | *build it*, as one command: commits the approval a person placed in the sandbox when it is uncommitted, admits the plan when it is only in a sandbox, opens the build's worktree beside the repository on `cycle/<id>/build-unattended`, starts the build's own process there — headless, its tools named, never with permission checks off, never marked as a reader — waits, and prints the report. Refuses when the build's process cannot start or ends without a report — D-178, D-183, D-184 |
 | `report <id>` | the report a build ends on and the pull request leads with: deviations, choices, what was changed at the person's request, and the verification's open suggestions as concerns, in markdown. Merging the pull request accepts it (D-181) |
-| `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
+| `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, a new blocker without a one-line gist (D-110), a new blocker citing a rule its reader was not handed (D-174), and a new finding quoting its rule in other words (D-177). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session decides the dispositions of earlier findings (D-49), and `--answered`/`--withdrawn` copy the ones it settles in from the ledger word for word — D-117, D-121, D-162 |
+| `round run <id> <artifact> --dir <directory> [--timeout <minutes>]` | starts every reader whose prompt `round prompt` wrote there and that has no answer yet — the rules reader first and alone, then the rest — each a fresh process from that directory with no tools and no MCP servers, marked as a reader, its answer written beside its prompt. The adjudicator the same way; run again for the reconciler, or for a reader that returned nothing. Refuses with no host to start a reader with — D-183 |
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|solution\|techstack\|mining` | prints or writes what belongs in a file only a person writes — §5.3 |
 | `mine [--cycles <id>,<id>]` | what the record says the rules, decisions and stack are missing, in one ranked report — over every finished cycle not yet mined, or with `--cycles` those alone (D-166) — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — and the open suggestions of the finished cycles not yet mined, with the concerns earlier sittings ignored, ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113, D-148, D-153 |
 | `draft mining <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
 | `mine record <file>` | once the drafts are placed, records the sitting in `.sdlc/mined.json`: each cycle the sitting read, finished on the integration branch, becomes a husk, with its merge commit, its files, the rules it cited and the areas it proposed, the suggestions ignored are tallied by concern, and the deletion of the husks' folders is printed for a person to run. Deletes nothing; refuses while a draft is still beside its file — D-152, D-153 |
+| `mine read --dir <directory> [--cycles <id>,<id>]` | writes one prompt per finished cycle and document with findings in the sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
+| `mine review --dir <directory> [--proposals <file>]` | writes and starts the two readers that review a sitting: one handed the marked proposal file, the drafts and `solution.md`, one handed the report and the proposal file — D-183 |
 | `mine --history` | the mining ledger: every mined cycle, every sitting with what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in — D-152, D-153 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
-| `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
+| `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5. Retires a blocked verdict (D-161), and a passed one with `--retire-pass` when a person asked for a change (D-185) |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which open cycles name the same files, so whose pull requests will likely conflict and in what order to merge them — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
-| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162) |
+| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162). `remediate` prints the path of a worktree on the cycle's build branch, opening it from the local or the remote branch when absent (D-185) |
 | `factory` | writes the factory's pipeline for the recorded platform: `batch-build --pr --unattended` against the integration branch, started by a person and never on a schedule, with one optional cycle to build alone, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84, D-143) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id>` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
-| `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144) |
+| `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144). `build-run` runs it for *build it*, and `/sdlc:pr --plan` for the factory (D-184) |
 | `park <id>` | the plan-time claim check: compares the cycle's plan with every plan not yet built; a file only another creates parks it, writing `parked.md` with what it waits on and the commit it was planned against, and a file two plans name is reported (D-145) |
 | `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
@@ -2441,7 +2460,7 @@ they print verbatim.
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
-| `cycles --queued` | what a build would take now, and every cycle held back with why — a `cycle/<id>/...` branch on the remote, or an approval the gate no longer accepts (D-85) |
+| `cycles --queued [<id>]` | what a build would take now, and every cycle held back with why — a `cycle/<id>/...` branch on the remote, or an approval the gate no longer accepts (D-85). With an id, that cycle alone, queued from a local admission branch when its plan is admitted only on this machine (D-178) |
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |
 | `decisions [--brief\|--all] [--for <stage> --cycle <id>] [--area <name>]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again. With `--cycle`, an entry outside the areas the stage touches is rendered by its headline; `decisions show <id>` prints one in full — D-70, D-149, D-151 |
 | `areas` | each area `areas.md` defines: the files it covers today, the entries carrying it, and an entry naming an area nobody defined. Exits 1 when an area covers nothing, which refuses a round until fixed — D-150 |
@@ -5492,6 +5511,9 @@ would bite.
 
 **Governs:** §6
 
+**Amended by D-85.** An escalated cycle opens a pull request only as a draft, which nobody merges until a person
+decides.
+
 **Amended by D-159.** Remediation verifies again after each pass and goes round on its own while it is working,
 checking in with a person every fourth pass. The bound is still progress, never a count.
 
@@ -5501,7 +5523,7 @@ as a deviation, and must reduce what is open; the second stop escalates. The eve
 **Decision.** `RemediationBudget.Limit` is removed. Remediation continues while each pass strictly
 reduces the open blocking findings. It stops when a pass undoes what an earlier one answered — a relapse
 on the verification, read by the same counter the artifact loop uses — or when two consecutive passes
-reduce nothing. There is no pass ceiling. An escalated cycle still never opens a pull request.
+reduce nothing. There is no pass ceiling. An escalated cycle still never opens a pull request ready for review.
 
 **Why the count had to go.** Three was a judgement, and both of its failure modes showed up: it failed an
 honest cycle that needed a fourth pass, and it let a cycle making no progress at all spend all three
@@ -6686,6 +6708,10 @@ Build ends where a person takes the result.
 
 **Governs:** §10.4, §18
 
+**Amended by D-178 and D-184.** A cycle a person builds with *build it* reaches the integration branch with its plan
+and its code in one pull request, from an admission made on their machine; the plan pull request remains how plans
+reach the factory.
+
 **Decision.** A solution has an integration branch, `development` by default and named in `solution.md`.
 An approved cycle's planning documents reach it by a pull request from `cycle/<id>/plan`, which deletes
 its branch on merge. Every built cycle is pull-requested back into it. It is the working head: main
@@ -6759,6 +6785,9 @@ can be trusted to something else.
 ### D-85 — Every cycle the factory touches gets a pull request — a draft when it did not pass — and a cycle's branches sit under `cycle/<id>/`
 
 **Governs:** §10.3, §10.5, §16
+
+**Amended by D-184.** `cycle/<id>/build-unattended` is also where *build it* builds a person's cycle, in a process of
+its own; it is no longer the factory's alone.
 
 **Decision.** A cycle that passed gets a pull request ready for review. A `blocked` or `escalated` cycle
 gets a **draft** pull request carrying the attempted code, the verify and the evidence; its check goes
@@ -7476,6 +7505,101 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-185 — Remediation has three ways in: blocked, escalated with a person's instruction, and passed with a change asked for
+
+**Governs:** §6.3, §14, §15.1, §15.2
+
+**Amends D-161:** `sdlc evidence` retires a passed verdict too, with `--retire-pass`. **Amends D-179 and D-181:** the
+escalation and the change they promise a person now have a way in.
+
+**Decision.**
+
+- **`sdlc cycles --here --for remediate`** finds a cycle that is `blocked`, `escalated`, or passed with its verdict
+  not yet on the integration branch. Whether a pull request is open is the platform's to say and needs the network;
+  a verdict the integration branch does not hold is the answer the binary can give offline, and it is the same
+  answer until the merge.
+- **`sdlc branch <id> remediate`** prints the path of a worktree on the cycle's build branch — the one its pull
+  request is from — opening it from the local branch, or the remote's that a build elsewhere pushed, when absent.
+  Remediation works there, so a person's own checkout is never switched and a push updates the same pull request.
+- **`sdlc evidence <id> … --retire-pass`** records a new run over a `pass` when a person asked for a change.
+  Without the flag a pass still refuses, so a stray re-recording cannot unseat a verdict.
+- **The panel never names a step the build's queue refuses.** Blocked points at *fix it*; an escalation at *say
+  what to do, then fix it*; evidence with no verdict — a build whose process stopped short — at the verification.
+
+**Why.** The review after D-178 found the flow offering *fix it* on an escalation and *change X* at the pull
+request, with nowhere for either to go: remediate found only blocked cycles, evidence refused over a pass, the
+branch was checked out in the build's worktree where the person's checkout could not switch to it, and the panel
+sent a blocked cycle to *build it*, which the queue holds back once a verdict exists.
+
+**Rejected.** *Asking the platform whether the pull request is open.* It needs the platform's CLI signed in, and a
+remediation offline would be refused for no reason. *Letting evidence retire any verdict.* A pass unseated by a
+re-recording nobody asked for is the stale-verdict defect D-161 was careful not to reopen. *Sending everything
+back through build it.* Its queue takes a cycle with no verdict, and that is right for the factory.
+
+### D-184 — `build-run` commits the approval a person placed, admits the plan, and builds beside the repository
+
+**Governs:** §3.1, §10.1, §15.1, §15.2
+
+**Amends D-178:** how *build it* reaches the build and where it runs. **Amends D-144:** for *build it*, the binary runs
+the admission it used to print.
+
+**Decision.** `sdlc build-run <id>`, from the person's checkout:
+
+1. **Commits the approval a person placed** in the sandbox when it is uncommitted — `git add` of the cycle's folder
+   and a commit whose message names no protected file. The person placed it; the commit records their act and the
+   binary writes no protected file. The pre-tool hook guards an agent's tool calls, and the agent's one call here
+   is `sdlc build-run`.
+2. **Admits the plan** when it is only in a sandbox and there is an integration branch, by the git commands `sdlc
+   admit` composes, run by the binary. Nothing is pushed.
+3. **Opens the build's worktree** beside the repository, `../<repository>.builds/<id>`, on `cycle/<id>/build-unattended`
+   from where `sdlc branch <id> build-unattended` says it starts. One already open on the cycle's build branch is
+   reused.
+4. **Starts the build's own process there** (D-183), waits, and prints the report, or refuses: *the build's process
+   cannot start* when there is no host to start, and *the build ended without a report* when it stopped before a
+   verdict. It exits 0 on a pass and 1 on anything else.
+
+**Why.** The review found the first *build it* refused: `sdlc admit` refuses uncommitted work in an approved
+cycle's folder, the approval a person had just renamed into place was exactly that, and nothing committed it.
+Asking the person to commit it is a step that decides nothing, which D-182 exists to remove. The worktree keeps
+the person's checkout where it is, and is where remediation works afterwards (D-185).
+
+**Rejected.** *Committing in the skill.* A second place the same act lives, typed by an agent, and a commit
+message beside a protected file's name is one the hook refuses by its text. *Building in the sandbox.* It is
+planned in and never merged; a build there would carry every sibling's scratch. *Pushing the admission first.*
+Nothing about a person's own build needs the remote until the pull request opens.
+
+### D-183 — The binary starts every process the chain runs, its tools named, never with permission checks off
+
+**Governs:** §2.5, §12, §15.2
+
+**Amends D-117, D-118 and D-163:** the binary starts the readers it writes prompts for. **Amends D-178:** the build
+skill no longer launches the build's process.
+
+**Decision.** No skill starts a process itself.
+
+- **`sdlc round run`** starts every reader whose prompt `sdlc round prompt` wrote and that has no answer yet — the
+  rules reader first and alone, then the rest — each from the round's directory, outside the checkout, with no
+  tools and no MCP servers, its prompt piped in, marked as a reader, and its answer written beside its prompt. The
+  verify adjudicator the same way. Running it again starts the reconciler once its prompt is written, and any reader
+  that returned nothing.
+- **`sdlc mine read` and `sdlc mine review`** write and start mining's readers the same way, each answering in prose.
+- **The build's own process** (`sdlc build-run`, D-184) is started headless in its worktree with its tools named —
+  `sdlc`, `git`, `dotnet`, `gh`, `az`, and the edit tools — never with the host's permission checks switched off,
+  and never marked as a reader, because the mark would let a red build end its turn.
+- A skill's `allowed-tools` then needs `sdlc`, `git`, the solution's build tool, the platform CLI where it pushes,
+  and the edit tools: no `claude`, and no multi-line shell.
+
+**Why.** A headless process cannot answer a permission prompt, and the launches the skills typed — a subshell
+changing directory, starting readers in the background, waiting on them — were not commands a prefix rule could
+approve. The factory got past that by switching the checks off inside a container it throws away; a person's own
+machine is not that. The same launch typed per skill also differed between shells, and every host had to approve it
+call by call. In the binary it is one implementation, tested with a fake process, the same on every host.
+
+**Rejected.** *An allowlist on the skills' own launch lines.* The lines cannot be expressed as the prefix rules a
+host approves. *Bypassing permission checks on a person's machine, as the factory does in its container.* That is
+the line the build skill refused to cross, and it stays refused. *Keeping the launch in the skills with a variant
+per host.* Three copies of one mechanism, which is the drift the binary exists to prevent.
+
 ### D-182 — The cycle a person walks is five steps: intent, plan, approve, build it, the pull request
 
 **Governs:** §3, §10.3, §14, §15
@@ -7548,7 +7672,7 @@ none behind it. *Recording every choice.* Names and formatting are noise that wo
 
 ### D-179 — When remediation stops converging, the build may take one different approach before it escalates
 
-**Governs:** §3, §6.3, §6.4, §15, §15.1
+**Governs:** §3, §6.3, §15, §15.1
 
 **Amends D-66 and D-159:** the first stop no longer escalates, and the every-fourth-pass check-in is gone.
 
@@ -7575,6 +7699,9 @@ merge, nobody would sign the narrowing before the code relied on it.
 ### D-178 — Build it carries a cycle to its pull request, in a process of its own
 
 **Governs:** §3, §10.3, §14, §15
+
+**Amended by D-183 and D-184.** The skill no longer launches the process: `sdlc build-run` commits the placed
+approval, admits the plan, opens the worktree and starts the process, its tools named.
 
 **Amends D-24:** for one cycle, saying *build it* is the confirmation before the push. **Retires** D-158's new
 session before the build.
@@ -7611,8 +7738,10 @@ path for one cycle.* Two paths drift; the factory's is already the tested one.
   file the plan declared or one it did not — and a change doing what a widening deviation describes.
 - **`CON_26`** is `CON_05` with its exception in its own words: a criterion another rule in force for the spec
   requires — a failure criterion `CON_17` or `CON_20` asks for — is supported by that rule and names it.
-- **`CON_27`** is `CON_24` with the third place a departure is declared: at the change, a `decision` deviation a
-  person accepted.
+- **`CON_27`** is `CON_24` with the third place a departure is declared: at the change, a `decision` deviation in
+  force — recorded by the build and not asked to change. Acceptance is the merge, after the verification that reads
+  it (D-181), so a rule waiting on a person's acceptance would have blocked every one. Corrected in place before
+  0.47.0 shipped, which is the only time a rule's words may move without a revision.
 - **Two wording revisions ride with them**, what each forbids unchanged: `CON_12.2`'s Why cites `CON_22` where it
   cited the superseded `CON_08`, and `CON_10.3`'s calls the approval ledger one of the files only a person writes
   rather than the one.
@@ -7655,7 +7784,7 @@ next sentence naming a rule would reopen it; a parse does not depend on anybody 
 
 ### D-177 — A finding carries its rule's own line, copied by the binary and held at record
 
-**Governs:** §6.1, §6.2, §19
+**Governs:** §6.1, §19
 
 **Decision.** Every new finding's citation carries the line of the rule it cites as the set its reader was handed
 renders it — the current revision's. `sdlc round collect` puts that line in place of whatever the reader wrote
@@ -7679,7 +7808,7 @@ would find the drift after the round that carried it was approved.
 
 ### D-174 — A blocking finding cites a rule its reader was handed, or it does not block
 
-**Governs:** §6.1, §6.2
+**Governs:** §6.1
 
 **Decision.** A blocker's citation is compared, by tier and number, with the rules in force for what its reader
 judged: the document's own set for the rules reader, the change's for the diff reader, and for a perspective the
@@ -7969,6 +8098,8 @@ diff finding, which those readers judge again; counting runs would bring the rep
 
 **Governs:** §2.5, §12
 
+**Amended by D-183.** The binary starts the readers too, as `sdlc round run`; no skill types the launch.
+
 **Amends D-117:** `round prompt` writes the shared block once, as `shared.md`, and the rules reader's and each
 perspective's prompt file holds only its own part. **Amends D-118:** those readers are started with
 `--append-system-prompt-file shared.md`, the rules reader five seconds before the rest, and every reader is
@@ -8021,6 +8152,9 @@ person signed in to a subscription could not run a round.
 
 **Governs:** §5.2, §6.1, §10.3, §15.2
 
+**Amended by D-181.** `draft approval --accept/--decline` are retired: deviations are accepted by merging the pull
+request they lead.
+
 **Amends D-117:** `round collect` settles the earlier findings the session names. **Amends D-144:** `sdlc branch
 <id> build` finds a plan on an admission branch, and in a sandbox only when there is nothing to admit it to.
 **Amends D-156:** the deviation answers a person gives can be drafted in. **Amends D-77:** `draft solution` moves
@@ -8070,6 +8204,9 @@ collision has happened once; the refusal now says where both were raised and wha
 ### D-161 — The adjudicator reads the coverage, evidence git would drop breaks the chain, and a new run retires a blocked verdict
 
 **Governs:** §4.5, §6
+
+**Amended by D-185.** A pass is retired the same way with `--retire-pass`, when a person asked for a change to a
+cycle that passed.
 
 **Amends D-92:** the verify round's evidence hash covers the coverage summary too. **Amends D-32:** the
 Azure DevOps pull-request path has run.
@@ -8302,9 +8439,13 @@ first; a change the person asks for is a `Changed:` line on the entry. **And by 
 no longer the build's to make. The ledger's `deviations` value stays for a reopen's taking-in.
 
 **Amended by D-176.** The undeclared deviation it blocks is a finding under `CON_25`, which forbids it in any file,
-and an accepted `decision` deviation is a declared departure under `CON_27`.
+and a `decision` deviation in force is a declared departure under `CON_27`.
 
-**Amended by D-162.** `draft approval --accept` and `--decline --note` draft the person's answers in; the rename is still theirs.
+**Amended by D-162**, then **retired by D-181.** `draft approval --accept` and `--decline --note` drafted the person's answers in;
+deviations are now accepted at the pull request, and a change is asked for in words.
+
+**Amended by D-180.** A choice the plan left open is recorded beside the deviations, as a `choice`: it departs from
+no approved text, so it is never leave and never a deviation in force.
 
 **Narrows D-19:** a reopen is for a plan wrong about *what* the cycle delivers; a build that has to change *how*,
 or narrow a criterion, deviates instead. **Extends D-65** to deviations, **D-66**'s escalation, and **D-123**: an
@@ -8949,7 +9090,7 @@ change can make a cycle block is not something a diff shows. A wrong patch is ca
 
 **Governs:** §4.2, §7.5, §8.1.1, §15.2
 
-**Superseded in part by D-176.** `CON_24` gave way to `CON_27`, which names an accepted decision deviation as a
+**Superseded in part by D-176.** `CON_24` gave way to `CON_27`, which names a decision deviation in force as a
 third place a departure is declared, and the diff reader's creep rule is now `CON_25`. What stands: the decisions
 as standing criteria, a departure declared once where it arises, and the change read against both.
 
@@ -9939,6 +10080,9 @@ would have needed before their own pull request anyway.
 
 **Governs:** §15
 
+**Superseded by D-158, then D-178.** Only the hand-back before the build named a new session (D-158), and since
+the build runs in a process of its own, none does (D-178).
+
 **Decision.** Every stage skill's hand-back says the next stage runs **in a new session**, and `sdlc
 status` says so beside the next command it names. It is a sentence, not a mechanism: nothing refuses a
 stage run in the session that ran the one before it.
@@ -10059,6 +10203,8 @@ solution could not mark its own.
 
 **Governs:** §2.5, §12
 
+**Amended by D-183.** The binary starts the readers too, as `sdlc round run`; no skill types the launch.
+
 **Amended by D-163.** The rules reader and every perspective also take `--append-system-prompt-file shared.md`, the rules reader starts a few seconds before the rest, and every reader starts from a directory outside the repository.
 
 **Decision.** On Claude Code every fresh reader — an interrogation's, the reconciler, the adjudicator,
@@ -10098,6 +10244,8 @@ fix for that, and one result object is what collect reads.
 ### D-117 — The binary composes every reader's prompt and collects every reader's answer
 
 **Governs:** §2.5, §6, §6.5
+
+**Amended by D-183.** The binary starts the readers too, as `sdlc round run`; no skill types the launch.
 
 **Amended by D-163.** The shared block is written once, as `shared.md`, and the rules reader's and each perspective's prompt file holds only its own part.
 

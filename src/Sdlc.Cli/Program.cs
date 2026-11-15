@@ -18,6 +18,7 @@ using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Mining;
 using Sdlc.Core.Decisions;
+using Sdlc.Core.Deviations;
 using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
@@ -116,6 +117,7 @@ try
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
         "report" => await WithCycle(line, "report", ReportCommand).ConfigureAwait(false),
+        "build-run" => await WithCycle(line, "build-run", BuildRunCommand).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
@@ -649,7 +651,7 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
     line.TryOption("coverage", out string? coverage);
 
     Result<RecordEvidence.Response> result = await workspace
-        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log, coverage))
+        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log, coverage, line.HasOption("retire-pass")))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -1019,6 +1021,30 @@ static async Task<int> BranchCommand(CommandLine line)
         return ExitCode.Usage;
     }
 
+    // Remediation works where the build did, in a worktree on the branch its pull request is from, opened when
+    // absent (D-185). It prints the path, which is where the session works.
+    if (string.Equals(line.Arguments[1], "remediate", StringComparison.OrdinalIgnoreCase))
+    {
+        return await WithCycle(line, "branch", async (workspace, id) =>
+        {
+            Result<BuildRun.Place> place = await workspace
+                .Send<BuildRun.Prepare, BuildRun.Place>(new BuildRun.Prepare(id, Remediate: true))
+                .ConfigureAwait(false);
+
+            if (place.IsFailed)
+            {
+                return await Report(place, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteLineAsync(place.Value.Path).ConfigureAwait(false);
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{(place.Value.Opened ? "Opened" : "Already open")}: {place.Value.Branch}, where the build is. Work there; push from there and the same pull request takes it."))
+                .ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
     // A sandbox is planning on a branch of its own kind, sandbox/<id>, in a worktree (D-144).
     bool sandbox = string.Equals(line.Arguments[1], "sandbox", StringComparison.OrdinalIgnoreCase);
 
@@ -1229,6 +1255,173 @@ static async Task<int> BacklogCommand(Workspace workspace)
 
 // What a sandbox has approved, composed onto an admission branch the check already knows (D-144). The command
 // alone on standard output, so the pr skill runs exactly what was decided; what stays behind, on standard error.
+// Build it, as one command (D-178, D-184): the placed approval committed in its sandbox, the plan admitted, the
+// build's worktree opened, its own process started there with its tools named, and the report read back.
+static async Task<int> BuildRunCommand(Workspace workspace, CycleId id)
+{
+    string plugin = ClaudeSession.PluginDirectory;
+
+    if (!File.Exists(Path.Combine(plugin, ".claude-plugin", "plugin.json")))
+    {
+        await Console.Error.WriteLineAsync(
+            $"sdlc {Sdlc.Core.Release.Version} carries no plugin at {plugin}, so the build's process cannot load this release's skills. Reinstall the tool from a package built by ci.yml.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    Result<BuildRun.Place> place = await workspace
+        .Send<BuildRun.Prepare, BuildRun.Place>(new BuildRun.Prepare(id))
+        .ConfigureAwait(false);
+
+    if (place.IsSuccess && place.Value.AdmitFirst)
+    {
+        int admitted = await Workspace.RunAt(place.Value.Path, sandbox => AdmitForBuild(sandbox, id)).ConfigureAwait(false);
+
+        if (admitted != ExitCode.Ok)
+        {
+            return admitted;
+        }
+
+        place = await workspace
+            .Send<BuildRun.Prepare, BuildRun.Place>(new BuildRun.Prepare(id))
+            .ConfigureAwait(false);
+
+        if (place.IsSuccess && place.Value.AdmitFirst)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"The plan for {id} was admitted and the build still cannot find it outside the sandbox. Run 'sdlc branch {id} build-unattended' to see why."))
+                .ConfigureAwait(false);
+            return ExitCode.Refused;
+        }
+    }
+
+    if (place.IsFailed)
+    {
+        return await Report(place, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    string worktree = place.Value.Path;
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Building {id} in {worktree}, on {place.Value.Branch}. Its own process implements, verifies, fixes what it can and opens the pull request; it asks nothing, and this waits for it."))
+        .ConfigureAwait(false);
+
+    Result<Sdlc.Core.AgentExit> exit = await workspace
+        .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(id, worktree, plugin))
+        .ConfigureAwait(false);
+
+    if (exit.IsFailed)
+    {
+        return await Report(exit, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (exit.Value.NeverStarted)
+    {
+        await Console.Error.WriteLineAsync("The build's process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    if (!exit.Value.Succeeded)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"The build's process ended badly: {exit.Value.Problem} What it recorded is below.")).ConfigureAwait(false);
+    }
+
+    return await Workspace.RunAt(worktree, async tree =>
+    {
+        Result<BuildReport.Response> report = await tree
+            .Send<BuildReport.Query, BuildReport.Response>(new BuildReport.Query(id))
+            .ConfigureAwait(false);
+
+        Result<ReadCycleStatus.Response> status = await tree
+            .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(id))
+            .ConfigureAwait(false);
+
+        string? outcome = status.IsSuccess ? status.Value.Outcome : null;
+
+        // No verdict is no report: the process stopped before verification, and what it did is in its worktree.
+        if (report.IsFailed || outcome is null)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"The build ended without a report: {(report.IsFailed ? string.Join("; ", report.Errors.Select(error => error.Message)) : "no verification was recorded")}. 'sdlc status {id}' in {worktree} says where it stopped."))
+                .ConfigureAwait(false);
+            return ExitCode.Failed;
+        }
+
+        await Console.Out.WriteAsync(BuildReport.Render(report.Value)).ConfigureAwait(false);
+
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Outcome: {outcome}. 'sdlc status {id}' in {worktree} names the next step."))
+            .ConfigureAwait(false);
+
+        return exit.Value.Succeeded && string.Equals(outcome, "pass", StringComparison.OrdinalIgnoreCase)
+            ? ExitCode.Ok
+            : exit.Value.Succeeded ? ExitCode.Refused : ExitCode.Failed;
+    }).ConfigureAwait(false);
+}
+
+// In the sandbox: the approval a person placed is committed -- their act, recorded; the binary writes no protected
+// file -- and the plan is admitted onto its branch, by the git commands 'sdlc admit' prints (D-184).
+static async Task<int> AdmitForBuild(Workspace sandbox, CycleId id)
+{
+    string root = sandbox.SolutionRoot;
+    string folder = $"{Cycle.SdlcDirectoryName}/{Cycle.CyclesDirectoryName}/{id}/";
+    string[] placed =
+    [
+        .. sandbox.Repository.UncommittedChanges(root)
+            .Select(path => path.Replace('\\', '/'))
+            .Where(path => path.StartsWith(folder, StringComparison.Ordinal)),
+    ];
+
+    if (placed.Length > 0)
+    {
+        Result committed = sandbox.Repository.Commit(root, placed, string.Create(CultureInfo.InvariantCulture, $"Record what was approved for {id}, for its build"));
+
+        if (committed.IsFailed)
+        {
+            await Console.Error.WriteLineAsync(string.Join(Environment.NewLine, committed.Errors.Select(error => error.Message))).ConfigureAwait(false);
+            return ExitCode.Failed;
+        }
+    }
+
+    Result<ComposeAdmission.Response> admission = await sandbox
+        .Send<ComposeAdmission.Query, ComposeAdmission.Response>(new ComposeAdmission.Query())
+        .ConfigureAwait(false);
+
+    if (admission.IsFailed)
+    {
+        return await Report(admission, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    if (!admission.Value.Admitted.Contains(id))
+    {
+        string why = admission.Value.Staying.FirstOrDefault(staying => staying.Id == id).Why ?? "the gate does not let it through";
+        await Console.Error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"{id} stays in the sandbox: {why}.")).ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    foreach (string step in admission.Value.Command.Split(" && ", StringSplitOptions.TrimEntries))
+    {
+        Result<string> ran = sandbox.Repository.Git(root, step.StartsWith("git ", StringComparison.Ordinal) ? step["git ".Length..] : step);
+
+        if (ran.IsFailed)
+        {
+            return await Report(ran, ExitCode.Failed).ConfigureAwait(false);
+        }
+    }
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Admitted {string.Join(", ", admission.Value.Admitted)} onto {admission.Value.Branch}, in {admission.Value.Folder}. Nothing was pushed."))
+        .ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 static async Task<int> AdmitCommand(Workspace workspace)
 {
     Result<ComposeAdmission.Response> result = await workspace
@@ -1694,6 +1887,67 @@ static async Task<int> MineCommand(CommandLine line)
 
             await Console.Out.WriteAsync(MiningRenderer.RenderRecorded(recorded.Value)).ConfigureAwait(false);
             return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
+    // Mining's readers, written and started by the binary as every reader is (D-183).
+    if (line.Arguments.Count > 0
+        && (string.Equals(line.Arguments[0], "read", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(line.Arguments[0], "review", StringComparison.OrdinalIgnoreCase)))
+    {
+        bool review = string.Equals(line.Arguments[0], "review", StringComparison.OrdinalIgnoreCase);
+        CommandLine rest = line.WithoutFirstArgument();
+
+        if (!rest.TryOption("dir", out string? directory))
+        {
+            await Console.Error.WriteLineAsync(review
+                ? "Where should the review's readers write? 'sdlc mine review --dir <directory>', one outside the repository. --proposals <file> names the marked proposal file when it is not the newest."
+                : "Where should the readers write? 'sdlc mine read --dir <directory>', one outside the repository. --cycles names the sitting's cycles, as 'sdlc mine' does.")
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        List<CycleId>? sitting = null;
+
+        if (rest.TryOption("cycles", out string? listed))
+        {
+            sitting = [];
+
+            foreach (string text in Ids(listed))
+            {
+                if (!CycleId.TryParse(text, out CycleId? id))
+                {
+                    await Console.Error.WriteLineAsync($"'{text}' is not a cycle id. 'sdlc cycles' lists them.").ConfigureAwait(false);
+                    return ExitCode.Usage;
+                }
+
+                sitting.Add(id.Value);
+            }
+        }
+
+        rest.TryOption("proposals", out string? proposals);
+        var timeout = TimeSpan.FromMinutes(30);
+
+        return await Workspace.Run(rest, async workspace =>
+        {
+            Result<RunRound.Response> ran = review
+                ? await workspace
+                    .Send<MineReaders.Review, RunRound.Response>(new MineReaders.Review(
+                        Path.GetFullPath(directory),
+                        proposals is null ? null : Path.GetFullPath(proposals),
+                        timeout))
+                    .ConfigureAwait(false)
+                : await workspace
+                    .Send<MineReaders.Read, RunRound.Response>(new MineReaders.Read(Path.GetFullPath(directory), sitting, timeout))
+                    .ConfigureAwait(false);
+
+            if (ran.IsFailed)
+            {
+                return await Report(ran, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(RunRound.Render(ran.Value)).ConfigureAwait(false);
+            return ran.Value.AllAnswered ? ExitCode.Ok : ExitCode.Failed;
         }).ConfigureAwait(false);
     }
 
@@ -2202,7 +2456,55 @@ static async Task<int> RoundVerb(CommandLine line)
         return await WithCycle(rest, "round verdict", (w, id) => RoundVerdict(w, rest, id)).ConfigureAwait(false);
     }
 
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "run", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round run", (w, id) => RoundRun(w, rest, id)).ConfigureAwait(false);
+    }
+
     return await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false);
+}
+
+// Starts every reader 'round prompt' wrote, the way the skills used to type it (D-183). The cycle and artifact are
+// read for the shape of the command; what runs is decided by the prompts in the directory.
+static async Task<int> RoundRun(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out _) || !line.TryOption("dir", out string? directory))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which round? 'sdlc round run <id> <intent|spec|plan|verify> --dir <directory>' starts every reader whose prompt 'sdlc round prompt' wrote there. --timeout <minutes> bounds each one; 30 when left off.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    int minutes = 30;
+
+    if (line.TryOption("timeout", out string? limit)
+        && (!int.TryParse(limit, CultureInfo.InvariantCulture, out minutes) || minutes < 1))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"'{limit}' is not a number of minutes. Give a whole number from 1."))
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    Result<RunRound.Response> result = await workspace
+        .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(
+            Path.GetFullPath(directory),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMinutes(minutes)))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(RunRound.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.AllAnswered ? ExitCode.Ok : ExitCode.Failed;
 }
 
 static async Task<int> RoundPrompt(Workspace workspace, CommandLine line, CycleId id)

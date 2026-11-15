@@ -3,7 +3,7 @@ name: steer
 description: Carry a person's mid-cycle correction down the artifact chain, editing the intent, spec and plan rather than regenerating them. Use when someone wants to change how a cycle in progress is being done, or to take in or decline suggestions a reader raised in it.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>] [<finding id>...] [\"what to change\"]"
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Steer a cycle already underway
@@ -59,7 +59,8 @@ cost of getting this wrong is a cycle whose intent no longer describes the work,
 whole chain exists to prevent.
 
 **Why a raised suggestion may change what, and a comment may not** (D-97). The spec may only derive
-from what the intent states (`CON_26`), so a concern a perspective found — keyboard use, where a key is
+from what the intent states (`CON_26`) — or what another rule in force requires, naming it — so a concern a
+perspective found — keyboard use, where a key is
 kept, what is logged on a failure — reaches a criterion only through the intent, and only because a
 person chose it. A suggestion was raised by a fresh reader against this cycle's own documents: the
 person is choosing from what the cycle was found to lack, not inventing a new piece of work midway. A

@@ -111,7 +111,7 @@ public static class EvidenceRenderer
         if (report.RetiredVerdict)
         {
             output.AppendLine();
-            output.AppendLine(Indent + "Verdict   the blocked verify.md was removed: it judged the run this one replaces.");
+            output.AppendLine(Indent + "Verdict   the blocked verify.md was removed -- or the passed one, when a change was asked for: it judged the run this one replaces.");
             output.AppendLine(Indent + "          Commit its removal with this evidence, then verify again.");
         }
 

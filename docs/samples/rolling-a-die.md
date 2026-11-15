@@ -398,10 +398,11 @@ If either stops on a blocker, see [handling blockers](../guides/handling-blocker
 
 ## 8. Approve
 
-The hand-back drafted the approval beside the ledger and printed the rename that records it:
+The hand-back drafted the approval beside the ledger and printed the rename that records it. Run that line as it
+printed it: it names both files by their full path in the sandbox, so it works from any terminal.
 
 ```pwsh
-Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approval.md
+Move-Item <the draft's full path, as printed> <approval.md's full path, as printed>
 ```
 
 **The rename is the decision and it is yours.** No tool places that file, there is no flag for an
@@ -416,8 +417,9 @@ Say *build it*, or:
 /sdlc:build <id>
 ```
 
-The first stage that writes code and the first you are not expected to watch. It asks the gate, takes the plan
-out of the sandbox, and builds in a process of its own — this session just waits for it to report. It implements
+The first stage that writes code and the first you are not expected to watch. It asks the gate, then `sdlc
+build-run` commits your approval, takes the plan out of the sandbox, and builds in a process of its own — this
+session just waits for it to report. It implements
 what the plan decided and only that. The skeleton arrives first, because
 the plan declared it — a solution file, its projects, the architecture suite and a reference slice written
 in the shape every operation should have — and the two front-end projects and the component tests after
@@ -430,14 +432,8 @@ not this cycle.
 
 ## 10. Verify — the build does it
 
-**A green build goes straight on to verify.** A fresh process reads `tests.json`, `diff.patch` and
-`base.sha` and does **not** run the tests. Per criterion: which test did the plan name, does the summary
-say it ran and passed, and does that test actually establish the criterion? The third is where judgement
-lives — a test that passed but does not reach its criterion is *not met*.
-
-It writes `pass` or `blocked`. On `blocked` the build remediates by itself: it edits source and tests, never a
-planning document, and verifies again while each pass reduces what is open. `../guides/handling-blockers.md` has
-the rest. This solution has no remote, so the build stops at a verified branch and hands back its report — what
+A green build goes straight on to verify, in a process that never saw it, and remediates by itself on `blocked`
+— `../guides/running-a-cycle.md`, under *Build it*, has how. This solution has no remote, so the build stops at a verified branch and hands back its report — what
 it did that the plan did not say:
 
 ```pwsh

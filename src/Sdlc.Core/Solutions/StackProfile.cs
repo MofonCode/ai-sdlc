@@ -179,7 +179,7 @@ public static class StackProfiles
         "criterion is unmet.",
         string.Empty,
         "**There is no device end-to-end layer.** A device-only outcome belongs in an intent as a bound,",
-        "verified by a person outside the cycle; `CON_12` keeps it out of a spec.",
+        "verified by a person outside the cycle; `CON_12.2` keeps it out of a spec.",
         string.Empty,
     ];
 

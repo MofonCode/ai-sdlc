@@ -3,7 +3,7 @@ name: next
 description: Pull the next wave from the backlog -- start every successor that is ready, take back every parked cycle whose predecessor merged, plan them all in one sandbox, and stop at the approvals. Use after merges land, when someone asks what is next, or to keep a piece of work moving to completion.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: ""
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Pull the next wave

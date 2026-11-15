@@ -106,6 +106,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Evidence.TimedTest",
         "Sdlc.Core.Evidence.CoverageSummary",
         "Sdlc.Core.Findings.RecordRound",
+        "Sdlc.Core.Findings.RunRound",
+        "Sdlc.Core.Findings.RunRound+Command",
+        "Sdlc.Core.Findings.RunRound+Reader",
+        "Sdlc.Core.Findings.RunRound+Response",
         "Sdlc.Core.Findings.RecordRound+Command",
         "Sdlc.Core.Findings.RecordRound+Response",
         "Sdlc.Core.Findings.ReaderPrompts",
@@ -232,6 +236,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.TidyRenderer",
 
         // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
+        "Sdlc.Core.Cycles.BuildRun",
+        "Sdlc.Core.Cycles.BuildRun+Launch",
+        "Sdlc.Core.Cycles.BuildRun+Place",
+        "Sdlc.Core.Cycles.BuildRun+Prepare",
         "Sdlc.Core.Cycles.ComposeAdmission",
         "Sdlc.Core.Cycles.ComposeAdmission+Query",
         "Sdlc.Core.Cycles.ComposeAdmission+Response",
@@ -283,6 +291,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Mining.MinedArea",
         "Sdlc.Core.Mining.MinedCycle",
         "Sdlc.Core.Mining.MinedDecline",
+        "Sdlc.Core.Mining.MineReaders",
+        "Sdlc.Core.Mining.MineReaders+Read",
+        "Sdlc.Core.Mining.MineReaders+Review",
         "Sdlc.Core.Mining.MinedLedger",
         "Sdlc.Core.Mining.MiningRenderer",
         "Sdlc.Core.Mining.MiningRun",
@@ -537,6 +548,10 @@ public sealed class PublicSurfaceTests
         // Public because two assemblies need the stamped release version and they would otherwise
         // read it twice: 'sdlc version' in the CLI, and the pipeline template here that pins the
         // binary a pull request restores.
+        "Sdlc.Core.AgentExit",
+        "Sdlc.Core.AgentLaunch",
+        "Sdlc.Core.CliAgentProcess",
+        "Sdlc.Core.IAgentProcess",
         "Sdlc.Core.PinnedRelease",
         "Sdlc.Core.Release",
         "Sdlc.Core.SdlcServices",

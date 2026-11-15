@@ -30,11 +30,11 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | **The gate** | | | |
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |
-| [`build`](../../skills/README.md#build) | `[<cycle id>]` | carries the approved cycle to its pull request: admits the plan, then in a process of its own builds, tests, records the evidence, verifies, remediates and opens the pull request; hands back the report | a person, or `batch-build` |
+| [`build`](../../skills/README.md#build) | `[<cycle id>]` | carries the approved cycle to its pull request: `sdlc build-run` admits the plan, then in a process of its own builds, tests, records the evidence, verifies, remediates and opens the pull request; hands back the report | a person, or `batch-build` |
 | [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | the build's process, `remediate`, or a person |
-| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification, or makes the change a person asks for at the pull request, and verifies again, going round while it is working and deviating once before it escalates | the build's process, or a person |
+| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification, or makes what a person asks for after an escalation or at the pull request, and verifies again, going round while it is working and deviating once before it escalates | the build's process, or a person |
 | **Pull requests and unattended runs** | | | |
-| [`pr`](../../skills/README.md#pr) | `[<cycle id>...] [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; asks before every push | a person\*, or `batch-build` |
+| [`pr`](../../skills/README.md#pr) | `[<cycle id>...] [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; started by hand, it asks before the push, and the build's own process opens one without asking, because saying *build it* was the consent | a person\*, or the build's process |
 | [`batch-build`](../../skills/README.md#batch-build) | `[<cycle id>] [--pr] [--unattended]` | builds and verifies every queued cycle — or the one named — each on its own branch, then reports the sitrep | a person, or the factory |
 | [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<cycle id>` | brings a pull request up to date with the integration branch when it conflicts or goes red, inside the declared files, then verifies again | a person |
 | **Reading and deciding** | | | |
@@ -52,7 +52,8 @@ each does something an agent should not decide on its own behalf:
   agent by the pre-tool hook, so you run it yourself. Adoption writes the hook configuration that
   constrains the agent, the pipeline that gates the merge, and the file saying where the code came from —
   an agent that could run it would be setting up its own guardrails.
-- **`pr` is asked, not enforced.** The skill asks you before every push, and no hook blocks a push. It is
+- **`pr` is asked, not enforced.** Started by hand, the skill asks you before the push, and no hook blocks a
+  push; inside *build it* the question was asked once, when you said it (D-178). It is
   the only stage that reaches outside the repository: a pull request notifies people and lands in a
   queue, and withdrawing one is something somebody has to notice. What stops an unready cycle from
   merging is the pull-request check, not the question.

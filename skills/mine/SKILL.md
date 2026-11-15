@@ -3,7 +3,7 @@ name: mine
 description: Mine the solution's cycles -- read what every finished cycle argued, settled and raised, propose the rules, decisions, stack rows, areas and successors it is missing, answer every item, and record the sitting so mined cycles become husks a person may delete. Proposes and never places. Use once a cycle's verify passes, or when somebody asks to bring the records up to what the cycles settled or to clear out old cycles.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: ""
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git show *)
+allowed-tools: Bash(sdlc *), Bash(git show *), Read, Glob
 ---
 
 # Mine the cycles
@@ -52,12 +52,17 @@ never mentions. It ends with the path of the proposal file.
 **The report is what to read, not what to propose.** Its samples are pointers, and a history runs to
 hundreds of findings, which no single reading holds. So the reading is split:
 
-1. **One fresh process per cycle and document with findings**, concurrently, started as
-   `SDLC_READER=1 claude -p --output-format text --tools= --strict-mcp-config --no-session-persistence`
-   with the prompt piped in, from a directory outside the repository — no tools, because everything it reads
-   is in its prompt (D-118), and not from the checkout, whose memory and git status the host would hand it too
-   (D-163). Hand each `sdlc findings <id> --stage <artifact>` and nothing else,
-   and ask: *group these findings by the problem underneath, not by their wording — one plan raised the
+1. **One fresh process per cycle and document with findings**, concurrently, **started by the binary**:
+
+   ```
+   sdlc mine read --dir <scratch>/mine
+   ```
+
+   It writes one prompt per cycle and document with findings into `<scratch>/mine`, each holding `sdlc findings
+   <id> --stage <artifact>` and nothing else, starts each reader in a fresh process of its own — from that
+   directory rather than the checkout, whose memory and git status the host would hand it too (D-163), with no
+   tools, because everything it reads is in its prompt (D-118), and marked as a reader — and writes each answer
+   beside its prompt. **You start no process yourself.** Each reader is asked: *group these findings by the problem underneath, not by their wording — one plan raised the
    same missing log level twenty times in twenty wordings. For each group: the finding ids, one sentence
    naming the problem, how many rounds its longest finding stood, and the remedy the readers agreed
    on, if they did. Return the groups and nothing else.*
@@ -235,17 +240,22 @@ Show what it prints verbatim.
 
 ## 4. Review what was approved, in a fresh process
 
-Before the person renames anything, open one fresh process, started as in step 1 of reading the
-report, and hand it the marked
-proposal file, the three drafts, and `.sdlc/solution.md` — nothing else. Ask:
+Before the person renames anything, two fresh processes review it. **The binary writes their prompts and starts
+both**, as it starts every reader — you start no process yourself:
+
+```
+sdlc mine review --dir <scratch>/review
+```
+
+The first is handed the marked proposal file, the drafts, and `.sdlc/solution.md` — nothing else — and asked:
 
 > For each proposal: was it accepted as proposed, edited, or declined? For each edit and each decline,
 > does what was approved still serve what the evidence lines describe? And does the approved set, taken
 > together, move the solution toward what `solution.md` says it is, or away from it? Answer **in
 > alignment**, or **deviates**, with each place it deviates and why. Do not argue for the proposals.
 
-Then a **second** fresh process, handed the report `sdlc mine` printed and the proposal
-file — nothing else — and asked the question the first cannot, because it sees only what was proposed:
+The **second** is handed the report `sdlc mine` printed and the proposal file — nothing else — and asked the
+question the first cannot, because it sees only what was proposed:
 
 > Here is everything the record raised, and what was made of it. Name each argued rule, reopen, criterion
 > that failed more than one verdict, and perspective at the bar that has **no answer** in the proposal file

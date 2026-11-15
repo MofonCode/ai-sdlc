@@ -23,7 +23,7 @@ the next one.
 
 - **Where am I?** `sdlc status <id>` — names the next step
 - **What did the build do on its own?** `sdlc report <id>` — every deviation, choice and concern; it leads the pull request
-- **A blocking finding** the loop could not clear, or **remediation escalated** — `guides/handling-blockers.md`
+- **A blocking finding** the loop could not clear, or **remediation escalated** — `guides/handling-blockers.md`; after an escalation, say what to do, then *fix it* (`/sdlc:remediate`)
 - **The intent is two things**, or two are one, before a spec — `/sdlc:intent --reslice <id>...`
 - **The plan is wrong** after approval — *steer the plan*: it drafts the reopen and walks the rest
 - **After the merge** — `/sdlc:mine`; `sdlc mine record <file>` once its drafts are placed; `sdlc tidy` for the worktrees and branches left over

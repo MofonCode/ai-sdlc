@@ -74,6 +74,7 @@ public static class SdlcServices
 
         // Work trackers, read through the platforms' own CLIs so the binary never holds a token (D-89).
         services.TryAddSingleton<ITracker, CliTracker>();
+        services.TryAddSingleton<IAgentProcess, CliAgentProcess>();
         services.TryAddSingleton<IBranchPolicies, CliBranchPolicies>();
 
         // Operate's store and the tracker it files into, both through the platforms' CLIs (D-89).
@@ -98,11 +99,14 @@ public static class SdlcServices
         services.AddChangedSectionsRequestHandler();
         services.AddReaderPromptsRequestHandler();
         services.AddCollectRoundRequestHandler();
+        services.AddRunRoundRequestHandler();
+        services.AddMineReadersRequestHandlers();
         services.AddWriteVerdictRequestHandler();
 
         services.AddListCyclesRequestHandler();
         services.AddResolveCycleRequestHandler();
         services.AddComposeAdmissionRequestHandler();
+        services.AddBuildRunRequestHandlers();
         services.AddDiscardSandboxRequestHandler();
         services.AddTidyCyclesRequestHandler();
         services.AddUpgradeChecklistRequestHandler();

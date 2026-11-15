@@ -487,7 +487,7 @@ because a reader judges the rule's words and never the skill that wrote the spec
 failure criterion the failure rules require read as creep to one reader and as a gap to another, and only
 the spec skill's text said which won.
 
-## CON_27 — A departure from a recorded decision is declared where it arises, or accepted as a deviation, and later stages rely on it
+## CON_27 — A departure from a recorded decision is declared where it arises, or recorded as a deviation, and later stages rely on it
 
 **Applies to:** an intent, a spec and a plan, at approval; and a diff, at verification.
 
@@ -497,7 +497,8 @@ declared at or above it. An intent asking for that outcome without a line under 
 opening `Departs from DEC_nn`, with who decided it and why. A spec criterion requiring it where the
 intent declares no such departure. A plan taking it without that line under `Shape and departures`,
 saying what the recorded decision would have cost here. A change doing it where neither the intent nor
-the plan declares it, and no decision deviation in force — one a person accepted — departs from that entry.
+the plan declares it, and no decision deviation in force — recorded by the build and not asked to change —
+departs from that entry.
 
 **Why:** a decision is recorded so a later cycle does not argue it again from nothing, and the cost of
 the record going unread is not that somebody disagrees with it. It is that nobody knows they are
@@ -507,9 +508,10 @@ was already approved; found in the code, it is work to undo. Declared once, wher
 stage can rely on it rather than reopen it, and the person at each gate is told what they are agreeing
 to depart from. **Departing stays legal**: a decision that cannot be revisited is a cage, and the first
 case it does not fit would see the record ignored rather than amended. What this forbids is departing in
-silence. At the change a departure can also arrive as a deviation the build recorded and a person
-accepted — the same declaration, made later, by the same person — and `CON_24` named only the two
-documents, so a reader taking it at its word blocked a departure somebody had already answered for. It
+silence. At the change a departure can also arrive as a deviation the build recorded where it arose —
+the same declaration, made later, which the pull request leads with and a person accepts by merging — and
+`CON_24` named only the two documents, so a reader taking it at its word blocked a departure the record
+already declared. It
 blocks only on an actual contradiction of an `Instead of`; a decision that merely seems relevant, or a
 document that could have cited one, is a suggestion, because a rule read at four stages that blocked on a
 maybe would be a loop at all four. No analyzer can decide it — whether a passage or a hunk contradicts a

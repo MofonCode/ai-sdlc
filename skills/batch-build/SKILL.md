@@ -3,7 +3,7 @@ name: batch-build
 description: Complete every queued cycle -- build and verify each on its own branch, independently, and report the sitrep. With --pr, open a pull request for each; with --unattended, run as the factory does, asking nothing. Use when several cycles are approved and waiting.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>] [--pr] [--unattended]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
 ---
 
 # Complete the queued cycles
@@ -34,7 +34,8 @@ sdlc cycles --queued [<id>]
 sdlc cycles --claims
 ```
 
-**Given a cycle id, pass it**: the queue is then that cycle alone, and a cycle that is not queued is refused with
+**Fetch only when `git remote` names one**: with no remote there is nothing to fetch, and the queue reads this
+machine's branches. **Given a cycle id, pass it**: the queue is then that cycle alone, and a cycle that is not queued is refused with
 why. Stop there and report it; never build the rest instead.
 
 The first lists what to build — approved, no verify, not abandoned, and no `cycle/<id>/...` branch on the
@@ -69,6 +70,10 @@ cycle is the whole of what that cycle shows.
 **The list is a view, never the record.** The outcomes are in each cycle's verify document, on its branch.
 
 ## 2. One worktree and one branch per cycle
+
+**Started by `sdlc build-run` for one cycle, this is already done** (D-178): the binary prepared the worktree,
+put it on `cycle/<id>/build-unattended` from the branch the plan was admitted to, and started you in it. Stay
+where you are, and go to step 4. Everything else in this step is the many-cycle path, and the factory's.
 
 Every queued cycle builds **independently**, in its own git worktree, on its own branch:
 

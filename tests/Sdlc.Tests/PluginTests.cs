@@ -492,45 +492,36 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_build_skill_admits_the_plan_and_runs_the_build_in_a_process_of_its_own()
+    public void The_build_skill_hands_the_cycle_to_the_binary_that_runs_it_in_a_process_of_its_own()
     {
-        // D-178. The build is the factory's own path for one cycle, started from the person's session and asking
-        // nothing; the hand-back is the report the binary renders, so every host shows the same thing.
+        // D-178, D-183. `sdlc build-run` admits the plan, prepares the build's worktree and starts the factory's
+        // path for one cycle in a process of its own, with its tools named; the skill asks the gate, runs it, and
+        // hands back the report the binary renders, so every host shows the same thing.
         string text = File.ReadAllText(Path.Combine(Root, "skills", "build", "SKILL.md"));
 
-        StringAssert.Contains(text, "sdlc admit", "The build does not take the plan out of its sandbox.");
-        StringAssert.Contains(text, "/sdlc:batch-build <id> --pr --unattended", "The build does not start the factory's path for its cycle.");
-        StringAssert.Contains(text, "sdlc report <id>", "The build does not hand back the report.");
+        StringAssert.Contains(text, "sdlc build-run <id>", "The build does not hand the cycle to the binary.");
+        StringAssert.Contains(text, "sdlc report", "The build does not hand back the report.");
         Assert.IsFalse(text.Contains("bypassPermissions", StringComparison.Ordinal), "The build skips the host's permission checks on a person's machine.");
     }
 
     [TestMethod]
-    public void Every_reader_a_skill_starts_has_no_tools_spelled_so_powershell_keeps_it()
+    public void No_skill_starts_a_claude_process_itself()
     {
-        // D-118. A reader is handed everything it may read, so a tool is a way past the evidence -- and
-        // `--tools ""` reaches the host from Windows PowerShell as a flag with no value, which leaves the
-        // reader every tool and says nothing. Measured: the empty-argument spelling gave a 10k prompt
-        // where `--tools=` gave the 7k tool-less one.
-        int launches = 0;
-
+        // D-183. Every process the chain runs -- each reader, the adjudicator, the build's own -- is started by the
+        // binary, with its tools named and its flags fixed. A skill that launched one itself needed `Bash(claude *)`
+        // and a multi-line shell its host could not pre-approve, so a headless build was refused at the first
+        // reader; and the flags it had to spell exactly (`--tools=`, never `--tools ""`) were the skill's to get
+        // wrong on every host. Now the binary holds them, and this holds that no skill takes them back.
         foreach (string path in Skills())
         {
-            string text = File.ReadAllText(path).Replace("\\\n", " ", StringComparison.Ordinal).Replace("\\\r\n", " ", StringComparison.Ordinal);
+            string name = Path.GetFileName(Path.GetDirectoryName(path))!;
+            string text = File.ReadAllText(path);
 
-            foreach (Match launch in Regex.Matches(text, @"SDLC_READER=1\s+claude -p[^\n`]*"))
-            {
-                launches++;
-                string line = launch.Value;
-                string name = Path.GetFileName(Path.GetDirectoryName(path))!;
-
-                Assert.IsFalse(line.Contains("--tools \"\"", StringComparison.Ordinal), $"{name} spells no-tools as an empty argument: {line}");
-                StringAssert.Contains(line, "--tools=", $"{name} starts a reader with tools: {line}");
-                StringAssert.Contains(line, "--strict-mcp-config", $"{name} starts a reader with MCP servers: {line}");
-                StringAssert.Contains(line, "--no-session-persistence", $"{name} starts a reader that keeps a session file: {line}");
-            }
+            Assert.IsFalse(text.Contains("claude -p", StringComparison.Ordinal), $"{name} starts a claude process itself; the binary starts every process.");
+            Assert.IsFalse(
+                Value(Frontmatter(path), "allowed-tools", path).Contains("Bash(claude", StringComparison.Ordinal),
+                $"{name} is allowed to start claude, and no skill starts a process itself.");
         }
-
-        Assert.IsTrue(launches >= 4, $"Only {launches} reader launches were found in the skills, so the pattern has stopped matching them.");
     }
 
     [TestMethod]
@@ -563,8 +554,7 @@ public sealed class PluginTests
     [DataRow("plan", "I can't place the approval myself")]
     [DataRow("to-plan", "**It stops at the plan.**")]
     [DataRow("build", "say so plainly and stop there.")]
-    [DataRow("verify", "The person decides whether to open a pull request")]
-    [DataRow("verify", "The person decides whether to remediate")]
+    [DataRow("verify", "Do not start remediating on your own")]
     public void The_stage_skills_hand_back_rather_than_chaining_into_the_next_stage(string name, string handBack)
     {
         // The separate commands are where a person decides to proceed. A skill that chained straight on
@@ -606,19 +596,19 @@ public sealed class PluginTests
     [DataRow("mine")]
     [DataRow("build")]
     [DataRow("remediate")]
-    public void Every_skill_that_judges_starts_a_fresh_process_it_may_run(string skill)
+    public void Every_skill_that_judges_names_the_fresh_process_the_binary_starts(string skill)
     {
         // D-109. The verdict used to be written by whichever session typed /sdlc:verify, which was usually
-        // the one that built the change. A skill that judges names the fresh process it starts, and is
-        // allowed to start it, or the judging drifts back into the session.
+        // the one that built the change. A skill that judges names the fresh process its judging happens in, and
+        // runs the binary that starts it (D-183), or the judging drifts back into the session.
         string path = Path.Combine(Root, "skills", skill, "SKILL.md");
         string text = File.ReadAllText(path);
 
         StringAssert.Contains(text, "fresh process", $"{skill} judges, and does not say it judges in a fresh process.");
         StringAssert.Contains(
             Value(Frontmatter(path), "allowed-tools", path),
-            "Bash(claude *)",
-            $"{skill} starts a fresh process, and its allowed-tools do not let it.");
+            "Bash(sdlc *)",
+            $"{skill} has the binary start its fresh process, and its allowed-tools do not let it run the binary.");
     }
 
     [TestMethod]
@@ -628,81 +618,51 @@ public sealed class PluginTests
     [DataRow("to-plan")]
     [DataRow("steer")]
     [DataRow("next")]
-    public void Every_skill_that_runs_a_round_may_start_its_readers(string skill)
+    public void Every_skill_that_runs_a_round_may_run_the_binary_that_starts_its_readers(string skill)
     {
-        // A stage runs its own interrogation loop (D-29), so it starts the readers the interrogate skill
-        // describes, each a `claude -p` process. Only the judging skills were listed above, so these six ran
-        // their rounds behind a permission prompt per reader -- and an unattended planning run behind one it
-        // could not answer.
+        // A stage runs its own interrogation loop (D-29), and `sdlc round run` starts its readers (D-183). So all
+        // a stage needs to run a round unattended is the binary -- no prompt per reader, and none an unattended
+        // planning run could not answer.
         string path = Path.Combine(Root, "skills", skill, "SKILL.md");
 
         StringAssert.Contains(
             Value(Frontmatter(path), "allowed-tools", path),
-            "Bash(claude *)",
-            $"{skill} runs interrogation rounds, and its allowed-tools do not let it start the readers.");
+            "Bash(sdlc *)",
+            $"{skill} runs interrogation rounds, and its allowed-tools do not let it run the binary that starts the readers.");
     }
 
     [TestMethod]
-    public void Every_fresh_process_a_skill_starts_is_marked_as_a_reader()
+    public void The_interrogate_skill_has_the_binary_start_every_reader()
     {
-        // D-109. An unmarked reader on a red build has its turn refused by the turn-end gate, and its last
-        // message is an answer to the gate instead of its verdict. The mark is the binary's own constant,
-        // so renaming it there without renaming it here fails.
-        string marked = TurnEndGate.ReaderVariable + "=1 claude -p";
-        List<string> unmarked = [];
-
-        foreach (string path in Skills())
-        {
-            bool fenced = false;
-
-            foreach (string line in File.ReadLines(path))
-            {
-                if (line.TrimStart().StartsWith("```", StringComparison.Ordinal))
-                {
-                    fenced = !fenced;
-                    continue;
-                }
-
-                // The build's own process is not a reader (D-178): it builds, and a red build must keep its turn
-                // from ending, which is exactly what the mark would switch off. So it is the one launch left
-                // unmarked, recognised by the skill it runs.
-                bool build = line.Contains("/sdlc:batch-build", StringComparison.Ordinal);
-
-                if (fenced && !build && line.Contains("claude -p", StringComparison.Ordinal) && !line.Contains(marked, StringComparison.Ordinal))
-                {
-                    unmarked.Add($"{Path.GetRelativePath(Root, path)}: {line.Trim()}");
-                }
-            }
-        }
-
-        Assert.AreEqual(0, unmarked.Count, "Started without the reader mark:\n" + string.Join("\n", unmarked));
-    }
-
-    [TestMethod]
-    public void The_interrogate_skill_hands_the_shared_block_over_as_a_system_prompt_one_reader_first()
-    {
-        // D-163. Piped in with the rest, the shared block was written to the cache by every reader and read back
-        // by none; started together, no reader finds another's copy. Measured, the two together halve a round,
-        // and either alone saves almost nothing.
+        // D-117, D-183. The binary writes every prompt, starts every reader -- the shared block as the system prompt,
+        // one reader first (D-163) -- and collects every answer. The skill runs the three commands in that order.
         string text = File.ReadAllText(Path.Combine(Root, "skills", "interrogate", "SKILL.md"));
 
-        StringAssert.Contains(text, "--append-system-prompt-file shared.md < rules.prompt.md", "The rules reader is not handed the shared block.");
-        StringAssert.Contains(text, "sleep 5", "Every reader starts at once, so none finds the cache warm.");
-        StringAssert.Contains(text, "--append-system-prompt-file shared.md < \"$p\"", "A perspective is not handed the shared block.");
-        StringAssert.Contains(text, "diff) SDLC_READER=1 claude -p", "The diff reader, whose prompt is whole, has no launch of its own.");
+        int prompt = text.IndexOf("sdlc round prompt <id> <artifact> --dir <scratch>/round", StringComparison.Ordinal);
+        int run = text.IndexOf("sdlc round run <id> <artifact> --dir <scratch>/round", StringComparison.Ordinal);
+        int collect = text.IndexOf("sdlc round collect <id> <artifact> --dir <scratch>/round", StringComparison.Ordinal);
+
+        Assert.IsTrue(prompt >= 0 && run > prompt && collect > run, "The round is not prompt, then run, then collect.");
+        StringAssert.Contains(text, "system prompt", "The skill no longer says what the binary does with the shared block.");
     }
 
     [TestMethod]
-    public void Every_reader_a_skill_starts_from_a_round_is_started_from_the_rounds_directory()
+    public void Every_reader_a_skill_has_started_runs_from_the_rounds_directory()
     {
         // D-163. Started in the checkout, the host hands a reader the project's memory, its git status and its
         // latest commit messages: the author's context, measured at about 4,800 tokens a reader on one solution.
-        foreach ((string skill, string directory) in new[] { ("interrogate", "<scratch>/round"), ("verify", "<scratch>/verdict") })
+        // The binary starts it from the directory the skill names (D-183), so the skill names one outside the
+        // checkout and never changes into it itself.
+        foreach ((string skill, string run) in new[]
+        {
+            ("interrogate", "sdlc round run <id> <artifact> --dir <scratch>/round"),
+            ("verify", "sdlc round run <id> verify --dir <scratch>/verdict"),
+        })
         {
             string text = File.ReadAllText(Path.Combine(Root, "skills", skill, "SKILL.md"));
 
-            StringAssert.Contains(text, "( cd " + directory, $"{skill} starts a reader from the checkout.");
-            Assert.IsFalse(text.Contains("< " + directory + "/", StringComparison.Ordinal), $"{skill} pipes a prompt in from the checkout's working directory.");
+            StringAssert.Contains(text, run, $"{skill} does not have the binary start its readers from the round's directory.");
+            Assert.IsFalse(text.Contains("( cd <scratch>", StringComparison.Ordinal), $"{skill} changes into the round's directory itself.");
         }
     }
 
@@ -712,7 +672,7 @@ public sealed class PluginTests
         string text = File.ReadAllText(Path.Combine(Root, "skills", "verify", "SKILL.md"));
 
         StringAssert.Contains(text, "This session does not adjudicate", "The session that built the change would grade it.");
-        StringAssert.Contains(text, TurnEndGate.ReaderVariable + "=1 claude -p", "The adjudicator is not started.");
+        StringAssert.Contains(text, "sdlc round run <id> verify --dir <scratch>/verdict", "The adjudicator is not started.");
         StringAssert.Contains(
             text,
             "answered by a new adjudication, not by an edit",

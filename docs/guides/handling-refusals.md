@@ -206,8 +206,9 @@ documents by hand.
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
 words, the third when a reader raised a blocker without saying in a sentence what set it off, the
-fourth when a blocker cites a rule its reader was not handed, and the fifth when a suggestion's id or its
-move does not fit the cycle's suggestions. The next two are about areas (D-150):
+fourth when a blocker cites a rule its reader was not handed (D-174), the fifth when a new finding quotes its
+rule in words other than the rule's own (D-177), and the sixth when a suggestion's id or its move does not fit
+the cycle's suggestions. The next two are about areas (D-150):
 a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
 that could not change where the cycle goes (D-165).
 
@@ -379,10 +380,12 @@ reopen is no longer refused while one is unanswered: there is nothing left to an
 
 The check's *the deviations are sound* failed, or `sdlc deviations <id>` exited 1: a deviation quotes text the
 approved document does not hold, quotes the wrong document for its kind, adds a file another open cycle
-claims, replaces a deviation the file does not record, or narrows a criterion you accepted with its successor
-not written.
+claims, replaces a deviation the file does not record, or **narrows a criterion** — no deviation changes what
+*done* means (D-179). On a cycle from before D-181, a criterion narrowing a person accepted in the approval ledger
+still holds, and fails only with its successor not written.
 
-**Next:** the stage that wrote it corrects it — quote the approved text word for word, or write the successor
+**Next:** the stage that wrote it corrects it — quote the approved text word for word. A criterion narrowed is not
+corrected but taken back out: the cycle escalates, and you reopen the plan. On an older cycle, write the successor
 under `.sdlc/successors/`. A file another cycle claims is not a deviation at all: leave it to that cycle, or
 reopen.
 
@@ -578,7 +581,8 @@ and fix the record the check names.
 
 ### an option it does not take
 
-`sdlc init` takes `--platform`, `--integration-branch` and `--solution`, and nothing else. Any other
+`sdlc init` takes `--platform` and `--integration-branch`, and the global `--solution` every command takes, and
+nothing else. Any other
 option is refused before anything is written, with exit code `2`, rather than ignored — adoption writes
 the hook configuration and the pipeline, so a run that silently dropped part of the line would leave you
 believing you had asked for something you had not.
@@ -596,6 +600,46 @@ believing you had moved it.
 place, and create the branch. Otherwise run adoption without the option.
 
 ---
+
+## `sdlc build-run` — when the build cannot start
+
+`/sdlc:build` asks the gate, then hands the cycle to `sdlc build-run` (D-178), which commits a placed approval,
+admits the plan, prepares the build's worktree and starts the build in a process of its own. The gate's refusals
+are above; these are the binary's own.
+
+### the build's process cannot start
+
+The binary starts the build with the host's own command line, named tools and permission checks on (D-183). When
+that command is not on the path, there is nothing to start it with, and the build is never run in your session
+instead: a builder that sat through the planning is the separation the process exists to keep.
+
+**Next:** install the host's command line, or run the build where it is — the factory's agent has it.
+
+### the build ended without a report
+
+The build's process stopped before it reached an outcome: the toolchain failed, or the run was stopped. Nothing
+was opened, and `sdlc status <id>` says where the cycle got to.
+
+**Next:** read what `build-run` printed, fix the cause, and say *build it* again.
+
+## `sdlc round run` — when a reader cannot run
+
+`sdlc round run` starts every reader of a round, each in a fresh process (D-183). A round is never collected from
+a reader that did not answer.
+
+### no host to start a reader with
+
+The host's command line is not on the path, so no reader can be started — and a reader is never this session
+judging its own work instead.
+
+**Next:** install it, and run the round again.
+
+### a reader returned nothing
+
+A reader's process ended without an answer — a credential the host did not have, a stopped run. The binary names
+the reader.
+
+**Next:** fix what the message names, and run `sdlc round run` again: it starts only the readers with no answer.
 
 ## `sdlc evidence` — every way a recording is refused
 
@@ -623,9 +667,11 @@ ignore it.
 `verify.md` exists, its outcome is not `blocked`, and it adjudicates the run recorded now. Recording a new
 run would leave every claim in that document citing evidence that is gone — and a stale verdict is the one
 a reader trusts, because it looks finished. A **blocked** verdict is never refused: recording a new run
-retires it, which is what remediation does, and the report says so (D-161).
+retires it, which is what remediation does, and the report says so (D-161). A **passed** verdict is retired only
+when a person has asked for a change at the pull request: remediate records with `--retire-pass` (D-181).
 
-**Next:** delete `verify.md`, record the new run, and verify again. The findings rounds under `findings/`
+**Next:** when a person asked for a change, record with `--retire-pass`. Otherwise delete `verify.md`, record the
+new run, and verify again. The findings rounds under `findings/`
 are kept either way, so the history of what was challenged survives.
 
 ### git cannot say where the branch diverged
@@ -863,8 +909,8 @@ code. Run the build and the suite again over what is there now, and record it.
 
 Deliberately most of the time. It is silent off a cycle branch, on a cycle with no directory, on an
 abandoned cycle, before the cycle has a plan, when nothing has changed, when the host is already
-continuing because it was sent back once already, and in a **fresh reader** — a process `interrogate`,
-`verify` or `propose` starts with `SDLC_READER=1` to judge a document. A reader builds nothing, and
+continuing because it was sent back once already, and in a **fresh reader** — a process the binary starts with
+`SDLC_READER=1` to judge a document, for a round, a verification or a mining sitting (D-183). A reader builds nothing, and
 refusing its turn only replaced its verdict with an answer to the hook; the tool-call hook still holds it
 to the protected files. A governance hook that met a person finishing a thought
 would be switched off within a day, and then the one case it catches would go uncaught too.

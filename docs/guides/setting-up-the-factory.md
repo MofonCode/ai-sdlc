@@ -246,7 +246,7 @@ From here, `running-the-factory.md` is the routine: admit plans, start a run, re
 | | |
 |---|---|
 | the daily routine: admitting plans, the morning's sitrep, merges and conflicts | `running-the-factory.md` |
-| one cycle by hand, stage by stage | `running-a-cycle.md` |
+| one cycle, from intent to *build it* | `running-a-cycle.md` |
 | the pull-request check and branch policy | `adopting-the-framework.md` |
 | something refused | `handling-refusals.md` |
 | why it works this way | `../../CONCEPT.md` §10.4, §10.5, and D-84 |

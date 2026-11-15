@@ -156,7 +156,7 @@ public sealed class DecisionsThroughTheCycleTests
         string directory = Path.Combine(workspace.Root, "round");
         ReaderPrompts.Response written = (await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Verify, directory)).Value;
 
-        const string Blocker = """{ "findings": [ { "id": "F_01", "severity": "blocking", "cites": { "id": "CON_27", "heading": "A departure from a recorded decision is declared where it arises, or accepted as a deviation, and later stages rely on it" }, "gist": "The feed is real-time, where the solution decided on the delayed one.", "statement": "s", "locus": "diff.patch +1" } ] }""";
+        const string Blocker = """{ "findings": [ { "id": "F_01", "severity": "blocking", "cites": { "id": "CON_27", "heading": "A departure from a recorded decision is declared where it arises, or recorded as a deviation, and later stages rely on it" }, "gist": "The feed is real-time, where the solution decided on the delayed one.", "statement": "s", "locus": "diff.patch +1" } ] }""";
 
         foreach (string reader in written.Readers)
         {

@@ -342,7 +342,7 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
-    [DataRow("blocked", "sdlc build 20260929_1456_32", "a criterion is not met")]
+    [DataRow("blocked", "sdlc remediate 20260929_1456_32", "a criterion is not met")]
     [DataRow("pass", "sdlc verify 20260929_1456_32", "answer F_13 in a fresh adjudication")]
     [DataRow("escalated", "sdlc remediate 20260929_1456_32", "say what to do, then fix it")]
     public async Task A_verify_document_with_an_open_blocker_is_never_told_to_refine(string outcome, string command, string why)
@@ -472,7 +472,7 @@ public sealed class StatusRendererTests
     [TestMethod]
     [DataRow(null, "sdlc build", "the gate is satisfied")]
     [DataRow("pass", "sdlc pr", "the pull request is where you accept")]
-    [DataRow("blocked", "sdlc build", "build it goes round again")]
+    [DataRow("blocked", "sdlc remediate", "a criterion is not met - fix it")]
     [DataRow("escalated", "sdlc remediate", "escalated")]
     public async Task An_approved_cycle_is_pointed_at_the_step_its_verification_calls_for(
         string? outcome,
@@ -829,17 +829,18 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
-    public async Task A_built_cycle_with_no_verification_yet_is_told_the_build_carries_on_to_the_verification()
+    public async Task A_built_cycle_with_no_verification_yet_is_pointed_at_the_verification()
     {
-        // The outcome is null both before and after a build, and the panel read null as "nothing built". The build
-        // carries on to its own verification now (D-178), so the step is still build, told where it picks up.
+        // The outcome is null both before and after a build, and the panel read null as "nothing built". Build it
+        // verifies its own run (D-178), so evidence with no verdict is a build that stopped short, and the queue
+        // will not take it back: the step is the verification (D-185).
         using CycleWorkspace workspace = Approved();
         workspace.WriteTestSummary(proofs: 1);
 
         string panel = await Render(workspace, ArtifactKind.Plan);
 
-        StringAssert.Contains(panel, "sdlc build 20260929_1456_32", panel);
-        StringAssert.Contains(panel, "evidence recorded - build it carries on", panel);
+        StringAssert.Contains(panel, "sdlc verify 20260929_1456_32", panel);
+        StringAssert.Contains(panel, "evidence recorded, no verdict - verify it", panel);
     }
 
     [TestMethod]

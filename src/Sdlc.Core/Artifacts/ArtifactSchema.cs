@@ -70,7 +70,7 @@ public static partial class ArtifactSchema
             ["Problem", "Wanted outcomes", "Fixed decisions", "Must not change"],
 
         // Acceptance criteria, read by most of the spec's rules and by verify. Out of scope, read by CON_26
-        // and CON_12, and one of the three destinations an intent's open item can be disposed of into.
+        // and CON_12.2, and one of the three destinations an intent's open item can be disposed of into.
         ArtifactKind.Spec => ["Acceptance criteria", "Out of scope"],
 
         // Shape and departures holds the decision, judged by CON_15, CON_18 and CON_27. Files holds the

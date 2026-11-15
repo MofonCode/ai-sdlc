@@ -1,7 +1,7 @@
 # Running the factory
 
 Many cycles, built unattended: the integration branch, the factory's pipeline, the run you start, and what
-you do with what it opened. `running-a-cycle.md` is one cycle by hand; this is what changes when a pipeline builds them.
+you do with what it opened. `running-a-cycle.md` is one cycle, built when you say *build it*; this is what changes when a pipeline builds them.
 
 **The factory automates four things and nothing else** — finding approved plans, building, verifying,
 opening pull requests (`CONCEPT.md` D-84) — and **you start every run**; nothing schedules it (D-143). Everything after the pull request is yours: reviewing,
@@ -96,7 +96,7 @@ The same page the run published, against the state now. In the order it lists:
 |---|---|
 | **Ready to merge, in this order** | review each and squash-merge it, one at a time, in the order given. The more contained cycle comes first |
 | an overlap under one of them | expect the named pull request to conflict after this one merges |
-| **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
+| **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, say what to do and `/sdlc:remediate <id>`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
 | **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
 | **Backlog** | always shown, empty or not. *Ready now*: a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>`, and a parked cycle whose predecessor merged, with `sdlc unpark <id>` — `/sdlc:next` takes all of them, and the factory never does. *Still waiting*: each with what it waits on. *No merge makes these ready*: stuck behind an abandoned cycle, or naming something that does not exist — correct its `succeeds:` or `waits_on:`. It ends by naming what it cannot see: cycles still being planned in a sandbox are on no branch it reads until admitted, so `sdlc backlog` in the sandbox is where they show |
@@ -156,7 +156,7 @@ again (D-88). The release branch needs the same build validation policy.
 | | |
 |---|---|
 | setting the factory up, once | `setting-up-the-factory.md` |
-| one cycle by hand, stage by stage | `running-a-cycle.md` |
+| one cycle, from intent to *build it* | `running-a-cycle.md` |
 | a blocked verification, or an escalated one | `handling-blockers.md` |
 | something refused | `handling-refusals.md` |
 | why it works this way | `../../CONCEPT.md` §10.4, §10.5, and D-83 to D-88 |

@@ -110,6 +110,18 @@ internal static class Usage
                                      worktree refuses uncommitted work, which the switch would
                                      carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
+            branch <id> remediate    Print the path of a worktree on the cycle's build branch -- the
+                                     one its pull request is from -- opening it when absent, from
+                                     the local branch or the remote's. Where remediation works, on
+                                     a blocked, escalated or passed cycle (D-185).
+            build-run <id>           Build it, as one command (D-178, D-184): commits the approval a
+                                     person placed in the sandbox if it is uncommitted, admits the
+                                     plan when it is only in a sandbox, opens the build's worktree
+                                     beside the repository, starts the build's own process there --
+                                     headless, its tools named, never with permission checks off,
+                                     never marked as a reader -- waits, and prints the report.
+                                     Exits 0 on a pass, 1 on blocked or escalated. Refuses when the
+                                     build's process cannot start, or ends without a report.
             factory                  Write the factory's pipeline for the recorded platform: a run
                                      a person starts, never a schedule, of batch-build --pr
                                      --unattended against the integration branch -- every queued
@@ -181,7 +193,8 @@ internal static class Usage
                                      outside a sandbox, with nothing approved, over uncommitted
                                      changes in an approved cycle, and a plan that needs a file
                                      only a sibling's plan creates. Abandoned cycles go with it as
-                                     records. /sdlc:pr --plan runs it.
+                                     records. /sdlc:build runs it through 'build-run', and
+                                     /sdlc:pr --plan runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and
@@ -206,6 +219,8 @@ internal static class Usage
                                      branch carries -- its own on a cycle branch, otherwise
                                      those not yet on the integration branch -- that are ready
                                      for to-plan, spec, plan, build, verify, remediate or pr.
+                                     Remediate takes a blocked, an escalated, or a passed cycle
+                                     whose verdict has not merged into the integration branch.
                                      Exactly one:
                                      prints its id alone and exits 0. Several, or none: lists
                                      them and exits 1, so the person is asked, never guessed for.
@@ -251,7 +266,9 @@ internal static class Usage
                                      platform the tests ran on. Refuses code outside .sdlc/ that is
                                      not committed; the diff is rebuilt from the two commits and
                                      never committed (D-124). Retires a blocked verify.md, and
-                                     refuses while any other verdict stands (D-161).
+                                     refuses while any other verdict stands (D-161) -- unless
+                                     --retire-pass, when a person asked for a change to a cycle
+                                     that passed (D-185).
             evidence check <id>      List what verify.md cites in backticks that none of the
                                      recorded evidence holds, and tests it says passed that did not.
                                      Reports only; always exits 0.
@@ -278,9 +295,11 @@ internal static class Usage
                                      round before; suggestions go to the cycle's suggestions ledger,
                                      each concern once under an S_ id. Refuses while anything above
                                      is unsettled, a known finding restated in other words, a new
-                                     blocker with no one-line gist, and a suggestion whose id or move
-                                     does not fit the cycle's. --changed lists the sections moved
-                                     since the last round instead.
+                                     blocker with no one-line gist, a suggestion whose id or move
+                                     does not fit the cycle's, a new blocker citing a rule its
+                                     reader was not handed (D-174), and a new finding quoting its
+                                     rule in other words (D-177). --changed lists the sections
+                                     moved since the last round instead.
             round prompt <id> <artifact> --dir <directory>
                                      Write every reader's prompt for a round into a directory
                                      outside the repository: shared.md, the block the rules reader
@@ -291,6 +310,16 @@ internal static class Usage
                                      <name> writes one -- rules, diff on a verify, a perspective,
                                      reconcile once the others have answered, or adjudicate on a
                                      verify. --list names the readers and writes nothing.
+            round run <id> <artifact> --dir <directory> [--timeout <minutes>]
+                                     Start every reader whose prompt 'round prompt' wrote there and
+                                     that has no answer yet -- the rules reader first, alone, then
+                                     the rest -- each a fresh process from that directory, with no
+                                     tools and no MCP servers, marked as a reader, its answer
+                                     written beside its prompt (D-183). The verify adjudicator the
+                                     same way. Run it again to start a reader that returned
+                                     nothing, or the reconciler once its prompt is written. Exits
+                                     1 while a reader returned nothing; refuses with no host to
+                                     start a reader with.
             round collect <id> <artifact> --dir <directory>
                                      Read every reader's answer from that directory and draft
                                      round.json beside them: new ids numbered past the ledgers,
@@ -352,6 +381,16 @@ internal static class Usage
                                      branch of its own. Deletes nothing. Refuses while a draft is
                                      still beside its file. A file with a '## Cycles' section
                                      records the cycles it lists and no others.
+            mine read --dir <directory> [--cycles <ids>]
+                                     Write one prompt per finished cycle and document with findings
+                                     in the sitting, each that document's findings and the question
+                                     that groups them, and start one fresh reader for each, its
+                                     answer written beside its prompt (D-183).
+            mine review --dir <directory> [--proposals <file>]
+                                     Write and start the two readers that review a sitting: one
+                                     handed the marked proposal file, the drafts and solution.md;
+                                     one handed the report and the proposal file. The newest of
+                                     each in .sdlc/reports unless --proposals names the file.
             mine --history          The mining ledger: every mined cycle, every sitting with what
                                      was accepted and declined, the concerns watched below the
                                      bar of three cycles, and the concerns ignored, with the

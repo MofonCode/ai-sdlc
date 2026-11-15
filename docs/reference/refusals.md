@@ -19,7 +19,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | Refusal | Resolution |
 |---|---|
 | **Adopting — `sdlc init`** | |
-| [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform` and `--integration-branch` only; the stack is the draft it writes |
+| [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform`, `--integration-branch` and the global `--solution` only; the stack is the draft it writes |
 | [an integration branch the record disagrees with](../guides/handling-refusals.md#an-integration-branch-the-record-disagrees-with) | leave the option out, or change the key with `sdlc draft solution` and a rename |
 | **Opening a cycle — `sdlc new`, and `sdlc branch <id> plan`** | |
 | [no declared stack](../guides/handling-refusals.md#no-declared-stack) | fill in `techstack.draft.md`, rename it into place, commit it |
@@ -53,8 +53,14 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Amending an admitted plan — `sdlc draft approval --reopen`, `sdlc branch`** | |
 | [a reopen on the build branch](../guides/handling-refusals.md#a-reopen-on-the-build-branch) | `sdlc branch <id> plan`, reopen and approve there, `/sdlc:pr <id> --plan`; then keep or delete the build branch |
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
-| **Deviations — `sdlc draft approval`, `sdlc deviations`, `sdlc verify-chain`** | |
-| [a deviation that does not hold](../guides/handling-refusals.md#a-deviation-that-does-not-hold) | the stage that wrote it corrects the quote, or writes the successor; a claimed file is not a deviation |
+| **Deviations — `sdlc deviations`, `sdlc report`, `sdlc verify-chain`** | |
+| [a deviation that does not hold](../guides/handling-refusals.md#a-deviation-that-does-not-hold) | the stage that wrote it corrects the quote; a narrowed criterion is taken out and the cycle escalates; a claimed file is not a deviation |
+| **The build — `sdlc build-run`** | |
+| [the build's process cannot start](../guides/handling-refusals.md#the-builds-process-cannot-start) | install the host's command line; the build never runs in your session instead |
+| [the build ended without a report](../guides/handling-refusals.md#the-build-ended-without-a-report) | fix what it printed, and say *build it* again |
+| **Starting readers — `sdlc round run`** | |
+| [no host to start a reader with](../guides/handling-refusals.md#no-host-to-start-a-reader-with) | install the host's command line, and run the round again |
+| [a reader returned nothing](../guides/handling-refusals.md#a-reader-returned-nothing) | fix what the message names; `sdlc round run` again starts only the readers with no answer |
 | **Successors — `sdlc successor`, `sdlc lead show successor:`** | |
 | [a successor that is not ready](../guides/handling-refusals.md#a-successor-that-is-not-ready) | wait until `sdlc successors` says `ready`; for a stuck one, correct `succeeds:` or delete the file |
 | [a loop through succeeds](../guides/handling-refusals.md#a-loop-through-succeeds) | correct one file's `succeeds:` so the loop opens |
@@ -79,7 +85,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
-| [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | a verdict that did not block: delete `verify.md`, record again, verify again. A blocked one is retired by the recording |
+| [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | a pass a person asked to change: record with `--retire-pass`. Otherwise delete `verify.md`, record again, verify again. A blocked one is retired by the recording |
 | [git cannot say where the branch diverged](../guides/handling-refusals.md#git-cannot-say-where-the-branch-diverged) | `git fetch origin` and ask again; if it still refuses, work on the branch `sdlc branch <id> build` prints |
 | [an empty patch beside a changed file](../guides/handling-refusals.md#an-empty-patch-beside-a-changed-file) | `git status --short`; the evidence is wrong, not the code |
 | [no results file](../guides/handling-refusals.md#no-results-file) | point `--tests` at the directory holding the `.trx` files |

@@ -12,13 +12,13 @@ cycle block, or changes what a person or a stage writes, is announced.
 ## 0.47.0
 
 **The framework says what it is, in one definition, everywhere it introduces itself.** The README, `CONCEPT.md`
-§1 and the three plugin manifests carry the same statement; the README leads with why to choose it and the steps a
+§1 and both plugin manifests carry the same statement word for word, and `marketplace.json` and the package page
+open with its first sentence; the README leads with why to choose it and the steps a
 person walks; Where it stands is one row per capability; and this file holds the release history the
 README used to. The package page nuget.org shows is rewritten in the same voice, with its skill and
 protected-file counts corrected and held by the suite, and the definition's first sentence is held in every place
 the framework introduces itself. The documents, guides, skills and the binary's own help were read against each
-other and brought into agreement: among them, the six skills that run interrogation rounds may start their readers
-without a prompt. No solution that adopted the framework is named anywhere in the repository:
+other and brought into agreement. No solution that adopted the framework is named anywhere in the repository:
 evidence a release rests on is described, not attributed.
 
 **A blocking finding must stand on a rule that binds the document it judges.** A blocker citing a superseded rule,
@@ -44,11 +44,27 @@ concern, `sdlc report <id>` — which leads the pull request, and **merging acce
 answered in the approval ledger, the pull-request check and a reopen no longer wait on an answer, and
 `draft approval --accept/--decline` is gone. To change a line of the report, a person says what instead and
 remediate changes the code on the same pull request, asking until the instruction says what to do (D-181). No step
-names a new session or an admission, and the pull request no longer asks about mining (D-182).
+names a new session or an admission, and the pull request no longer asks about mining: the report's last line
+suggests it once the pull request has merged (D-182).
+
+**The binary starts every process the chain runs** (D-183). No skill starts a reader, an adjudicator or the build
+itself any more, so a skill needs no permission to start one and no multi-line shell its host could not
+pre-approve — which is what kept a headless build from getting past its first reader. `sdlc round run` starts a
+round's readers, `sdlc mine read` and `sdlc mine review` mining's, and `sdlc build-run` is *build it*: it commits
+the approval a person placed if it is uncommitted, admits the plan, prepares the build's worktree and starts the
+build there with its tools named and permission checks on. A person's change at the pull request, and their
+instruction after an escalation, reach remediate: `sdlc cycles --here --for remediate` finds a cycle `blocked`,
+`escalated` or passed with its pull request open, `sdlc branch <id> remediate` prints the worktree to work in, and
+`sdlc evidence --retire-pass` retires a pass a person asked to change. The panel sends a blocked cycle to
+remediate. A deviation never narrows a criterion: one the code cannot meet escalates (D-179).
 
 **A minor** because a round may now demote or refuse what it recorded as blocking before, three rules change
-what is forbidden, and a person walks different steps: they no longer admit a plan, open a session for the build,
-say *fix it* or *open the pull request*, or answer deviations in a file.
+what is forbidden, a deviation narrowing a criterion is refused, and a person walks different steps: they no longer
+admit a plan, open a session for the build, say *open the pull request*, or answer deviations in a file.
+
+**Moving to it.** A cycle in flight keeps its deviations: one answered in the approval ledger before this release
+is still read as answered, and one left unanswered no longer holds the pull request — merging accepts it. A
+criterion narrowing a person accepted before this release still holds; a new one is refused.
 
 ## 0.46.0
 

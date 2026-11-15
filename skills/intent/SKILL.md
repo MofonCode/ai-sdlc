@@ -3,7 +3,7 @@ name: intent
 description: Interview a person into a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[--type bug|add|change] [--from <lead>] | --reslice <cycle id>..."
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author an intent
@@ -126,8 +126,8 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
 **4. Interview each opened piece in turn**, from §2 on, in the sandbox: write each intent under its own
 `.sdlc/cycles/<id>/`, run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
 accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
-same work item — and say in the hand-back that `/sdlc:to-plan` takes them all to plan, and that what is
-approved goes to the integration branch together by one plan pull request, `/sdlc:pr --plan` in the sandbox.
+same work item — and say in the hand-back that `/sdlc:to-plan` takes them all to plan, and that once each is
+approved, *build it* takes it out of the sandbox and builds it (D-178).
 
 ## 0a. Re-slice intents already written: `--reslice <id>...`
 
@@ -200,8 +200,9 @@ switched, so nothing uncommitted rides in. **A sandbox starts from what the inte
 file the person placed and did not commit — a declared stack, say — is not in it, so if a command there says
 one is missing, ask them to commit it and open the sandbox again.
 
-What the person approves leaves by `/sdlc:pr --plan` in the sandbox, and `git worktree remove` clears it once
-what it held has merged.
+What the person approves leaves the sandbox when they say *build it*: `sdlc build-run` admits it and builds it
+(D-178). `/sdlc:pr --plan` in the sandbox is the other way out — a plan pull request that hands approved plans to
+the factory. `git worktree remove` clears the sandbox once what it held has merged.
 
 **Only when the person asks to keep one working copy**, `sdlc branch <id> plan` prints the `git switch` that
 moves this checkout instead. It refuses while anything is uncommitted, naming the files: the switch would
@@ -465,7 +466,8 @@ suggestions"* is the person adopting your wording, so the read-back is what they
 
 What the person picks becomes a wanted outcome **in their words**, and an answer that is a decision
 (*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do not take up, you do
-not write.** The spec may only derive from what the intent states (`CON_26`), so a concern added here
+not write.** The spec may only derive from what the intent states (`CON_26`) — apart from a criterion another
+rule in force requires, such as what a failure tells somebody, which names that rule — so a concern added here
 without being asked is the scope creep the rule exists to stop, moved one stage earlier. The fresh
 readers will raise what was left, and the hand-back offers it again.
 

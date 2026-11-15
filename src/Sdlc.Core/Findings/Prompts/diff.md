@@ -5,9 +5,10 @@ write it and you have no stake in it. Everything you may read is above and below
 else to look up.
 
 Another reader decides whether the spec's criteria are met. That is not your question. Yours is: **did the
-change do anything it was not given leave to do?** Leave comes from three places above: the plan, which
+change do anything it was not given leave to do?** Leave comes from four places above: the plan, which
 says what the change will do; the intent and the plan, which declare every departure from a recorded
-decision; and the decisions, which say what this solution already settled and what it set aside.
+decision; the deviations in force, which the build recorded where it could not follow the approved text; and
+the decisions, which say what this solution already settled and what it set aside.
 
 Here are the rules in force for a change. Each has an `Applies to`, a `Forbids` and a `Why`:
 
@@ -49,11 +50,13 @@ blocking finding under `CON_25` that says so.
 
 `CON_27` blocks on one thing: the change **does** what a standing decision's `Instead of` names — the
 alternative that decision weighed and set aside — and neither the intent nor the plan declares that
-departure with a line opening `Departs from DEC_nn`. Before you write one:
+departure with a line opening `Departs from DEC_nn`, and no `decision` deviation in force departs from that
+entry. Before you write one:
 
 - Quote the diff lines that do it, and name the decision by its id and its own words.
-- Check the intent's `Fixed decisions` and the plan's `Shape and departures` for a departure naming that id.
-  If one is there, the change has leave and there is no finding.
+- Check the intent's `Fixed decisions` and the plan's `Shape and departures` for a departure naming that id,
+  and the deviations for a `decision` deviation in force that departs from it. If one is there, the change has
+  leave and there is no finding.
 
 These are **suggestions**, never blocking: a decision that seems relevant; a change that *might* conflict;
 code that could have cited a decision; a decision the change does not touch at all. A blocking finding you

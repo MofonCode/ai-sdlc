@@ -450,6 +450,12 @@ public static class ReaderAnswers
             {
                 severity = Severity.Suggestion;
                 demoted.Add(id);
+
+                // Said in the finding, as the not-in-force case says it, so whoever reads the suggestion knows it
+                // was raised as a blocker and why it does not block.
+                statement += cited is null
+                    ? string.Create(CultureInfo.InvariantCulture, $" (Raised as blocking with no rule, and {perspective.Name} blocks only on a rule its document lists, so it does not block.)")
+                    : string.Create(CultureInfo.InvariantCulture, $" (Raised as blocking under `{given.Cites!.Id!.Trim()}`, which {perspective.Name} does not list as a rule it blocks on, so it does not block.)");
             }
 
             findings.Add(new Finding(

@@ -3,7 +3,7 @@ name: to-plan
 description: Take an intent to a plan -- one cycle, or every one this branch carries -- writing each cycle's spec, then its plan, each with its own interrogation loop, picking up wherever a cycle stopped, and hand back once with every panel, one question about suggestions, and the approvals drafted. Use when a person is happy with their intent and says take it to plan.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Take the intent to plan

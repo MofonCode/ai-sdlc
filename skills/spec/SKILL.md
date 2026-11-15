@@ -3,7 +3,7 @@ name: spec
 description: Derive testable acceptance criteria from an approved-shape intent, producing the spec of a cycle. Use after an intent has a clean interrogation round.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author a spec
@@ -186,7 +186,8 @@ Five traps worth naming:
 - **A criterion about data cannot be proven against an in-memory provider.** It does not translate
   SQL, so it passes queries a real database rejects.
 - **A failure has two audiences, and each gets a criterion.** `CON_17` is the person who met it, `CON_20`
-  is whoever investigates afterwards. Write the second one's check as causing the failure and reading
+  is whoever investigates afterwards. **Name the rule in the criterion** — *(required by `CON_20`)* — because
+  the intent rarely states either, and `CON_26` counts such a criterion as supported only by the rule it names. Write the second one's check as causing the failure and reading
   what it left: a log line no test reads is one a refactor deletes for free.
 - **A criterion about the run is not a criterion about the code.** How long the suite takes, whether
   it passes again in another mode or on another machine, whether it is free of flakes: real outcomes,
@@ -211,7 +212,8 @@ and verify checks the spec — so an intent question nobody carried forward is n
 
 ## Stay inside the intent
 
-`CON_26` forbids a criterion no statement in the intent supports. Scope added here was never approved
+`CON_26` forbids a criterion no statement in the intent supports — **unless another rule in force for the spec
+requires it** (`CON_17`, `CON_20`), and then the criterion names that rule. Scope added here was never approved
 by whoever approved the intent, and it arrives carrying the authority of an approved artifact.
 
 The two fail differently and are remedied differently, which is why they are separate rules: a gap

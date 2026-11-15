@@ -121,11 +121,24 @@ public static class ConstraintRenderer
         {
             output.AppendLine();
             output.AppendLine("Superseded, kept for the record");
+            // A replacement that was itself replaced is followed to the rule in force, so nobody is sent to a rule
+            // that is also only kept for the record: CON_19 replaced by CON_24 -> CON_27.
+            var next = set.Superseded
+                .Where(constraint => constraint.SupersededBy is not null)
+                .ToDictionary(constraint => constraint.Id.ToString(), constraint => constraint.SupersededBy!.Value, StringComparer.Ordinal);
+
             foreach (Constraint constraint in set.Superseded)
             {
+                List<string> chain = [constraint.SupersededBy!.Value.ToString()];
+
+                while (next.TryGetValue(chain[^1], out ConstraintId later) && chain.Count < next.Count + 1)
+                {
+                    chain.Add(later.ToString());
+                }
+
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{Indent}{constraint.Id,-10} replaced by {constraint.SupersededBy}"));
+                    $"{Indent}{constraint.Id,-10} replaced by {string.Join(" -> ", chain)}"));
             }
         }
 

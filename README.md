@@ -151,6 +151,11 @@ working, and opens the pull request. It hands back **one report**: every deviati
 choice it made that nothing approved settled, and every concern its verification raised. That report leads the
 pull request, and **merging is where you accept it**. To change anything in it, say what instead — *change
 deviation 2: use X instead* — and the agent changes the code, verifies again, and updates the same pull request.
+If the build escalates instead, its pull request is a draft: say what to do, then *fix it*.
+
+**The binary starts every process** (D-183) — each reader, the verification, the build's own — with its tools
+named and the host's permission checks left on. No skill launches one itself, so nothing a cycle runs needs a
+permission a person did not already give, on any host.
 
 Underneath, each step produces a file the next one reads:
 
@@ -465,7 +470,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **The coverage floor** | one real solution's numbers | a cycle refused or passed by it |
 | **The decisions through every stage, and departures** | the suite | a cycle judged this way: how often the change's reader blocks, and whether it adds rounds |
 | **Deviations and choices** | the suite | a recorded deviation or choice: how often a build bends where it used to stop, and how often a stalled remediation's one deviation gets it to a pass |
-| **The five-step cycle: build it through to the pull request** | the suite | a cycle run this way: a build in its own process, the report, and a change asked for at the pull request |
+| **The five-step cycle: build it through to the pull request** | the suite | a cycle run this way: `sdlc build-run` starting the build in its own process with its tools named, the readers started by `sdlc round run`, the report, and a change asked for at the pull request |
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |

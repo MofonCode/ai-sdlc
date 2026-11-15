@@ -56,7 +56,7 @@ over a component that never renders and an interaction that never fires. This pr
 for a component and Playwright in Chromium and WebKit for a page, and those are the layers that
 execute the thing the criterion is about. `CON_21` already asks whether a proof is adequate to its
 criterion and cannot name a tool, so on this stack the question it asks has no reference point until
-this rule supplies one. `CON_12` is a different question: it forbids a criterion no test in the run
+this rule supplies one. `CON_12.2` is a different question: it forbids a criterion no test in the run
 can check, where this forbids a machine check at the wrong layer — which is worse, because it goes green.
 
 ## PRO_02 — A plan reaching for the kernel names the seam and the type

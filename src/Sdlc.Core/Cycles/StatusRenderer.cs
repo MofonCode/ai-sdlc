@@ -594,9 +594,11 @@ public static class StatusRenderer
     private static (string Command, string Why) AfterTheGate(ReadCycleStatus.Response status, string id, SupportedHost? host) =>
         status.Outcome switch
         {
+            // Build it verifies its own run, so evidence with no verdict is a build whose process stopped short. The
+            // queue will not take a cycle back that has gone this far, so the step is the verification (D-185).
             null when status.Built => (
-                Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
-                "evidence recorded - build it carries on"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
+                "evidence recorded, no verdict - verify it"),
 
             // Build it goes all the way: admits, implements, verifies, fixes what it can and opens the pull
             // request, in a process of its own (D-178). No new session to name any more.
@@ -621,9 +623,11 @@ public static class StatusRenderer
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"pr {id}")),
                 "verified - the pull request is where you accept"),
 
+            // Remediation is how a blocked verdict is answered; build it would meet a queue that holds back a cycle
+            // already verified (D-185).
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
-                Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
-                "a criterion is not met - build it goes round again"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
+                "a criterion is not met - fix it"),
 
             string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),

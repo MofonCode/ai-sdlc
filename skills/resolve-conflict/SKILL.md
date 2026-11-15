@@ -3,7 +3,7 @@ name: resolve-conflict
 description: Bring one cycle's pull request up to date with the integration branch when it conflicts, or goes red after another merge -- resolve inside the cycle's declared files, rebuild, record fresh evidence, and verify again in a fresh process. Use when a pull request into the integration branch conflicts or its re-check fails.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Resolve a cycle's conflict with the integration branch

@@ -1,9 +1,9 @@
 ---
 name: build
-description: Carry an approved cycle to its pull request -- admit the plan, build and test it in a process of its own, record the evidence, verify, remediate while it is working, open the pull request, and report every deviation, choice and concern. Use when a person says build it, after a cycle's three planning documents are approved.
+description: Carry an approved cycle to its pull request -- sdlc build-run admits the plan and runs the build in a process of its own, which builds and tests it, records the evidence, verifies, remediates while it is working, opens the pull request, and reports every deviation, choice and concern. Use when a person says build it, after a cycle's three planning documents are approved.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Build an approved plan, through to its pull request
@@ -13,10 +13,10 @@ carries the cycle all the way** (D-178): the plan admitted, the code written and
 a verification by a process that never saw the build, remediation while it is working, and the pull request
 opened — then one report of everything a person should know before they merge.
 
-**This skill has two halves.** In a person's session it hands the cycle to a process of its own and reports
-what came back. Inside that process — started by the `batch-build` skill, for this one cycle — it is the stage
-itself: everything from *Inside the build's own process* down. You are in that process when `batch-build` is
-running this stage; otherwise you are in a person's session.
+**This skill has two halves.** In a person's session it asks the gate, hands the cycle to `sdlc build-run`, and
+reports what came back. Inside the process the binary starts — where the `batch-build` skill runs this stage for
+the one cycle — it is the stage itself: everything from *Inside the build's own process* down. You are in that
+process when `batch-build` is running this stage; otherwise you are in a person's session.
 
 ## Which cycle
 
@@ -56,9 +56,8 @@ If your host gives you a task list, open one once the gate has said the build ma
 items, and mark each done as it finishes. If it does not, carry on without one — nothing below depends
 on it.
 
-1. admit the plan, when it is only in its sandbox
-2. start the build's own process
-3. hand back its report
+1. run the build
+2. hand back its report
 
 **This stage only.** Nothing the build's process does goes on this list — it runs where your list cannot see
 it, and its outcome is what `sdlc report` and `sdlc status <id>` print, not a tick.
@@ -68,62 +67,49 @@ list is the one that is wrong.
 **Inside a batch, keep none.** When the batch-build skill is running this stage, its list has one line
 for this cycle and that line is the whole of what this stage shows.
 
-## Admit the plan, when it is only in its sandbox
-
-A plan is written in a sandbox — a folder of its own beside the repository, never merged — and the build
-starts from a branch cut from the integration branch. **Moving the approved plan onto one is yours, not the
-person's** (D-178): it is mechanical, local, and decides nothing. In the sandbox the plan was written in:
+## Run the build
 
 ```
-sdlc admit
+sdlc build-run <id>
 ```
 
-Run the one git command it prints: it takes the sandbox's approved cycles onto an admission branch beside it,
-from the integration branch, and pushes nothing. It names on standard error what stays behind. **Skip this**
-when the plan is already on a branch the build can start from — admitted earlier, or merged by a plan pull
-request — or when the solution has no integration branch, where the build starts from the sandbox itself.
-`sdlc branch <id> build` says which: it refuses a plan that is only in a sandbox, naming `sdlc admit`.
+**One command, and the binary does the rest** (D-178). From the person's checkout it commits the approval a
+person placed in the sandbox if they have not — their act, recorded as theirs; nothing writes the file for
+them — admits the plan out of the sandbox when it is only there, prepares the build's own worktree on
+`cycle/<id>/build-unattended`, and starts the build **in a process of its own** in that worktree: the
+factory's path, for this one cycle, with its tools named and **never with permission checks switched off**.
+That process builds, records the evidence, has a fresh process verify it, remediates while it is working, and
+opens the pull request once the verification passes. Then `build-run` prints the report and the pull request's
+link — or the escalation and what is open.
 
-## Start the build in a process of its own
+**Why a process of its own.** The build reads a great deal of code, and in a session that also carried the
+planning conversation every turn after it would pay for that again; and a builder that did not sit through the
+planning works from what was written down — the intent, the decisions, the constraints and the plan — which is
+the separation every reader already has.
 
-**The build never runs in the person's session** (D-178). It reads a great deal of code, and in a session that
-also carried the planning conversation every turn after it would pay for that again; and a builder that did not
-sit through the planning works from what was written down — the intent, the decisions, the constraints and the
-plan — which is the separation every reader already has. From the repository's root:
-
-```
-sdlc claude -p "/sdlc:batch-build <id> --pr --unattended" < /dev/null
-```
-
-It is the factory's own path, for this one cycle: a branch of its own, the stage below, the verification in a
-fresh process, remediation while it is working, and — once the verification passes — the pull request into the
-integration branch. **It asks nothing**: saying *build it* was the decision, and the plan's hand-back said what
-it would do. Leave `--pr` out when `git remote` prints nothing; the build then stops at a verified local branch.
-
-- **Start it in the background where your host can, and wait for it to end.** A build takes as long as it
-  takes; a foreground call that times out leaves a process nobody is reading. Tell the person, in one line,
-  that the build has started and that you will report when it ends.
-- **No more permission than the batch skill's own.** Never pass a mode that skips the host's permission checks
-  on a person's machine; the factory does that inside a container that exists for it, and this is not one.
-- **On a host without `claude`**, any non-interactive invocation of the host that loads these skills will do,
-  as for the readers. With none, say so and stop: the build is not run in this session instead.
+- **It asks nothing.** Saying *build it* was the decision, and the plan's hand-back said what it would do. With
+  no remote, it stops at a verified local branch and says so.
+- **It takes as long as it takes.** Run it where your host lets a long command finish, and tell the person in
+  one line that the build has started and that you will report when it ends.
+- **Never start the build yourself**, in this session or by launching a process: if `build-run` refuses, show
+  what it said — it names what is missing, and the next step is the person's.
 
 ## Hand back the report
 
 When the process ends:
 
-```
-sdlc report <id>
-sdlc status <id> --brief
-```
+Show what `sdlc build-run` printed verbatim — the report, and the pull request's link — then:
 
-Show both verbatim, and the pull request's link from what the process printed. **The report is the hand-back**
+```
+sdlc status <id> --brief
+``` **The report is the hand-back**
 (D-181): every deviation the build recorded, every choice it made that nothing approved settled, and every
 concern its verification raised without blocking — each by what it says. It leads the pull request too, so the
 person reads the same thing in both places.
 
 **Close with one plain offer**: *review the pull request — merging accepts it, report and all; to change
-anything in it, say what instead* (or `/sdlc:remediate`). **If the build escalated**, its pull request is a
+anything in it, say what instead* (or `/sdlc:remediate`). Once it merges, `/sdlc:mine` takes what the cycle settled
+into the solution's record, as the report's last line says. **If the build escalated**, its pull request is a
 draft, and the report says what stopped it; the person decides what happens next. Name no new session: the
 build already had one of its own.
 
@@ -183,8 +169,9 @@ commit is read by whoever reviews the pull request, which is the person who can 
 
 Something worth doing is a `Noticed:` line. Something the plan's approved text **cannot be followed
 without** is a deviation (D-156): a file the fix has to touch that the plan did not declare, a step that
-cannot be done as written, a test whose name has to change, a criterion no finite proof meets, a decision
-the work cannot keep. Do the work, and write down where you bent the plan, in
+cannot be done as written, a test whose name has to change, a decision the work cannot keep. **Never a
+criterion**: what *done* means is the spec's, and no deviation changes it (D-179). A criterion the code cannot
+be made to meet is a stop, not a deviation — the build escalates, and a person reopens the plan. Do the work, and write down where you bent the plan, in
 `.sdlc/cycles/<id>/deviations.md`, appended, one section each:
 
 ```markdown
@@ -199,9 +186,9 @@ Why: the race is in StreamSocket, and no fix inside StandInHost reaches it.
 Files: `src/Quotes.FeedStandIn/StreamSocket.cs`
 ```
 
-- **The quote decides the kind.** `plan` and `proof` quote `plan.md`; `criterion` quotes `spec.md` and may
-  only **narrow** — add `Successor: <slug> — what the dropped part makes possible`; `decision` quotes
-  `decisions.md`. Quote the approved text word for word. **Nothing to quote means nothing to deviate from**:
+- **The quote decides the kind.** `plan` and `proof` quote `plan.md`; `decision` quotes `decisions.md`. Nothing
+  quotes `spec.md`: a deviation that narrows a criterion is refused by `sdlc deviations` and the pull-request
+  check. Quote the approved text word for word. **Nothing to quote means nothing to deviate from**:
   a choice the approved text left open is yours to make — and, when a reviewer would want to know it, a
   **choice**, below, rather than a deviation.
 - **The blocker rests on evidence**: the failing test and its error, or the plan step and why it cannot be
@@ -289,9 +276,10 @@ something new is a change to a rule the plan has to declare and justify.
 recorded, not a target, so never tell the person the build is "aiming for" it. When the whole codebase
 falls further than the change could explain, compare this run's report with the base commit's file by
 file before writing a test: a fall spread across code the change never touched is a change in how coverage
-is measured, not missing tests. Stop and tell the person what fell and where, and that the answer is
-theirs: lower `coverage_floor` through `sdlc draft solution`, or re-measure the integration branch and
-commit the rate to `.sdlc/coverage.json` in a pull request of its own.
+is measured, not missing tests. **Nobody is here to ask**, so stop the build as not finished, with what fell
+and where as the cause: the sitrep and `sdlc report` carry it to the person, and the answer is theirs — lower
+`coverage_floor` through `sdlc draft solution`, or re-measure the integration branch and commit the rate to
+`.sdlc/coverage.json` in a pull request of its own.
 
 
 **Check that the suite actually ran.** This is not paranoia: a trial cycle lost its whole verification
