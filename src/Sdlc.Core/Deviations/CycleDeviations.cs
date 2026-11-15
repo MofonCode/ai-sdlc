@@ -11,28 +11,33 @@ using Sdlc.Core.Successors;
 
 namespace Sdlc.Core.Deviations;
 
-/// <summary>Where one deviation stands with the person who signs it.</summary>
+/// <summary>Where one deviation stands.</summary>
 public enum DeviationStanding
 {
-    /// <summary>Nobody has answered it, or its text changed after it was answered.</summary>
-    Pending,
+    /// <summary>
+    /// Recorded by the build and in force: it leads the pull request, and merging it is how a person accepts it
+    /// (D-181).
+    /// </summary>
+    Recorded,
 
-    /// <summary>Accepted: it is part of what the cycle promises.</summary>
+    /// <summary>Accepted by a deviations entry in the approval ledger, as a person answered before D-181.</summary>
     Accepted,
 
-    /// <summary>Declined, with a reason: the build redoes that part.</summary>
+    /// <summary>
+    /// Changed at the person's request, or declined by a ledger entry from before D-181: it no longer gives leave,
+    /// and the build redid that part.
+    /// </summary>
     Declined,
 
-    /// <summary>Answered before the approval that stands now, so a reopen folded it in or gave it as its reason.</summary>
+    /// <summary>Recorded before the approval that stands, so a reopen took it in; it stays for the harvest.</summary>
     History,
 }
 
 /// <summary>One deviation and where it stands.</summary>
 /// <param name="Deviation">The deviation.</param>
 /// <param name="Standing">Where it stands.</param>
-/// <param name="Note">The person's note, when they wrote one.</param>
-/// <param name="Changed">Whether it was answered and its text has moved since, which leaves it pending.</param>
-public sealed record DeviationState(Deviation Deviation, DeviationStanding Standing, string? Note, bool Changed);
+/// <param name="Note">The person's words, when they asked for it to be changed or declined it.</param>
+public sealed record DeviationState(Deviation Deviation, DeviationStanding Standing, string? Note);
 
 /// <summary>Three or more deviations bending the same approved text: the loop going round, not converging.</summary>
 /// <param name="Document">The document they quote.</param>
@@ -42,43 +47,44 @@ public sealed record DeviationCircle(string Document, string Quote, IReadOnlyLis
 
 /// <summary>A cycle's deviations, each with where it stands, and everything wrong with them.</summary>
 /// <param name="Recorded">Whether the cycle has a <c>deviations.md</c> at all.</param>
-/// <param name="States">Every deviation the file records, in its order.</param>
+/// <param name="States">Every entry the file records, choices included, in its order.</param>
 /// <param name="Problems">What is wrong: a file that does not parse, a quote the approved text does not hold, a
-/// file another cycle claims, an accepted narrowing with no successor written.</param>
-/// <param name="AcceptedBySetting">Whether <c>approval: none</c> accepts every deviation, because no person signs.</param>
-/// <param name="LastAnswered">When the latest deviations entry since the standing approval was placed.</param>
+/// file another cycle claims, a criterion narrowed, an accepted narrowing with no successor written.</param>
 /// <param name="Circles">Approved text bent three times or more (D-65, carried to deviations).</param>
 public sealed record DeviationsState(
     bool Recorded,
     IReadOnlyList<DeviationState> States,
     IReadOnlyList<string> Problems,
-    bool AcceptedBySetting,
-    DateTimeOffset? LastAnswered,
     IReadOnlyList<DeviationCircle> Circles)
 {
     /// <summary>A cycle with no deviations.</summary>
-    public static DeviationsState None { get; } = new(false, [], [], false, null, []);
+    public static DeviationsState None { get; } = new(false, [], [], []);
 
-    /// <summary>The deviations since the approval that stands: pending, accepted or declined.</summary>
+    /// <summary>The entries since the approval that stands.</summary>
     public IReadOnlyList<DeviationState> Current => [.. States.Where(state => state.Standing != DeviationStanding.History)];
 
-    /// <summary>The deviations nobody has answered.</summary>
-    public IReadOnlyList<DeviationState> Pending => [.. States.Where(state => state.Standing == DeviationStanding.Pending)];
+    /// <summary>The deviations that bend approved text and still give leave: recorded or accepted.</summary>
+    public IReadOnlyList<DeviationState> InForce => [.. Current.Where(state => state.Deviation.Bends && state.Standing != DeviationStanding.Declined)];
 
-    /// <summary>The deviations a person declined since the approval that stands.</summary>
+    /// <summary>The choices the build made that the approved text left open, and the person has not asked to change.</summary>
+    public IReadOnlyList<DeviationState> Choices => [.. Current.Where(state => !state.Deviation.Bends && state.Standing != DeviationStanding.Declined)];
+
+    /// <summary>The entries the person asked to change, or declined, since the approval that stands.</summary>
     public IReadOnlyList<DeviationState> Declined => [.. States.Where(state => state.Standing == DeviationStanding.Declined)];
 }
 
 /// <summary>
-/// Reads a cycle's deviations against its approval ledger: which are pending, accepted, declined or history,
-/// and what is wrong with them.
+/// Reads a cycle's deviations: which are recorded, changed at the person's request, or history, and what is wrong
+/// with them.
 /// </summary>
 /// <remarks>
-/// <para><strong>Worked out on every read, never stored.</strong> The file says what the build did; the ledger
-/// says what a person answered, holding each answer to the hash of the text it answered.</para>
+/// <para><strong>Worked out on every read, never stored.</strong> The file says what the build did and, on a
+/// <c>Changed:</c> line, what the person asked to be done instead. Nothing waits for an answer before the pull
+/// request: merging it is the acceptance (D-181). A deviations entry in the approval ledger from before D-181 is
+/// still read, held to the hash of the text it answered.</para>
 /// <para><strong>History is what a reopen left behind.</strong> A deviation answered before the approval that
-/// stands now was folded into the amended plan or given as the reopen's reason, so it no longer bends anything
-/// and is not checked; it stays in the file for mining.</para>
+/// stands now -- the reopen's draft answers every recorded one, taking it in -- no longer bends anything and is
+/// not checked; it stays in the file for the harvest.</para>
 /// </remarks>
 public static class CycleDeviations
 {
@@ -125,7 +131,7 @@ public static class CycleDeviations
 
         if (parsed.IsFailed)
         {
-            return new DeviationsState(true, [], [.. parsed.Errors.Select(error => error.Message)], false, null, []);
+            return new DeviationsState(true, [], [.. parsed.Errors.Select(error => error.Message)], []);
         }
 
         ApprovalLedger? ledger = null;
@@ -138,26 +144,20 @@ public static class CycleDeviations
             ledger = read.IsSuccess ? read.Value : null;
         }
 
-        bool bySetting = ledger is null
-            && await SolutionDocument.ApprovalOf(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false) == ApprovalRequirement.None;
-
-        (List<DeviationState> states, DateTimeOffset? answered) = Stand(parsed.Value, ledger, bySetting);
+        List<DeviationState> states = Stand(parsed.Value, ledger);
         List<string> problems = await Problems(cycle, states, cancellationToken).ConfigureAwait(false);
 
-        return new DeviationsState(true, states, problems, bySetting, answered, Circles(states));
+        return new DeviationsState(true, states, problems, Circles(states));
     }
 
-    // Each deviation against the ledger: an answer before the standing approval makes it history; the latest
-    // answer after it decides, held to the hash it answered.
-    private static (List<DeviationState> States, DateTimeOffset? Answered) Stand(
-        IReadOnlyList<Deviation> deviations,
-        ApprovalLedger? ledger,
-        bool bySetting)
+    // Each deviation: a Changed line is the person's request and decides; otherwise an answer before the standing
+    // approval makes it history, and an answer after it from before D-181 decides while it holds to the hash it
+    // answered. Everything else is recorded, and the pull request is where it is accepted.
+    private static List<DeviationState> Stand(IReadOnlyList<Deviation> deviations, ApprovalLedger? ledger)
     {
         int standing = ledger?.StandingIndex ?? -1;
         Dictionary<string, DeviationAnswer> before = new(StringComparer.Ordinal);
         Dictionary<string, DeviationAnswer> after = new(StringComparer.Ordinal);
-        DateTimeOffset? answered = null;
 
         for (int index = 0; index < (ledger?.Decisions.Count ?? 0); index++)
         {
@@ -173,11 +173,6 @@ public static class CycleDeviations
             {
                 into[answer.Id] = answer;
             }
-
-            if (index > standing)
-            {
-                answered = entry.At;
-            }
         }
 
         List<DeviationState> states = [];
@@ -186,32 +181,27 @@ public static class CycleDeviations
         {
             if (before.TryGetValue(deviation.Id, out DeviationAnswer? earlier) && earlier.Answered)
             {
-                states.Add(new DeviationState(deviation, DeviationStanding.History, earlier.Note, false));
+                states.Add(new DeviationState(deviation, DeviationStanding.History, earlier.Note));
                 continue;
             }
 
-            if (bySetting)
+            if (deviation.Changed is { } changed)
             {
-                states.Add(new DeviationState(deviation, DeviationStanding.Accepted, null, false));
+                states.Add(new DeviationState(deviation, DeviationStanding.Declined, changed));
                 continue;
             }
 
-            if (!after.TryGetValue(deviation.Id, out DeviationAnswer? answer))
-            {
-                states.Add(new DeviationState(deviation, DeviationStanding.Pending, null, false));
-                continue;
-            }
+            DeviationStanding stands = after.TryGetValue(deviation.Id, out DeviationAnswer? answer)
+                && string.Equals(answer.Sha256, deviation.Sha256, StringComparison.OrdinalIgnoreCase)
+                    ? answer.Accepted ? DeviationStanding.Accepted
+                        : answer.Declined ? DeviationStanding.Declined
+                        : DeviationStanding.Recorded
+                    : DeviationStanding.Recorded;
 
-            bool changed = !string.Equals(answer.Sha256, deviation.Sha256, StringComparison.OrdinalIgnoreCase);
-            DeviationStanding stands = changed ? DeviationStanding.Pending
-                : answer.Accepted ? DeviationStanding.Accepted
-                : answer.Declined ? DeviationStanding.Declined
-                : DeviationStanding.Pending;
-
-            states.Add(new DeviationState(deviation, stands, answer.Note, changed && answer.Answered));
+            states.Add(new DeviationState(deviation, stands, stands == DeviationStanding.Declined ? answer!.Note : null));
         }
 
-        return (states, answered);
+        return states;
     }
 
     private static async Task<List<string>> Problems(Cycle cycle, List<DeviationState> states, CancellationToken cancellationToken)
@@ -224,6 +214,20 @@ public static class CycleDeviations
         foreach (DeviationState state in states.Where(state => state.Standing != DeviationStanding.History))
         {
             Deviation deviation = state.Deviation;
+
+            // A choice quotes nothing, so there is no approved text to hold it to; the readers judge it against the
+            // decisions and the plan's purpose (D-180).
+            if (!deviation.Bends)
+            {
+                continue;
+            }
+
+            // What done means is the spec's, and no deviation changes it (D-179): a criterion narrowed by the build,
+            // which no person accepted before D-181, is something the cycle may not do on its own.
+            if (deviation.Kind == DeviationKind.Criterion && state.Standing == DeviationStanding.Recorded)
+            {
+                problems.Add(string.Create(CultureInfo.InvariantCulture, $"{deviation.Id} narrows a criterion, and a deviation never changes what done means (D-179). Meet the criterion, or escalate so a person can reopen the plan."));
+            }
 
             if (!documents.TryGetValue(deviation.Document, out string? text))
             {
@@ -298,7 +302,7 @@ public static class CycleDeviations
     private static List<DeviationCircle> Circles(List<DeviationState> states) =>
     [
         .. states
-            .Where(state => state.Standing != DeviationStanding.History)
+            .Where(state => state.Standing != DeviationStanding.History && state.Deviation.Bends)
             .GroupBy(state => (state.Deviation.Document, Quote: DeviationsFile.Normalise(state.Deviation.Quote)))
             .Where(group => group.Count() >= Circle)
             .Select(group => new DeviationCircle(group.Key.Document, group.Key.Quote, [.. group.Select(state => state.Deviation.Id)])),

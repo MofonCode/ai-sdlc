@@ -38,7 +38,7 @@ namespace Sdlc.Core.Findings;
 /// </param>
 /// <param name="Statement">
 /// Why each remedy excludes the other, in full. A conflict with no explanation is unarguable, which is
-/// what <c>CON_10.2</c> objects to in a gate refusal and what the same reasoning objects to here.
+/// what <c>CON_10.3</c> objects to in a gate refusal and what the same reasoning objects to here.
 /// </param>
 /// <param name="Locus">Where in the artifact the two rules meet.</param>
 public sealed record Conflict(

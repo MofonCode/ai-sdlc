@@ -21,7 +21,7 @@ public sealed class RecordRoundTests
 
     private const string Blocking = """
         { "findings": [ { "id": "F_01", "severity": "blocking", "disposition": "open",
-          "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
+          "cites": { "id": "CON_09", "heading": "No artifact restates another's content as its own authority" },
           "statement": "something that must be answered.", "gist": "The second criterion has no test." } ] }
         """;
 
@@ -67,7 +67,7 @@ public sealed class RecordRoundTests
     [TestMethod]
     public async Task A_round_records_its_release_and_holds_its_cycle_to_the_suggestion_fence_while_an_older_one_does_not()
     {
-        // D-131: framework_version is the envelope's format and never moved, so nothing said a cycle's rules
+        // D-131: the retired framework_version was the envelope's format and never moved, so nothing said a cycle's rules
         // had changed under it. D-128: the fence is for cycles that open under it -- an intent approved in the
         // old shape is not refused by a rule written after it.
         using var fresh = CycleWorkspace.Create();
@@ -103,6 +103,122 @@ public sealed class RecordRoundTests
         Assert.IsTrue(File.Exists(workspace.Cycle.FindingsLedgerPath(ArtifactKind.Intent)), "One ledger per artifact (D-107).");
         Assert.IsFalse(File.Exists(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1)), "And no file per round.");
         Assert.IsNotNull(written.Written.EntrySha256, "The round is chained.");
+    }
+
+    [TestMethod]
+    [DataRow("CON_06", null, DisplayName = "a superseded rule")]
+    [DataRow("CON_21", null, DisplayName = "a plan's rule against an intent")]
+    [DataRow("CON_99", null, DisplayName = "an id nobody issued")]
+    [DataRow("CON_01", "security", DisplayName = "a rule the perspective does not list")]
+    public async Task A_new_blocker_citing_a_rule_its_reader_was_not_handed_is_refused(string rule, string? perspective)
+    {
+        // round collect already makes such a blocker a suggestion; this is a draft edited after it (D-174, D-175).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string id = perspective is null ? "F_01" : perspective + ".F_01";
+        string under = perspective is null ? string.Empty : $", \"perspective\": \"{perspective}\"";
+
+        Result<RecordRound.Response> refused = await Record(workspace, ArtifactKind.Intent, $$"""
+            { "findings": [ { "id": "{{id}}", "severity": "blocking", "disposition": "open"{{under}},
+              "cites": { "id": "{{rule}}", "heading": "whatever the reader wrote" },
+              "statement": "x.", "gist": "y." } ] }
+            """);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, id + " cites " + rule);
+        StringAssert.Contains(refused.Errors[0].Message, "sdlc constraints --for intent");
+    }
+
+    [TestMethod]
+    public async Task A_blocker_the_ledger_already_holds_is_never_judged_again()
+    {
+        // A round recorded under an earlier library stands as it was read: CON_06 was in force when it was raised.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string old = Blocking.Replace("CON_09", "CON_06", StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1), old
+            .Replace("{ \"findings\"", "{ \"round\": 1, \"interrogated_at\": \"2026-10-01T10:00:00Z\", \"findings\"", StringComparison.Ordinal));
+
+        Result<RecordRound.Response> carried = await Record(workspace, ArtifactKind.Intent, old);
+
+        Assert.IsTrue(carried.IsSuccess, string.Join("; ", carried.Errors.Select(error => error.Message)));
+    }
+
+    [TestMethod]
+    public async Task A_new_finding_whose_rule_line_was_edited_is_refused_naming_the_real_line()
+    {
+        // round collect copies the rule's own line in, so this is a draft edited after it (D-177).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        Result<RecordRound.Response> refused = await Record(workspace, ArtifactKind.Intent, Blocking.Replace(
+            "No artifact restates another's content as its own authority", "Artifacts should not copy each other", StringComparison.Ordinal));
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "F_01 quotes CON_09 as \"Artifacts should not copy each other\"");
+        StringAssert.Contains(refused.Errors[0].Message, "its line is \"No artifact restates another's content as its own authority\"");
+    }
+
+    [TestMethod]
+    [DataRow("No artifact restates another’s content  as its own authority", DisplayName = "typographic quote and doubled space")]
+    public async Task A_line_differing_only_in_whitespace_quotes_or_dashes_is_the_same_line(string quoted)
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        Result<RecordRound.Response> recorded = await Record(workspace, ArtifactKind.Intent, Blocking.Replace(
+            "No artifact restates another's content as its own authority", quoted, StringComparison.Ordinal));
+
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
+    }
+
+    [TestMethod]
+    public async Task A_finding_the_ledger_already_holds_keeps_the_line_it_was_judged_under()
+    {
+        // The frozen line is the point of D-63: a revision since is not a misquote, and a recorded round is not
+        // judged again (D-177).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string old = Blocking.Replace("No artifact restates another's content as its own authority", "the wording of an earlier revision", StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1), old
+            .Replace("{ \"findings\"", "{ \"round\": 1, \"interrogated_at\": \"2026-10-01T10:00:00Z\", \"findings\"", StringComparison.Ordinal));
+
+        Result<RecordRound.Response> carried = await Record(workspace, ArtifactKind.Intent, old);
+
+        Assert.IsTrue(carried.IsSuccess, string.Join("; ", carried.Errors.Select(error => error.Message)));
+    }
+
+    [TestMethod]
+    public async Task A_citation_of_an_earlier_revision_is_held_to_the_line_in_force_now()
+    {
+        // CON_12 is in force as CON_12.2. A reader is handed the current line, so that is what a new quote is held
+        // to, whichever suffix the citation carries (D-177).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteArtifact(ArtifactKind.Spec);
+        await Record(workspace, ArtifactKind.Intent, Clean);
+        const string current = "A criterion's check is one the solution's testing layers can run";
+
+        string citing(string heading) => $$"""
+            { "findings": [ { "id": "F_01", "severity": "blocking", "disposition": "open",
+              "cites": { "id": "CON_12", "heading": {{JsonSerializer.Serialize(heading)}} },
+              "statement": "x.", "gist": "y." } ] }
+            """;
+
+        Assert.IsTrue((await Record(workspace, ArtifactKind.Spec, citing(current + " as first written"))).IsFailed);
+        Result<RecordRound.Response> recorded = await Record(workspace, ArtifactKind.Spec, citing(current));
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
+    }
+
+    [TestMethod]
+    public async Task A_revision_of_a_rule_in_force_is_the_same_rule()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        Result<RecordRound.Response> recorded = await Record(workspace, ArtifactKind.Intent, Blocking.Replace("\"CON_09\"", "\"CON_09.7\"", StringComparison.Ordinal));
+
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
     }
 
     [TestMethod]
@@ -151,7 +267,7 @@ public sealed class RecordRoundTests
     [TestMethod]
     public async Task A_spec_round_is_refused_when_the_intent_moved_after_its_clean_round()
     {
-        // The MarketSense case: the intent, the spec and the plan edited in one pass and judged at once.
+        // The real case: the intent, the spec and the plan edited in one pass and judged at once.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteArtifact(ArtifactKind.Intent);
         workspace.WriteArtifact(ArtifactKind.Spec);
@@ -294,7 +410,7 @@ public sealed class RecordRoundTests
         }
     }
 
-    private static async Task<Result<RecordRound.Response>> Record(CycleWorkspace workspace, ArtifactKind kind, string json)
+    internal static async Task<Result<RecordRound.Response>> Record(CycleWorkspace workspace, ArtifactKind kind, string json)
     {
         string from = Path.Combine(workspace.Root, "readers." + Cycle.NameOf(kind) + ".json");
         await File.WriteAllTextAsync(from, json);

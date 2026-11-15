@@ -23,8 +23,8 @@ public sealed record ArtifactValidation(ArtifactKind Kind, IReadOnlyList<SchemaV
 /// The shape every artifact has to have: an envelope, a body, and nothing else.
 /// </summary>
 /// <remarks>
-/// <para><strong>The envelope is an allowlist of two keys plus one section.</strong>
-/// <c>framework_version</c> and <c>cycle</c> in the frontmatter, and a <c>## Open</c> section.
+/// <para><strong>The envelope is an allowlist of one key plus one section.</strong>
+/// <c>cycle</c> in the frontmatter, and a <c>## Open</c> section.
 /// Everything else in the file -- any other key, any other section -- is body. Stated as an allowlist
 /// rather than a list of body parts because the point is that a claim cannot hide in the envelope: the
 /// constraints bind the body, so a field that escaped into the envelope would escape them.
@@ -39,11 +39,18 @@ public sealed record ArtifactValidation(ArtifactKind Kind, IReadOnlyList<SchemaV
 /// validates against that declaration. Until then, extra is wrong rather than tolerated, because a
 /// field nothing declared is a field nothing reads.
 /// </para>
+/// <para><strong>A retired key is accepted and never required.</strong> Every artifact written before
+/// 0.43.0 carries <c>framework_version</c>, and those files are signed by approvals and anchored by
+/// rounds, so they are read as they stand rather than rewritten (D-160).
+/// </para>
 /// </remarks>
 public static partial class ArtifactSchema
 {
     /// <summary>The frontmatter keys that belong to the envelope, on every artifact alike.</summary>
-    public static IReadOnlyList<string> EnvelopeKeys { get; } = ["framework_version", "cycle"];
+    public static IReadOnlyList<string> EnvelopeKeys { get; } = ["cycle"];
+
+    /// <summary>The keys an artifact written by an earlier release may still carry, which nothing reads.</summary>
+    public static IReadOnlyList<string> RetiredKeys { get; } = ["framework_version"];
 
     /// <summary>The section that holds what an artifact deliberately does not assert.</summary>
     public const string OpenSection = "Open";
@@ -62,11 +69,11 @@ public static partial class ArtifactSchema
         ArtifactKind.Intent =>
             ["Problem", "Wanted outcomes", "Fixed decisions", "Must not change"],
 
-        // Acceptance criteria, read by five constraints and by verify. Out of scope, read by CON_05 and
-        // one of the three destinations an intent's open item can be disposed of into.
+        // Acceptance criteria, read by most of the spec's rules and by verify. Out of scope, read by CON_26
+        // and CON_12.2, and one of the three destinations an intent's open item can be disposed of into.
         ArtifactKind.Spec => ["Acceptance criteria", "Out of scope"],
 
-        // Shape and departures holds the decision, judged by CON_21 and CON_15. Files holds the
+        // Shape and departures holds the decision, judged by CON_15, CON_18 and CON_27. Files holds the
         // estimate, which nothing judges. Proof is CON_21's subject and verify's criterion table. Risk
         // is read by the person at the gate, which is a consumer like any other.
         ArtifactKind.Plan => ["Shape and departures", "Files", "Proof", "Risk"],
@@ -544,6 +551,7 @@ public static partial class ArtifactSchema
         foreach (string key in keys.Keys)
         {
             if (!EnvelopeKeys.Contains(key, StringComparer.Ordinal)
+                && !RetiredKeys.Contains(key, StringComparer.Ordinal)
                 && !BodyKeysOf(kind).Contains(key, StringComparer.Ordinal)
                 && !OptionalKeysOf(kind).Contains(key, StringComparer.Ordinal))
             {

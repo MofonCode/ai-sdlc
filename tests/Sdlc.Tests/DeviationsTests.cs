@@ -10,7 +10,8 @@ using Sdlc.Core.Solutions;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// Deviations: where a build or a remediation bent the approved documents, and a person's answer to each.
+/// Deviations: where a build or a remediation bent the approved documents, the choices it made that they left open,
+/// and what the person asked to change.
 /// </summary>
 [TestClass]
 public sealed class DeviationsTests
@@ -162,27 +163,50 @@ public sealed class DeviationsTests
     }
 
     [TestMethod]
-    public async Task A_deviation_nobody_answered_is_pending_and_an_accepted_one_holds_until_its_text_moves()
+    public void A_choice_records_what_was_chosen_against_what_and_quotes_nothing()
     {
-        using CycleWorkspace workspace = Approved();
-        WriteDeviations(workspace, Entry("DEV_01"));
+        Deviation choice = DeviationsFile.Parse(Choice("DEV_01"), DeviationsFile.FileName).Value.Single();
 
-        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
-        Assert.AreEqual(DeviationStanding.Pending, state.States.Single().Standing);
-        Assert.AreEqual(0, state.Problems.Count, string.Join("; ", state.Problems));
-
-        Answer(workspace, ("DEV_01", state.States[0].Deviation.Sha256, true, null));
-        state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
-        Assert.AreEqual(DeviationStanding.Accepted, state.States.Single().Standing);
-
-        WriteDeviations(workspace, Entry("DEV_01", instead: "Something else entirely."));
-        state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
-        Assert.AreEqual(DeviationStanding.Pending, state.States.Single().Standing);
-        Assert.IsTrue(state.States.Single().Changed);
+        Assert.AreEqual(DeviationKind.Choice, choice.Kind);
+        Assert.IsFalse(choice.Bends);
+        Assert.AreEqual("retries through Polly", choice.Instead);
+        Assert.AreEqual("a hand-written loop", choice.Alternative);
+        Assert.AreEqual(string.Empty, choice.Document);
     }
 
     [TestMethod]
-    public async Task False_with_a_note_declines_and_false_with_none_is_not_reviewed()
+    public void A_choice_that_quotes_approved_text_or_names_no_alternative_is_refused()
+    {
+        Result<IReadOnlyList<Deviation>> quoting = DeviationsFile.Parse(
+            "## DEV_01 — Polly for retries\n\nKind: choice\nDeparts from: plan.md, Files\n> content\nDeviation: Polly\nInstead of: a loop\nWhy: tested.\n",
+            DeviationsFile.FileName);
+        Result<IReadOnlyList<Deviation>> bare = DeviationsFile.Parse(
+            "## DEV_01 — Polly for retries\n\nKind: choice\nDeviation: Polly\nWhy: tested.\n",
+            DeviationsFile.FileName);
+
+        StringAssert.Contains(quoting.Errors[0].Message, "departs from nothing approved");
+        StringAssert.Contains(bare.Errors[0].Message, "'Instead of:'");
+    }
+
+    [TestMethod]
+    public async Task A_deviation_is_recorded_until_the_merge_and_a_changed_line_is_the_persons_request()
+    {
+        // D-181: nothing waits for an answer. The pull request leads with it, and a change the person asks for is
+        // written onto the entry, quoting them.
+        using CycleWorkspace workspace = Approved();
+        WriteDeviations(workspace, Entry("DEV_01") + "\n" + Entry("DEV_02", changed: "Changed: \"use the fixture instead\""));
+
+        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
+
+        Assert.AreEqual(DeviationStanding.Recorded, state.States[0].Standing);
+        Assert.AreEqual(DeviationStanding.Declined, state.States[1].Standing);
+        Assert.AreEqual("\"use the fixture instead\"", state.States[1].Note);
+        Assert.AreEqual("DEV_01", state.InForce.Single().Deviation.Id, "One the person asked to change gives no leave.");
+        Assert.AreEqual(0, state.Problems.Count, string.Join("; ", state.Problems));
+    }
+
+    [TestMethod]
+    public async Task An_answer_from_before_the_pull_request_was_the_acceptance_is_still_read()
     {
         using CycleWorkspace workspace = Approved();
         WriteDeviations(workspace, Entry("DEV_01") + "\n" + Entry("DEV_02"));
@@ -190,28 +214,17 @@ public sealed class DeviationsTests
 
         Answer(
             workspace,
-            ("DEV_01", state.States[0].Deviation.Sha256, false, "Fix the fixture instead."),
-            ("DEV_02", state.States[1].Deviation.Sha256, false, null));
+            ("DEV_01", state.States[0].Deviation.Sha256, true, null),
+            ("DEV_02", state.States[1].Deviation.Sha256, false, "Fix the fixture instead."));
 
         state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
-        Assert.AreEqual(DeviationStanding.Declined, state.States[0].Standing);
-        Assert.AreEqual("Fix the fixture instead.", state.States[0].Note);
-        Assert.AreEqual(DeviationStanding.Pending, state.States[1].Standing);
-    }
+        Assert.AreEqual(DeviationStanding.Accepted, state.States[0].Standing);
+        Assert.AreEqual(DeviationStanding.Declined, state.States[1].Standing);
+        Assert.AreEqual("Fix the fixture instead.", state.States[1].Note);
 
-    [TestMethod]
-    public async Task Under_approval_none_every_deviation_is_accepted_and_the_pull_request_is_the_review()
-    {
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteAllArtifacts();
-        workspace.WriteSolution(SolutionOrigin.Adopted, approval: "none");
-        WriteDeviations(workspace, Entry("DEV_01"));
-
-        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
-
-        Assert.IsTrue(state.AcceptedBySetting);
-        Assert.AreEqual(DeviationStanding.Accepted, state.States.Single().Standing);
-        Assert.AreEqual(0, state.Pending.Count);
+        WriteDeviations(workspace, Entry("DEV_01", instead: "Something else entirely.") + "\n" + Entry("DEV_02"));
+        state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
+        Assert.AreEqual(DeviationStanding.Recorded, state.States[0].Standing, "Text that moved after its answer stands as recorded.");
     }
 
     [TestMethod]
@@ -230,6 +243,28 @@ public sealed class DeviationsTests
         Assert.AreEqual(DeviationStanding.History, state.States.Single().Standing);
         Assert.AreEqual(0, state.Current.Count);
         Assert.AreEqual(0, state.Problems.Count, "History quotes a plan that has since been amended, and is not held to it.");
+    }
+
+    [TestMethod]
+    public async Task A_reopen_takes_in_every_deviation_the_build_recorded()
+    {
+        // Nobody answers a deviation any more, so the reopen's draft does it for them: what the build learned goes
+        // into the amended plan, and once that is approved the entries are history.
+        using CycleWorkspace workspace = Approved();
+        WriteDeviations(workspace, Entry("DEV_01") + "\n" + Choice("DEV_02"));
+
+        ApprovalText.Response text = await Draft(workspace, GateDecision.Reopened);
+
+        Assert.IsTrue(text.MayApprove, text.Instructions);
+        StringAssert.Contains(text.Entry, "decision: deviations");
+        StringAssert.Contains(text.Entry, "- id: DEV_02");
+        StringAssert.Contains(text.Entry, "taken into the reopen");
+
+        await File.WriteAllTextAsync(workspace.Cycle.ApprovalPath, text.FileText!.Replace("    reason:\n", "    reason: The plan is wrong.\n", StringComparison.Ordinal).Replace("    reason:\r\n", "    reason: The plan is wrong.\r\n", StringComparison.Ordinal));
+        Append(workspace, "  - decision: approved\n    by: Peter Almanzar\n    at: 2099-10-04T12:00:00Z\n");
+
+        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
+        Assert.IsTrue(state.States.All(entry => entry.Standing == DeviationStanding.History), string.Join("; ", state.States.Select(entry => entry.Standing)));
     }
 
     [TestMethod]
@@ -274,6 +309,31 @@ public sealed class DeviationsTests
     }
 
     [TestMethod]
+    public async Task A_criterion_the_build_narrowed_on_its_own_is_a_problem()
+    {
+        using CycleWorkspace workspace = Approved();
+        WriteDeviations(workspace, Entry("DEV_01", kind: "criterion", document: "spec.md", successor: "Successor: server-host — the rest of criterion 7"));
+
+        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
+
+        StringAssert.Contains(state.Problems.Single(), "never changes what done means (D-179)");
+    }
+
+    [TestMethod]
+    public async Task Choices_never_circle_and_are_held_to_no_quote()
+    {
+        using CycleWorkspace workspace = Approved();
+        WriteDeviations(workspace, Choice("DEV_01") + "\n" + Choice("DEV_02") + "\n" + Choice("DEV_03"));
+
+        DeviationsState state = await CycleDeviations.Read(workspace.Cycle, CancellationToken.None);
+
+        Assert.AreEqual(0, state.Circles.Count);
+        Assert.AreEqual(0, state.Problems.Count, string.Join("; ", state.Problems));
+        Assert.AreEqual(3, state.Choices.Count);
+        Assert.AreEqual(0, state.InForce.Count);
+    }
+
+    [TestMethod]
     public async Task A_third_deviation_bending_the_same_text_escalates_a_verification_that_still_blocks()
     {
         using CycleWorkspace workspace = Approved();
@@ -292,49 +352,46 @@ public sealed class DeviationsTests
     }
 
     [TestMethod]
-    public async Task An_approved_cycle_with_unanswered_deviations_drafts_an_answer_to_each_with_the_same_command()
+    public async Task The_report_leads_with_the_deviations_then_the_choices_then_what_was_changed()
     {
         using CycleWorkspace workspace = Approved();
-        WriteDeviations(workspace, Entry("DEV_01") + "\n" + Entry("DEV_02"));
+        WriteDeviations(workspace, Entry("DEV_01") + "\n" + Choice("DEV_02") + "\n" + Entry("DEV_03", changed: "Changed: \"keep the old socket\""));
 
-        ApprovalText.Response text = await Draft(workspace);
+        using var gate = Gate.For(workspace.Root);
+        Result<BuildReport.Response> report = await gate.Send<BuildReport.Query, BuildReport.Response>(new BuildReport.Query(workspace.Cycle.Id));
 
-        Assert.IsTrue(text.MayApprove, text.Instructions);
-        Assert.AreEqual(GateDecision.Deviations, text.Decision);
-        StringAssert.Contains(text.Entry, "decision: deviations");
-        StringAssert.Contains(text.Entry, "- id: DEV_02");
-        StringAssert.Contains(text.Entry, "accepted: false");
-        StringAssert.Contains(text.Entry, "note: \"\"");
-        StringAssert.EndsWith(text.DraftPath, "approval.deviations.draft.md");
-        StringAssert.Contains(text.Instructions, "set 'accepted: true' to accept it");
+        Assert.IsTrue(report.IsSuccess, string.Join("; ", report.Errors.Select(error => error.Message)));
+        string text = BuildReport.Render(report.Value);
 
-        // The draft, renamed as it stands, is a ledger the gate still approves and every deviation unanswered.
-        await File.WriteAllTextAsync(workspace.Cycle.ApprovalPath, text.FileText);
-        Result<ApprovalLedger> placed = ApprovalLedger.Read(text.FileText!, "approval.md");
-        Assert.IsTrue(placed.IsSuccess, string.Join("; ", placed.Errors.Select(error => error.Message)));
-        Assert.IsTrue(placed.Value.IsApproved);
-        Assert.AreEqual(2, (await CycleDeviations.Read(workspace.Cycle, CancellationToken.None)).Pending.Count);
+        StringAssert.StartsWith(text, "## Report");
+        int deviations = text.IndexOf("**Deviations**", StringComparison.Ordinal);
+        int choices = text.IndexOf("**Choices**", StringComparison.Ordinal);
+        int changed = text.IndexOf("**Changed at your request**", StringComparison.Ordinal);
+        Assert.IsTrue(deviations >= 0 && deviations < choices && choices < changed, text);
+        StringAssert.Contains(text, "Chose retries through Polly instead of a hand-written loop.");
+        StringAssert.Contains(text, "\"keep the old socket\"");
+        StringAssert.Contains(text, "Merging the pull request accepts the deviations and choices above.");
+        StringAssert.EndsWith(text, BuildReport.HarvestLine, "A harvest is suggested after the merge, last, and never asked at the pull request.");
     }
 
     [TestMethod]
-    public async Task A_reopen_waits_until_every_deviation_is_answered()
+    public async Task A_cycle_that_followed_its_plan_reports_nothing()
     {
         using CycleWorkspace workspace = Approved();
-        WriteDeviations(workspace, Entry("DEV_01"));
+        using var gate = Gate.For(workspace.Root);
 
-        ApprovalText.Response text = await Draft(workspace, GateDecision.Reopened);
+        Result<BuildReport.Response> report = await gate.Send<BuildReport.Query, BuildReport.Response>(new BuildReport.Query(workspace.Cycle.Id));
 
-        Assert.IsFalse(text.MayApprove);
-        StringAssert.Contains(text.Instructions, "cannot be reopened yet: 1 deviation is unanswered");
+        Assert.IsTrue(report.Value.Empty);
+        StringAssert.Contains(BuildReport.Render(report.Value), "Nothing to report");
+        StringAssert.EndsWith(BuildReport.Render(report.Value), BuildReport.HarvestLine);
     }
 
     [TestMethod]
-    public async Task The_gate_still_lets_the_build_run_once_deviations_are_answered()
+    public async Task The_gate_still_lets_the_build_run_with_deviations_recorded()
     {
         using CycleWorkspace workspace = Approved();
         WriteDeviations(workspace, Entry("DEV_01"));
-        string sha = (await CycleDeviations.Read(workspace.Cycle, CancellationToken.None)).States[0].Deviation.Sha256;
-        Answer(workspace, ("DEV_01", sha, true, null));
 
         using var gate = Gate.For(workspace.Root);
         Result<ApprovalGate.Response> verdict = await gate.Send<ApprovalGate.Query, ApprovalGate.Response>(new ApprovalGate.Query(workspace.Cycle.Id));
@@ -355,11 +412,12 @@ public sealed class DeviationsTests
 
         Assert.IsTrue(written.IsSuccess, string.Join("; ", written.Errors.Select(error => error.Message)));
 
-        foreach (string prompt in Directory.GetFiles(directory, "*.prompt.md").Where(path => !path.EndsWith("reconcile.prompt.md", StringComparison.Ordinal)))
+        for (int index = 0; index < written.Value.Prompts.Count; index++)
         {
-            string text = await File.ReadAllTextAsync(prompt);
-            StringAssert.Contains(text, "DEV_01 — The socket file is changed to fix a race (plan) -- in force, awaiting the person's answer", Path.GetFileName(prompt));
-            StringAssert.Contains(text, "<file name=\"deviations.md\">", Path.GetFileName(prompt));
+            string text = ReaderPromptsTests.Whole(written.Value, index);
+            string reader = written.Value.Prompts[index].Reader;
+            StringAssert.Contains(text, "DEV_01 — The socket file is changed to fix a race (plan) -- in force, recorded by the build", reader);
+            StringAssert.Contains(text, "<file name=\"deviations.md\">", reader);
         }
     }
 
@@ -371,7 +429,7 @@ public sealed class DeviationsTests
 
         string shared = await ReaderPrompts.Shared(workspace.Cycle, ArtifactKind.Verify, withDocument: true, CancellationToken.None);
 
-        StringAssert.Contains(shared, "None. The build recorded no deviation");
+        StringAssert.Contains(shared, "None. The build recorded no deviation and no choice");
     }
 
     private static string Entry(
@@ -382,7 +440,8 @@ public sealed class DeviationsTests
         string blocker = "Credential_never_reaches_a_trader fails 2 runs in 3 with ObjectDisposedException",
         string instead = "StreamSocket.cs is also changed.",
         string? files = null,
-        string? successor = null) => string.Create(
+        string? successor = null,
+        string? changed = null) => string.Create(
         CultureInfo.InvariantCulture,
         $"""
         ## {id} — The socket file is changed to fix a race
@@ -395,6 +454,19 @@ public sealed class DeviationsTests
         Why: the race is in StreamSocket.
         {files ?? string.Empty}
         {successor ?? string.Empty}
+        {changed ?? string.Empty}
+
+        """);
+
+    private static string Choice(string id) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"""
+        ## {id} — Retries go through Polly
+
+        Kind: choice
+        Deviation: retries through Polly
+        Instead of: a hand-written loop
+        Why: the solution already depends on it.
 
         """);
 

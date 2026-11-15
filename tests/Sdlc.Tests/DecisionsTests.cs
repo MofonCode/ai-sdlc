@@ -8,10 +8,10 @@ using Sdlc.Core.Proposals;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// The choices a solution has settled, and what an approved cycle stated.
+/// The choices a solution has settled, and what a completed cycle stated.
 /// </summary>
 /// <remarks>
-/// Two failures to guard against. An entry that no person approved would make the record a place where
+/// Two failures to guard against. An entry from a cycle no person accepted would make the record a place where
 /// an agent's draft prose becomes doctrine later cycles align to, which is the authorship problem this
 /// shape exists to answer -- so most of the proposer's tests are about what does <em>not</em>
 /// contribute. And a reversed entry losing its place on the page would make a cycle that cited it
@@ -132,7 +132,7 @@ public sealed class DecisionsTests
     [TestMethod]
     public async Task An_entry_over_the_word_budget_is_named_and_nothing_is_refused()
     {
-        // D-149. The file is a person's: the record still renders, and the long entry is named for mining
+        // D-149. The file is a person's: the record still renders, and the long entry is named for a harvest
         // to propose a rewording.
         using var workspace = CycleWorkspace.Create();
         string longTitle = string.Join(' ', Enumerable.Repeat("word", 15 + 3));
@@ -174,7 +174,7 @@ public sealed class DecisionsTests
     [TestMethod]
     public async Task The_record_says_departing_is_legal_and_silence_is_not()
     {
-        // The distinction CON_24 rests on, and the one a reader will get wrong in the other direction: a
+        // The distinction CON_27 rests on, and the one a reader will get wrong in the other direction: a
         // decision that cannot be revisited is a cage, and the first case it does not fit would see the
         // record ignored rather than amended. What the rule catches is nobody noticing they departed.
         using var workspace = CycleWorkspace.Create();
@@ -183,53 +183,55 @@ public sealed class DecisionsTests
         string rendered = DecisionsRenderer.Render(await ReadRecord(workspace), DecisionDetail.Full);
 
         StringAssert.Contains(rendered, "may depart");
-        StringAssert.Contains(rendered, "CON_24");
+        StringAssert.Contains(rendered, "CON_27");
         StringAssert.Contains(rendered, "departing in silence is not");
     }
 
     [TestMethod]
-    public async Task Only_an_approved_cycle_states_anything()
+    public async Task Only_a_completed_cycle_states_anything()
     {
-        // The whole provenance story. An approval records a hash of the three planning documents against
-        // a person's name, so a passage from an approved cycle is one a person signed off on those exact
-        // bytes; reading an unapproved cycle would put unsigned prose in a record whose only value is
-        // that a person signed it.
+        // The whole provenance story (D-190). A cycle is completed once its pull request merged after a passing
+        // verify, or a person abandoned it; reading one still in flight would put draft prose in a record whose
+        // only value is that a person accepted it. The caller names the completed cycles.
         using var workspace = CycleWorkspace.Create();
         Stated(workspace);
 
-        ProposeDecisions.Response before = await Propose(workspace);
+        ProposeDecisions.Response before = await Propose(workspace, completed: false);
         Assert.AreEqual(0, before.Candidates.Count);
-        Assert.AreEqual(1, before.Unapproved, "And it says why it found nothing.");
-
-        Approve(workspace);
+        Assert.AreEqual(1, before.Skipped, "And it says why it found nothing.");
 
         ProposeDecisions.Response after = await Propose(workspace);
         Assert.AreEqual(2, after.Candidates.Count, "The intent's and the plan's, one each.");
-        Assert.AreEqual(0, after.Unapproved);
+        Assert.AreEqual(0, after.Skipped);
     }
 
     [TestMethod]
-    public async Task An_approval_that_was_withdrawn_states_nothing()
+    public async Task A_fixed_decision_marked_unconfirmed_is_an_assumption_and_states_nothing()
     {
-        // The ledger is append-only and the last entry stands, so a cycle approved and then reopened is
-        // not approved -- and a passage taken from one would be prose a person explicitly sent back.
+        // A figure nobody measured is a belief, not a choice somebody made. Each bullet is its own passage, so
+        // leaving one out leaves the others.
         using var workspace = CycleWorkspace.Create();
-        Stated(workspace);
-        Approve(workspace, reopened: true);
+        Stated(workspace, "- Keep it very simple. Sam, 2026-09-01: nothing fancy.", "- Pages take fourteen seconds to load (unconfirmed).");
 
-        Assert.AreEqual(0, (await Propose(workspace)).Candidates.Count);
+        IReadOnlyList<Candidate> intent = [.. (await Propose(workspace)).Candidates.Where(c => c.Source == DecisionSource.Intent)];
+
+        Assert.AreEqual(1, intent.Count);
+        StringAssert.Contains(intent[0].Passage, "Keep it very simple");
     }
 
     [TestMethod]
-    public async Task A_stopped_cycle_states_nothing_even_when_it_was_approved()
+    public async Task An_abandoned_cycle_states_its_reason_and_nothing_else()
     {
-        // A decision lifted out of work somebody abandoned is the opposite of a settled choice.
+        // The reason is a person's decision, usually naming what they refused. The plan's approach is what was
+        // abandoned, so it is never offered as a choice to keep.
         using var workspace = CycleWorkspace.Create();
         Stated(workspace);
-        Approve(workspace);
-        CycleWorkspace.WriteRaw(workspace.Cycle.AbandonedPath, "stopped, and why.");
+        workspace.Abandon();
 
-        Assert.AreEqual(0, (await Propose(workspace)).Candidates.Count);
+        Candidate reason = (await Propose(workspace)).Candidates.Single();
+
+        Assert.AreEqual(DecisionSource.Abandoned, reason.Source);
+        StringAssert.Contains(reason.Passage, "Superseded by a narrower intent.");
     }
 
     [TestMethod]
@@ -239,7 +241,6 @@ public sealed class DecisionsTests
         // several entries and read as several choices.
         using var workspace = CycleWorkspace.Create();
         Stated(workspace);
-        Approve(workspace);
 
         ProposeDecisions.Response response = await Propose(workspace);
 
@@ -254,7 +255,6 @@ public sealed class DecisionsTests
         using var workspace = CycleWorkspace.Create();
         Record(workspace, Entry("DEC_01"));
         Stated(workspace);
-        Approve(workspace);
 
         ProposeDecisions.Response response = await Propose(workspace);
 
@@ -264,16 +264,18 @@ public sealed class DecisionsTests
     }
 
     [TestMethod]
-    public async Task The_admission_tests_are_printed_whenever_there_is_material()
+    public async Task The_definition_and_its_tests_are_printed_whenever_there_is_material()
     {
         using var workspace = CycleWorkspace.Create();
         Stated(workspace);
-        Approve(workspace);
 
         string rendered = ProposalsRenderer.Render(await Propose(workspace));
 
         StringAssert.Contains(rendered, "the alternatives were real");
+        StringAssert.Contains(rendered, "future cycles will meet it again");
         StringAssert.Contains(rendered, "it forbids nothing");
+        StringAssert.Contains(rendered, "counts only if the same choice is in two or more cycles", "A plan's prose needs to recur.");
+        StringAssert.Contains(rendered, "A person's own words");
     }
 
     [TestMethod]
@@ -287,7 +289,7 @@ public sealed class DecisionsTests
         // protected file rather than an ordinary one.
         Assert.IsTrue(ProtectedPaths.IsProtected(path, out ProtectedFile? file));
         Assert.IsNotNull(file);
-        StringAssert.Contains(file.Reason, "propose decisions");
+        StringAssert.Contains(file.Reason, "harvest decisions");
     }
 
     [TestMethod]
@@ -313,13 +315,13 @@ public sealed class DecisionsTests
         return result.Value;
     }
 
-    /// <summary>Dispatches the proposer.</summary>
-    private static async Task<ProposeDecisions.Response> Propose(CycleWorkspace workspace)
+    /// <summary>Dispatches the proposer, naming the cycle completed unless told otherwise.</summary>
+    private static async Task<ProposeDecisions.Response> Propose(CycleWorkspace workspace, bool completed = true)
     {
         using var gate = Gate.For(workspace.Root);
 
         Result<ProposeDecisions.Response> result = await gate
-            .Send<ProposeDecisions.Query, ProposeDecisions.Response>(new ProposeDecisions.Query());
+            .Send<ProposeDecisions.Query, ProposeDecisions.Response>(new ProposeDecisions.Query(completed ? [workspace.Cycle.Id] : []));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
@@ -375,7 +377,7 @@ public sealed class DecisionsTests
     /// hash of all three planning documents, and a ledger is what decides whether a passage is offered at
     /// all — so a cycle missing one could not be approved in the first place.
     /// </remarks>
-    private static void Stated(CycleWorkspace workspace)
+    private static void Stated(CycleWorkspace workspace, params string[] fixedDecisions)
     {
         workspace.WriteSpec(criteria: 1);
 
@@ -384,7 +386,6 @@ public sealed class DecisionsTests
             string.Join(
                 Environment.NewLine,
                 "---",
-                "framework_version: " + Cycle.FrameworkVersion,
                 "cycle: " + workspace.Cycle.Id,
                 "type: feature addition",
                 "---",
@@ -397,7 +398,7 @@ public sealed class DecisionsTests
                 string.Empty,
                 "## Fixed decisions",
                 string.Empty,
-                "Keep it very simple. We are not introducing a new broker for this.",
+                fixedDecisions.Length == 0 ? "Keep it very simple. We are not introducing a new broker for this." : string.Join(Environment.NewLine, fixedDecisions),
                 string.Empty,
                 "## Open"));
 
@@ -406,7 +407,6 @@ public sealed class DecisionsTests
             string.Join(
                 Environment.NewLine,
                 "---",
-                "framework_version: " + Cycle.FrameworkVersion,
                 "cycle: " + workspace.Cycle.Id,
                 "tier: contract",
                 "---",
@@ -419,58 +419,5 @@ public sealed class DecisionsTests
                 "The declared default is a direct publish, which the broker cannot join.",
                 string.Empty,
                 "## Open"));
-    }
-
-    /// <summary>
-    /// Records a gate decision.
-    /// </summary>
-    /// <remarks>
-    /// The single-decision case goes through the workspace's own writer, so these tests read the ledger
-    /// shape the rest of the suite writes rather than a second idea of it. The withdrawn case needs two
-    /// entries, which that writer does not do, and the point being tested is that the <em>last</em> one
-    /// stands -- so it is composed here with both.
-    /// </remarks>
-    private static void Approve(CycleWorkspace workspace, bool reopened = false)
-    {
-        if (!reopened)
-        {
-            workspace.WriteApproval();
-            return;
-        }
-
-        List<string> lines =
-        [
-            "---",
-            "cycle: " + workspace.Cycle.Id,
-            "framework_version: " + Cycle.FrameworkVersion,
-            "decisions:",
-            "  - decision: approved",
-            "    by: Somebody",
-            "    at: 2026-09-01T10:00:00Z",
-            "    hashes:",
-        ];
-
-        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
-        {
-            lines.Add("      " + Cycle.FileNameOf(kind) + ": " + workspace.HashOf(kind));
-        }
-
-        lines.AddRange(
-            "  - decision: reopened",
-            "    by: Somebody",
-            "    at: 2026-09-02T10:00:00Z",
-            "    reason: the plan needs rewriting",
-            "    hashes:");
-
-        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
-        {
-            lines.Add("      " + Cycle.FileNameOf(kind) + ": " + workspace.HashOf(kind));
-        }
-
-        lines.Add("---");
-
-        CycleWorkspace.WriteRaw(
-            workspace.Cycle.ApprovalPath,
-            string.Join(Environment.NewLine, lines) + Environment.NewLine);
     }
 }

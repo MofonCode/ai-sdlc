@@ -68,6 +68,7 @@ public static class CheckEvidence
         RecordEvidence.BaseFileName,
         Coverage.SummaryFileName,
         "build.log",
+        "coverage_floor",
         "pass",
         "blocked",
         "escalated",
@@ -135,14 +136,14 @@ public static class CheckEvidence
 
         if (response.Unfound.Count == 0 && response.NotPassed.Count == 0)
         {
-            text.AppendLine("Every one is in tests.json or diff.patch, and every test it says passed is recorded as passed.");
+            text.AppendLine("Every one is in the recorded evidence, and every test it says passed is recorded as passed.");
             return text.ToString();
         }
 
         if (response.Unfound.Count > 0)
         {
             text.AppendLine();
-            text.AppendLine("In none of the recorded evidence -- tests.json, diff.patch, coverage.json, and build.log where this checkout has one:");
+            text.AppendLine("In none of the recorded evidence -- tests.json, diff.patch, proof-sources.txt where there is one, coverage.json, base.sha, head.sha, and build.log where this checkout has one:");
 
             foreach (string name in response.Unfound)
             {
@@ -181,6 +182,7 @@ public static class CheckEvidence
             }
 
             await EvidenceDiff.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
+            await ProofSources.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
 
             string summaryPath = Path.Combine(cycle.EvidenceDirectory, RecordEvidence.SummaryFileName);
             string diffPath = Path.Combine(cycle.EvidenceDirectory, RecordEvidence.DiffFileName);
@@ -192,8 +194,10 @@ public static class CheckEvidence
             string diff = File.Exists(diffPath) ? await File.ReadAllTextAsync(diffPath, cancellationToken).ConfigureAwait(false) : string.Empty;
 
             // The coverage summary and the build log are evidence too, which a verdict may cite for what only
-            // they hold. The log is not committed, so in a pipeline it is simply not searched.
-            foreach (string other in new[] { Coverage.SummaryFileName, "build.log" })
+            // they hold. The log is not committed, so in a pipeline it is simply not searched. The summary and
+            // the two commits are searched as text as well (D-161): a verdict quoting the platform the tests ran
+            // on, or the commit it judged, was reported as citing nothing.
+            foreach (string other in new[] { Coverage.SummaryFileName, "build.log", RecordEvidence.SummaryFileName, RecordEvidence.BaseFileName, RecordEvidence.HeadFileName, ProofSources.FileName })
             {
                 string path = Path.Combine(cycle.EvidenceDirectory, other);
 

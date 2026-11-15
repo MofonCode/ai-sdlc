@@ -22,16 +22,23 @@ public enum DeviationKind
 
     /// <summary>A recorded decision, departed from for this cycle.</summary>
     Decision,
+
+    /// <summary>
+    /// A choice the intent, the decisions, the constraints and the plan left open, which a reviewer would want to
+    /// know about (D-180). It departs from no approved text, so it quotes none.
+    /// </summary>
+    Choice,
 }
 
 /// <summary>
-/// One place a build or a remediation bent the approved documents, recorded so a person can sign it.
+/// One place a build or a remediation bent the approved documents, or made a choice they left open, recorded so a
+/// person reviewing the pull request sees it.
 /// </summary>
 /// <remarks>
 /// <para><strong>A deviation doesn't excuse a blocker. It replaces the approved text the blocker was measured
-/// against</strong>, and a person signs the replacement, so nothing is waived (D-27). It is defined by what it
-/// quotes: nothing quoted means nothing deviated from, which is what keeps a choice the plan left open off the
-/// list.</para>
+/// against</strong>, and the person accepts the replacement by merging the pull request it leads, so nothing is
+/// waived (D-27, D-181). It is defined by what it quotes: nothing quoted means nothing deviated from. A choice the
+/// plan left open quotes nothing and is its own kind, <see cref="DeviationKind.Choice"/> (D-180).</para>
 /// </remarks>
 /// <param name="Id">Its id, <c>DEV_nn</c>, unique in the cycle and never reused.</param>
 /// <param name="Gist">Its heading after the id: one line a person reads first.</param>
@@ -45,7 +52,12 @@ public enum DeviationKind
 /// <param name="Files">The files it adds to what the plan declared, when it adds any.</param>
 /// <param name="Successor">For a criterion deviation, the successor the dropped part becomes: its slug, then what it is.</param>
 /// <param name="Replaces">The earlier deviation, declined, that this one is a second attempt at.</param>
-/// <param name="Sha256">The hash of its text, which a person's answer is held to.</param>
+/// <param name="Sha256">The hash of its text, which an answer recorded before D-181 is held to.</param>
+/// <param name="Alternative">For a choice, what it chose against.</param>
+/// <param name="Changed">
+/// The person's words when they asked for this to be changed (D-181): remediate records them, quoted, and the
+/// entry no longer gives leave.
+/// </param>
 public sealed record Deviation(
     string Id,
     string Gist,
@@ -59,8 +71,13 @@ public sealed record Deviation(
     IReadOnlyList<string> Files,
     string? Successor,
     string? Replaces,
-    string Sha256)
+    string Sha256,
+    string? Alternative = null,
+    string? Changed = null)
 {
+    /// <summary>Whether it bends approved text, which every kind but a choice does.</summary>
+    public bool Bends => Kind != DeviationKind.Choice;
+
     /// <summary>The successor's slug, the first word of <see cref="Successor"/>, when there is one.</summary>
     public string? SuccessorSlug => Successor is { } text && text.Split([' ', '\t'], 2, StringSplitOptions.RemoveEmptyEntries) is [{ } slug, ..]
         ? slug.TrimEnd(':', ',', '.')
@@ -75,17 +92,19 @@ public sealed record Deviation(
         DeviationKind.Proof => "proof",
         DeviationKind.Criterion => "criterion",
         DeviationKind.Decision => "decision",
+        DeviationKind.Choice => "choice",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
-    /// <summary>The one document a kind may quote.</summary>
+    /// <summary>The one document a kind may quote; a choice quotes none.</summary>
     /// <param name="kind">The kind.</param>
-    /// <returns>Its file name.</returns>
+    /// <returns>Its file name, or empty for a choice.</returns>
     public static string DocumentOf(DeviationKind kind) => kind switch
     {
         DeviationKind.Plan or DeviationKind.Proof => Cycle.FileNameOf(ArtifactKind.Plan),
         DeviationKind.Criterion => Cycle.FileNameOf(ArtifactKind.Spec),
         DeviationKind.Decision => DecisionParser.FileName,
+        DeviationKind.Choice => string.Empty,
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }
@@ -94,9 +113,10 @@ public sealed record Deviation(
 /// Reads a cycle's <c>deviations.md</c>: one <c>## DEV_nn — gist</c> section per deviation, append-only.
 /// </summary>
 /// <remarks>
-/// <para><strong>Written by build and remediate, never by verify</strong>, and not a protected file: a person's
-/// signature is the deviations entry in <c>approval.md</c>, which holds each deviation's hash, so an entry
-/// edited after it was answered is unanswered again.</para>
+/// <para><strong>Written by build and remediate, never by verify</strong>, and not a protected file. A person
+/// accepts what it records by merging the pull request it leads (D-181); a change they ask for is written onto the
+/// entry by remediate as a <c>Changed:</c> line quoting them. A deviations entry in <c>approval.md</c>, from before
+/// D-181, is still read and still holds each answer to the hash it answered.</para>
 /// <para>Every problem in the file is reported at once, as the other parsers here do, so one pass fixes all
 /// of them.</para>
 /// </remarks>
@@ -105,7 +125,7 @@ public static partial class DeviationsFile
     /// <summary>The file's name in the cycle directory.</summary>
     public const string FileName = "deviations.md";
 
-    private static readonly string[] _fields = ["Kind", "Departs from", "Blocker", "Deviation", "Why", "Files", "Successor", "Replaces"];
+    private static readonly string[] _fields = ["Kind", "Departs from", "Blocker", "Deviation", "Instead of", "Why", "Files", "Successor", "Replaces", "Changed"];
 
     [GeneratedRegex(@"^##\s+(?<id>DEV_[0-9]{2,4})\s*(?:—|–|-|:)\s*(?<gist>.+?)\s*$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Heading();
@@ -245,7 +265,7 @@ public static partial class DeviationsFile
         {
             if (!TryKind(written, out kind))
             {
-                problems.Add($"has kind '{written}'. Expected plan, proof, criterion or decision.");
+                problems.Add($"has kind '{written}'. Expected plan, proof, criterion, decision or choice.");
             }
         }
         else
@@ -255,32 +275,54 @@ public static partial class DeviationsFile
 
         string document = string.Empty;
         string section = string.Empty;
-        if (Field("Departs from") is { Length: > 0 } departs)
-        {
-            string[] parts = departs.Split(',', 2, StringSplitOptions.TrimEntries);
-            document = parts[0].Trim('`');
-            section = parts.Length > 1 ? parts[1] : string.Empty;
+        bool choice = problems.Count == 0 && kind == DeviationKind.Choice;
 
-            if (problems.Count == 0 && !string.Equals(document, Deviation.DocumentOf(kind), StringComparison.Ordinal))
+        if (choice)
+        {
+            // A choice departs from nothing approved, so it names no document and quotes nothing; what makes it one
+            // is what it chose, against what, and why (D-180).
+            if (Field("Departs from").Length > 0 || quote.Count > 0)
             {
-                problems.Add(string.Create(CultureInfo.InvariantCulture, $"is a {Deviation.NameOf(kind)} deviation quoting {document}. A {Deviation.NameOf(kind)} deviation quotes {Deviation.DocumentOf(kind)}; the intent is never deviated from."));
+                problems.Add("is a choice and quotes approved text. A choice departs from nothing approved: drop 'Departs from:' and the '> ' lines, or record it as the kind of deviation it is.");
+            }
+
+            foreach (string required in (string[])["Deviation", "Instead of", "Why"])
+            {
+                if (Field(required).Length == 0)
+                {
+                    problems.Add($"has no '{required}:' line. A choice says what was chosen, what it was chosen against, and why.");
+                }
             }
         }
         else
         {
-            problems.Add("has no 'Departs from:' line naming the document and its section.");
-        }
-
-        if (quote.Count == 0)
-        {
-            problems.Add("quotes nothing. A deviation quotes the approved text it departs from on '> ' lines; a choice the plan left open is not a deviation.");
-        }
-
-        foreach (string required in (string[])["Blocker", "Deviation", "Why"])
-        {
-            if (Field(required).Length == 0)
+            if (Field("Departs from") is { Length: > 0 } departs)
             {
-                problems.Add($"has no '{required}:' line.");
+                string[] parts = departs.Split(',', 2, StringSplitOptions.TrimEntries);
+                document = parts[0].Trim('`');
+                section = parts.Length > 1 ? parts[1] : string.Empty;
+
+                if (problems.Count == 0 && !string.Equals(document, Deviation.DocumentOf(kind), StringComparison.Ordinal))
+                {
+                    problems.Add(string.Create(CultureInfo.InvariantCulture, $"is a {Deviation.NameOf(kind)} deviation quoting {document}. A {Deviation.NameOf(kind)} deviation quotes {Deviation.DocumentOf(kind)}; the intent is never deviated from."));
+                }
+            }
+            else
+            {
+                problems.Add("has no 'Departs from:' line naming the document and its section.");
+            }
+
+            if (quote.Count == 0)
+            {
+                problems.Add("quotes nothing. A deviation quotes the approved text it departs from on '> ' lines; a choice the plan left open is recorded with 'Kind: choice'.");
+            }
+
+            foreach (string required in (string[])["Blocker", "Deviation", "Why"])
+            {
+                if (Field(required).Length == 0)
+                {
+                    problems.Add($"has no '{required}:' line.");
+                }
             }
         }
 
@@ -313,7 +355,24 @@ public static partial class DeviationsFile
             files,
             successor,
             replaces,
-            sha));
+            sha,
+            Field("Instead of") is { Length: > 0 } alternative ? alternative : null,
+            Field("Changed") is { Length: > 0 } changed ? Requested(changed) : null));
+    }
+
+    // The person's words from a Changed line, without the "at the person's request" remediate writes after them:
+    // every reader says that already.
+    private static string Requested(string changed)
+    {
+        string words = changed.Trim();
+        const string Suffix = "at the person's request";
+
+        if (words.EndsWith(Suffix, StringComparison.OrdinalIgnoreCase))
+        {
+            words = words[..^Suffix.Length].TrimEnd().TrimEnd('—', '–', '-', ',').TrimEnd();
+        }
+
+        return words.Length > 0 ? words : changed.Trim();
     }
 
     private static bool TryKind(string text, out DeviationKind kind)

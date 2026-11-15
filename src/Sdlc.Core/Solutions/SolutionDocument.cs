@@ -474,7 +474,7 @@ public sealed record SolutionDocument(
     /// <param name="text">The value, or null when the key is absent.</param>
     /// <param name="approval">The requirement read.</param>
     /// <returns>True unless a value was given that is neither of the two.</returns>
-    private static bool TryReadApproval(string? text, out ApprovalRequirement approval)
+    public static bool TryReadApproval(string? text, out ApprovalRequirement approval)
     {
         approval = ApprovalRequirement.Required;
 
@@ -501,7 +501,7 @@ public sealed record SolutionDocument(
     /// <param name="text">The value, such as <c>80%</c> or <c>80</c>, or null when the key is absent.</param>
     /// <param name="floor">The floor read, as a fraction.</param>
     /// <returns>True unless a value was given that is not a whole percentage from 0 to 100.</returns>
-    private static bool TryReadFloor(string? text, out double floor)
+    public static bool TryReadFloor(string? text, out double floor)
     {
         floor = DefaultCoverageFloor;
 

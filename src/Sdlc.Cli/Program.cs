@@ -16,8 +16,9 @@ using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
-using Sdlc.Core.Mining;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Decisions;
+using Sdlc.Core.Deviations;
 using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
@@ -103,16 +104,21 @@ try
         "unpark" => await WithCycle(line, "unpark", UnparkCommand).ConfigureAwait(false),
         "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
         "discard" => await Workspace.Run(line, DiscardCommand).ConfigureAwait(false),
+        "tidy" => await Workspace.Run(line, TidyCommand).ConfigureAwait(false),
+        "upgrade" => await Workspace.Run(line, w => UpgradeCommand(w, line)).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
-        "mine" => await MineCommand(line).ConfigureAwait(false),
+        "harvest" => await HarvestCommand(line).ConfigureAwait(false),
+        "mine" => await Renamed("mine", "harvest", "A harvest reads the completed cycles one aspect at a time; 'sdlc harvest' shows what each still needs.").ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
+        "report" => await WithCycle(line, "report", ReportCommand).ConfigureAwait(false),
+        "build" => await BuildVerb(line).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
@@ -136,6 +142,15 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
 
 static async Task<int> Constraints(Workspace workspace, CommandLine line)
 {
+    // The empty entry at the next free id, for a rule a person has in mind: no history needed, and no wording
+    // passed in, because a tool may make room for a rule and may not shape one (D-191).
+    if (line.HasOption("new"))
+    {
+        return await PrintDraft(await workspace
+            .Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query())
+            .ConfigureAwait(false)).ConfigureAwait(false);
+    }
+
     line.TryOption("for", out string? artifact);
 
     Result<EffectiveConstraints.Response> result = await workspace
@@ -284,7 +299,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     // ends with what is left for a person. A failure in either is said on standard error after it.
     // Committed rather than left in the working tree: an untracked file is untracked when the first
     // cycle takes its diff, so the diff records the whole file as new and a plan saying it changes that
-    // file can never match -- the first cycle would fail CON_07.2 for something adoption did.
+    // file can never match -- the first cycle would fail CON_25 for something adoption did.
     // Through the container, not `new GitRepository()`. Constructing the concrete type here meant
     // this one step could not be given a fake, so the only part of adoption that writes to git was
     // the only part no test could exercise -- while Workspace holds no closure precisely so that a
@@ -646,7 +661,7 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
     line.TryOption("coverage", out string? coverage);
 
     Result<RecordEvidence.Response> result = await workspace
-        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log, coverage))
+        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log, coverage, line.HasOption("retire-pass")))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -744,20 +759,20 @@ static async Task<int> VerifyUpgradeOrRefuse(Workspace workspace, CommandLine li
 {
     (IReadOnlyList<string>? changed, string? divergence) = await AgainstBase(workspace, line).ConfigureAwait(false);
 
-    // A mining sitting's records, the ledger and mined cycles' deletions: no cycle, nothing built (D-152).
-    if (changed is not null && VerifyMining.Carries(changed))
+    // A harvest's records, the ledger and closed cycles' deletions: no cycle, nothing built (D-152).
+    if (changed is not null && VerifyHarvest.Carries(changed))
     {
-        Result<VerifyUpgrade.Response> mined = await workspace
-            .Send<VerifyMining.Query, VerifyUpgrade.Response>(new VerifyMining.Query(changed))
+        Result<VerifyUpgrade.Response> harvested = await workspace
+            .Send<VerifyHarvest.Query, VerifyUpgrade.Response>(new VerifyHarvest.Query(changed))
             .ConfigureAwait(false);
 
-        if (mined.IsFailed)
+        if (harvested.IsFailed)
         {
-            return await Report(mined, ExitCode.Failed).ConfigureAwait(false);
+            return await Report(harvested, ExitCode.Failed).ConfigureAwait(false);
         }
 
-        await Console.Out.WriteAsync(VerifyMining.Render(mined.Value)).ConfigureAwait(false);
-        return mined.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
+        await Console.Out.WriteAsync(VerifyHarvest.Render(harvested.Value)).ConfigureAwait(false);
+        return harvested.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
     }
 
     if (changed is null || divergence is null || !VerifyUpgrade.Carries(changed))
@@ -1016,6 +1031,30 @@ static async Task<int> BranchCommand(CommandLine line)
         return ExitCode.Usage;
     }
 
+    // Remediation works where the build did, in a worktree on the branch its pull request is from, opened when
+    // absent (D-185). It prints the path, which is where the session works.
+    if (string.Equals(line.Arguments[1], "remediate", StringComparison.OrdinalIgnoreCase))
+    {
+        return await WithCycle(line, "branch", async (workspace, id) =>
+        {
+            Result<BuildRun.Place> place = await workspace
+                .Send<BuildRun.Prepare, BuildRun.Place>(new BuildRun.Prepare(id, Remediate: true))
+                .ConfigureAwait(false);
+
+            if (place.IsFailed)
+            {
+                return await Report(place, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteLineAsync(place.Value.Path).ConfigureAwait(false);
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{(place.Value.Opened ? "Opened" : "Already open")}: {place.Value.Branch}, where the build is. Work there; push from there and the same pull request takes it."))
+                .ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
     // A sandbox is planning on a branch of its own kind, sandbox/<id>, in a worktree (D-144).
     bool sandbox = string.Equals(line.Arguments[1], "sandbox", StringComparison.OrdinalIgnoreCase);
 
@@ -1176,6 +1215,38 @@ static async Task<int> DiscardCommand(Workspace workspace)
     return result.Value.Remove is null ? ExitCode.Refused : ExitCode.Ok;
 }
 
+// The worktrees and branches whose work has reached the integration branch, and their removal (D-162).
+// A view: it prints the commands and runs none.
+static async Task<int> UpgradeCommand(Workspace workspace, CommandLine line)
+{
+    Result<UpgradeChecklist.Response> result = await workspace
+        .Send<UpgradeChecklist.Query, UpgradeChecklist.Response>(new UpgradeChecklist.Query(line.Arguments.Count > 0 ? line.Arguments[0] : null, Release.Version))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(UpgradeRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> TidyCommand(Workspace workspace)
+{
+    Result<TidyCycles.Response> result = await workspace
+        .Send<TidyCycles.Query, TidyCycles.Response>(new TidyCycles.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(TidyRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 // Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing.
 static async Task<int> BacklogCommand(Workspace workspace)
 {
@@ -1194,6 +1265,230 @@ static async Task<int> BacklogCommand(Workspace workspace)
 
 // What a sandbox has approved, composed onto an admission branch the check already knows (D-144). The command
 // alone on standard output, so the pr skill runs exactly what was decided; what stays behind, on standard error.
+// Build it (D-178, D-184, D-187): the one stage name the binary runs rather than answers with the skill to use. With
+// a cycle, that cycle; with none, every queued cycle in one process.
+static async Task<int> BuildVerb(CommandLine line) =>
+    line.Arguments.Count == 0
+        ? await Workspace.Run(line, BuildEveryQueuedCommand).ConfigureAwait(false)
+        : await WithCycle(line, "build", BuildCommand).ConfigureAwait(false);
+
+// The plugin this release carries, which the build's process loads so it runs the release the solution pins.
+static async Task<string?> BuildPlugin()
+{
+    string plugin = ClaudeSession.PluginDirectory;
+
+    if (File.Exists(Path.Combine(plugin, ".claude-plugin", "plugin.json")))
+    {
+        return plugin;
+    }
+
+    await Console.Error.WriteLineAsync(
+        $"sdlc {Sdlc.Core.Release.Version} carries no plugin at {plugin}, so the build's process cannot load this release's skills. Reinstall the tool from a package built by ci.yml.")
+        .ConfigureAwait(false);
+    return null;
+}
+
+// Every queued cycle, in one process started from this checkout (D-187). The playbook opens a worktree per cycle,
+// as the factory's run does, and ends on the sitrep. A plan still only in a sandbox is not queued: name it, and
+// that build admits it first.
+static async Task<int> BuildEveryQueuedCommand(Workspace workspace)
+{
+    if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
+    {
+        return ExitCode.Usage;
+    }
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Building every queued cycle from {workspace.SolutionRoot}, each in a worktree of its own. The build's process implements, verifies, fixes what it can and opens each pull request; it asks nothing, and this waits for it. A plan only in a sandbox is not queued: 'sdlc build <id>' admits it first."))
+        .ConfigureAwait(false);
+
+    Result<Sdlc.Core.AgentExit> exit = await workspace
+        .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(null, workspace.SolutionRoot, plugin))
+        .ConfigureAwait(false);
+
+    if (exit.IsFailed)
+    {
+        return await Report(exit, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (exit.Value.NeverStarted)
+    {
+        await Console.Error.WriteLineAsync("The build's process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    if (!exit.Value.Succeeded)
+    {
+        await Console.Error.WriteLineAsync("The build's process ended badly: " + exit.Value.Problem + " 'sdlc cycles' says where each cycle stopped.").ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    return ExitCode.Ok;
+}
+
+// One cycle (D-178, D-184): the placed approval committed in its sandbox, the plan admitted, the build's worktree
+// opened, its own process started there with its tools named, and the report read back.
+static async Task<int> BuildCommand(Workspace workspace, CycleId id)
+{
+    if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
+    {
+        return ExitCode.Usage;
+    }
+
+    Result<BuildRun.Place> place = await workspace
+        .Send<BuildRun.Prepare, BuildRun.Place>(new BuildRun.Prepare(id))
+        .ConfigureAwait(false);
+
+    if (place.IsSuccess && place.Value.AdmitFirst)
+    {
+        int admitted = await Workspace.RunAt(place.Value.Path, sandbox => AdmitForBuild(sandbox, id)).ConfigureAwait(false);
+
+        if (admitted != ExitCode.Ok)
+        {
+            return admitted;
+        }
+
+        place = await workspace
+            .Send<BuildRun.Prepare, BuildRun.Place>(new BuildRun.Prepare(id))
+            .ConfigureAwait(false);
+
+        if (place.IsSuccess && place.Value.AdmitFirst)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"The plan for {id} was admitted and the build still cannot find it outside the sandbox. Run 'sdlc branch {id} build-unattended' to see why."))
+                .ConfigureAwait(false);
+            return ExitCode.Refused;
+        }
+    }
+
+    if (place.IsFailed)
+    {
+        return await Report(place, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    string worktree = place.Value.Path;
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Building {id} in {worktree}, on {place.Value.Branch}. Its own process implements, verifies, fixes what it can and opens the pull request; it asks nothing, and this waits for it."))
+        .ConfigureAwait(false);
+
+    Result<Sdlc.Core.AgentExit> exit = await workspace
+        .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(id, worktree, plugin))
+        .ConfigureAwait(false);
+
+    if (exit.IsFailed)
+    {
+        return await Report(exit, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (exit.Value.NeverStarted)
+    {
+        await Console.Error.WriteLineAsync("The build's process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    if (!exit.Value.Succeeded)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"The build's process ended badly: {exit.Value.Problem} What it recorded is below.")).ConfigureAwait(false);
+    }
+
+    return await Workspace.RunAt(worktree, async tree =>
+    {
+        Result<BuildReport.Response> report = await tree
+            .Send<BuildReport.Query, BuildReport.Response>(new BuildReport.Query(id))
+            .ConfigureAwait(false);
+
+        Result<ReadCycleStatus.Response> status = await tree
+            .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(id))
+            .ConfigureAwait(false);
+
+        string? outcome = status.IsSuccess ? status.Value.Outcome : null;
+
+        // No verdict is no report: the process stopped before verification, and what it did is in its worktree.
+        if (report.IsFailed || outcome is null)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"The build ended without a report: {(report.IsFailed ? string.Join("; ", report.Errors.Select(error => error.Message)) : "no verification was recorded")}. 'sdlc status {id}' in {worktree} says where it stopped."))
+                .ConfigureAwait(false);
+            return ExitCode.Failed;
+        }
+
+        await Console.Out.WriteAsync(BuildReport.Render(report.Value)).ConfigureAwait(false);
+
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Outcome: {outcome}. 'sdlc status {id}' in {worktree} names the next step."))
+            .ConfigureAwait(false);
+
+        return exit.Value.Succeeded && string.Equals(outcome, "pass", StringComparison.OrdinalIgnoreCase)
+            ? ExitCode.Ok
+            : exit.Value.Succeeded ? ExitCode.Refused : ExitCode.Failed;
+    }).ConfigureAwait(false);
+}
+
+// In the sandbox: the approval a person placed is committed -- their act, recorded; the binary writes no protected
+// file -- and the plan is admitted onto its branch, by the git commands 'sdlc admit' prints (D-184).
+static async Task<int> AdmitForBuild(Workspace sandbox, CycleId id)
+{
+    string root = sandbox.SolutionRoot;
+    string folder = $"{Cycle.SdlcDirectoryName}/{Cycle.CyclesDirectoryName}/{id}/";
+    string[] placed =
+    [
+        .. sandbox.Repository.UncommittedChanges(root)
+            .Select(path => path.Replace('\\', '/'))
+            .Where(path => path.StartsWith(folder, StringComparison.Ordinal)),
+    ];
+
+    if (placed.Length > 0)
+    {
+        Result committed = sandbox.Repository.Commit(root, placed, string.Create(CultureInfo.InvariantCulture, $"Record what was approved for {id}, for its build"));
+
+        if (committed.IsFailed)
+        {
+            await Console.Error.WriteLineAsync(string.Join(Environment.NewLine, committed.Errors.Select(error => error.Message))).ConfigureAwait(false);
+            return ExitCode.Failed;
+        }
+    }
+
+    Result<ComposeAdmission.Response> admission = await sandbox
+        .Send<ComposeAdmission.Query, ComposeAdmission.Response>(new ComposeAdmission.Query())
+        .ConfigureAwait(false);
+
+    if (admission.IsFailed)
+    {
+        return await Report(admission, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    if (!admission.Value.Admitted.Contains(id))
+    {
+        string why = admission.Value.Staying.FirstOrDefault(staying => staying.Id == id).Why ?? "the gate does not let it through";
+        await Console.Error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"{id} stays in the sandbox: {why}.")).ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    foreach (string step in admission.Value.Command.Split(" && ", StringSplitOptions.TrimEntries))
+    {
+        Result<string> ran = sandbox.Repository.Git(root, step.StartsWith("git ", StringComparison.Ordinal) ? step["git ".Length..] : step);
+
+        if (ran.IsFailed)
+        {
+            return await Report(ran, ExitCode.Failed).ConfigureAwait(false);
+        }
+    }
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Admitted {string.Join(", ", admission.Value.Admitted)} onto {admission.Value.Branch}, in {admission.Value.Folder}. Nothing was pushed."))
+        .ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 static async Task<int> AdmitCommand(Workspace workspace)
 {
     Result<ComposeAdmission.Response> result = await workspace
@@ -1281,6 +1576,23 @@ static async Task<int> DeviationsCommand(Workspace workspace, CycleId id)
 
     await Console.Out.WriteAsync(Sdlc.Core.Deviations.DeviationsRenderer.Render(result.Value)).ConfigureAwait(false);
     return result.Value.State.Problems.Count > 0 ? ExitCode.Refused : ExitCode.Ok;
+}
+
+// The report a build ends on and the pull request leads with (D-181). Exits 1 when a deviation is unsound, which
+// the pull request check would refuse anyway.
+static async Task<int> ReportCommand(Workspace workspace, CycleId id)
+{
+    Result<Sdlc.Core.Deviations.BuildReport.Response> result = await workspace
+        .Send<Sdlc.Core.Deviations.BuildReport.Query, Sdlc.Core.Deviations.BuildReport.Response>(new Sdlc.Core.Deviations.BuildReport.Query(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Deviations.BuildReport.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Deviations.Problems.Count > 0 ? ExitCode.Refused : ExitCode.Ok;
 }
 
 static async Task<int> SuccessorsCommand(Workspace workspace)
@@ -1471,8 +1783,9 @@ static async Task<int> Draft(CommandLine line)
             .ConfigureAwait(false),
         "solution" => await DraftSolution(rest).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
-        "mining" => await Workspace.Run(rest, w => DraftMined(w, rest)).ConfigureAwait(false),
-        "convergence" => await Renamed("draft convergence", "draft mining <file>").ConfigureAwait(false),
+        "harvest" => await Workspace.Run(rest, w => DraftHarvested(w, rest)).ConfigureAwait(false),
+        "mining" => await Renamed("draft mining", "draft harvest <file>").ConfigureAwait(false),
+        "convergence" => await Renamed("draft convergence", "draft harvest <file>").ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -1495,6 +1808,13 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
     if (!TryDecision(line, out GateDecision decision, out string? clash))
     {
         await Console.Error.WriteLineAsync(clash).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    // D-181 retired answering deviations here: the pull request leads with them and merging it accepts them.
+    if (line.TryOption("accept", out _) || line.TryOption("decline", out _) || line.TryOption("note", out _))
+    {
+        await Console.Error.WriteLineAsync("Deviations are no longer answered here: the pull request leads with them, and merging it accepts them. To change one, tell the build what to do instead, and it goes round again into the same pull request.").ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
@@ -1533,8 +1853,8 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
 // that does not get pasted, and a real adoption left the file on its shipped placeholder because
 // of exactly that.
 //
-// --standard is the one key a draft may move, and only when asked by name. A value rather than a flag,
-// because there are two and a person moving back to 'existing' is as entitled to as one moving on.
+// --standard, --approval and --coverage-floor are the keys a draft may move, and only when asked by name.
+// Values rather than flags, because each has two ways to go and moving back is as entitled as moving on.
 static async Task<int> DraftSolution(CommandLine line)
 {
     SolutionStandard? standard = null;
@@ -1556,50 +1876,77 @@ static async Task<int> DraftSolution(CommandLine line)
         }
     }
 
+    ApprovalRequirement? approval = null;
+
+    if (line.TryOption("approval", out string? required))
+    {
+        if (!SolutionDocument.TryReadApproval(required, out ApprovalRequirement read))
+        {
+            await Console.Error.WriteLineAsync($"'{required}' is not an approval setting. One of: required, none.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        approval = read;
+    }
+
+    double? floor = null;
+
+    if (line.TryOption("coverage-floor", out string? percent))
+    {
+        if (!SolutionDocument.TryReadFloor(percent, out double read))
+        {
+            await Console.Error.WriteLineAsync($"'{percent}' is not a coverage floor. A whole percentage from 0 to 100, such as 80%.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        floor = read;
+    }
+
     return await Workspace.Run(line, async workspace => await PrintDraft(await workspace
-        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command(standard))
+        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command(standard, approval, floor))
         .ConfigureAwait(false)).ConfigureAwait(false)).ConfigureAwait(false);
 }
 
 // --empty is a flag because its absence is the answer everybody already gave, and a stack that pins
 // nothing is a decision somebody should have to type.
-static async Task<int> DraftMined(Workspace workspace, CommandLine line)
+static async Task<int> DraftHarvested(Workspace workspace, CommandLine line)
 {
     if (line.Arguments.Count == 0)
     {
         await Console.Error.WriteLineAsync(
-            "Which proposal file? 'sdlc draft mining <file>', the file '/sdlc:mine' wrote and you marked.")
+            "Which proposal file? 'sdlc draft harvest <file>', the file a harvest skill wrote and you marked.")
             .ConfigureAwait(false);
 
         return ExitCode.Usage;
     }
 
     return await PrintDraft(await workspace
-        .Send<DraftMining.Command, DraftResult>(new DraftMining.Command(Path.GetFullPath(line.Arguments[0])))
+        .Send<DraftHarvest.Command, DraftResult>(new DraftHarvest.Command(Path.GetFullPath(line.Arguments[0])))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
-// One report for every record, so a person mines the cycles in one sitting rather than three (D-104, D-148).
-// Kept like the others, and it names the proposal file beside it with the same timestamp, which is the
-// one file a skill writes and a person edits.
-// 'sdlc mine' reports; 'mine record <file>' records a sitting once its drafts are placed; '--history' reads the
-// ledger a husk leaves behind (D-152).
-static async Task<int> MineCommand(CommandLine line)
+// What the completed cycles can still give back, one aspect at a time (D-191). 'sdlc harvest' is the overview;
+// 'harvest <aspect>' reads one aspect and names the proposal file beside the kept report, with the same
+// timestamp; 'harvest record <aspect> <file>' records the aspect answered once its draft is placed; 'harvest close'
+// closes the cycles every aspect has answered; '--history' reads the ledger a closed cycle leaves behind (D-152).
+static async Task<int> HarvestCommand(CommandLine line)
 {
-    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "record", StringComparison.OrdinalIgnoreCase))
+    string? sub = line.Arguments.Count > 0 ? line.Arguments[0].ToLowerInvariant() : null;
+
+    if (sub == "record")
     {
         CommandLine rest = line.WithoutFirstArgument();
 
-        if (rest.Arguments.Count == 0)
+        if (rest.Arguments.Count < 2 || !HarvestAspects.TryParse(rest.Arguments[0], out HarvestAspect aspect))
         {
-            await Console.Error.WriteLineAsync("Which proposal file? 'sdlc mine record <file>', the file '/sdlc:mine' wrote and you marked.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"Which aspect, and which proposal file? 'sdlc harvest record <aspect> <file>', the aspect one of {HarvestAspects.Listed}.").ConfigureAwait(false);
             return ExitCode.Usage;
         }
 
         return await Workspace.Run(rest, async workspace =>
         {
-            Result<RecordMining.Response> recorded = await workspace
-                .Send<RecordMining.Command, RecordMining.Response>(new RecordMining.Command(Path.GetFullPath(rest.Arguments[0])))
+            Result<RecordHarvest.Response> recorded = await workspace
+                .Send<RecordHarvest.Command, RecordHarvest.Response>(new RecordHarvest.Command(aspect, Path.GetFullPath(rest.Arguments[1])))
                 .ConfigureAwait(false);
 
             if (recorded.IsFailed)
@@ -1607,8 +1954,88 @@ static async Task<int> MineCommand(CommandLine line)
                 return await Report(recorded, ExitCode.Refused).ConfigureAwait(false);
             }
 
-            await Console.Out.WriteAsync(MiningRenderer.RenderRecorded(recorded.Value)).ConfigureAwait(false);
+            await Console.Out.WriteAsync(HarvestRenderer.RenderRecorded(recorded.Value)).ConfigureAwait(false);
             return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
+    if (sub == "close")
+    {
+        return await Workspace.Run(line.WithoutFirstArgument(), async workspace =>
+        {
+            Result<CloseHarvest.Response> closed = await workspace
+                .Send<CloseHarvest.Command, CloseHarvest.Response>(new CloseHarvest.Command())
+                .ConfigureAwait(false);
+
+            if (closed.IsFailed)
+            {
+                return await Report(closed, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(HarvestRenderer.RenderClosed(closed.Value)).ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
+    // A harvest's readers, written and started by the binary as every reader is (D-183).
+    if (sub is "read" or "review")
+    {
+        bool review = sub == "review";
+        CommandLine rest = line.WithoutFirstArgument();
+        HarvestAspect aspect = HarvestAspect.Constraints;
+
+        if (review && (rest.Arguments.Count == 0 || !HarvestAspects.TryParse(rest.Arguments[0], out aspect)))
+        {
+            await Console.Error.WriteLineAsync($"Which aspect's sitting? 'sdlc harvest review <aspect> --dir <directory>', the aspect one of {HarvestAspects.Listed}.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        if (!review && rest.TryOption("aspect", out string? named) && !HarvestAspects.TryParse(named, out aspect))
+        {
+            await Console.Error.WriteLineAsync($"'{named}' is not an aspect. One of {HarvestAspects.Listed}.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        if (!rest.TryOption("dir", out string? directory))
+        {
+            await Console.Error.WriteLineAsync(review
+                ? "Where should the review's readers write? 'sdlc harvest review <aspect> --dir <directory>', one outside the repository. --proposals <file> names the marked proposal file when it is not the newest."
+                : "Where should the readers write? 'sdlc harvest read --dir <directory>', one outside the repository. --aspect names the sitting's aspect, constraints unless given; --cycles names its cycles.")
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        (bool parsed, List<CycleId>? sitting) = await CyclesOption(rest).ConfigureAwait(false);
+
+        if (!parsed)
+        {
+            return ExitCode.Usage;
+        }
+
+        rest.TryOption("proposals", out string? proposals);
+        var timeout = TimeSpan.FromMinutes(30);
+
+        return await Workspace.Run(rest, async workspace =>
+        {
+            Result<RunRound.Response> ran = review
+                ? await workspace
+                    .Send<HarvestReaders.Review, RunRound.Response>(new HarvestReaders.Review(
+                        Path.GetFullPath(directory),
+                        aspect,
+                        proposals is null ? null : Path.GetFullPath(proposals),
+                        timeout))
+                    .ConfigureAwait(false)
+                : await workspace
+                    .Send<HarvestReaders.Read, RunRound.Response>(new HarvestReaders.Read(Path.GetFullPath(directory), aspect, sitting, timeout))
+                    .ConfigureAwait(false);
+
+            if (ran.IsFailed)
+            {
+                return await Report(ran, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(RunRound.Render(ran.Value)).ConfigureAwait(false);
+            return ran.Value.AllAnswered ? ExitCode.Ok : ExitCode.Failed;
         }).ConfigureAwait(false);
     }
 
@@ -1616,25 +2043,77 @@ static async Task<int> MineCommand(CommandLine line)
     {
         return await Workspace.Run(line, async workspace =>
         {
-            Result<MinedLedger> ledger = await MinedLedger.Read(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+            Result<HarvestLedger> ledger = await HarvestLedger.Read(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
 
             if (ledger.IsFailed)
             {
                 return await Report(ledger, ExitCode.Refused).ConfigureAwait(false);
             }
 
-            await Console.Out.WriteAsync(MiningRenderer.RenderHistory(ledger.Value)).ConfigureAwait(false);
+            await Console.Out.WriteAsync(HarvestRenderer.RenderHistory(ledger.Value)).ConfigureAwait(false);
             return ExitCode.Ok;
         }).ConfigureAwait(false);
     }
 
-    return await Workspace.Run(line, Mine).ConfigureAwait(false);
+    HarvestAspect? reading = null;
+
+    if (sub is not null)
+    {
+        if (!HarvestAspects.TryParse(sub, out HarvestAspect parsedAspect))
+        {
+            await Console.Error.WriteLineAsync($"'{line.Arguments[0]}' is not something to harvest. One of {HarvestAspects.Listed}; or record, close, read, review, --history.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        reading = parsedAspect;
+    }
+
+    // A backlog is harvested a few cycles at a time, and the rest wait for a later sitting (D-166).
+    (bool ok, List<CycleId>? cycles) = await CyclesOption(line).ConfigureAwait(false);
+
+    return ok
+        ? await Workspace.Run(line, workspace => Harvest(workspace, reading, cycles)).ConfigureAwait(false)
+        : ExitCode.Usage;
 }
 
-static async Task<int> Mine(Workspace workspace)
+// '--cycles <id>,<id>': the cycles a sitting reads. False when one is not an id, which has been said.
+static async Task<(bool Parsed, List<CycleId>? Cycles)> CyclesOption(CommandLine line)
 {
-    Result<ProposeMining.Response> result = await workspace
-        .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query())
+    if (!line.TryOption("cycles", out string? named))
+    {
+        return (true, null);
+    }
+
+    List<CycleId> parsed = [];
+
+    foreach (string text in Ids(named))
+    {
+        if (!CycleId.TryParse(text, out CycleId? id))
+        {
+            await Console.Error.WriteLineAsync($"'{text}' is not a cycle id. 'sdlc cycles' lists them.").ConfigureAwait(false);
+            return (false, null);
+        }
+
+        parsed.Add(id.Value);
+    }
+
+    return (true, parsed);
+}
+
+static async Task<int> Harvest(Workspace workspace, HarvestAspect? aspect, IReadOnlyList<CycleId>? cycles)
+{
+    // A cycle abandoned before any of it merged is read from its own branch (D-190).
+    Result<GatherAbandoned.Response> gathered = await workspace
+        .Send<GatherAbandoned.Command, GatherAbandoned.Response>(new GatherAbandoned.Command())
+        .ConfigureAwait(false);
+
+    if (gathered.IsFailed)
+    {
+        return await Report(gathered, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    Result<HarvestReport.Response> result = await workspace
+        .Send<HarvestReport.Query, HarvestReport.Response>(new HarvestReport.Query(aspect, cycles))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -1642,14 +2121,24 @@ static async Task<int> Mine(Workspace workspace)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
+    if (aspect is not { } reading)
+    {
+        await Console.Out.WriteAsync(HarvestReport.RenderOverview(result.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
     DateTimeOffset now = TimeProvider.System.GetUtcNow();
+    string kind = HarvestReaders.ReportKind(reading);
     string proposals = string.Create(
         CultureInfo.InvariantCulture,
-        $"{Cycle.SdlcDirectoryName}/{ReportFile.DirectoryName}/{now:yyyyMMdd_HHmm_ss}-mining.proposed.md");
+        $"{Cycle.SdlcDirectoryName}/{ReportFile.DirectoryName}/{now:yyyyMMdd_HHmm_ss}-{kind}.proposed.md");
 
-    string report = ProposeMining.Render(result.Value, proposals);
+    string report = HarvestReport.Render(result.Value, proposals);
     await Console.Out.WriteAsync(report).ConfigureAwait(false);
-    return await Kept(workspace, "mining", report).ConfigureAwait(false);
+
+    return result.Value.Sitting.Count == 0
+        ? ExitCode.Ok
+        : await Kept(workspace, kind, report).ConfigureAwait(false);
 }
 
 static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
@@ -1658,122 +2147,27 @@ static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
             new WriteTechStackDraft.Command(line.HasOption("empty")))
         .ConfigureAwait(false)).ConfigureAwait(false);
 
-// The second verb. 'draft' is a decision somebody already took; 'propose' is one the record is pushing
-// them toward. Identical grammar on purpose -- a subject after the verb, one skill behind both -- so the
-// only thing to remember is which side of the decision you are on.
+// 'propose' is retired (D-191): what it read from the cycles is a harvest's, and a theme's skeleton is 'sdlc theme'.
+// Each subject is answered with where it went, the way a renamed command is.
 static async Task<int> Propose(CommandLine line)
 {
-    if (line.Arguments.Count == 0)
-    {
-        await Console.Error.WriteLineAsync("Propose what? " + Usage.Proposals).ConfigureAwait(false);
-        return ExitCode.Usage;
-    }
+    string? what = line.Arguments.Count > 0 ? line.Arguments[0].ToLowerInvariant() : null;
 
-    CommandLine rest = line.WithoutFirstArgument();
-
-    return line.Arguments[0].ToLowerInvariant() switch
+    return what switch
     {
-        "convergence" => await Renamed("propose convergence", "mine").ConfigureAwait(false),
-        "constraints" or "constraint" => await Workspace.Run(rest, ProposeRules).ConfigureAwait(false),
-        "decisions" or "decision" => await Workspace.Run(rest, ProposeChoices).ConfigureAwait(false),
-        "theme" => await Workspace.Run(rest, ProposeTheme).ConfigureAwait(false),
-        _ => await UnknownProposal(line.Arguments[0]).ConfigureAwait(false),
+        "constraints" or "constraint" => await Renamed("propose constraints", "harvest constraints", "For a rule you have in mind, 'sdlc constraints --new' prints an empty entry at the next free id.").ConfigureAwait(false),
+        "decisions" or "decision" => await Renamed("propose decisions", "harvest decisions").ConfigureAwait(false),
+        "theme" => await Renamed("propose theme", "theme").ConfigureAwait(false),
+        _ => await Renamed("propose", "harvest").ConfigureAwait(false),
     };
 }
 
-// A command renamed rather than removed is answered for one release with the name it now has, the way a
-// stage typed at the binary is answered with its skill: what somebody typed from memory still gets them
-// there (D-148).
-static async Task<int> Renamed(string was, string now)
+// A command renamed rather than removed is answered with the name it now has, the way a stage typed at the binary
+// is answered with its skill: what somebody typed from memory still gets them there (D-148, D-191).
+static async Task<int> Renamed(string was, string now, string? more = null)
 {
-    await Console.Error.WriteLineAsync(
-        $"'sdlc {was}' is now 'sdlc {now}'. Reading the record across cycles is called mining, so 'converge' means only a document's rounds settling.").ConfigureAwait(false);
+    await Console.Error.WriteLineAsync($"'sdlc {was}' is now 'sdlc {now}'.{(more is null ? string.Empty : " " + more)}").ConfigureAwait(false);
     return ExitCode.Usage;
-}
-
-static async Task<int> UnknownProposal(string what)
-{
-    await Console.Error.WriteLineAsync(
-        $"There is nothing called '{what}' to propose. {Usage.Proposals}").ConfigureAwait(false);
-    return ExitCode.Usage;
-}
-
-// Two modes, both proposing. With a pattern in the history it reports the evidence; with none it prints
-// an empty entry at the next free id with the admission tests beside it -- the shape, when it cannot
-// propose the rule. A young solution and a well-behaved one both land in the second, which is how a
-// person adding a rule by hand on day one is served by this command rather than a second one.
-static async Task<int> ProposeRules(Workspace workspace)
-{
-    Result<ProposeConstraints.Response> result = await workspace
-        .Send<ProposeConstraints.Query, ProposeConstraints.Response>(new ProposeConstraints.Query())
-        .ConfigureAwait(false);
-
-    if (result.IsFailed)
-    {
-        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
-    }
-
-    if (!result.Value.HasMaterial)
-    {
-        await Console.Out.WriteAsync(ProposalsRenderer.Render(result.Value)).ConfigureAwait(false);
-        await Console.Out.WriteLineAsync().ConfigureAwait(false);
-
-        return await PrintDraft(await workspace
-            .Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query())
-            .ConfigureAwait(false)).ConfigureAwait(false);
-    }
-
-    string report = ProposalsRenderer.Render(result.Value);
-    await Console.Out.WriteAsync(report).ConfigureAwait(false);
-    await Kept(workspace, "constraints", report).ConfigureAwait(false);
-
-    // Zero whether or not anything was found. Nothing here refuses anything, and a non-zero exit would
-    // make a solution with nothing to answer for look like a failing one in a pipeline.
-    return ExitCode.Ok;
-}
-
-// Captured forward rather than mined. A choice that never collided with a rule produced no finding, so
-// there is nothing in the history to count -- what can be read is the place a choice was stated, and only
-// in a cycle a person approved.
-static async Task<int> ProposeChoices(Workspace workspace)
-{
-    Result<ProposeDecisions.Response> result = await workspace
-        .Send<ProposeDecisions.Query, ProposeDecisions.Response>(new ProposeDecisions.Query())
-        .ConfigureAwait(false);
-
-    if (result.IsFailed)
-    {
-        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
-    }
-
-    string report = ProposalsRenderer.Render(result.Value);
-    await Console.Out.WriteAsync(report).ConfigureAwait(false);
-
-    // Only kept when there was something to work through. A page saying nothing was stated is not a
-    // thing anybody returns to, and a directory of those is how a report stops being read.
-    if (result.Value.HasMaterial)
-    {
-        await Kept(workspace, "decisions", report).ConfigureAwait(false);
-    }
-
-    return ExitCode.Ok;
-}
-
-// A register rather than an argument, so what is proposed is the shape and never the values. A tool
-// choosing a brand's colours would be the one proposal here nobody asked for.
-static async Task<int> ProposeTheme(Workspace workspace)
-{
-    Result<ReadTheme.Response> result = await workspace
-        .Send<ReadTheme.Query, ReadTheme.Response>(new ReadTheme.Query())
-        .ConfigureAwait(false);
-
-    if (result.IsFailed)
-    {
-        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
-    }
-
-    await Console.Out.WriteAsync(ThemeRenderer.Propose(result.Value)).ConfigureAwait(false);
-    return ExitCode.Ok;
 }
 
 // What a stage reads so it does not re-decide something. Rendered on demand and never copied into an
@@ -1975,6 +2369,28 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
         id = parsed.Value;
     }
 
+    // A merge that kept two branches' new suggestions under one id is mended here, not by hand (D-171).
+    if (line.HasOption("renumber"))
+    {
+        if (id is not { } cycle)
+        {
+            await Console.Error.WriteLineAsync("Which cycle? 'sdlc suggestions <id> --renumber'.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        Result<RenumberSuggestions.Response> renumbered = await workspace
+            .Send<RenumberSuggestions.Command, RenumberSuggestions.Response>(new RenumberSuggestions.Command(cycle))
+            .ConfigureAwait(false);
+
+        if (renumbered.IsFailed)
+        {
+            return await Report(renumbered, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(RenumberSuggestions.Render(renumbered.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
     Result<Suggestions.Response> result = await workspace
         .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(id, line.HasOption("all")))
         .ConfigureAwait(false);
@@ -2074,7 +2490,55 @@ static async Task<int> RoundVerb(CommandLine line)
         return await WithCycle(rest, "round verdict", (w, id) => RoundVerdict(w, rest, id)).ConfigureAwait(false);
     }
 
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "run", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round run", (w, id) => RoundRun(w, rest, id)).ConfigureAwait(false);
+    }
+
     return await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false);
+}
+
+// Starts every reader 'round prompt' wrote, the way the skills used to type it (D-183). The cycle and artifact are
+// read for the shape of the command; what runs is decided by the prompts in the directory.
+static async Task<int> RoundRun(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out _) || !line.TryOption("dir", out string? directory))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which round? 'sdlc round run <id> <intent|spec|plan|verify> --dir <directory>' starts every reader whose prompt 'sdlc round prompt' wrote there. --timeout <minutes> bounds each one; 30 when left off.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    int minutes = 30;
+
+    if (line.TryOption("timeout", out string? limit)
+        && (!int.TryParse(limit, CultureInfo.InvariantCulture, out minutes) || minutes < 1))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"'{limit}' is not a number of minutes. Give a whole number from 1."))
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    Result<RunRound.Response> result = await workspace
+        .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(
+            Path.GetFullPath(directory),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMinutes(minutes)))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(RunRound.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.AllAnswered ? ExitCode.Ok : ExitCode.Failed;
 }
 
 static async Task<int> RoundPrompt(Workspace workspace, CommandLine line, CycleId id)
@@ -2132,9 +2596,17 @@ static async Task<int> RoundCollect(Workspace workspace, CommandLine line, Cycle
     }
 
     line.TryOption("host", out string? host);
+    line.TryOption("answered", out string? answered);
+    line.TryOption("withdrawn", out string? withdrawn);
 
     Result<CollectRound.Response> result = await workspace
-        .Send<CollectRound.Command, CollectRound.Response>(new CollectRound.Command(id, artifact, Path.GetFullPath(directory), host))
+        .Send<CollectRound.Command, CollectRound.Response>(new CollectRound.Command(
+            id,
+            artifact,
+            Path.GetFullPath(directory),
+            host,
+            Ids(answered),
+            Ids(withdrawn)))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -2145,6 +2617,9 @@ static async Task<int> RoundCollect(Workspace workspace, CommandLine line, Cycle
     await Console.Out.WriteAsync(FindingsRenderer.RenderCollected(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
+
+static string[] Ids(string? list) =>
+    (list ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
 static async Task<int> RoundVerdict(Workspace workspace, CommandLine line, CycleId id)
 {
@@ -2255,6 +2730,9 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         {
             status = status with { Chain = chain.Value };
         }
+
+        // Merged already: the pull request it would offer is the one that merged it (D-162).
+        status = status with { MergedOn = await MergedCycle.On(workspace.Repository, workspace.SolutionRoot, id, CancellationToken.None).ConfigureAwait(false) };
     }
 
     // On the cycle's build branch, say when the plan was amended under it (D-123): the panel would otherwise
@@ -2282,7 +2760,7 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         Departures = Departures.Named(await Departures.Of(status.Cycle, CancellationToken.None).ConfigureAwait(false), recorded),
     };
 
-    // Where the build bent the approved documents, and what the person has answered.
+    // Where the build bent the approved documents, and the choices it made that they left open.
     Sdlc.Core.Deviations.DeviationsState deviations = await Sdlc.Core.Deviations.CycleDeviations.Read(status.Cycle, CancellationToken.None).ConfigureAwait(false);
     if (deviations.Current.Count > 0)
     {
@@ -2293,12 +2771,9 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
                 .. deviations.Current.Select(deviation => Sdlc.Core.Deviations.DeviationsFile.Line(deviation.Deviation) + " - " + deviation.Standing switch
                 {
                     Sdlc.Core.Deviations.DeviationStanding.Accepted => "accepted",
-                    Sdlc.Core.Deviations.DeviationStanding.Declined => "declined",
-                    _ => "unanswered",
+                    Sdlc.Core.Deviations.DeviationStanding.Declined => "changed at your request",
+                    _ => "for the pull request",
                 }),
-                .. deviations.Pending.Count > 0
-                    ? [string.Create(CultureInfo.InvariantCulture, $"{deviations.Pending.Count} unanswered: sdlc draft approval {status.Cycle.Id}")]
-                    : Array.Empty<string>(),
             ],
         };
     }
@@ -2392,6 +2867,23 @@ static async Task<int> Hook(CommandLine line)
             $"'{namedEvent}' is not a hook event. Pass --event pre-tool-use, --event turn-end or --event session-start, or leave it off for pre-tool-use.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
+    }
+
+    // The plugin's copy of a hook steps aside where the solution's own configuration runs the same one, so each
+    // check speaks once (D-172). It reads its payload regardless, so the host never sees a closed pipe.
+    if (hookEvent != HookEvent.SessionStart
+        && line.TryOption(PluginHooks.SourceOption, out string? source)
+        && string.Equals(source, PluginHooks.PluginSource, StringComparison.Ordinal)
+        && PluginHooks.AnsweredBySettings(
+            Environment.GetEnvironmentVariable("CLAUDE_PROJECT_DIR") is { Length: > 0 } project ? project : Directory.GetCurrentDirectory(),
+            host.Value,
+            hookEvent == HookEvent.TurnEnd))
+    {
+        _ = await Console.In.ReadToEndAsync().ConfigureAwait(false);
+        await Console.Out.WriteAsync(hookEvent == HookEvent.TurnEnd
+            ? HookProtocol.WriteTurnEndDecision(host.Value, HookDecision.Allow, null)
+            : HookProtocol.WriteDecision(host.Value, HookDecision.Allow, null)).ConfigureAwait(false);
+        return ExitCode.Ok;
     }
 
     if (hookEvent == HookEvent.SessionStart)

@@ -83,10 +83,10 @@ purpose.** If someone asks "what keeps going wrong across our cycles", that is a
 its own command:
 
 ```
-sdlc propose constraints
+sdlc harvest constraints
 ```
 
-It reads every cycle's findings — including the blockers that were answered, which this listing never
+It reads every completed cycle's findings — including the blockers that were answered, which this listing never
 shows — and reports a rule cited in three or more distinct cycles, with the cycles and finding ids behind
 each, as a candidate for one of this solution's own constraints (`CONCEPT.md` D-69). The two read the
 same rounds for opposite halves of them, so send the question to the one that answers it rather than

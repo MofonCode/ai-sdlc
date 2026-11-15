@@ -183,9 +183,10 @@ public static class TurnEndGate
 
                 return Result.Ok(Deny(
                     id.Value,
-                    $"Cycle {id.Value} has changes in the working tree and no recorded evidence."
+                    $"Cycle {id.Value} has code changed since {baseCommit[..Math.Min(12, baseCommit.Length)]}, committed or not, and no recorded evidence."
                     + " Verify reads only what the build records, so a change nothing recorded is a change"
-                    + " nothing can judge."));
+                    + " nothing can judge. If a test run is still going in the background, this clears when"
+                    + $" it is recorded with 'sdlc evidence {id.Value}': say so and end the turn."));
             }
 
             // Asked with the same exclusion the recorder uses, so the two patches are answers to one
@@ -213,7 +214,7 @@ public static class TurnEndGate
         /// </summary>
         /// <remarks>
         /// Every refusal names the next step. The framework holds its own gate to that -- a refusal that
-        /// does not say what has to change is what <c>CON_10.2</c> forbids -- and a hook is read in worse
+        /// does not say what has to change is what <c>CON_10.3</c> forbids -- and a hook is read in worse
         /// conditions than a gate verdict, because it arrives in the middle of somebody else's work.
         /// </remarks>
         private static HookVerdict Deny(CycleId id, string why) => new(

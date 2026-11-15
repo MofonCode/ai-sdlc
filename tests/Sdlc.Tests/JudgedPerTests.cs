@@ -66,7 +66,7 @@ public sealed class JudgedPerTests
         workspace.WriteSpec(criteria: 3);
         workspace.WritePlan(proofs: 3);
 
-        string prompt = await File.ReadAllTextAsync((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Plan, Path.Combine(workspace.Root, "round"), "rules")).Value.Prompts[0].Path);
+        string prompt = ReaderPromptsTests.Whole((await ReaderPromptsTests.Prompt(workspace, ArtifactKind.Plan, Path.Combine(workspace.Root, "round"), "rules")).Value);
 
         StringAssert.Contains(prompt, "judged per acceptance criterion of the spec");
         StringAssert.Contains(prompt, "3. Something observable happens");

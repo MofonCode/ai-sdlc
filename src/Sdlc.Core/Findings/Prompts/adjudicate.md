@@ -26,6 +26,7 @@ The evidence above is the cycle's `evidence/` directory:
 |---|---|
 | `tests.json` | the normalised test summary: name and outcome per test, and the platform the run was on |
 | `diff.patch` | the change itself. The cycle's own artifacts are **not** in it — their absence is by design, not a missing commit |
+| `proof-sources.txt` | only when a proof lives in code the change did not touch, as the build's commit holds it: the block of each test the plan names that the diff never mentions, headed with its file and lines, and whole any file a proof entry names by path (D-168) |
 | `base.sha` | the commit the diff is measured from |
 | `build.log` | what the build said, when this checkout has one. **Not committed** |
 
@@ -39,13 +40,16 @@ reason — and say that is what you are citing.
 Where the build could not follow the approved text, it recorded a **deviation**, listed above with whether
 it is in force. A deviation in force replaces the approved text it quotes:
 
-- a **criterion** deviation narrows that criterion. Adjudicate the narrowed criterion, never the dropped
-  part, which became a successor;
 - a **proof** deviation replaces the planned proof. Hold the new proof to the same bar: it must reach its
   criterion, and the tests it names must have run and passed;
-- a **plan** or **decision** deviation changes how the work was done, not what any criterion asks.
+- a **plan** or **decision** deviation changes how the work was done, not what any criterion asks;
+- a **criterion** deviation changes nothing you adjudicate. A deviation never changes what done means, so
+  adjudicate the criterion as the spec states it. Only one a person accepted in the approval ledger, before
+  the pull request became where deviations are accepted, narrows it: adjudicate the narrowed criterion then,
+  never the dropped part, which became a successor.
 
-A declined deviation replaces nothing: adjudicate against the approved text. Never widen a criterion
+A **choice** records something the approved text left open and changes nothing any criterion asks. One the
+person asked to change replaces nothing: adjudicate against the approved text. Never widen a criterion
 because a deviation describes more than it asked.
 
 **Adjudicate the run that was recorded.** A verdict describing any other run is new evidence rather than an
@@ -63,7 +67,7 @@ criterion in turn:
 
 1. Which test did the plan name for it?
 2. Does `tests.json` say that test ran and passed?
-3. Does that test, as the diff shows it, actually establish the criterion?
+3. Does that test, as the diff or `proof-sources.txt` shows it, actually establish the criterion?
 4. **Which case does that test never run, and which outcome does it never read?** Answer it before you
    write Met. A test that asserts a value was handed to a library, where the criterion is about what the
    person saw; a keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that
@@ -79,7 +83,9 @@ pass that nobody can rely on.
 
 **Quote the assertion, not the test's name.** Every Met cites the lines of the diff that do the asserting
 — `diff.patch`, the file and the line numbers, and the assertion itself copied — so a reader checks the
-claim against the code in front of them rather than trusting a name. In one real cycle every one of
+claim against the code in front of them rather than trusting a name. A test the change never touched, or
+a helper it asserts through, is quoted from `proof-sources.txt` the same way. A proof whose assertion is in
+neither is not shown. In one real cycle every one of
 fourteen verify blockers was "Met, because test X passed" where test X asserted less than the criterion
 asked, and it took ten rounds because the verdict cited names. A quoted assertion that does not establish
 the criterion is visible in the first round.
@@ -110,7 +116,7 @@ What a perspective adds here is its questions of the **evidence** — did the ab
 refused, did the vulnerable-package scan run and what did it report (D-90). An answer that breaks a rule the
 perspective lists is a criterion not met, citing that rule. **Anything else it finds is not yours to
 record here**: the interrogation of this document that follows runs every perspective's reader against the
-same evidence, and writes what they find with the perspective named, which is where `sdlc propose
+same evidence, and writes what they find with the perspective named, which is where `sdlc harvest
 constraints` counts it. Writing it into `verify.md` as well would put it in a file nothing counts. It never
 adds a criterion the spec did not state.
 
@@ -149,7 +155,6 @@ reasoning of.
 
 ```markdown
 ---
-framework_version: 1.0.0
 cycle: <id>
 outcome: pass
 ---

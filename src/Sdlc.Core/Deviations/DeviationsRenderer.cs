@@ -20,7 +20,7 @@ public static class DeviationsRenderer
 
         if (!state.Recorded)
         {
-            text.Append("None. The build followed the approved documents.\n");
+            text.Append("None. The build followed the approved documents and recorded no choice they left open.\n");
             return text.ToString();
         }
 
@@ -38,7 +38,7 @@ public static class DeviationsRenderer
         foreach (DeviationState deviation in state.States)
         {
             text.Append("  ").Append(DeviationsFile.Line(deviation.Deviation)).Append('\n');
-            text.Append("    ").Append(Standing(deviation, state.AcceptedBySetting)).Append('\n');
+            text.Append("    ").Append(Standing(deviation)).Append('\n');
         }
 
         if (state.Problems.Count > 0)
@@ -55,21 +55,21 @@ public static class DeviationsRenderer
             text.Append(CultureInfo.InvariantCulture, $"\n{string.Join(", ", circle.Ids)} bend the same text in {circle.Document}. A third attempt at one place is the loop going round: if the verification still blocks, the cycle escalates to a person.\n");
         }
 
-        if (state.Pending.Count > 0)
+        if (state.InForce.Count + state.Choices.Count > 0)
         {
-            text.Append(CultureInfo.InvariantCulture, $"\n{state.Pending.Count} unanswered. 'sdlc draft approval {response.Cycle.Id}' drafts the answer for a person to mark and place.\n");
+            text.Append("\nThe pull request leads with these, and merging it accepts them. To change one, say what to do instead and the build goes round again into the same pull request.\n");
         }
 
         return text.ToString();
     }
 
-    private static string Standing(DeviationState deviation, bool bySetting) => deviation.Standing switch
+    private static string Standing(DeviationState deviation) => deviation.Standing switch
     {
-        DeviationStanding.Accepted when bySetting => "accepted by 'approval: none'",
+        DeviationStanding.Recorded when !deviation.Deviation.Bends => "a choice the approved text left open, instead of " + deviation.Deviation.Alternative,
+        DeviationStanding.Recorded => "recorded; accepted by merging the pull request",
         DeviationStanding.Accepted => "accepted",
-        DeviationStanding.Declined => "declined: " + deviation.Note,
-        DeviationStanding.History => "answered before the approval that stands; the reopen took it in",
-        _ when deviation.Changed => "unanswered: changed since it was answered",
-        _ => "unanswered",
+        DeviationStanding.Declined => "changed at the person's request: " + deviation.Note,
+        DeviationStanding.History => "recorded before the approval that stands; the reopen took it in",
+        _ => throw new ArgumentOutOfRangeException(nameof(deviation)),
     };
 }

@@ -6,6 +6,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Areas;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
@@ -30,7 +31,10 @@ namespace Sdlc.Core.Findings;
 /// the stack file on a plan, the standing decisions, the document above, the spec and the evidence on a
 /// verify, then the document
 /// — and each reader's own part last. A prefix the readers share is one a host can cache, and one a
-/// replay can compare. The rules are in the rules reader's part rather than the shared block, because a
+/// replay can compare. It is written once, as <c>shared.md</c>, and each prompt holds only the reader's own
+/// part: a host caches only up to a point it marks, so the block is handed over as a system prompt, which
+/// ends at one (D-163). Piped in front of the prompt, the bytes are what one file used to hold. The rules
+/// are in the rules reader's part rather than the shared block, because a
 /// perspective is not handed the constraint set and putting it there would change what it judges. The
 /// verify round's diff reader is composed apart from the shared block, from what its question needs.</para>
 /// </remarks>
@@ -59,13 +63,21 @@ public static class ReaderPrompts
     /// <param name="Readers">Every reader this round runs blind, in order: the rules reader, then each perspective.</param>
     /// <param name="Prompts">The prompts written; empty when only the list was asked for.</param>
     /// <param name="Unwritten">Active perspectives with no document yet, which have nothing to run.</param>
+    /// <param name="Shared">
+    /// The shared block, when a reader written opens with it: each of those prompts holds only its own part.
+    /// </param>
+    /// <param name="Rested">
+    /// Active perspectives this round leaves out: a verify round after the cycle's first (D-164).
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         ArtifactKind Artifact,
         string Directory,
         IReadOnlyList<string> Readers,
         IReadOnlyList<Written> Prompts,
-        IReadOnlyList<string> Unwritten);
+        IReadOnlyList<string> Unwritten,
+        Written? Shared = null,
+        IReadOnlyList<string>? Rested = null);
 
     /// <summary>Writes one round's prompts.</summary>
     /// <param name="Id">The cycle.</param>
@@ -129,7 +141,7 @@ public static class ReaderPrompts
             await File(block, ".sdlc/" + Cycle.TechStackFileName, stack, "This solution has no techstack.md: it declares nothing.", cancellationToken).ConfigureAwait(false);
         }
 
-        // The decisions are standing criteria every stage inherits, judged by CON_24 at every one (D-139):
+        // The decisions are standing criteria every stage inherits, judged by CON_27 at every one (D-139):
         // a reader not handed them can only catch a departure the document admits to.
         block.Append("What this solution has already decided, and what each decision set aside:\n\n");
         await Decisions(block, cycle, artifact, cancellationToken).ConfigureAwait(false);
@@ -167,6 +179,16 @@ public static class ReaderPrompts
                 await File(block, "evidence/" + name, path, "It was not recorded.", cancellationToken).ConfigureAwait(false);
             }
 
+            // A proof resting on code the change never touched is quoted from here, or it could be quoted from
+            // nowhere (D-168). Only when there is one.
+            string sources = Path.Combine(cycle.EvidenceDirectory, ProofSources.FileName);
+
+            if (System.IO.File.Exists(sources))
+            {
+                await File(block, "evidence/" + ProofSources.FileName, sources, "It was not recorded.", cancellationToken).ConfigureAwait(false);
+            }
+
+            await Covered(block, cycle, cancellationToken).ConfigureAwait(false);
             await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
         }
 
@@ -180,26 +202,77 @@ public static class ReaderPrompts
     }
 
     /// <summary>
-    /// Where the build bent the approved documents: which deviations are in force and which a person declined,
-    /// then the file itself. A cycle with none is said to have none.
+    /// The run's recorded coverage, then the rates it gives and the floors <c>verify-chain</c> holds them to. A
+    /// run that recorded none is said to have none.
     /// </summary>
     /// <remarks>
-    /// A deviation in force -- accepted, or not yet answered -- replaces the approved text it quotes, so every
-    /// verify reader judges against the documents as deviated. A declined one replaces nothing, and code still
-    /// doing what it described departs from the approved text again. History, answered before a reopen, is left
-    /// out: the amended documents already say what it said.
+    /// A criterion about coverage is adjudicated from the evidence like any other, and the file holds counts,
+    /// not rates. The division and the floor in force are the binary's (D-161): the floor is read from
+    /// <c>solution.md</c> as it stands, as <c>verify-chain</c> reads it, because only a person moves it.
+    /// </remarks>
+    private static async Task Covered(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(cycle.EvidenceDirectory, Coverage.SummaryFileName);
+        await File(block, "evidence/" + Coverage.SummaryFileName, path, "It was not recorded: this run measured no coverage, so no claim about coverage rests on this evidence.", cancellationToken).ConfigureAwait(false);
+
+        if (!System.IO.File.Exists(path))
+        {
+            return;
+        }
+
+        CoverageSummary? summary = Coverage.ReadSummary(await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
+
+        if (summary is null)
+        {
+            block.Append("coverage.json cannot be read, so no claim about coverage rests on it.\n\n");
+            return;
+        }
+
+        double? floor = await SolutionDocument.CoverageFloorOf(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
+
+        block.Append("What that coverage says, computed by the binary -- the figures 'sdlc verify-chain' checks:\n\n");
+        block.Append(summary.ChangedRate is { } changed
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"- Changed lines: {Percent(changed)} ran under a test ({summary.ChangedCovered} of {summary.ChangedCoverable}), against the floor every change is held to, {SolutionDocument.FloorName(CoverageSummary.ChangedFloor)}.\n")
+            : "- Changed lines: the change added no coverable line.\n");
+        block.Append(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- Whole codebase: {Percent(summary.Rate)} ({summary.Covered} of {summary.Valid} lines).\n"));
+        block.Append(floor is { } inForce
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"- The solution's coverage_floor: {SolutionDocument.FloorName(inForce)}, from solution.md, which is {SolutionDocument.FloorName(SolutionDocument.DefaultCoverageFloor)} when it declares none.\n")
+            : "- The solution's coverage_floor: none, because solution.md cannot be read; the codebase is held to its baseline alone.\n");
+        block.Append(summary.Baseline is { } baseline
+            ? string.Create(CultureInfo.InvariantCulture, $"- The baseline, the last rate a merged cycle recorded: {Percent(baseline)}.\n\n")
+            : "- The baseline: none, so this is the first measurement.\n\n");
+
+        static string Percent(double rate) => string.Create(CultureInfo.InvariantCulture, $"{rate * 100:0.0}%");
+    }
+
+    /// <summary>
+    /// Where the build bent the approved documents, and the choices it made that they left open: which entries are
+    /// in force and which the person asked to change, then the file itself. A cycle with none is said to have none.
+    /// </summary>
+    /// <remarks>
+    /// A deviation in force replaces the approved text it quotes, so every verify reader judges against the
+    /// documents as deviated. One the person asked to change replaces nothing, and code still doing what it
+    /// described departs from the approved text again. A choice gives no leave at all: it is a change like any
+    /// other, judged against the plan's purpose and the recorded decisions (D-180). History, recorded before a
+    /// reopen, is left out: the amended documents already say what it said.
     /// </remarks>
     private static async Task Deviated(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
     {
         DeviationsState deviations = await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false);
 
-        block.Append("Where the build bent the approved documents. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; a declined one replaces nothing:\n\n");
+        block.Append("Where the build bent the approved documents, and the choices it made that they left open. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; one the person asked to change replaces nothing; a choice gives no leave and is judged like any other change, against the plan's purpose and the recorded decisions:\n\n");
 
         if (!deviations.Recorded || deviations.Current.Count == 0)
         {
             block.Append(deviations.Recorded && deviations.Problems.Count > 0
                 ? "deviations.md cannot be read: " + string.Join(" ", deviations.Problems) + "\n\n"
-                : "None. The build recorded no deviation, so the approved documents stand as written.\n\n");
+                : "None. The build recorded no deviation and no choice, so the approved documents stand as written.\n\n");
             return;
         }
 
@@ -207,9 +280,10 @@ public static class ReaderPrompts
         {
             string standing = state.Standing switch
             {
+                DeviationStanding.Declined => "changed at the person's request, not in force: " + state.Note,
+                _ when !state.Deviation.Bends => "a choice the approved text left open, instead of " + state.Deviation.Alternative + "; no leave",
                 DeviationStanding.Accepted => "in force, accepted",
-                DeviationStanding.Declined => "declined, not in force: " + state.Note,
-                _ => "in force, awaiting the person's answer",
+                _ => "in force, recorded by the build",
             };
 
             block.Append("- ").Append(DeviationsFile.Line(state.Deviation)).Append(" -- ").Append(standing).Append('\n');
@@ -330,7 +404,7 @@ public static class ReaderPrompts
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:mine' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
+                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:harvest-areas' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
             }
 
             bool adjudicating = string.Equals(request.Reader, ReaderAnswers.Adjudicate, StringComparison.Ordinal);
@@ -340,6 +414,7 @@ public static class ReaderPrompts
             if (request.Artifact == ArtifactKind.Verify)
             {
                 await EvidenceDiff.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
+                await ProofSources.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
             }
 
             if (adjudicating && request.Artifact != ArtifactKind.Verify)
@@ -354,6 +429,33 @@ public static class ReaderPrompts
                     $"Cycle {cycle.Id} has no {name}. A round judges a document that exists."));
             }
 
+            // The same refusal recording the round would give, before the readers are paid for rather than after
+            // (D-161): a plan's areas are a listing, and a clean round refused at record time ran twice.
+            if (request.Artifact == ArtifactKind.Plan && !request.List)
+            {
+                string plan = await System.IO.File.ReadAllTextAsync(cycle.PathOf(ArtifactKind.Plan), cancellationToken).ConfigureAwait(false);
+                Result<IReadOnlyList<PlanArea>> planAreas = await RecordRound.PlanAreasChecked(cycle, plan, cancellationToken).ConfigureAwait(false);
+
+                if (planAreas.IsFailed)
+                {
+                    return Result.Fail<Response>(planAreas.Errors);
+                }
+            }
+
+            // A verdict that concedes on the evidence the last round judged goes to remediate whatever a round says,
+            // and the next run's evidence gets a full one (D-165). One real verify spent 1.1M tokens four
+            // minutes after the last, on the same evidence, to confirm a concession.
+            if (request.Artifact == ArtifactKind.Verify
+                && !adjudicating
+                && !request.List
+                && request.Reader != ReaderAnswers.Reconcile
+                && await BlockedOnJudgedEvidence(cycle, cancellationToken).ConfigureAwait(false) is { } judged)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"verify.md reads blocked, and the evidence is what verify round {judged} judged. No round can change where that goes: the outcome sends the cycle to remediate whatever the readers say, and the run remediate records gets a full round. Run '/sdlc:remediate {cycle.Id}'."));
+            }
+
             Result<ActivePerspectives.Response> active = await mediator
                 .Send<ActivePerspectives.Query, ActivePerspectives.Response>(new ActivePerspectives.Query(request.Id), cancellationToken)
                 .ConfigureAwait(false);
@@ -363,12 +465,22 @@ public static class ReaderPrompts
                 return active.ToResult<Response>();
             }
 
-            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name));
-            List<string> unwritten = [.. active.Value.Perspectives.Where(p => !p.Written).Select(p => p.Name)];
+            Result<bool> verifiedBefore = await ReaderAnswers.VerifiedBefore(mediator, request.Id, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (verifiedBefore.IsFailed)
+            {
+                return verifiedBefore.ToResult<Response>();
+            }
+
+            List<string> perspectives = [.. active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name)];
+            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, perspectives, verifiedBefore.Value);
+            bool resting = ReaderAnswers.Resting(request.Artifact, verifiedBefore.Value);
+            List<string> unwritten = resting ? [] : [.. active.Value.Perspectives.Where(p => !p.Written).Select(p => p.Name)];
+            IReadOnlyList<string> rested = resting ? perspectives : [];
 
             if (request.List)
             {
-                return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, [], unwritten));
+                return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, [], unwritten, Rested: rested));
             }
 
             IReadOnlyList<string> wanted = request.Reader is null ? readers : [request.Reader];
@@ -389,27 +501,41 @@ public static class ReaderPrompts
             // from last time cannot be collected as this one's.
             if (request.Reader is null)
             {
-                foreach (string stale in readers.Append(ReaderAnswers.Reconcile))
+                foreach (string stale in readers.Concat(rested).Append(ReaderAnswers.Reconcile))
                 {
                     System.IO.File.Delete(ReaderAnswers.PromptPath(request.Directory, stale));
                     System.IO.File.Delete(ReaderAnswers.AnswerPath(request.Directory, stale));
                 }
 
                 System.IO.File.Delete(Path.Combine(request.Directory, ReaderAnswers.RoundFileName));
+                System.IO.File.Delete(ReaderAnswers.SharedPath(request.Directory));
             }
 
             string shared = await Shared(cycle, request.Artifact, withDocument: !adjudicating, cancellationToken).ConfigureAwait(false);
             List<Written> written = [];
 
+            // The shared block goes in a file of its own, which the host is handed as a system prompt (D-163).
+            // A host caches a prefix only up to a point it marks, and it marks the end of the system prompt and
+            // the end of the message: inside one piped message, the block every reader shares was written to
+            // the cache by each of them and read back by none.
+            Written? sharedFile = null;
+
+            if (wanted.Any(ReaderAnswers.OpensWithShared))
+            {
+                string path = ReaderAnswers.SharedPath(request.Directory);
+                await System.IO.File.WriteAllTextAsync(path, shared, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
+                sharedFile = new Written(ReaderAnswers.SharedFileName, path, new FileInfo(path).Length);
+            }
+
             foreach (string reader in wanted)
             {
                 Result<string> composed = reader switch
                 {
-                    ReaderAnswers.Rules => await ForRules(request, shared, cancellationToken).ConfigureAwait(false),
+                    ReaderAnswers.Rules => await ForRules(request, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Diff => await ForDiff(cycle, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Reconcile => await ForReconciler(cycle, request, readers, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Adjudicate => await ForAdjudicator(cycle, request, shared, readers, cancellationToken).ConfigureAwait(false),
-                    _ => await ForPerspective(request, reader, shared, cancellationToken).ConfigureAwait(false),
+                    _ => await ForPerspective(request, reader, cancellationToken).ConfigureAwait(false),
                 };
 
                 if (composed.IsFailed)
@@ -422,7 +548,29 @@ public static class ReaderPrompts
                 written.Add(new Written(reader, path, new FileInfo(path).Length));
             }
 
-            return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, written, unwritten));
+            return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, written, unwritten, sharedFile, rested));
+        }
+
+        // The round that last judged this cycle's evidence, when verify.md now reads blocked on that same evidence.
+        private async Task<int?> BlockedOnJudgedEvidence(Cycle cycle, CancellationToken cancellationToken)
+        {
+            Result<FrontmatterDocument> verdict = await Frontmatter.ReadFile(cycle.PathOf(ArtifactKind.Verify), cancellationToken).ConfigureAwait(false);
+
+            if (verdict.IsFailed || !string.Equals(Frontmatter.Key(verdict.Value.Yaml, "outcome"), "blocked", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader.ReadHistory(cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
+
+            if (history.IsFailed || history.Value.Count == 0 || history.Value[^1].EvidenceSha256 is not { } judged)
+            {
+                return null;
+            }
+
+            string? now = await RecordRound.EvidenceHash(cycle, cancellationToken, repository: repository, root: solution.Path).ConfigureAwait(false);
+
+            return string.Equals(judged, now, StringComparison.Ordinal) ? history.Value[^1].Round : null;
         }
 
         private async Task<Result<string>> Constraints(Cycle cycle, ArtifactKind artifact, CancellationToken cancellationToken) =>
@@ -446,7 +594,7 @@ public static class ReaderPrompts
                 : Result.Ok(ConstraintRenderer.Render(set.Value, ConstraintDetail.Full, name).ReplaceLineEndings("\n").TrimEnd());
         }
 
-        private async Task<Result<string>> ForRules(Command request, string shared, CancellationToken cancellationToken)
+        private async Task<Result<string>> ForRules(Command request, CancellationToken cancellationToken)
         {
             Result<string> rules = await Constraints(new Cycle(request.Id, solution.Path), request.Artifact, cancellationToken).ConfigureAwait(false);
 
@@ -468,14 +616,18 @@ public static class ReaderPrompts
                 await JudgedItems.In(new Cycle(request.Id, solution.Path), set.Value, cancellationToken).ConfigureAwait(false));
 
             // A Met is checked by finding its quote in the diff, and a reader without that instruction
-            // only checks that something was named.
-            string verify = request.Artifact == ArtifactKind.Verify
-                ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is not in the diff, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n"
-                : string.Empty;
+            // only checks that something was named. A spec reader is told what the evidence will be, or a
+            // criterion only the run as a whole could show passes spec and is found by the plan's author (D-167).
+            string stage = request.Artifact switch
+            {
+                ArtifactKind.Verify => "\nEach Met quotes the assertion it rests on from `diff.patch`, or from `proof-sources.txt` when the proof lives\nin code the change did not touch. Find each quote where it says it is, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is in neither file, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n",
+                ArtifactKind.Spec => "\nThe evidence each criterion will be judged on is one recorded run: each test's name and outcome, the\nassertions in the diff, coverage and the build log. A criterion is shown only by an assertion some test in\nthat run makes. One whose check is a property of the run itself -- how long the whole run or suite takes,\nwhether a run in another mode, with other workers or on another machine passes, whether repeated runs are\nfree of flakes -- has nothing in the evidence to show it, and breaks `CON_12.2`. A test that times one\noperation, or runs the code two ways, and asserts the result is admissible.\n",
+                _ => string.Empty,
+            };
 
-            return Result.Ok(shared + Template("rules")
+            return Result.Ok(Template("rules")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal)
-                .Replace("{{verify}}", verify, StringComparison.Ordinal)
+                .Replace("{{stage}}", stage, StringComparison.Ordinal)
                 .Replace("{{rows}}", rows, StringComparison.Ordinal)
                 .Replace("{{rowsShape}}", rowsShape, StringComparison.Ordinal));
         }
@@ -513,7 +665,7 @@ public static class ReaderPrompts
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal));
         }
 
-        private async Task<Result<string>> ForPerspective(Command request, string reader, string shared, CancellationToken cancellationToken)
+        private async Task<Result<string>> ForPerspective(Command request, string reader, CancellationToken cancellationToken)
         {
             Result<Perspective> perspective = PerspectiveLibrary.Find(reader);
 
@@ -545,7 +697,7 @@ public static class ReaderPrompts
                 .ReplaceLineEndings("\n")
                 .TrimEnd();
 
-            return Result.Ok(shared + Template("perspective")
+            return Result.Ok(Template("perspective")
                 .Replace("{{perspective}}", method, StringComparison.Ordinal)
                 .Replace("{{changed}}", since, StringComparison.Ordinal)
                 .Replace("{{name}}", perspective.Value.Name, StringComparison.Ordinal));
@@ -554,6 +706,15 @@ public static class ReaderPrompts
         private async Task<Result<string>> ForReconciler(Cycle cycle, Command request, IReadOnlyList<string> readers, CancellationToken cancellationToken)
         {
             List<Finding> raised = [];
+
+            // The reconciler sees each finding as the round will record it, so a blocker citing a rule its reader
+            // was not handed reaches it as the suggestion it becomes (D-174).
+            Result<CitedRules.Handed> handed = await CitedRules.For(mediator, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (handed.IsFailed)
+            {
+                return handed.ToResult<string>();
+            }
 
             foreach (string reader in readers)
             {
@@ -564,7 +725,7 @@ public static class ReaderPrompts
                     return answer.ToResult<string>();
                 }
 
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader, handed.Value.Of(reader));
 
                 if (body.IsFailed)
                 {

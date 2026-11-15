@@ -236,7 +236,7 @@ public sealed class UpgradeTests
     [TestMethod]
     public void A_teams_own_pool_is_kept_while_the_release_moves_the_sections_around_it()
     {
-        // MarketSense's move to 0.39.1: its factory ran nightly on its own pool, and the release dropped the schedule
+        // One solution's move to 0.39.1: its factory ran nightly on its own pool, and the release dropped the schedule
         // and added a parameter. Taking those two and keeping the pool is three sections, each from one side.
         string template = FactoryPipeline.Text(Platform.AzureDevOps, "development").ReplaceLineEndings("\n");
         string parameters = template[template.IndexOf("parameters:", StringComparison.Ordinal)..template.IndexOf("lockBehavior:", StringComparison.Ordinal)];

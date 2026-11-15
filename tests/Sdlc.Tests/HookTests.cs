@@ -483,7 +483,7 @@ public sealed class HookTests
     [DataRow("cat .sdlc/techstack.md > /tmp/stack.txt")]
     [DataRow("git add .sdlc/cycles/x/approval.md")]
     [DataRow("grep -n guarantee CONSTRAINTS.md >$null")]
-    [DataRow("sed -i s/a/b/ marketsense-cycle-review-decisions.md")]
+    [DataRow("sed -i s/a/b/ solution-cycle-review-decisions.md")]
     [DataRow("cp proposal.md .sdlc/constraints.draft.md")]
     public void A_shell_command_that_does_not_write_a_protected_file_is_allowed(string command)
     {

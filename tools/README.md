@@ -81,8 +81,8 @@ console project named `usage-report`, read-only, built from the parser the token
 was done with.
 
 ```pwsh
-dotnet run --project tools/Sdlc.UsageReport -- --project MarketSense --since 2026-10-20
-dotnet run --project tools/Sdlc.UsageReport -- --project MarketSense --top 0 --csv usage.csv
+dotnet run --project tools/Sdlc.UsageReport -- --project MySolution --since 2026-10-20
+dotnet run --project tools/Sdlc.UsageReport -- --project MySolution --top 0 --csv usage.csv
 ```
 
 **The gap it closes: the per-cycle usage record counts the readers and nothing else** (D-121), and two

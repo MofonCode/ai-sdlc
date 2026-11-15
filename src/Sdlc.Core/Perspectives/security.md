@@ -100,7 +100,7 @@ answer to this, and the cheapest place to find a missing one is before code exis
 ## Rules
 
 None of its own yet. A finding this method makes that no rule forbids is a suggestion; one that keeps
-recurring across cycles is what `sdlc propose constraints` turns into a rule.
+recurring across cycles is what `/sdlc:harvest-constraints` turns into a rule.
 
 ## Evidence
 

@@ -7,7 +7,7 @@ namespace Sdlc.Core.Hooks;
 /// Whether the skills a session loaded are the release of the binary that runs where it started.
 /// </summary>
 /// <remarks>
-/// <para><strong>Why this exists.</strong> MarketSense's steer session ran an interrogate skill newer than its
+/// <para><strong>Why this exists.</strong> A real solution's steer session ran an interrogate skill newer than its
 /// binary. The commands the skill named were not there, so it wrote reader scripts of its own and ran the rounds
 /// with those (D-131). A skill and a binary from different releases is not a fault either can detect from
 /// inside, because each is internally consistent; this compares them once, as the session starts.</para>

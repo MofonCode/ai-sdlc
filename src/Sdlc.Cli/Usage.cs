@@ -11,17 +11,8 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, solution, techstack, mining <file>. "
-        + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
-
-    /// <summary>
-    /// Which proposals exist, for a message about one that does not.
-    /// </summary>
-    /// <remarks>
-    /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
-    /// something about. Only what is built is offered, for the same reason the drafters are.
-    /// </remarks>
-    public const string Proposals = "One of: constraints, decisions, theme. Reading every cycle at once is 'sdlc mine'.";
+        "One of: approval <id>, abandon <id>, solution, techstack, harvest <file>. "
+        + "A constraint is harvested from the completed cycles, 'sdlc harvest constraints', or begun empty, 'sdlc constraints --new'.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -49,6 +40,8 @@ internal static class Usage
                                      code and no build settings.
             constraints              Render the constraint set in force.
             constraints show <id>    One rule in full, in force or superseded.
+            constraints --new        An empty entry at the next free LOC_ id, for a rule a person
+                                     has in mind. Writes nothing; takes no wording.
             areas                    Each area areas.md defines: the files it covers today, the
                                      rules and decisions carrying it, and entries naming an area
                                      nobody defined. Exits 1 when an area covers no file, which
@@ -101,15 +94,33 @@ internal static class Usage
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
-                                     it, the plan's own branch before that. 'sandbox' opens a
+                                     it, before that the plan's own branch or the admission
+                                     branch carrying it. A plan only in a sandbox is refused
+                                     until 'sdlc admit' takes it out. 'sandbox' opens a
                                      worktree on sandbox/<id> beside the repository, where every
                                      cycle the work turns into is planned. 'plan --worktree'
                                      opens the one cycle in a folder of its own. 'plan' without a
                                      worktree refuses uncommitted work, which the switch would
                                      carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
+            branch <id> remediate    Print the path of a worktree on the cycle's build branch -- the
+                                     one its pull request is from -- opening it when absent, from
+                                     the local branch or the remote's. Where remediation works, on
+                                     a blocked, escalated or passed cycle (D-185).
+            build [<id>]             Build it (D-178, D-184, D-187): commits the approval a person
+                                     placed in the sandbox if it is uncommitted, admits the plan
+                                     when it is only in a sandbox, opens the build's worktree beside
+                                     the repository, starts the build's own process there running
+                                     /sdlc:build <id> --unattended -- headless, its tools named,
+                                     never with permission checks off, never marked as a reader --
+                                     waits, and prints the report. Exits 0 on a pass, 1 on blocked
+                                     or escalated. With no id, every queued cycle in one process
+                                     started from here, each in a worktree of its own; a plan only
+                                     in a sandbox is queued only when named. Refuses when the
+                                     build's process cannot start, or ends without a report. The
+                                     one stage this binary runs rather than names a skill for.
             factory                  Write the factory's pipeline for the recorded platform: a run
-                                     a person starts, never a schedule, of batch-build --pr
+                                     a person starts, never a schedule, of /sdlc:build
                                      --unattended against the integration branch -- every queued
                                      cycle, or the one named as its input -- one run at a time,
                                      six hours at most, proving the hooks refuse before it builds,
@@ -135,6 +146,20 @@ internal static class Usage
                                      Prints the removal for a person to run once nothing worth
                                      recording is unrecorded, and exits 1 until then. Deletes
                                      nothing.
+            tidy                     The worktrees and local branches the framework opened whose
+                                     work has reached the integration branch: a plan branch once
+                                     its plan is there, a build once its verification passes there,
+                                     a slicing or sandbox once every cycle it carries is, anything
+                                     of an abandoned cycle, and anything of a cycle the harvest
+                                     ledger there records closed. Prints the removal for a person to run.
+                                     Deletes nothing, and leaves remote branches alone.
+            upgrade [<release>]      Everything that moves to take a release, in order, with what
+                                     each is on now: this machine's tool, the plugin, this
+                                     solution's pin and what 'sdlc init' writes, the factory's
+                                     images when it has one, and the open cycles still pinning an
+                                     older release. Without a release, the one this machine runs.
+                                     Always answered by this machine's release, never the pinned
+                                     one. Runs nothing.
             park <id>                Compare a cycle's plan with every plan not yet built. A file
                                      only another creates parks it: writes parked.md with what it
                                      waits on, keeping its spec and plan. A file two plans both
@@ -166,7 +191,8 @@ internal static class Usage
                                      outside a sandbox, with nothing approved, over uncommitted
                                      changes in an approved cycle, and a plan that needs a file
                                      only a sibling's plan creates. Abandoned cycles go with it as
-                                     records. /sdlc:pr --plan runs it.
+                                     records. 'sdlc build <id>' runs it, and /sdlc:pr --plan
+                                     runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and
@@ -191,6 +217,8 @@ internal static class Usage
                                      branch carries -- its own on a cycle branch, otherwise
                                      those not yet on the integration branch -- that are ready
                                      for to-plan, spec, plan, build, verify, remediate or pr.
+                                     Remediate takes a blocked, an escalated, or a passed cycle
+                                     whose verdict has not merged into the integration branch.
                                      Exactly one:
                                      prints its id alone and exits 0. Several, or none: lists
                                      them and exits 1, so the person is asked, never guessed for.
@@ -207,10 +235,11 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft mining <file>      Write drafts of constraints.md, decisions.md and techstack.md
-                                     from the proposals marked [x] in a mining proposal file:
-                                     each a copy of the file as it stands with only those lines
-                                     applied, refused if any entry or row would go missing.
+            draft harvest <file>     Write drafts of constraints.md, decisions.md, techstack.md and
+                                     areas.md from the proposals marked [x] in a harvest proposal
+                                     file: each a copy of the file as it stands with only those
+                                     lines applied, refused if any rule, decision or stack row
+                                     would go missing. An area may be renamed, merged or removed.
             draft techstack          Write the declared stack beside itself, for an edit a person
                                      renames into place: a copy of it, or the framework's default
                                      where there is none yet, with every stack rule listed and on.
@@ -224,16 +253,20 @@ internal static class Usage
                                      settings file does and costs. The menu is never renamed into
                                      place.
             draft solution           Write the whole solution.md beside itself, for a person
-                                     to rename onto it. Carries the four keys through as
+                                     to rename onto it. Carries every key through as
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
-                                     wrote. --standard changes that one key, and says so.
+                                     wrote. --approval, --coverage-floor and --standard each
+                                     change their one key when asked, and say so.
             evidence <id>            Record what a build produced: its base commit, the commit it is
                                      at, the diff between them, a normalised test summary and the
                                      coverage. Verify reads only this. The summary records the
                                      platform the tests ran on. Refuses code outside .sdlc/ that is
                                      not committed; the diff is rebuilt from the two commits and
-                                     never committed (D-124).
+                                     never committed (D-124). Retires a blocked verify.md, and
+                                     refuses while any other verdict stands (D-161) -- unless
+                                     --retire-pass, when a person asked for a change to a cycle
+                                     that passed (D-185).
             evidence check <id>      List what verify.md cites in backticks that none of the
                                      recorded evidence holds, and tests it says passed that did not.
                                      Reports only; always exits 0.
@@ -244,33 +277,56 @@ internal static class Usage
                                      command and any successor that is ready or stuck.
             findings <id>            What the interrogations said, per artifact, each finding at the
                                      disposition that stands.
-            deviations <id>          Where the build bent the approved documents: each deviation
-                                     in deviations.md, whether a person accepted, declined or has
-                                     yet to answer it, and anything wrong with it. Exits 1 while a
-                                     deviation misquotes the approved text or takes a claimed file.
+            deviations <id>          Where the build bent the approved documents, and the choices
+                                     it made that they left open: each entry in deviations.md,
+                                     whether it is in force or was changed at the person's request,
+                                     and anything wrong with it. Exits 1 while a deviation misquotes
+                                     the approved text, takes a claimed file or narrows a criterion.
+            report <id>              The report a build ends on and the pull request leads with:
+                                     deviations, choices, what was changed at the person's request,
+                                     and the verification's concerns, as markdown. Merging the pull
+                                     request accepts them (D-181). Exits 1 when a deviation is
+                                     unsound.
             round <id> <artifact>    Append the next round to the artifact's findings ledger from
                                      --from <file>: the readers' findings merged in, stamped with
                                      the time and the hashes of what was judged, and chained to the
                                      round before; suggestions go to the cycle's suggestions ledger,
                                      each concern once under an S_ id. Refuses while anything above
                                      is unsettled, a known finding restated in other words, a new
-                                     blocker with no one-line gist, and a suggestion whose id or move
-                                     does not fit the cycle's. --changed lists the sections moved
-                                     since the last round instead.
+                                     blocker with no one-line gist, a suggestion whose id or move
+                                     does not fit the cycle's, a new blocker citing a rule its
+                                     reader was not handed (D-174), and a new finding quoting its
+                                     rule in other words (D-177). --changed lists the sections
+                                     moved since the last round instead.
             round prompt <id> <artifact> --dir <directory>
                                      Write every reader's prompt for a round into a directory
-                                     outside the repository, as <reader>.prompt.md: the block every
-                                     reader shares first, then each reader's own part. --reader
+                                     outside the repository: shared.md, the block the rules reader
+                                     and every perspective open with, handed over as a system
+                                     prompt, and <reader>.prompt.md, each reader's own part. A
+                                     verify round after the cycle's first runs no perspective.
+                                     --reader
                                      <name> writes one -- rules, diff on a verify, a perspective,
                                      reconcile once the others have answered, or adjudicate on a
                                      verify. --list names the readers and writes nothing.
+            round run <id> <artifact> --dir <directory> [--timeout <minutes>]
+                                     Start every reader whose prompt 'round prompt' wrote there and
+                                     that has no answer yet -- the rules reader first, alone, then
+                                     the rest -- each a fresh process from that directory, with no
+                                     tools and no MCP servers, marked as a reader, its answer
+                                     written beside its prompt (D-183). The verify adjudicator the
+                                     same way. Run it again to start a reader that returned
+                                     nothing, or the reconciler once its prompt is written. Exits
+                                     1 while a reader returned nothing; refuses with no host to
+                                     start a reader with.
             round collect <id> <artifact> --dir <directory>
                                      Read every reader's answer from that directory and draft
                                      round.json beside them: new ids numbered past the ledgers,
                                      the reconciler's restatements carried under the standing id,
                                      each reader's usage carried for 'round --from' to record.
                                      Lists the open findings no reader raised, whose dispositions
-                                     are yours to add. --host names the host the readers ran on.
+                                     are yours: --answered <ids> and --withdrawn <ids> copy them
+                                     in from the ledger word for word, and anything unnamed stays
+                                     open. --host names the host the readers ran on.
             round verdict <id> --from <file>
                                      Write verify.md from the adjudicator's answer, byte for byte.
                                      Refuses an answer that is not a verify document.
@@ -278,14 +334,20 @@ internal static class Usage
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --
                                      with the cycle that decided it.
+            suggestions <id> --renumber
+                                     Give every suggestion id the cycle's ledger records twice --
+                                     two branches each numbering a new one, and a merge keeping
+                                     both -- the next free id, the first keeping its own (D-171).
             decisions                The choices this solution has already settled, so a cycle reads
-                                     what was argued rather than arguing it again. CON_24 asks a cycle
+                                     what was argued rather than arguing it again. CON_27 asks a cycle
                                      departing from one to declare it where it arises. Names
-                                     the entries over the word budget, for mining to reword.
+                                     the entries over the word budget, for a harvest to reword.
             decisions show <id>      One decision in full, standing or superseded: what a reader
                                      handed only its headline asks for.
-            theme                 The roles this solution's surfaces use and the values that
-                                     fill them -- the one place a colour or a typeface lives.
+            theme                    The roles this solution's surfaces use and the values that
+                                     fill them -- the one place a colour or a typeface lives. With
+                                     no theme, a skeleton of roles for a person to fill; never a
+                                     value, because a colour is a brand's, not a tool's.
             stack                    What this solution declares it is built from: its defaults,
                                      the stack rules switched on, and each build settings file --
                                      whether the stack takes it and whether it is on disk. Then
@@ -298,39 +360,52 @@ internal static class Usage
                                      that fixes it. Points at constraints, stack and decisions
                                      rather than repeating them. Writes nothing. Exits 1 when
                                      solution.md cannot be read.
-            mine                     Everything the record says the rules, decisions and stack are
-                                     missing, in one ranked report: rules cited across cycles,
-                                     findings that rested on no rule grouped by who raised them,
-                                     each cycle's rounds, reopens and every verdict its verify
-                                     reached, what approved cycles stated, the open suggestions
-                                     of the finished cycles and the concerns ignored before, and
-                                     what the stack never mentions.
-                                     Ends with the proposal file a person marks for 'draft
-                                     mining'. Proposes; writes nothing that binds.
-            mine record <file>       Once the drafts are renamed into place: record the sitting in
-                                     .sdlc/mined.json -- each finished cycle on the integration
-                                     branch becomes a husk, with its merge commit, its files, the
-                                     rules it cited and the areas it proposed, and the concerns
-                                     under '## Ignored' tallied -- and print the
-                                     deletion of the husks' folders, for a person to run on a
-                                     branch of its own. Deletes nothing. Refuses while a draft is
-                                     still beside its file.
-            mine --history           The mining ledger: every mined cycle, every sitting with what
-                                     was accepted and declined, the concerns watched below the
-                                     bar of three cycles, and the concerns ignored, with the
-                                     cycles each was ignored in.
-            propose constraints      Read this solution's whole history and say which rules its
-                                     findings keep citing, with the cycles and finding ids behind
-                                     each. Proposes; writes nothing that binds. Where the record
-                                     holds no pattern it prints an empty entry at the next free
-                                     LOC_ id with the three admission tests beside it.
-            propose decisions        Read what this solution's approved cycles stated -- an intent's
-                                     fixed decisions, a plan's shape and departures -- and hand the
-                                     passages over for a person to record. Approved cycles only:
-                                     an approval is what makes a passage something a person signed.
-            propose theme          Print the roles a theme declares, for a solution that has
-                                     none, or name the ones left empty in the one it has. Never
-                                     proposes a value: a colour is a brand's, not a tool's.
+            harvest                  What the completed cycles can still give back: each completed
+                                     cycle not closed yet, the aspects it still needs answered, and
+                                     the next step. A cycle is completed once its pull request
+                                     merged after a passing verify, or a person abandoned it; one
+                                     still in flight is read by nothing here. An abandoned cycle
+                                     none of which merged is brought into the working tree from
+                                     its own branch, untracked, and read like the rest.
+            harvest <aspect> [--cycles <id>,<id>]
+                                     One aspect -- constraints, decisions, suggestions, stack or
+                                     areas -- for the completed cycles that have not answered it,
+                                     ending with the proposal file a person marks for 'draft
+                                     harvest'. Proposes; writes nothing that binds. --cycles reads
+                                     those cycles alone and leaves the rest for a later sitting;
+                                     the rule counts stay the whole completed record's. So:
+                                     harvest constraints, harvest decisions, harvest suggestions,
+                                     harvest stack, harvest areas.
+            harvest record <aspect> <file>
+                                     Once the aspect's draft is renamed into place: record in
+                                     .sdlc/harvested.json that the cycles the file's '## Cycles'
+                                     names have answered it, with the concerns under '## Watch' and
+                                     '## Ignored' tallied and the suggestions under '## Declined'
+                                     kept. Closes nothing. Refuses while the draft is still beside
+                                     its file.
+            harvest close            Close every completed cycle whose five aspects have all been
+                                     answered: record what later harvests need, and on a new
+                                     harvest/<date> branch commit the removal of their folders with
+                                     the ledger and the records a person placed. Pushes nothing.
+                                     Refuses, naming what each cycle still needs, while nothing can
+                                     close; while a draft is still beside its file; and anywhere
+                                     but the integration branch.
+            harvest read --dir <directory> [--aspect <aspect>] [--cycles <ids>]
+                                     Write one prompt per completed cycle and document with findings
+                                     in the aspect's sitting, constraints unless given, each that
+                                     document's findings and the question that groups them, and
+                                     start one fresh reader for each, its answer written beside its
+                                     prompt (D-183).
+            harvest review <aspect> --dir <directory> [--proposals <file>]
+                                     Write and start the two readers that review one aspect's
+                                     sitting: one handed the marked proposal file, the aspect's
+                                     draft and solution.md; one handed the aspect's report and the
+                                     proposal file. The newest of each in .sdlc/reports unless
+                                     --proposals names the file.
+            harvest --history        The harvest ledger: every closed cycle, every sitting with its
+                                     aspect and what was accepted and declined, the concerns
+                                     watched below the bar of three cycles, and the concerns
+                                     ignored, with the cycles each was ignored in.
             doctor                   Check this installation and this repository: the rules, git,
                                      how many decisions every reader is handed,
                                      adoption, which release wrote adoption's files against this
@@ -373,8 +448,12 @@ internal static class Usage
                                      from, no stack rule in force, every plan choosing freely.
 
         Options for draft solution
+            --approval <setting>     Change whether a cycle waits for a person's approval before its
+                                     build: required, or none.
+            --coverage-floor <n>     Change the whole-codebase coverage floor: a whole percentage
+                                     from 0 to 100, such as 80%.
             --standard <name>        Change which conventions new work follows: profile, or existing.
-                                     The one key a draft may move, and only when asked. profile makes
+                                     Like the two above, moved only when asked. profile makes
                                      the framework's patterns the default a plan departs from;
                                      existing makes it the surrounding code. Neither says anything
                                      about the code already there, and neither writes a file -- the
@@ -420,6 +499,10 @@ internal static class Usage
                                      given a check that cannot run.
             --plugin <path>          With session-start: the plugin's directory, whose release is
                                      compared with this binary's. Never refuses.
+            --source plugin          Says the plugin registered this hook rather than the solution's
+                                     own settings. Where adoption's configuration runs the same
+                                     check, the plugin's copy answers with nothing, so each check
+                                     speaks once (D-172).
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
@@ -446,8 +529,9 @@ internal static class Usage
             --approved               Only cycles a person has approved.
             --verified               Only cycles whose verification passed.
             --pr-ready               Every cycle, saying which may open one and why not.
-            --claims                 The claim graph: which cycles may be built together, in groups,
-                                     and what collides.
+            --claims                 The claim graph: which cycles' pull requests are likely to
+                                     conflict over a file, and a merge order. It advises; every
+                                     cycle builds independently (D-86).
 
         Newest first, always. The order a person scans is the order the work happened in, and a
         second order would be a second way to read one answer.
@@ -493,10 +577,9 @@ internal static class Usage
         A refusal is drafted on the same terms as an approval, and leaves the reason line empty for
         the person to write. The gate rejects a refusal that says nothing about why.
 
-        On an approved cycle whose build recorded deviations, the same command drafts the answer to
-        each one instead: accepted: false and an empty note per deviation, beside the approval that
-        stands. Set accepted to true to accept one, or leave it false and write why to decline it.
-        False with no note is not reviewed. A reopen is refused until every deviation is answered.
+        Deviations are not answered here: the pull request leads with them and merging it accepts
+        them (D-181). A reopen takes in every deviation the build recorded, so once the amended plan
+        is approved they are history.
 
         The draft is a complete file named for its decision -- approval.approved.draft.md and so on
         -- written beside the ledger and never onto it. Renaming it is what records the decision,
@@ -506,11 +589,12 @@ internal static class Usage
         Where a decision already stands, the draft reproduces it above the new entry, so the rename
         replaces the ledger without losing what it held.
 
-        Two verbs, split by who made the decision
+        Draft and harvest, split by who made the decision
             'draft' is for a decision you have already taken: it hands back a finished file and the
-            rename or the paste that places it. 'propose' is for one you have not: it reads the
-            record and argues. A tool may propose a rule when it brings the evidence, and may not
-            shape a rule somebody just typed -- which is why there is no way to pass wording in.
+            rename or the paste that places it. 'harvest' is for one you have not: it reads what
+            the completed cycles settled, one aspect at a time, and argues. A tool may propose a
+            rule when it brings the evidence, and may not shape a rule somebody just typed -- which
+            is why there is no way to pass wording in.
 
             'suggestions' is neither. It lists what a reader already raised and nobody acted on,
             and forms no opinion of its own.
@@ -525,22 +609,24 @@ internal static class Usage
             decide -- which build settings the stack takes against which are on disk.
 
             A plan may depart from any of the three. Departing from a rule is impossible, from a
-            recorded decision it is legal but CON_24 asks it to be declared where it arises, and
+            recorded decision it is legal but CON_27 asks it to be declared where it arises, and
             from the theme nothing in governance objects at all -- that one is a linter's job,
             because it is mechanical. Silence is what the rules catch, never the departure.
 
         Reports
-            'suggestions' and 'propose' both print their answer and keep a copy under
+            'suggestions' and 'harvest <aspect>' both print their answer and keep a copy under
             .sdlc/reports/, because a person works through one of these rather than reading it
             once. Nothing reads one back, ever: the directory ignores itself, and a report found
             later is already out of date if a cycle has run since. Re-run the command rather than
             trusting one.
 
         The stages
-            Writing an intent, a spec or a plan, judging one against the rules, building, verifying
-            and opening the pull request are skills rather than commands: they need language, so your
-            agent runs them and this binary checks what they produced. Typing one here says so, and
-            names the invocation. 'sdlc help' lists what the binary does on its own.
+            Writing an intent, a spec or a plan, judging one against the rules, implementing,
+            verifying and opening the pull request are skills rather than commands: they need
+            language, so your agent runs them and this binary checks what they produced. Typing one
+            here says so, and names the invocation. 'build' is the exception: 'sdlc build' starts the
+            build's own process, which runs those skills. 'sdlc help' lists what the binary does on
+            its own.
 
         Exit codes
             0  the command did what was asked

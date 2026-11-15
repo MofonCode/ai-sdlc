@@ -1,6 +1,6 @@
 ---
 name: draft
-description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, or the solution document. Use when a person needs to approve, refuse, stop a cycle, or declare or change what the solution is built from and which stack rules it is held to. For a solution's own constraints, the skill is propose.
+description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, or the solution document. Use when a person needs to approve, refuse, stop a cycle, or declare or change what the solution is built from and which stack rules it is held to. For a solution's own constraints and decisions, the skills are harvest-constraints and harvest-decisions.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "approval <id> | abandon <id> | solution [--standard profile|existing] | techstack [--empty]"
 allowed-tools: Bash(sdlc *), Bash(git *)
@@ -9,14 +9,15 @@ allowed-tools: Bash(sdlc *), Bash(git *)
 # Draft a file only a person writes
 
 Seven protected files, one rule: **a tool never places them, a person does.** This drafter serves four
-of them. Two more — this solution's own rules and its decision record — are served by `propose`
-rather than drafted, for the reason at the foot of this page. The seventh, `areas.md`, is drafted only
-by `sdlc draft mining` from what `/sdlc:mine` proposed (D-150).
+of them. Two more — this solution's own rules and its decision record — are harvested rather than
+drafted, for the reason at the foot of this page. The seventh, `areas.md`, is drafted only by
+`sdlc draft harvest` from what `/sdlc:harvest-areas` proposed (D-150, D-191).
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
 sdlc draft abandon <id>
-sdlc draft solution          [--standard profile|existing]
+sdlc draft solution          [--standard profile|existing] [--approval required|none]
+                             [--coverage-floor <percent>]
 sdlc draft techstack         [--empty]
 ```
 
@@ -29,8 +30,9 @@ writes `approval.<decision>.draft.md` into the cycle directory -- a complete fil
 and prints it with the rename that records it. **`draft solution` does the same for the solution
 document**, carrying its keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
-`--standard` is the one exception, and only when a person asks for it by name: it moves which
-conventions new work follows, and the printed instructions say which way. **Before the document is
+`--standard`, `--approval` and `--coverage-floor` are the exceptions, and only when a person asks for one
+by name: each moves that key and the printed instructions say which way. **Use them rather than editing
+the draft** — an edit once left it with two `approval:` keys (D-162). **Before the document is
 placed it refuses**: adoption already wrote `solution.draft.md`, and a person may be halfway through it,
 so the refusal says to fill that one in and rename it rather than writing a second over it. **And
 `draft techstack` writes the declared stack beside itself** — a copy of it, or the framework's default
@@ -40,8 +42,8 @@ do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
 
-Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md` and
-`techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
+Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `areas.md`, `solution.md`
+and `techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
 for an exception to be carved out of, which is why the rule can be stated in one sentence and has
 nowhere for a bypass to live.
 
@@ -68,11 +70,10 @@ Those three print the `reason` key with nothing after it, on purpose — the gat
 refuses a cycle and says nothing about why, so an unfilled one fails rather than standing quietly. Say
 that when you show it.
 
-**On an approved cycle whose build recorded deviations nobody answered, the same command drafts the answer
-to each one** (D-156): a `deviations` entry listing every deviation with `accepted: false` and `note: ""`.
-Show the deviations it prints, and tell the person: set `accepted: true` to accept one, or leave it false and
-write why in its note to decline it; false with no note is not reviewed, and the pull request waits on it. A
-reopen is refused until every deviation is answered — decline first, then reopen.
+**Deviations are not answered here any more** (D-181). The build reports every deviation and every choice it
+made, at the head of its pull request, and **merging accepts them**; a person who wants one otherwise says what
+instead, in words, and `/sdlc:remediate` changes the code on the same pull request. So the approval drafter
+writes no `deviations` entry, `--accept` and `--decline` are gone, and a reopen no longer waits on an answer.
 
 **`abandon`** — why a cycle stopped. The reason is left empty and the file is rejected without one.
 Abandonment is terminal: the cycle will never build, even if it also holds an approval, and there is no
@@ -125,7 +126,7 @@ truthfully not be departing from anything, which is the deadlock protecting the 
 `sdlc doctor` reports a declared stack that ended up with the menu inside it.
 
 **A report rather than a file in `.sdlc/` itself, because it outlives the rename.** Nothing deletes it,
-and an untracked copy would reach every later cycle's diff as a file no plan declared — `CON_07.2`. The
+and an untracked copy would reach every later cycle's diff as a file no plan declared — `CON_25`. The
 reports directory ignores itself, which is the whole reason it exists.
 
 It is protected for the reason the solution's own constraints are. The declared stack is the second rule
@@ -144,11 +145,12 @@ impossible declaration.
 **Two of the seven are not drafted, and that is the asymmetry here.** Every drafter above hands back a
 finished file for a decision somebody already took. A rule is the opposite: its wording *is* the
 decision, so there was nothing to hand back and this printed a blank form — the one member of the
-family that did. A recorded decision has the same shape. Both moved to `propose`, which argues from the
-record instead: `sdlc propose constraints` from the findings, `sdlc propose decisions` from what an
-approved cycle stated. The licence that makes the difference: **a tool may propose when it brings the
-evidence, and may not shape what somebody just typed.** If somebody asks you to draft either, send
-them there.
+family that did. A recorded decision has the same shape. Both are harvested, which argues from the
+record instead: `/sdlc:harvest-constraints` from the completed cycles' findings, `/sdlc:harvest-decisions`
+from what a completed cycle settled (D-191). The licence that makes the difference: **a tool may propose
+when it brings the evidence, and may not shape what somebody just typed.** If somebody asks you to draft
+either, send them there — and for a rule they already have in mind, `sdlc constraints --new` prints the
+empty entry at the next free id.
 
 **A solution records no profile.** Which technologies are pinned and which stack rules apply are both
 rows in the declared stack, so changing either is an edit to the `techstack` draft.

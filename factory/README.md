@@ -15,8 +15,8 @@ plugin and the binary, and move here when there is a second template to ship.
 **How to set a factory up with it** is [`../docs/guides/setting-up-the-factory.md`](../docs/guides/setting-up-the-factory.md)
 step 2. This page says what the image is.
 
-**It runs MarketSense's factory and pull-request pipelines**, on a Hyper-V VM, through an image of
-MarketSense's own built on this one (see Upgrading, below).
+**It runs one governed solution's factory and pull-request pipelines**, on a Hyper-V VM, through an image of
+that solution's own built on this one (see Upgrading, below).
 
 ---
 

@@ -32,7 +32,7 @@ the cheapest way to discover that what you were about to add already lives somew
 
 | Index | Describes |
 |---|---|
-| [`skills/README.md`](skills/README.md) | the twenty-one skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-seven skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
 | [`docs/guides/README.md`](docs/guides/README.md) | the guides, one task each: what each covers, when to read it, what it leaves to another |
 | [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | the mechanisms, one page each: how it works and why, for a person using it rather than doing a task |
@@ -47,6 +47,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the nineteen global constraints, each with what it forbids and why |
 | `src/Sdlc.Core/Constraints/Profiles/` | the stack rules, one document per profile: `PRO_` ids, the only tier where a rule may name a language, framework or package. Embedded in the binary; a solution is held to the ones its declared stack marks `true`, so an id is unique across every document here |
 | `src/Sdlc.Core/Perspectives/` | the perspectives, one document each: a method, what an author covers and a reader asks at every stage, the rules it may block on, and its evidence (D-90). Embedded in the binary and read through `sdlc perspective show` |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each release changed, newest first, and what moving to it asks of a solution. The README's Where it stands is the present; this is the history |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
@@ -127,7 +128,7 @@ a backstop, not the inner loop.
 ## Releasing
 
 **A release is a merge.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
-are moved together and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
+are moved together, with the release's entry in [`CHANGELOG.md`](CHANGELOG.md), and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
 tests, packs, checks the packed tool answers with the version it will be published as, and waits for a reviewer
 on the `nuget` environment before it pushes and tags the commit `v<that version>`. A merge whose version is
 already published and that changes nothing that ships publishes nothing; one that does change what ships is
@@ -181,6 +182,9 @@ These are properties, not style preferences, and each is a named test in `tests/
 - `Sdlc.Core` references no other project — it stays a leaf, because everything else depends on it
 - every class is sealed, static or abstract
 - every request `Sdlc.Core` declares has a registered handler
+- every private field is `_camelCase` and every constant `PascalCase`
+- the public surface of `Sdlc.Core` is exactly the approved list, so a type made public by accident fails
+- every grant of internal access names an assembly this repository builds
 - every directory holding projects is scanned by the checks above
 
 If one of these is in your way, the conversation is about the property, not about the test.
@@ -195,14 +199,15 @@ the response-factory ban has a test of its own.
 **A command is deterministic and the binary owns it; a skill needs language and an agent runs it.**
 `sdlc help` lists what a file listing and a hash can decide. Everything in `skills/README.md` is what
 cannot be decided that way. Typing a stage name at the binary — `sdlc spec <id>` — is answered rather
-than refused: it says the stage is a skill and names the invocation.
+than refused: it says the stage is a skill and names the invocation. **`sdlc build` is the one exception**: it is
+the command that starts a build's own process, and the `build` skill runs it (D-187).
 
 **Seven files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
 `constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
 belongs in them — `sdlc draft approval`, `draft abandon`, `draft solution`, `draft techstack` — and a
 person places it. **Two are proposed rather than drafted**, because their
-wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
-`sdlc propose decisions` from what an approved cycle stated. **The areas are mined**: `sdlc draft mining`
+wording is argued from the record rather than dictated: a harvest proposes both from the completed cycles —
+`sdlc harvest constraints` from the findings, `sdlc harvest decisions` from what they settled. **The areas are harvested**: `sdlc draft harvest`
 drafts `areas.md` from what three cycles' plans proposed.
 
 `.sdlc/theme.json` is a solution file and is **not** on that list: nobody is judged against a colour, so
@@ -212,6 +217,36 @@ hook denies every agent write to all seven, by file path and by shell command al
 the text of the command, not the paths it resolves, so a commit message with a write verb beside a
 protected file's name -- *Move techstack.md into place* -- is refused too: pass it with `git commit -F`.
 
+## Skills: playbooks and single-responsibility skills
+
+**Every skill is one of two kinds** (D-186), decided by what it does and never by who starts it, and a new one is
+one or the other — never both — or it is not finished. It is single responsibility and composition:
+
+- **A single-responsibility skill** does one job — **one kind of output**: a document written, edited or judged,
+  the code changed, the pull request opened — and **starts no other skill**. It hands back to whatever ran it. A
+  person may start one directly; a skill only ever run by another is always one.
+- **A playbook** composes: it runs other skills, in order, and **does no stage work itself** — no code, no document
+  written, no verdict. A playbook may run another playbook, and **what runs what never loops back**.
+
+**A job that grows a second output is split**: the second becomes a single skill of its own, or goes to one that
+exists, and a playbook runs both. `steer` and `resolve-conflict` showed it — each did its job and then ran the
+checking after it — so that checking moved to `to-plan` and `remediate`, which run them.
+
+**How a skill is named in a skill's text.** A playbook writes a skill it runs in bold code — **`verify`** — where it
+runs it. Plain code is a mention: a route, or a hand-back's offer of the next step. A single skill never writes
+another skill in bold code.
+
+**Why.** One job per skill keeps each one readable and replaceable, and keeps the orchestration in one place
+instead of copied into every stage. The loop is the case that showed it: written into each stage skill (D-29), it
+was three copies of one procedure drifting apart; it is `to-plan`'s now (D-188).
+
+**Where it is held.** The table under *Two kinds of skill* in [`skills/README.md`](skills/README.md) declares each
+skill's kind and the skills each playbook runs, and four tests in `tests/Sdlc.Tests/PluginTests.cs` hold it: every
+skill on disk has a kind and a playbook runs at least one skill; a playbook's bold-code steps and its row name the
+same skills, both ways; a single skill writes no other skill in bold code; and what runs what never loops back. **Whether a single
+skill quietly does two jobs, or a playbook does stage work of its own, no test can read** — that is a reviewer's
+question, and the one to ask of every change to a skill.
+
 ## Keep the documentation current
 
 **This is the section to come back to.** Every document describes a surface, so each goes stale the
@@ -220,7 +255,7 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 
 | If the change | update |
 |---|---|
-| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/reference/skills.md`](docs/reference/skills.md)**, both held by the suite against disk, and the skills list's `Takes` against the skill's `argument-hint` |
+| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, its row in the kinds table, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/reference/skills.md`](docs/reference/skills.md)**, both held by the suite against disk, and the skills list's `Takes` against the skill's `argument-hint` |
 | adds or renames a concept the framework has a name for | [`docs/README.md`](docs/README.md), which defines each one once. A concept defined nowhere is one the next session works out from the code |
 | changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/reference/commands.md`](docs/reference/commands.md) |
 | adds, moves or removes data the framework keeps — a file under `.sdlc/`, a ledger — or changes which command shows it | [`docs/reference/data-views.md`](docs/reference/data-views.md), one row each: where it lives, the command that shows it, who writes it. The suite holds its commands to the binary and its rows to the files only a person writes |
@@ -238,7 +273,18 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
 | adds or removes a supported host, or changes what one supports | the hosts table in [`README.md`](README.md), and `CONCEPT.md` D-46 if the reasoning moves |
 | changes the layout, the build, the enforced properties, or what to keep current | this file |
-| changes where the project stands, its version, or what is not done | the Where it stands section of [`README.md`](README.md) |
+| changes where the project stands, its version, or what is not done | the Where it stands table in [`README.md`](README.md) — one row per capability, saying what has proved it — and the release's entry in [`CHANGELOG.md`](CHANGELOG.md) |
+| changes what the framework is, or what it is for | the definition, whose first sentence a test holds in every place the framework introduces itself: the opening of [`README.md`](README.md), `CONCEPT.md` §1, the `description` of both plugin manifests and of `marketplace.json`, and the package's [`src/Sdlc.Cli/README.md`](src/Sdlc.Cli/README.md) and `<Description>`. The paragraph after it is word for word in the README, `CONCEPT.md` §1 and both plugin manifests; `marketplace.json` carries the first sentence alone, and the package's page and `<Description>` open with it. No test holds the paragraph, so change every place together |
+| changes a skill count, the protected files, a feature, or what the binary is for | [`src/Sdlc.Cli/README.md`](src/Sdlc.Cli/README.md), which is the page nuget.org shows. Its counts are held by the suite; its feature list and wording are not |
+
+### No solution is named
+
+**This repository stands on its own.** No document, comment, test, fixture or commit message you write here names
+a solution that adopted the framework, or any repository other than this one. Evidence a decision or a release
+rests on is **described, not attributed** — *one real plan round*, *a governed solution's pipeline*, *a real cycle
+of 88 rounds* — with its numbers kept, so the reasoning stays argued and nobody needs to know whose it was. A test
+that wants a realistic name uses an invented one. No test holds this, because a test could only check for a name
+by containing it; a reviewer does.
 
 ### Who owns what
 

@@ -74,6 +74,27 @@ internal sealed class FakeRepository : IRepository
 
     public string? CommonDirectory(string workingDirectory) => Common;
 
+    /// <summary>Every git command <see cref="Git"/> was asked to run, as working directory and arguments, in order.</summary>
+    public List<(string Directory, string Arguments)> Ran { get; } = [];
+
+    /// <summary>What <see cref="Git"/> answers when a command starts with one of these: a failure saying so.</summary>
+    public Dictionary<string, string> GitFailures { get; } = new(StringComparer.Ordinal);
+
+    public Result<string> Git(string workingDirectory, string arguments)
+    {
+        Ran.Add((workingDirectory, arguments));
+
+        foreach ((string prefix, string why) in GitFailures)
+        {
+            if (arguments.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return Result.Fail<string>(why);
+            }
+        }
+
+        return Result.Ok(string.Empty);
+    }
+
     public Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message)
     {
         Commits.Add(paths);
@@ -94,6 +115,12 @@ internal sealed class FakeRepository : IRepository
     public IReadOnlyList<string> Uncommitted { get; init; } = [];
 
     public IReadOnlyList<string> UncommittedChanges(string workingDirectory) => Uncommitted;
+
+    /// <summary>What <see cref="Ignored"/> answers, of the paths it is asked about.</summary>
+    public IReadOnlyList<string> IgnoredPaths { get; init; } = [];
+
+    public IReadOnlyList<string> Ignored(string workingDirectory, IReadOnlyList<string> paths) =>
+        [.. paths.Where(path => IgnoredPaths.Contains(path, StringComparer.Ordinal))];
 
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
@@ -134,6 +161,16 @@ internal sealed class FakeRepository : IRepository
     public IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix) =>
         Remote?.Where(branch => branch.StartsWith(prefix, StringComparison.Ordinal)).ToList();
 
+    /// <inheritdoc />
+    public IReadOnlyList<string> Branches(string workingDirectory, string prefix) =>
+        [.. Refs.Where(name => name.StartsWith(prefix, StringComparison.Ordinal) || name.StartsWith("origin/" + prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal)];
+
+    /// <summary>What <see cref="Worktrees"/> reports.</summary>
+    public List<(string Path, string? Branch)> WorktreeList { get; } = [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string Path, string? Branch)> Worktrees(string workingDirectory) => WorktreeList;
+
     /// <summary>What <see cref="CommittedChanges"/> reports, or null for git not being able to say.</summary>
     public IReadOnlyList<string>? Committed { get; set; }
 
@@ -169,4 +206,10 @@ internal sealed class FakeRepository : IRepository
 
     public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from) =>
         Messages;
+
+    /// <summary>What <see cref="FilesContaining"/> answers, keyed by the word, whatever the commit.</summary>
+    public Dictionary<string, IReadOnlyList<string>> Containing { get; } = new(StringComparer.Ordinal);
+
+    public IReadOnlyList<string> FilesContaining(string workingDirectory, string reference, string word, IReadOnlyList<string> exclude) =>
+        Containing.TryGetValue(word, out IReadOnlyList<string>? paths) ? paths : [];
 }

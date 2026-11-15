@@ -58,7 +58,8 @@ public sealed class PullRequestTests
     public async Task A_cycle_whose_passes_stop_reducing_anything_is_escalated_and_never_opens_one()
     {
         // The state iteration 3 never reached. Four verify rounds with the same blocker standing through
-        // all of them: the last two passes reduced nothing, so the loop is not getting anywhere.
+        // all of them: two passes reduced nothing, and the one after them -- the pass a different approach
+        // answers (D-179) -- reduced nothing either, so the loop is not getting anywhere.
         using CycleWorkspace workspace = Passing();
 
         for (int round = 1; round <= 4; round++)
@@ -69,7 +70,7 @@ public sealed class PullRequestTests
         PullRequest.Response answer = await Ask(workspace);
 
         Assert.AreEqual(PullRequest.PullRequestRefusal.Escalated, answer.Refusal, answer.Explanation);
-        StringAssert.Contains(answer.Explanation, "the last two passes reduced nothing");
+        StringAssert.Contains(answer.Explanation, "stopped converging again after a different approach");
         StringAssert.Contains(
             answer.Explanation,
             "makes an unattended batch safe",
@@ -102,11 +103,11 @@ public sealed class PullRequestTests
     }
 
     [TestMethod]
-    public async Task A_pass_that_undoes_earlier_work_escalates_at_once()
+    public async Task A_pass_that_undoes_earlier_work_allows_one_different_approach_and_then_escalates()
     {
-        // The code-side shape of oscillation, and the one signal that does not wait: a loop breaking what
-        // it already fixed is not going to finish, and every further pass is spend against a moving
-        // target. Answered in round two, raised again in round three.
+        // The code-side shape of oscillation: a loop breaking what it already fixed. It no longer escalates on
+        // the spot (D-179): the next pass may take a different approach, recorded as a deviation, and has to
+        // reduce what is open. Answered in round two, raised again in round three.
         using CycleWorkspace workspace = Passing();
 
         workspace.WriteBlockingRound(ArtifactKind.Verify, round: 1, id: "F_01", cites: "CON_08");
@@ -119,8 +120,57 @@ public sealed class PullRequestTests
 
         Assert.IsTrue(state.IsSuccess);
         Assert.IsTrue(state.Value.Regressed);
+        Assert.IsTrue(state.Value.MayDeviate);
+        Assert.IsFalse(state.Value.Escalated);
+        StringAssert.Contains(RemediationBudget.Describe(state.Value), "may take a different approach, recorded as a deviation");
+
+        // The pass after it reduced nothing: a different approach did not help either.
+        workspace.WriteBlockingRound(ArtifactKind.Verify, round: 4, id: "F_02", cites: "CON_08");
+        state = await RemediationBudget.Read(workspace.Cycle, CancellationToken.None);
+
+        Assert.IsFalse(state.Value.MayDeviate);
         Assert.IsTrue(state.Value.Escalated);
-        StringAssert.Contains(RemediationBudget.Describe(state.Value), "a pass undid earlier work");
+    }
+
+    [TestMethod]
+    public async Task Two_flat_passes_allow_one_different_approach_rather_than_escalating()
+    {
+        using CycleWorkspace workspace = Passing();
+
+        for (int round = 1; round <= 3; round++)
+        {
+            workspace.WriteBlockingRound(ArtifactKind.Verify, round, "F_01", "CON_08");
+        }
+
+        Result<RemediationState> state = await RemediationBudget.Read(workspace.Cycle, CancellationToken.None);
+
+        Assert.IsTrue(state.Value.Stalled);
+        Assert.IsTrue(state.Value.MayDeviate);
+        Assert.IsFalse(state.Value.Escalated);
+        Assert.AreEqual(1, state.Value.Stops);
+    }
+
+    [TestMethod]
+    public async Task A_different_approach_that_works_keeps_the_loop_going_and_the_next_stop_escalates()
+    {
+        // A stall over rounds one to three; the answering pass clears it in round four; round five undoes that.
+        using CycleWorkspace workspace = Passing();
+
+        for (int round = 1; round <= 3; round++)
+        {
+            workspace.WriteBlockingRound(ArtifactKind.Verify, round, "F_01", "CON_08");
+        }
+
+        workspace.WriteAnsweredRound(ArtifactKind.Verify, round: 4, id: "F_01", cites: "CON_08");
+        Result<RemediationState> state = await RemediationBudget.Read(workspace.Cycle, CancellationToken.None);
+        Assert.AreEqual(1, state.Value.Stops);
+        Assert.IsFalse(state.Value.Blocked);
+
+        workspace.WriteBlockingRound(ArtifactKind.Verify, round: 5, id: "F_02", cites: "CON_08");
+        state = await RemediationBudget.Read(workspace.Cycle, CancellationToken.None);
+
+        Assert.AreEqual(2, state.Value.Stops, string.Join(",", state.Value.OpenPerRound));
+        Assert.IsTrue(state.Value.Escalated);
     }
 
     [TestMethod]

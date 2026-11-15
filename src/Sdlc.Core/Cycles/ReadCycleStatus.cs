@@ -170,6 +170,10 @@ public static class ReadCycleStatus
     /// Where the build bent the approved documents, when a caller asked: each deviation since the approval that
     /// stands, one line with where it stands. Not read here, for the reason <paramref name="AmendedOn"/> is not.
     /// </param>
+    /// <param name="MergedOn">
+    /// The integration branch's reference, when the cycle's verification passes there: its work has merged, and
+    /// the panel offers no pull request (D-162). Not read here, for the reason <paramref name="AmendedOn"/> is not.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
@@ -182,7 +186,8 @@ public static class ReadCycleStatus
         string? AmendedOn = null,
         Successors.ReadSuccessors.Response? Successors = null,
         IReadOnlyList<string>? Departures = null,
-        IReadOnlyList<string>? Deviations = null)
+        IReadOnlyList<string>? Deviations = null,
+        string? MergedOn = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);

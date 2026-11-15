@@ -20,7 +20,6 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the theme](../README.md) | `.sdlc/theme.json` | `sdlc theme` | a cycle that declares it |
 | [the perspectives a cycle gets](../mechanisms/perspectives.md) | worked out from the intent and the plan's files | `sdlc perspectives <id>`; one: `sdlc perspective show <name> --for <stage>` | — |
 | [the coverage baseline](../guides/handling-refusals.md) | `.sdlc/coverage.json` | `sdlc evidence <id> --coverage <path>` reports against it, and against `coverage_floor` (`sdlc settings`) | the binary; a person may re-measure it |
-
 | **One cycle** | | | |
 | [the intent, spec, plan and verify](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/` | `sdlc status <id>` | each stage |
 | [the approvals](../mechanisms/protected-files.md) | `.sdlc/cycles/<id>/approval.md` | `sdlc status <id>`, `sdlc gate <id>` | a person |
@@ -29,19 +28,20 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [its suggestions, and what became of each](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/findings/suggestions.json` | `sdlc suggestions <id>`; every status: `--all` | the binary, through `sdlc round` |
 | [what its readers cost](../../tools/README.md) | `.sdlc/cycles/<id>/findings/usage.json` | `sdlc status <id>` | the binary |
 | [the build's evidence](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/evidence/` | `sdlc evidence check <id>` | the binary, through `sdlc evidence` |
-| [where the build bent the approved documents](../guides/handling-blockers.md) | `.sdlc/cycles/<id>/deviations.md`; the answers in `approval.md` | `sdlc deviations <id>` | the build and remediate stages; the answers by a person |
+| [where the build bent the approved documents, and what it chose where they were silent](../guides/handling-blockers.md) | `.sdlc/cycles/<id>/deviations.md` — each a deviation or a `choice`, with any change a person asked for recorded on it | `sdlc deviations <id>` | the build and remediate stages |
+| [the report a build hands back](../guides/running-a-cycle.md) | worked out from `deviations.md` and the cycle's verify rounds; never a file of its own | `sdlc report <id>` | nobody: the binary renders it |
 | [a plan parked behind another's code](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/parked.md` | `sdlc backlog` | the binary, through `sdlc park` |
 | [whether it holds, end to end](../guides/handling-refusals.md) | worked out from all of the above | `sdlc verify-chain <id>` | — |
 | **Across cycles** | | | |
 | [every cycle and where each stands](../guides/running-a-cycle.md) | `.sdlc/cycles/` | `sdlc cycles` | — |
-| [what may be built together](../guides/running-a-cycle.md) | worked out from the plans' files | `sdlc cycles --claims` | — |
+| [which pull requests will likely conflict, and the order to merge them](../guides/running-the-factory.md) | worked out from the plans' files | `sdlc cycles --claims` | — |
 | [what is ready to merge and what needs a person](../guides/setting-up-the-factory.md) | worked out from the cycles and the remote | `sdlc sitrep` | — |
-| [work waiting on other work](../guides/running-a-cycle.md) | `.sdlc/successors/<slug>.md`, and the parked cycles | `sdlc backlog`, `sdlc successors` | the intent stage, or `sdlc draft mining` |
+| [work waiting on other work](../guides/running-a-cycle.md) | `.sdlc/successors/<slug>.md`, and the parked cycles | `sdlc backlog`, `sdlc successors` | the intent stage, or `sdlc draft harvest` |
 | [the open suggestions, every cycle](../guides/running-a-cycle.md) | each cycle's `suggestions.json` | `sdlc suggestions` | the binary |
-| [what the record says is missing](../../skills/README.md#mine) | read from every cycle and the ledger | `sdlc mine` | — |
-| **Mining** | | | |
-| [the mined cycles, each sitting, what is watched and what was ignored](../../skills/README.md#mine) | `.sdlc/mined.json` | `sdlc mine --history` | the binary, through `sdlc mine record` |
-| [a husk's contents, once its folder is gone](../../skills/README.md#mine) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
+| [what the completed cycles can still give back](../../skills/README.md#harvest) | read from every completed cycle and the ledger | `sdlc harvest`, `sdlc harvest <aspect>` | — |
+| **Harvest** | | | |
+| [the aspects each completed cycle has answered, the closed cycles, each sitting, what is watched and what was ignored](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
+| [a closed cycle's contents, once its folder is gone](../../skills/README.md#harvest) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |
 
 **Not here:** what a whole session cost, which is a host's transcript rather than a solution's file —

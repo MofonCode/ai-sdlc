@@ -145,7 +145,7 @@ public sealed class SuggestionLedgerTests
     [TestMethod]
     public async Task A_suggestion_raised_before_this_stays_in_its_document_ledger()
     {
-        // MarketSense's cycles hold suggestions inside each document's ledger. A later round moving one
+        // A real solution's cycles hold suggestions inside each document's ledger. A later round moving one
         // moves it there, where its history is, rather than splitting it across two files.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteArtifact(ArtifactKind.Intent);
@@ -298,7 +298,7 @@ public sealed class SuggestionLedgerTests
     [TestMethod]
     public async Task An_old_id_two_documents_hold_is_not_claimed_by_a_decision_naming_it()
     {
-        // MarketSense: an intent "taking in security.F_05" while the spec, plan and verify each held an
+        // A real cycle: an intent "taking in security.F_05" while the spec, plan and verify each held an
         // unrelated security.F_05. Marking all four accepted claimed concerns nobody decided.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSuggestionRound(ArtifactKind.Intent, round: 1, id: "F_05");

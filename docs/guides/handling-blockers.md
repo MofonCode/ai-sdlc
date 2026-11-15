@@ -38,7 +38,7 @@ blocker that could be waived would be waived exactly when it mattered.
 
 | Loop | Judges | Blocker | Answered by |
 |---|---|---|---|
-| interrogate, then refine — run by each stage, and by `to-plan` | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
+| interrogate, then refine — run by `to-plan`, including after a correction | one planning document — intent, spec or plan — against the rules in force | a blocking finding | `refine`, which edits that document |
 | verify, then remediate — verify run by a green build, then by remediate after each pass | the build, from its recorded evidence, against the spec | a `blocked` verification | `remediate`, which edits source and tests — say *fix it* |
 
 **The two editors have opposite guards, and the asymmetry is the whole design.** Refine edits a
@@ -56,8 +56,8 @@ back to you when they do.
 
 `/sdlc:interrogate <id> <artifact>` reads one document in a fresh process — a reader that never saw it
 being written, so it has nothing to defend — and adds a findings round to the artifact's ledger,
-`findings/<artifact>.json`. Each finding has an id kept across rounds, the one rule it cites, what is
-wrong, where, and the remedy. `sdlc findings <id>` prints each one where it stands.
+`findings/<artifact>.json`. Each finding has an id kept across rounds, the rule it cites — every blocking finding cites one in force for that document, or it is
+recorded as a suggestion saying so, and a suggestion may cite none — what is wrong, where, and the remedy. `sdlc findings <id>` prints each one where it stands.
 
 | Severity | Means |
 |---|---|
@@ -70,9 +70,9 @@ runs, or a verify never shows, blocks; a case nobody listed is a suggestion, wha
 it under. Which cases belong on the list is decided once, at the spec, against the intent's own words, and
 you see the list when you approve (D-132).
 
-**The stage skills run this loop for you.** `/sdlc:intent`, and `/sdlc:to-plan` for the spec and the plan,
-each write their document, interrogate it, refine it, and repeat until a round raises nothing blocking, then hand
-back. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
+**`/sdlc:to-plan` runs this loop for you** (D-188): on the intent, then on the spec and the plan it has `spec`
+and `plan` write, it interrogates, refines and repeats until a round raises nothing blocking, then hands back.
+A correction goes through `to-plan` too: it has `steer` write it in, then runs the same loop from the highest document that moved. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or
 when a refusal elsewhere names one.
 
 ### What it stops
@@ -85,8 +85,7 @@ While a blocking finding is open:
 
 ### Answering it
 
-**The stage answers it**: each stage, and `to-plan` across them, runs refine and interrogates again until a
-round is clean. What you meet is the moment it stops and asks. To run a step by hand —
+**The loop answers it**: `to-plan` runs refine and interrogates again until a round is clean. What you meet is the moment it stops and asks. To run a step by hand —
 `/sdlc:refine <id> <artifact>`, then `/sdlc:interrogate <id> <artifact>` — is the same loop.
 
 Refine applies the latest round's findings to that one document and never judges its own work. **Every
@@ -163,14 +162,14 @@ longer exists, with every approval hash still matching. The gate refuses it.
 Do not edit the documents by hand, and do not refine around a problem you have changed your mind about.
 
 ```
-/sdlc:steer <id> "what to change"
+/sdlc:to-plan <id> "what to change"
 ```
 
-Steer carries the correction down the chain — editing the intent, spec and plan rather than regenerating
-them — records it with your name on it, and re-interrogates everything downstream of what it touched,
-which is what keeps rounds from going stale. **Steering changes *how*, not *what*.** A correction that
+`to-plan` has `steer` carry the correction down the chain — editing the intent, spec and plan rather than
+regenerating them, with your name on it — then checks everything downstream of what it touched again, which
+is what keeps rounds from going stale. **Steering changes *how*, not *what*.** A correction that
 changes the problem is a different cycle, and the skill says so and offers one. The exception is a
-suggestion a reader raised: name its id — `/sdlc:steer <id> accessibility.S_01 security.S_02` — to take
+suggestion a reader raised: name its id — `/sdlc:to-plan <id> accessibility.S_01 security.S_02` — to take
 it into the intent with your name on it, or to decline it. Name every one you want in the same run.
 
 ### After approval
@@ -216,7 +215,9 @@ runs the tests or reads the source. Per criterion it asks which test the plan na
 says it ran and passed, **whether that test actually establishes the criterion**, and which case it never
 runs or which outcome it never reads. A test that passed but does not reach its criterion is *not met*. Each
 Met quotes the assertion it rests on from `diff.patch`, so the interrogation that follows checks the quote
-against the diff rather than trusting a test's name.
+against the diff rather than trusting a test's name. A proof that lives in code the change did not touch —
+an existing test, or a helper the plan's proof names by path — is quoted from `proof-sources.txt`, which
+holds that test's block, or the named file whole, from the build's commit (D-168).
 
 The verdict is written by a **fresh process** that never saw the build: the session running the skill
 assembles the spec, the plan and the evidence, starts the adjudicator, and records what it returns. When
@@ -235,45 +236,49 @@ something it was not given leave to:
 
 | It cites | It means | You |
 |---|---|---|
-| `CON_07.2` | the change does something the plan did not describe: a drive-by refactor, an unrelated fix. Judged by what each change is for, never by which files it touched | take it back out; keep it as a `Noticed:` line for a later cycle |
-| `CON_24` | the change takes what a recorded decision set aside, and neither the intent nor the plan declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — remediate records a `decision` deviation quoting it, for you to answer (D-156) |
+| `CON_25` | the change does something neither the plan nor a deviation in force describes: a drive-by refactor, an unrelated fix, in a file the plan named or one it did not. Judged by what each change is for, never by which files it touched | take it back out; keep it as a `Noticed:` line for a later cycle |
+| `CON_27` | the change takes what a recorded decision set aside, and neither the intent, the plan nor a `decision` deviation in force declares that departure. The finding names the decision in its own words and quotes the lines | make the code keep the decision, or — when the work genuinely needs to depart — remediate records a `decision` deviation quoting it; the pull request leads with it, and merging accepts it (D-181) |
+
+It is handed two more rules, as every reader of a change is — `CON_09`, which applies to every artifact, and
+`CON_11`, which judges a change adding a rule — and a cycle's change rarely meets either.
 
 **These go to `/sdlc:remediate` whatever the outcome reads**, because no adjudication changes the code;
 `sdlc status` names it.
 
 ### Answering it
 
-Say *fix it*, or `/sdlc:remediate`. Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
+**Inside the build, nobody has to say anything**: *build it* runs remediation in the build's own process
+(D-178). Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
 latest verify round. They are not the same list. A Not met that the verdict's readers agree with raises
 no finding, so a pass that worked only the findings could leave the criterion that blocked the cycle
 untouched. It edits source and tests to fix the **cause**, never a planning document. After each pass it builds,
 tests, records the evidence again and commits it, then **runs verify again** — whose adjudicator is a fresh
 process that never saw the fix, so the session that wrote it never grades it (D-159).
 
-**It runs while each pass reduces what is open, and stops when it is not getting anywhere** (D-66):
+**It runs while each pass reduces what is open, and deviates once before it escalates** (D-66, D-179):
 
-| It stops when | Because |
-|---|---|
-| a pass undoes what an earlier one answered | a loop undoing its own work is not going to finish |
-| two passes in a row reduce nothing | nothing is moving |
-| a third deviation bends the same approved text, and the verification still blocks | the loop is going round, not converging |
+| When | It | Because |
+|---|---|---|
+| a pass undoes what an earlier one answered, or two in a row reduce nothing | takes one different approach, recorded as a deviation, and goes round again | the approach the plan described may be what is failing |
+| the same happens again after that deviation | escalates | a loop that a different approach did not unstick is not going to finish |
+| a third deviation bends the same approved text, and the verification still blocks | escalates | the loop is going round, not converging |
 
-There is no pass ceiling. Nothing stops pass nine if pass nine is still making progress. **Every fourth pass
-it checks in** — what closed, what is open — and asks whether to keep going, in a new session. That is not a
-ceiling: it is you back in front of the one loop the progress rule cannot catch, which closes one finding
-while opening another.
+**The deviation has limits that do not bend**: it never changes what *done* means — the intent, the spec, a
+criterion, or a test weakened so it passes — and never widens the cycle. There is no pass ceiling, and no
+check-in on a count: the build runs in a process of its own with nobody to ask, and the progress rule bounds
+it.
 
 ### When the approved text cannot be followed
 
 **Remediate will not adjust the spec to match the code, and neither stage stops to ask you.** When the
 approved text cannot be followed — a file the fix has to touch that the plan did not declare, a test whose
-name has to change, a criterion no finite proof meets, a decision the work cannot keep — build or remediate
-does the work and records a **deviation** in `deviations.md` (D-156). Each one quotes the approved text it
-departs from, word for word, names the blocker with its evidence, and says what was done instead. A
-criterion may only be narrowed, and the part dropped becomes a successor.
+name has to change, a decision the work cannot keep — build or remediate does the work and records a
+**deviation** in `deviations.md` (D-156). Each one quotes the approved text it departs from, word for word, names
+the blocker with its evidence, and says what was done instead. **A criterion is never deviated from** (D-179): a
+criterion the code cannot be made to meet escalates, and you reopen the plan.
 
 **A deviation doesn't excuse a blocker. It replaces the approved text the blocker was measured against,
-and you sign the replacement.** Every verify reader reads them and judges against the documents as
+and you accept the replacement by merging.** Every verify reader reads them and judges against the documents as
 deviated. A change that departs from the plan with no deviation describing it is blocked as an undeclared
 one, so the build can bend the plan but not silently.
 
@@ -281,30 +286,18 @@ one, so the build can bend the plan but not silently.
 sdlc deviations <id>
 ```
 
-lists each one with where it stands. **Before the pull request, answer every one**, with the same drafter
-that approves:
+lists each one with where it stands. **Where the approved text was silent**, the build records a **choice**
+in the same file — a library, a pattern, a default a reviewer would want to know (D-180).
 
-```pwsh
-sdlc draft approval <id>
-```
+**Nothing is answered before the pull request** (D-181). Every deviation and choice, with every concern the
+verification raised without blocking, is in the report the build hands back — `sdlc report <id>` — and at the
+head of the pull request. **Merging accepts them.** To have one otherwise, say what instead, in words — *change
+deviation 2: use X instead*, *revert that choice* — or `/sdlc:remediate`: it records your words on the entry,
+changes the code, verifies again and pushes to the same pull request. It asks until your instruction says what
+to do instead.
 
-On an approved cycle with unanswered deviations it drafts a `deviations` entry, each one listed with
-`accepted: false` and `note: ""`:
-
-| You leave | Means |
-|---|---|
-| `accepted: true` | accepted: it is part of what the cycle promises |
-| `accepted: false`, a note written | declined: remediate redoes that part, with your note as its instruction |
-| `accepted: false`, the note empty | not reviewed. The pull request check refuses until you answer it |
-
-Accept some and decline others in one entry; each is held to the hash of its text, so one edited after you
-answered it is unanswered again. A declined one has to be verified again before the pull request. **Under
-`approval: none`** every deviation is accepted, and the pull request, whose body leads with them, is your
-review.
-
-**When the deviations show the plan is wrong in substance, reopen** — but answer every deviation first;
-the drafter refuses a reopen until you have. The accepted ones are written into the amended plan, and the
-declined ones, with your notes, are the reopen's reason.
+**When the deviations show the plan is wrong in substance, reopen.** Say why in the reopen's reason; the
+deviations are what the amended plan is written from.
 
 ```pwsh
 sdlc draft approval <id> --reopen
@@ -315,12 +308,18 @@ deviation. The stage stops and hands back, and the choice is a successor or a re
 
 ### Escalated
 
-**A remediation loop that stops making progress sets the verify outcome to `escalated`.** It is computed,
-never declared, and `pr` refuses it — a batch run with `--pr` opens a draft pull request for it instead,
+**A remediation loop that stops making progress, even after its one deviation, sets the verify outcome to
+`escalated`.** It is computed, never declared, and `pr` refuses it — the build opens a draft pull request for it instead,
 which the check will not let merge (D-85). Its body leads with the criteria marked Not met and each open
 blocker's rule, gist, place and fix. An escalated cycle is waiting for a person: read what the passes
 actually did, then decide whether the plan needs reopening, the work needs a different approach, or the
 cycle should stop.
+
+**A different approach is said in words, then *fix it*.** Tell the agent what to do instead, and `/sdlc:remediate`
+starts from your instruction — in the worktree `sdlc branch <id> remediate` prints, on the draft's branch — and goes
+round until the verification passes or it needs you again. It will not act on an instruction that does not say what
+to do. **A criterion the code cannot meet is a reopen**, never an instruction: no deviation changes what *done*
+means (D-179).
 
 ```pwsh
 sdlc draft abandon <id>
@@ -347,10 +346,10 @@ collect, each concern once however many of a cycle's documents raised it.
 is read from what a person wrote in an intent through `/sdlc:steer`, from a cycle begun with `--from
 suggestion:<cycle>/<id>`, and from an abandonment's `declining` lines (D-115).
 
-What keeps going wrong across cycles — answered blockers included — is `sdlc propose constraints`, which
+What keeps going wrong across cycles — answered blockers included — is `sdlc harvest constraints`, which
 reports a rule cited in three or more distinct cycles as a candidate for one of this solution's own.
 
-**A perspective's suggestions are how its rules get written** — `propose constraints` counts them by
+**A perspective's suggestions are how its rules get written** — `harvest constraints` counts them by
 perspective, and How a perspective earns rules in `../mechanisms/perspectives.md` says how to read that count.
 
 ## Where to go next

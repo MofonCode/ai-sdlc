@@ -1,12 +1,15 @@
-# ai-sdlc — the gate
+# ai-sdlc — the `sdlc` binary
 
-`sdlc` is the deterministic half of [ai-sdlc](https://github.com/MofonCode/ai-sdlc): a constraint-governed
-lifecycle for software written with an agent.
+**ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
-A change moves through **intent → spec → plan → build → verify → pr**. Each phase produces a file the
-next phase reads, each file is challenged against a fixed set of rules before it advances, and a person
-approves the three planning documents together — against a hash of each — before any code is written.
-Nothing merges unless the chain is complete, approved and hash-matched.
+Every change is planned before any code exists, challenged by a reader that never saw it written, approved by a
+person against the exact text, and proved from recorded evidence. A pull-request check refuses anything missing a
+link. The solution's rules and decisions live in the repository beside its code and carry from one cycle to the
+next, so every stage of every change is read against everything settled before it. Whatever contradicts them is
+brought into the open, for the person and the model alike, rather than slipping through.
+
+This package is `sdlc`, the deterministic half of [ai-sdlc](https://github.com/MofonCode/ai-sdlc): every check a
+program can decide, called from the agent's hooks and from CI.
 
 ```
 dotnet tool install --global MofonCode.Sdlc.Cli
@@ -21,8 +24,8 @@ sdlc doctor             # check this installation and this repository
 
 | | |
 |---|---|
-| this package | the `sdlc` command: the gate every host hook, git hook and pipeline step calls |
-| the plugin | the twenty skills that write and judge the artifacts, which need language |
+| this package | the `sdlc` command: what every host hook and pipeline step calls |
+| the plugin | the twenty-seven skills that write and judge the documents, which need language |
 
 Install only this and you get a working gate and no stages — `sdlc help` lists what the binary does on
 its own, and every stage name typed at it answers with the invocation to use instead of "unknown
@@ -31,62 +34,38 @@ command". Install only the plugin and every skill's first command is not found.
 `sdlc doctor` reports on both and is explicit about which half it cannot see: no binary can ask a host
 what it loaded, so that check names the command to run rather than claiming an answer.
 
-## Why use it
+## Why choose it
 
-The problem is not that an agent writes bad code. It is that a change can travel from a request to a
-diff with nothing recorded about what it was for, what done meant, or who agreed to it — and that a
-process which *looks* enforced and is not is worse than one that never pretended.
+An agent can take a sentence to a merged diff in minutes, and nothing along the way records what the change was
+for, what *done* meant, what the agent decided by itself, or who agreed to any of it. **The trouble is not that
+the code is bad; it is that nobody can tell**, and the next session cannot either.
 
-## Features
-
-Each is the problem it answers, then what it does. Most are the plugin's skills; what makes them hold is
-this binary.
-
-- **Intent interview** — the agent codes from one sentence and its assumptions never surface. A person is
-  interviewed into why the change exists, and what nobody can answer yet is recorded rather than guessed.
-- **Slicing** — large work becomes one unreviewable pull request. It is cut into pieces that each build and
-  merge alone, and a piece needing another's code waits until that code merges.
-- **Spec with cases** — *done* is vague and edge cases are argued at review. Every criterion can fail and
-  lists the cases it covers.
-- **Plan with proofs** — tests pass and prove nothing. The plan names the test proving each criterion, and
-  a throwaway probe proves any platform behaviour it rests on.
-- **Steer** — a mid-course correction means regenerating everything. It is carried down the chain as edits.
-- **Interrogator** — the author reviews its own document and agrees. A fresh process with no tools reads
-  it against the rules, never edits, and the loop runs until nothing blocking is left.
-- **Findings** — review comments cite nothing and get dismissed. Each cites one rule by id; a blocking one
-  cannot be waived; the rounds are a ledger chained by hash.
-- **Suggestions** — good non-blocking observations are lost. They are kept, each concern once, with what
-  became of each, and any can start the next cycle.
-- **Perspectives** — security, operability, maintainability and accessibility depend on somebody
-  remembering them. Each steers the author and judges in a reader of its own.
-- **Constraints** — a rule in a prompt is forgotten next session. Rules have ids and a *forbids* clause,
-  in three tiers, rendered fresh into every reading.
-- **Decisions charter** — each session re-argues what was settled, unless somebody prompts it. Settled
-  choices and what they beat are read by every cycle without asking, and a plan departing from one must say
-  what it costs.
-- **Stack definition** — the agent picks packages ad hoc. The declared stack is exactly what binds a plan.
-- **Propose** — the same mistake recurs and never becomes a rule. The record is read for the rule and the
-  decisions a solution keeps reaching for, and each is argued for a person to adopt.
-- **Hash-bound gate** — approval is a reply in chat and the plan changes afterwards. Approval records a hash
-  of each planning document, and an edit voids it.
-- **Protected files** — the agent edits its own approval or rules. Six files are a person's alone, and the
-  pre-tool hook denies every agent write to them.
-- **Recorded evidence and verify** — "the tests pass" is a claim. The build records its diff, tests and
-  coverage; a fresh process judges each criterion from that evidence alone.
-- **Bounded remediation** — a fix loop thrashes or quits at an arbitrary count. It runs while each pass
-  makes progress, then escalates to a person and opens no pull request.
-- **Chain check** — the process is skipped and merged anyway. `sdlc verify-chain` as a required
-  pull-request check refuses a chain that is incomplete, unapproved or hash-mismatched.
-- **Batch build and the factory** — approved work waits for supervision. It builds unattended overnight,
-  never merges, and leaves a morning sitrep.
-- **Leads** — work is retyped from a tracker. A cycle starts from an Azure DevOps or GitHub item, a
-  suggestion, or production's errors.
-- **Init** — adopting governance is setup nobody finishes. One interview and one command write the hooks,
-  the pipeline and the drafts a person places.
-- **Pinned release** — an upgrade moves the rules under a change in flight. A cycle runs on the release it
-  opened on.
-- **More than one agent** — governance for one agent fails when a teammate uses another. One adapter speaks
-  Claude Code, GitHub Copilot and Antigravity, and the merge check needs none of them.
+1. **Decisions that outlive the conversation.** `decisions.md` keeps what the solution chose and what it chose
+   *instead of*, in the repository, written by a person. Every stage of every cycle reads it, and every reader is
+   handed it — including the one that reads the finished code.
+2. **Rules the agent cannot bend.** A constraint is a record, not an instruction: an id, four clauses, one saying
+   what it *forbids*. Three tiers — global, the stack's, the solution's own — are rendered fresh into every
+   reading, and every blocking finding cites one by id.
+3. **Accountability runs both ways.** A departure from a decision is declared where it arises and shown to the
+   person at the approval and in the pull request; a build that bends the plan records a deviation, and one that
+   settles what the plan left open records a choice, and both lead the pull request in one report that merging
+   accepts; and the agent cannot edit what it is judged by. Ask for something a decision set aside and you are
+   told. Neither side can waive a blocking finding.
+4. **Nothing grades its own work.** Every planning document is read by a fresh process that never saw it
+   written, and the verification by one that never saw the build. The reader never edits; the editor never
+   judges.
+5. **A definition of done, fixed before the code.** An agent reviewing an agent can always find one more thing,
+   so review loops. Here the spec's criteria, and the cases each lists, close *done* for the cycle: a finding
+   blocks only when it breaks one of them or a rule it cites, and everything else is a suggestion, kept for the
+   next cycle. The plan names the test proving each criterion, the build records the evidence, and the verdict
+   traces back through the criterion to a line in the intent.
+6. **Enforcement that does not depend on the agent's goodwill.** This binary decides everything a program can,
+   and `sdlc verify-chain` as a required pull-request check refuses any change whose chain is not complete,
+   approved and hash-matched — whichever agent wrote it.
+7. **A record that learns from itself.** A harvest reads merged and abandoned cycles for the rule the findings keep reaching
+   for and the choices the cycles settled, one aspect at a time, and proposes each for a person to adopt. It never places one.
+8. **An audit trail you can read months later.** The pull-request body is the cycle; each document's findings
+   are a ledger chained by hash; the approval records a hash of what it approved.
 
 **What it costs.** More time and more tokens per change, by design: every change runs the whole chain. If
 you want an agent that moves faster, this is the wrong tool; if you want to trust and audit what an agent
@@ -102,23 +81,30 @@ Three layers, and only the last is a guarantee:
 | local | this binary, a pre-tool hook, a turn-end hook | anyone with a shell |
 | **non-bypassable** | `sdlc verify-chain` as a pull-request check | nobody without repository admin |
 
-Six files are a person's alone — the approval, the abandonment, a solution's own constraints, the decisions
-it has settled, the declared stack, and the file saying what the solution is. No tool writes them. This one prints what belongs in them and a
-person pastes it, and the pre-tool hook denies every agent write to all six, by file path and by shell
-command alike. **A blocking finding cannot be waived by any mechanism.**
+Seven files are a person's alone — the approval, an abandonment, the solution's own constraints, the decisions
+it has settled, its areas, its declared stack, and the file saying what the solution is. No tool writes them.
+This one prints what belongs in them and a person places it, and the pre-tool hook denies every agent write to
+all seven, by file path and by shell command alike. **A blocking finding cannot be waived by any mechanism.**
 
 ## Hosts
 
 The rules name no language, framework or package, so they travel to any stack — but this is a .NET
 executable, so the toolchain does not. The hook adapter speaks Claude Code, GitHub Copilot and
 Antigravity; `sdlc hook --host <name>` reads that host's payload, asks the one policy engine, and writes
-that host's own decision shape.
+that host's own decision shape. Claude Code is the host it has been run on in earnest.
 
 ## Requirements
 
 .NET 10 SDK or later, and git. Without git a build cannot record the diff a verification derives from
 and the gates key on a branch that cannot exist, so adoption refuses outside a repository rather than
 appearing to work.
+
+## Read more
+
+- [The README](https://github.com/MofonCode/ai-sdlc#readme) — every feature, getting started, and where each
+  capability stands
+- [The changelog](https://github.com/MofonCode/ai-sdlc/blob/main/CHANGELOG.md) — what each release changed
+- [The guides](https://github.com/MofonCode/ai-sdlc/tree/main/docs/guides) — one task each
 
 ## Licence
 

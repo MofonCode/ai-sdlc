@@ -563,6 +563,26 @@ public sealed class DraftTests
         StringAssert.Contains(plain.Entry, "standard: existing", "Unasked, the recorded key is carried.");
     }
 
+    [TestMethod]
+    public async Task A_solution_draft_moves_the_approval_and_the_floor_when_asked_and_writes_each_once()
+    {
+        // D-162. An agent's edit of the draft left two approval keys.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+
+        using var gate = Gate.For(workspace.Root);
+
+        DraftResult draft = Ok(await gate.Send<WriteSolutionDraft.Command, DraftResult>(
+            new WriteSolutionDraft.Command(Approval: ApprovalRequirement.None, CoverageFloor: 0.65)));
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+        StringAssert.Contains(draft.Entry, "approval: none");
+        StringAssert.Contains(draft.Entry, "coverage_floor: 65%");
+        StringAssert.Contains(draft.Instructions, "approval goes from required to none");
+        Assert.AreEqual(1, draft.Entry.Split("approval:").Length - 1);
+        StringAssert.Contains((await Solution(workspace)).Entry, "approval: required", "Unasked, the recorded key is carried.");
+    }
+
     private static async Task<DraftResult> Solution(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);

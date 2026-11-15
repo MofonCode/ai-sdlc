@@ -74,6 +74,10 @@ public static class EvidenceRenderer
                 }
             }
         }
+        else
+        {
+            output.AppendLine(Indent + "Tests     none recorded yet");
+        }
 
         if (report.Coverage is { } coverage)
         {
@@ -87,9 +91,28 @@ public static class EvidenceRenderer
                 CultureInfo.InvariantCulture,
                 $"{Indent}          whole codebase {coverage.Rate:P1}, {Codebase(coverage)}"));
         }
-        else
+
+        // Where the time went, for diagnosis: no reader is handed it (D-169).
+        if (report.Timings is { } timings)
         {
-            output.AppendLine(Indent + "Tests     none recorded yet");
+            output.AppendLine();
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}Timing    {(timings.Wall is { } wall ? "the run took " + RunTimings.Say(wall) : "the results files give no start and finish")}, across {Count(timings.Files.Count, "results file")}. Kept in {RunTimings.FileName}; no reader is handed it"));
+
+            foreach (TimedTest slow in timings.Slowest.Take(5))
+            {
+                output.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Indent}          {RunTimings.Say(TimeSpan.FromSeconds(slow.Seconds)),8}  {slow.Name}"));
+            }
+        }
+
+        if (report.RetiredVerdict)
+        {
+            output.AppendLine();
+            output.AppendLine(Indent + "Verdict   the blocked verify.md was removed -- or the passed one, when a change was asked for: it judged the run this one replaces.");
+            output.AppendLine(Indent + "          Commit its removal with this evidence, then verify again.");
         }
 
         output.AppendLine();
@@ -100,8 +123,8 @@ public static class EvidenceRenderer
         Comparison(output, report);
 
         output.AppendLine();
-        output.AppendLine(Indent + "Verify reads tests.json and the diff, and nothing else. A claim it cannot");
-        output.AppendLine(Indent + "trace to one of these files is a claim it must not make.");
+        output.AppendLine(Indent + "Verify reads tests.json, the diff and the coverage, and nothing else. A claim");
+        output.AppendLine(Indent + "it cannot trace to one of these files is a claim it must not make.");
 
         return output.ToString();
     }
@@ -157,9 +180,10 @@ public static class EvidenceRenderer
             output.AppendLine();
         }
         output.AppendLine(Indent + "          These are suggestions, not a refusal. The comparison cannot see inside");
-        output.AppendLine(Indent + "          a file, which is why CON_07.2 exists -- so it was never what caught scope");
-        output.AppendLine(Indent + "          creep. What blocks is outcome-based: the build fails, tests fail, or a");
-        output.AppendLine(Indent + "          criterion's proof is not met.");
+        output.AppendLine(Indent + "          a file, so it was never what caught scope creep. What blocks: the build");
+        output.AppendLine(Indent + "          fails, tests fail, a criterion's proof is not met, coverage falls under");
+        output.AppendLine(Indent + "          its floor, or the change's reader finds work the plan did not describe");
+        output.AppendLine(Indent + "          (CON_25) or a recorded decision departed from in silence (CON_27).");
     }
 
     /// <summary>The whole codebase against its baseline and the floor, in the terms the merge judges it (D-157).</summary>

@@ -10,15 +10,17 @@ louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | twenty-one skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
+| the plugin | twenty-seven skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
 [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
 Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
-twenty-one skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
+twenty-seven skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
+Claude Code runs both copies, so the plugin's steps aside wherever the repository's `.claude/settings.json`
+already runs the same hook, and each check speaks once; before adoption the plugin's copy is the guard (D-172).
 
 **All three hosts are governed, and adoption writes every configuration regardless of which one you
 use.** That is deliberate: a file is inert on a machine without that host, and a teammate who opens the
@@ -53,7 +55,7 @@ on the path wherever a skill or a hook calls it:
 dotnet tool install --global MofonCode.Sdlc.Cli
 ```
 
-**Until the first release reaches nuget.org**, or when you are changing the framework itself, build it
+**When you are changing the framework itself**, build it
 from a clone of this repository and install the package that build produces. One command per block. A package
 packed on your machine is a local build — its version ends in `-local` — and no cycle it judges opens a pull
 request; inside a solution that pins a published release, the pin runs instead. To run a cycle on a change you
@@ -87,12 +89,10 @@ the escape hatch: point it at a `CONSTRAINTS.md` and that file binds instead, wh
 running a build of the gate against a library you are editing. Pointed at a file that is not there, every
 command refuses and says so rather than falling back — a person who named a rule set meant it.
 
-**The package and the plugin carry the same number, and the artifact format does not.**
+**The package and the plugin carry the same number.**
 `VersionPrefix` in `Directory.Build.props` is the one place the release version is set, and the suite
 asserts it matches `plugin.json`, so the package version and the plugin version always tell you the same
-thing. The third version, stamped into every artifact's `framework_version`, tracks the file envelope
-rather than the release and is meant to stay put across releases that change no format. `sdlc version`
-prints all three and says which is which. If a reinstall has to pin one, `dotnet tool install --version`
+thing. `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
 takes it.
 
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the
@@ -326,6 +326,12 @@ reinstall took, look at the file's timestamp or run a command only the newer bui
 
 ### Then each governed repository
 
+**Start with `sdlc upgrade` in the solution.** It prints every step below that applies there, in order, with the
+release each piece is on now: this machine's tool, the plugin, the pin and adoption on a branch, the factory's
+images when the solution has a factory, and the open cycles still pinning an older release. It runs nothing, and
+it is answered by this machine's release rather than the one the solution pins (D-170). The rest of this section
+is why each step is there.
+
 **Reinstalling updates this machine and no repository on it.** Every governed solution still pins the
 release it pinned, and has the hook configuration, the pipeline and the `.sdlc/README.md` that release wrote.
 In each one, on the integration branch, a person moves the pin and then runs adoption again. Adoption picks
@@ -355,7 +361,7 @@ may ride along too. A pipeline is compared step by step, so the steps a solution
 through unchanged; `sdlc factory` drops them, so put them back before committing. The
 same pull request may answer the rows the release asks about in `techstack.md` — added rows only, each one
 `sdlc stack` lists under *Not mentioned*. Anything else in it, one source file or one changed answer, and
-it is refused as a change with no chain; `handling-refusals.md` has the four upgrade refusals.
+it is refused as a change with no chain; `handling-refusals.md` has the five upgrade refusals.
 
 **`doctor` says when this is due.** `.sdlc/README.md` carries the release that wrote it, and the
 `framework files` check compares that with the binary:

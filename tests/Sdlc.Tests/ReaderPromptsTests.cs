@@ -29,13 +29,19 @@ public sealed class ReaderPromptsTests
             written.Prompts.Select(prompt => prompt.Reader).ToArray(),
             "The rules reader, then the three perspectives that are always on.");
 
-        string[] texts = [.. written.Prompts.Select(prompt => File.ReadAllText(prompt.Path))];
-        string prefix = texts[0][..texts[0].IndexOf(Ask, StringComparison.Ordinal)];
+        // The shared block is written once and handed over as a system prompt (D-163); each prompt file is the
+        // reader's own part alone, so a host that caches at the end of the system prompt finds it warm.
+        Assert.IsNotNull(written.Shared);
+        string prefix = await File.ReadAllTextAsync(written.Shared.Path);
 
-        foreach (string text in texts)
+        foreach (ReaderPrompts.Written prompt in written.Prompts)
         {
-            Assert.IsTrue(text.StartsWith(prefix, StringComparison.Ordinal), "Every reader's prompt opens with the same bytes.");
+            string own = await File.ReadAllTextAsync(prompt.Path);
+            Assert.IsTrue(own.StartsWith(Ask, StringComparison.Ordinal) || own.StartsWith("# ", StringComparison.Ordinal), prompt.Reader + "'s file is its own part.");
+            Assert.IsFalse(own.Contains("The die is hard to read.", StringComparison.Ordinal), prompt.Reader + "'s file does not repeat the shared block.");
         }
+
+        string[] texts = [.. written.Prompts.Select((_, index) => Whole(written, index))];
 
         StringAssert.Contains(prefix, "The die is hard to read.");
         StringAssert.Contains(prefix, "None -- this is the first artifact.");
@@ -52,12 +58,31 @@ public sealed class ReaderPromptsTests
         workspace.WriteArtifact(ArtifactKind.Plan);
         string directory = Path.Combine(workspace.Root, "round");
 
-        string absent = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value.Prompts[0].Path);
+        string absent = Whole((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value);
         StringAssert.Contains(absent, "This solution has no techstack.md: it declares nothing.");
 
         workspace.WriteTechStack("| Concern | Default |\n|---|---|\n| Testing | MSTest |\n");
-        string present = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value.Prompts[0].Path);
+        string present = Whole((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value);
         StringAssert.Contains(present, "| Testing | MSTest |");
+    }
+
+    [TestMethod]
+    public async Task A_spec_rules_reader_is_told_what_the_evidence_is_and_no_other_stage_is()
+    {
+        // A criterion only the whole run could show passed two spec rounds clean, because nothing told the
+        // reader the evidence is one run of test names and outcomes (D-167).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteSpec(criteria: 1);
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string spec = Whole((await Prompt(workspace, ArtifactKind.Spec, directory, "rules")).Value);
+        StringAssert.Contains(spec, "The evidence each criterion will be judged on is one recorded run");
+        StringAssert.Contains(spec, "how long the whole run or suite takes");
+
+        string intent = Whole((await Prompt(workspace, ArtifactKind.Intent, directory, "rules")).Value);
+        Assert.IsFalse(intent.Contains("one recorded run", StringComparison.Ordinal), "An intent is not judged against the evidence.");
+        Assert.IsFalse(intent.Contains("{{stage}}", StringComparison.Ordinal), "The placeholder never reaches a reader.");
     }
 
     [TestMethod]
@@ -71,17 +96,53 @@ public sealed class ReaderPromptsTests
         CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
         string directory = Path.Combine(workspace.Root, "round");
 
-        string first = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value.Prompts[0].Path);
+        string first = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value);
 
         StringAssert.Contains(first, "<file name=\"spec.md\">");
         StringAssert.Contains(first, "<file name=\"evidence/tests.json\">");
         StringAssert.Contains(first, "+Assert.AreEqual(1, roll);");
-        StringAssert.Contains(first, "Find each quote in the diff");
+        StringAssert.Contains(first, "Find each quote where it says it is");
         Assert.IsFalse(first.Contains("evidence/build.log", StringComparison.Ordinal), "No build log, no block claiming one.");
 
         CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "build.log"), "Build succeeded.\n");
-        string second = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value.Prompts[0].Path);
+        string second = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value);
         StringAssert.Contains(second, "Build succeeded.");
+    }
+
+    [TestMethod]
+    public async Task Every_verify_reader_is_handed_the_recorded_coverage_with_its_rates_and_the_floor_in_force_and_told_when_there_is_none()
+    {
+        // D-161. A criterion asked that the whole-codebase rate be at or above the floor; the rate was in
+        // coverage.json, which no reader was given, so the criterion could only be narrowed by a deviation.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteVerify("pass");
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string absent = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value);
+        StringAssert.Contains(absent, "<file name=\"evidence/coverage.json\">\nIt was not recorded");
+        Assert.IsFalse(absent.Contains("Whole codebase:", StringComparison.Ordinal), "No coverage, no rates.");
+
+        workspace.WriteSolution(Sdlc.Core.Solutions.SolutionOrigin.Adopted, coverageFloor: "75%");
+        workspace.WriteCoverage(changedCoverable: 8, changedCovered: 6, rate: 812, baseline: 0.79);
+
+        foreach (string reader in new[] { "rules", "adjudicate", "security" })
+        {
+            string prompt = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, reader)).Value);
+
+            StringAssert.Contains(prompt, "\"changed_coverable\": 8", reader);
+            StringAssert.Contains(prompt, "- Changed lines: 75.0% ran under a test (6 of 8), against the floor every change is held to, 70%.", reader);
+            StringAssert.Contains(prompt, "- Whole codebase: 81.2% (812 of 1000 lines).", reader);
+            StringAssert.Contains(prompt, "- The solution's coverage_floor: 75%", reader);
+            StringAssert.Contains(prompt, "- The baseline, the last rate a merged cycle recorded: 79.0%.", reader);
+        }
+
+        workspace.WriteSolution(Sdlc.Core.Solutions.SolutionOrigin.Adopted);
+        string defaulted = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value);
+        StringAssert.Contains(defaulted, "- The solution's coverage_floor: 80%", "Declaring none is the default.");
     }
 
     [TestMethod]
@@ -98,8 +159,8 @@ public sealed class ReaderPromptsTests
         CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
         string directory = Path.Combine(workspace.Root, "round");
 
-        string rules = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value.Prompts[0].Path);
-        string adjudicate = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+        string rules = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value);
+        string adjudicate = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value);
 
         foreach (string prompt in new[] { rules, adjudicate })
         {
@@ -125,7 +186,7 @@ public sealed class ReaderPromptsTests
         workspace.WriteBlockingRound(ArtifactKind.Verify, id: "F_01", cites: "CON_22");
         string directory = Path.Combine(workspace.Root, "round");
 
-        string onDisk = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+        string onDisk = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value);
 
         StringAssert.Contains(onDisk, "This build has a verdict already");
         StringAssert.Contains(onDisk, "Copy an entry exactly as it stands");
@@ -138,7 +199,7 @@ public sealed class ReaderPromptsTests
 
         File.Delete(workspace.Cycle.PathOf(ArtifactKind.Verify));
 
-        string fromGit = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+        string fromGit = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value);
 
         StringAssert.Contains(fromGit, "An earlier run of this build had a verdict");
         StringAssert.Contains(fromGit, "<file name=\"verify.md\">");
@@ -158,8 +219,8 @@ public sealed class ReaderPromptsTests
         CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
         string directory = Path.Combine(workspace.Root, "round");
 
-        string rules = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value.Prompts[0].Path);
-        string adjudicate = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, Path.Combine(workspace.Root, "verify-round"), "adjudicate")).Value.Prompts[0].Path);
+        string rules = Whole((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value);
+        string adjudicate = Whole((await Prompt(workspace, ArtifactKind.Verify, Path.Combine(workspace.Root, "verify-round"), "adjudicate")).Value);
 
         StringAssert.Contains(rules, "A criterion's cases are the ones the spec lists.");
         StringAssert.Contains(rules, "a case the list does\nnot name is a suggestion");
@@ -176,7 +237,7 @@ public sealed class ReaderPromptsTests
 
         Assert.IsTrue((await Prompt(workspace, ArtifactKind.Plan, directory, "adjudicate")).IsFailed);
 
-        string prompt = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+        string prompt = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value);
 
         StringAssert.Contains(prompt, "Write `verify.md` for cycle `20260929_1456_32`");
         StringAssert.Contains(prompt, "## Adjudicate criterion by criterion");
@@ -241,6 +302,96 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task A_verify_rounds_diff_prompt_is_whole_and_what_a_reader_was_handed_counts_the_shared_block()
+    {
+        // D-163. The diff reader is composed apart from the shared block, so it takes no system prompt; the
+        // size usage records is what each reader was handed, so it stays comparable with rounds before the split.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 2);
+        workspace.WritePlan(proofs: 2);
+        workspace.WriteTestSummary(proofs: 2);
+        workspace.WriteVerify("pass");
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        ReaderPrompts.Response round = (await Prompt(workspace, ArtifactKind.Verify, directory)).Value;
+
+        Assert.IsNotNull(round.Shared);
+        Assert.AreEqual(ReaderAnswers.SharedPath(directory), round.Shared.Path);
+        ReaderPrompts.Written diff = round.Prompts.Single(prompt => prompt.Reader == "diff");
+        StringAssert.Contains(await File.ReadAllTextAsync(diff.Path), "diff.patch", "The diff reader's prompt is whole.");
+
+        await File.WriteAllTextAsync(ReaderAnswers.AnswerPath(directory, "rules"), Envelope("""{ "findings": [] }"""));
+        await File.WriteAllTextAsync(ReaderAnswers.AnswerPath(directory, "diff"), Envelope("""{ "findings": [] }"""));
+        long rules = round.Prompts.Single(prompt => prompt.Reader == "rules").Bytes;
+
+        Assert.AreEqual(rules + round.Shared.Bytes, (await ReaderAnswers.Read(directory, "rules", CancellationToken.None)).Value.Usage.PromptBytes);
+        Assert.AreEqual(diff.Bytes, (await ReaderAnswers.Read(directory, "diff", CancellationToken.None)).Value.Usage.PromptBytes);
+
+        ReaderPrompts.Response alone = (await Prompt(workspace, ArtifactKind.Verify, directory, "diff")).Value;
+        Assert.IsNull(alone.Shared, "A reader that opens with no shared block is written without one.");
+    }
+
+    [TestMethod]
+    public async Task The_perspectives_read_a_cycles_first_verify_round_and_a_later_one_is_the_rules_and_diff_readers()
+    {
+        // D-164. No perspective blocked at verify in six real cycles, and a suggestion there can only become
+        // a successor; a later verify round re-reads a verdict moved to answer the rules or the diff reader.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteVerify("pass");
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        ReaderPrompts.Response first = (await Prompt(workspace, ArtifactKind.Verify, directory)).Value;
+        CollectionAssert.AreEqual(new[] { "rules", "diff", "security", "operability", "maintainability" }, first.Readers.ToArray());
+        Assert.AreEqual(0, first.Rested!.Count);
+
+        workspace.WriteRound(ArtifactKind.Verify, 1, string.Empty);
+        ReaderPrompts.Response later = (await Prompt(workspace, ArtifactKind.Verify, directory)).Value;
+
+        CollectionAssert.AreEqual(new[] { "rules", "diff" }, later.Readers.ToArray());
+        CollectionAssert.AreEqual(new[] { "security", "operability", "maintainability" }, later.Rested!.ToArray());
+        Assert.IsFalse(File.Exists(ReaderAnswers.PromptPath(directory, "security")), "A perspective's prompt from the first round would be started again by the skill's loop.");
+        StringAssert.Contains(FindingsRenderer.RenderPrompts(later), "security -- read this cycle's first verify round");
+
+        ReaderPrompts.Response plan = (await Prompt(workspace, ArtifactKind.Plan, Path.Combine(workspace.Root, "plan-round"), list: true)).Value;
+        CollectionAssert.Contains(plan.Readers.ToArray(), "security", "Only a verify rests them.");
+    }
+
+    [TestMethod]
+    public async Task A_verdict_that_concedes_on_the_evidence_the_last_round_judged_goes_to_remediate_without_a_round()
+    {
+        // D-165. The outcome sends the cycle to remediate whatever a round says; one real verify spent 1.1M
+        // tokens to confirm a concession on the evidence judged four minutes before.
+        const string clean = """{ "findings": [] }""";
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        await RecordRoundTests.Record(workspace, ArtifactKind.Intent, clean);
+        await RecordRoundTests.Record(workspace, ArtifactKind.Spec, clean);
+        await RecordRoundTests.Record(workspace, ArtifactKind.Plan, clean);
+        workspace.WriteVerify("pass");
+        workspace.WriteTestSummary(proofs: 1);
+        await RecordRoundTests.Record(workspace, ArtifactKind.Verify, clean);
+        string directory = Path.Combine(workspace.Root, "round");
+
+        Assert.IsTrue((await Prompt(workspace, ArtifactKind.Verify, directory)).IsSuccess, "A verdict that still claims a pass on that evidence is judged again.");
+
+        workspace.WriteVerify("blocked");
+        Result<ReaderPrompts.Response> refused = await Prompt(workspace, ArtifactKind.Verify, directory);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "verify.md reads blocked, and the evidence is what verify round 1 judged");
+        StringAssert.Contains(refused.Errors[0].Message, "/sdlc:remediate " + workspace.Cycle.Id);
+        Assert.IsTrue((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).IsSuccess, "The adjudicator is still started.");
+
+        workspace.WriteTestSummary(proofs: 2);
+        Assert.IsTrue((await Prompt(workspace, ArtifactKind.Verify, directory)).IsSuccess, "A new run's evidence gets a full round.");
+    }
+
+    [TestMethod]
     public void A_reader_process_that_failed_is_refused_rather_than_read_as_an_answer()
     {
         string failed = """{ "type": "result", "subtype": "error_max_turns", "is_error": true, "result": "" }""";
@@ -285,6 +436,15 @@ public sealed class ReaderPromptsTests
 
         process.WaitForExit();
         return process.ExitCode;
+    }
+
+    /// <summary>What one reader is handed: the shared block when it opens with one, then its own part.</summary>
+    internal static string Whole(ReaderPrompts.Response written, int index = 0)
+    {
+        ReaderPrompts.Written prompt = written.Prompts[index];
+        string shared = ReaderAnswers.OpensWithShared(prompt.Reader) && written.Shared is { } block ? File.ReadAllText(block.Path) : string.Empty;
+
+        return shared + File.ReadAllText(prompt.Path);
     }
 
     internal static async Task<Result<ReaderPrompts.Response>> Prompt(

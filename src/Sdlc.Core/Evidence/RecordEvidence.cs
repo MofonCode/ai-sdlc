@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -29,6 +30,11 @@ public static class RecordEvidence
     /// <param name="Comparison">Declared against changed, which is a signal rather than a gate.</param>
     /// <param name="TestSources">The results files read.</param>
     /// <param name="Coverage">What the run's coverage said, when a report was given (D-103).</param>
+    /// <param name="RetiredVerdict">
+    /// Whether a blocked <c>verify.md</c> about the run this one replaces was removed, so the next verify starts
+    /// from this run (D-161).
+    /// </param>
+    /// <param name="Timings">How long the run took and where the time went, when its results files say (D-169).</param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<string> Written,
@@ -36,7 +42,9 @@ public static class RecordEvidence
         IReadOnlyList<string> Changed,
         FileComparison Comparison,
         IReadOnlyList<string> TestSources,
-        CoverageSummary? Coverage = null);
+        CoverageSummary? Coverage = null,
+        bool RetiredVerdict = false,
+        RunTimings? Timings = null);
 
     /// <summary>The normalised test summary every later reader uses.</summary>
     public const string SummaryFileName = "tests.json";
@@ -75,7 +83,11 @@ public static class RecordEvidence
     /// <param name="Coverage">
     /// A cobertura report, or a directory holding every one a run wrote. Null when there is none.
     /// </param>
-    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null, string? Coverage = null)
+    /// <param name="RetirePass">
+    /// Whether a <c>pass</c> verdict is retired by this run as a blocked one is: true only when a person asked for
+    /// a change to a cycle that passed, which is what remediate is doing then (D-185).
+    /// </param>
+    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null, string? Coverage = null, bool RetirePass = false)
         : IRequest<Response>;
 
     /// <summary>
@@ -134,13 +146,32 @@ public static class RecordEvidence
             // Refused rather than warned, for the same reason the approval gate refuses an interrogation
             // round judged against a document that has changed since: the stale artifact is the one a
             // reader trusts, because it looks finished.
+            //
+            // A blocked verdict is the exception, and is retired here rather than refused (D-161). Recording a
+            // new run under one is what remediation is: the verdict asked for the fix this run measures, and
+            // the next verify replaces it. Refusing it taught every remediation the deletion by refusal, after
+            // a run that had already taken most of an hour.
             string verdict = cycle.PathOf(ArtifactKind.Verify);
+            bool retire = false;
 
             if (File.Exists(verdict))
             {
-                return Result.Fail<Response>(string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Recording a new run would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
+                Result<FrontmatterDocument> split = await Frontmatter.ReadFile(verdict, cancellationToken).ConfigureAwait(false);
+                string? outcome = split.IsSuccess ? Frontmatter.Key(split.Value.Yaml, "outcome") : null;
+
+                // A pass is retired the same way when a person asked for a change after it (D-185): the change is
+                // what this run measures, and a verdict over the run before it would cite evidence that is gone.
+                // Only on request, so a stray re-recording still cannot quietly unseat a verdict.
+                bool asked = request.RetirePass && string.Equals(outcome, "pass", StringComparison.OrdinalIgnoreCase);
+
+                if (!asked && !string.Equals(outcome, "blocked", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Result.Fail<Response>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Its outcome is '{outcome ?? "unreadable"}', and only a blocked verdict is retired by recording a new run -- or a pass, with --retire-pass, when a person asked for a change. Recording one would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
+                }
+
+                retire = true;
             }
 
             // D-124: the patch is measured to a commit, so the chain can rebuild it from git rather than
@@ -278,7 +309,17 @@ public static class RecordEvidence
                 DeclaredFiles.Read(await File.ReadAllTextAsync(plan, cancellationToken).ConfigureAwait(false)),
                 changed);
 
-            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage));
+            // Last, so a recording refused on the way leaves the verdict where it was.
+            if (retire)
+            {
+                File.Delete(verdict);
+            }
+
+            RunTimings? timings = written.Contains(RunTimings.FileName)
+                ? RunTimings.Read(await File.ReadAllTextAsync(Path.Combine(cycle.EvidenceDirectory, RunTimings.FileName), cancellationToken).ConfigureAwait(false))
+                : null;
+
+            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage, retire, timings));
         }
 
         /// <summary>Whether an uncommitted path is the run's own output, named on the command line.</summary>
@@ -433,6 +474,7 @@ public static class RecordEvidence
             CancellationToken cancellationToken)
         {
             List<RecordedTest> tests = [];
+            List<(string Xml, string File)> kept = [];
 
             for (int index = 0; index < sources.Count; index++)
             {
@@ -452,9 +494,12 @@ public static class RecordEvidence
                 // read by people and cited by a verify -- a predictable name is worth more than a record
                 // of what the runner happened to call it, which the original path already says. F-38.
                 // A run with several results files numbers them, because one of them cannot be the one.
+                string keptAs = sources.Count == 1 ? TrxFileName : TrxFileNameAt(index + 1);
+                kept.Add((xml, keptAs));
+
                 await Write(
                     cycle,
-                    sources.Count == 1 ? TrxFileName : TrxFileNameAt(index + 1),
+                    keptAs,
                     xml,
                     written,
                     cancellationToken).ConfigureAwait(false);
@@ -477,7 +522,6 @@ public static class RecordEvidence
             }
 
             TestSummary summary = new(
-                Cycle.FrameworkVersion,
                 cycle.Id.ToString(),
                 time.GetUtcNow(),
                 tests,
@@ -491,6 +535,19 @@ public static class RecordEvidence
                 TestSummaryReader.Write(summary),
                 written,
                 cancellationToken).ConfigureAwait(false);
+
+            // Where the run's time went, for whoever asks next (D-169). Beside the summary rather than in it, so
+            // no reader is handed a duration to judge; a run whose files carry no times leaves none.
+            string timingsPath = Path.Combine(cycle.EvidenceDirectory, RunTimings.FileName);
+
+            if (RunTimings.FromTrx(kept) is { } timings)
+            {
+                await Write(cycle, RunTimings.FileName, RunTimings.Write(timings), written, cancellationToken).ConfigureAwait(false);
+            }
+            else if (File.Exists(timingsPath))
+            {
+                File.Delete(timingsPath);
+            }
 
             return Result.Ok(summary);
         }

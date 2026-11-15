@@ -79,6 +79,16 @@ public interface IRepository
     /// <returns>The paths, relative to the root, or none when the working tree is clean.</returns>
     IReadOnlyList<string> UncommittedChanges(string workingDirectory);
 
+    /// <summary>Which of the given paths git would leave out of a commit, by any ignore file that applies.</summary>
+    /// <remarks>
+    /// A tracked path is never ignored, whatever a pattern says, so a file somebody force-added once answers
+    /// no. Whether the path exists does not matter: the question is what a pattern does to it.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="paths">The paths, relative to <paramref name="workingDirectory"/>.</param>
+    /// <returns>The ones git ignores, as given; empty when none is, or git cannot say.</returns>
+    IReadOnlyList<string> Ignored(string workingDirectory, IReadOnlyList<string> paths);
+
     /// <summary>
     /// Where a branch diverged from the integration branch, or from the default branch when there is none.
     /// </summary>
@@ -150,6 +160,20 @@ public interface IRepository
     /// <returns>The branch names, without <c>refs/heads/</c>.</returns>
     IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix);
 
+    /// <summary>
+    /// The branches this clone knows whose names start with a prefix: its own, then those it last fetched
+    /// from origin, as <c>origin/</c> and the name. Nothing is fetched.
+    /// </summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="prefix">The start of the branch names wanted, as in <c>sandbox/</c>.</param>
+    /// <returns>The short names; empty outside a repository.</returns>
+    IReadOnlyList<string> Branches(string workingDirectory, string prefix);
+
+    /// <summary>Every worktree of this repository, the main one first, with the branch each has checked out.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>Each worktree's path and branch, the branch null when it is detached; empty outside a repository.</returns>
+    IReadOnlyList<(string Path, string? Branch)> Worktrees(string workingDirectory);
+
     /// <summary>A file's contents as a given commit holds it, or null when it does not.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <param name="reference">The commit or branch to read from.</param>
@@ -172,7 +196,7 @@ public interface IRepository
 
     /// <summary>Every commit reachable from a reference that touched a path, oldest first.</summary>
     /// <remarks>
-    /// What the mining report reads a cycle's verify history from: each verdict was a commit of
+    /// What the harvest report reads a cycle's verify history from: each verdict was a commit of
     /// <c>verify.md</c>, and only the last survives on disk.
     /// </remarks>
     /// <param name="workingDirectory">Where to ask from.</param>
@@ -229,6 +253,33 @@ public interface IRepository
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <returns>Its full path, or null outside a repository.</returns>
     string? CommonDirectory(string workingDirectory);
+
+    /// <summary>
+    /// Runs one git command the binary decided on, and says what went wrong when it fails.
+    /// </summary>
+    /// <remarks>
+    /// For the commands the binary used to print for an agent to run -- a worktree, an admission -- and now runs
+    /// itself, so that no skill needs a multi-command shell line to get there (D-183, D-184). Never a command a
+    /// person typed: what this is handed is composed in the binary from refs and paths it read.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to run it.</param>
+    /// <param name="arguments">The arguments, after the word git.</param>
+    /// <returns>What git printed, or a failure carrying what it said.</returns>
+    Result<string> Git(string workingDirectory, string arguments);
+
+    /// <summary>
+    /// The files a commit holds that contain a word, as a whole word, with the directories given left out.
+    /// </summary>
+    /// <remarks>
+    /// How a verify finds the test a proof names when the change never touched it (D-168): the name is in the
+    /// file that defines it, and git searches the commit the build was recorded at rather than the working tree.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The commit to search.</param>
+    /// <param name="word">The word, matched literally.</param>
+    /// <param name="exclude">Directories to leave out, relative to the root.</param>
+    /// <returns>The paths, relative to the root with forward slashes, or none.</returns>
+    IReadOnlyList<string> FilesContaining(string workingDirectory, string reference, string word, IReadOnlyList<string> exclude);
 }
 
 /// <summary>
@@ -263,6 +314,18 @@ public sealed class GitRepository : IRepository
     {
         string? name = Run(workingDirectory, "config user.name")?.Trim();
         return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
+
+    /// <inheritdoc />
+    public Result<string> Git(string workingDirectory, string arguments)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(arguments);
+
+        (string? output, string? error) = Ask(workingDirectory, arguments);
+
+        return output is not null
+            ? Result.Ok(output)
+            : Result.Fail<string>(error ?? string.Create(CultureInfo.InvariantCulture, $"git {arguments} could not be started. Is git on the PATH?"));
     }
 
     /// <inheritdoc />
@@ -524,6 +587,63 @@ public sealed class GitRepository : IRepository
     }
 
     /// <inheritdoc />
+    public IReadOnlyList<string> Ignored(string workingDirectory, IReadOnlyList<string> paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+
+        // check-ignore exits 1 when nothing it was given is ignored, which Run reads as no output.
+        return paths.Count == 0
+            ? []
+            : Lines(Run(workingDirectory, "check-ignore -- " + string.Join(' ', paths.Select(path => "\"" + path.Replace('\\', '/') + "\""))));
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> Branches(string workingDirectory, string prefix)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+
+        // A pattern matches whole path components, so it names the directory the prefix opens and the prefix
+        // is held here: 'cycle/' asks for refs/heads/cycle, and a name such as 'cycle-x' is filtered out.
+        string directory = prefix.TrimEnd('/');
+        string remote = "origin/" + prefix;
+
+        return
+        [
+            .. Lines(Run(workingDirectory, $"for-each-ref --format=%(refname:short) \"refs/heads/{directory}\" \"refs/remotes/origin/{directory}\""))
+                .Where(name => name.StartsWith(prefix, StringComparison.Ordinal) || name.StartsWith(remote, StringComparison.Ordinal)),
+        ];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string Path, string? Branch)> Worktrees(string workingDirectory)
+    {
+        List<(string Path, string? Branch)> worktrees = [];
+        string? path = null;
+        string? branch = null;
+
+        // Porcelain: a block per worktree, 'worktree <path>' first and 'branch refs/heads/<name>' when one is checked out.
+        foreach (string line in Lines(Run(workingDirectory, "worktree list --porcelain")).Append("worktree"))
+        {
+            if (line.StartsWith("worktree", StringComparison.Ordinal))
+            {
+                if (path is not null)
+                {
+                    worktrees.Add((path, branch));
+                }
+
+                path = line.Length > "worktree ".Length ? line["worktree ".Length..] : null;
+                branch = null;
+            }
+            else if (line.StartsWith("branch refs/heads/", StringComparison.Ordinal))
+            {
+                branch = line["branch refs/heads/".Length..];
+            }
+        }
+
+        return worktrees;
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<string> UncommittedChanges(string workingDirectory)
     {
         // Porcelain v1 is a two-character status, a space, then the path -- and "old -> new" for a rename,
@@ -578,6 +698,32 @@ public sealed class GitRepository : IRepository
                 .Select(line => line.Split('\t'))
                 .Where(parts => parts.Length == 2 && parts[1].StartsWith(Heads, StringComparison.Ordinal))
                 .Select(parts => parts[1][Heads.Length..]),
+        ];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> FilesContaining(string workingDirectory, string reference, string word, IReadOnlyList<string> exclude)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(word);
+        ArgumentNullException.ThrowIfNull(exclude);
+
+        // A quote would end the argument early, and no test name a runner reports carries one.
+        if (word.Contains('"', StringComparison.Ordinal))
+        {
+            return [];
+        }
+
+        string pathspec = string.Join(
+            ' ',
+            exclude.Select(path => "\":(exclude)" + path.Replace('\\', '/').Trim('/') + "\""));
+
+        // git grep names each file "<commit>:<path>"; exit 1, no match, is null and so no files.
+        return
+        [
+            .. Lines(Run(workingDirectory, $"grep -l -w -F -e \"{word}\" {reference} -- . {pathspec}"))
+                .Select(line => line.StartsWith(reference + ":", StringComparison.Ordinal) ? line[(reference.Length + 1)..] : line)
+                .Order(StringComparer.Ordinal),
         ];
     }
 
@@ -644,7 +790,7 @@ public sealed class GitRepository : IRepository
     /// <strong>And a failure carries git's message.</strong> Every failure used to return null, so
     /// git's own reason was thrown away and <c>Commit</c> reported "git could not stage what init
     /// created" with nothing to act on -- which contradicts the framework's own standard that a
-    /// refusal says what has to change, and <c>CON_10.2</c> is that rule.
+    /// refusal says what has to change, and <c>CON_10.3</c> is that rule.
     /// </para>
     /// </remarks>
     /// <param name="workingDirectory">Where to run it.</param>

@@ -57,7 +57,7 @@ the output here is the only place to read the result in full.
 ## Ids and revisions
 
 A bare id is revision 1, and that is the canonical form: `CON_01` means `CON_01.1`. A wording change
-makes a revision — `CON_10.2` is the same rule better worded. A change to **what is forbidden** is a new
+makes a revision — `CON_10.3` is the same rule better worded. A change to **what is forbidden** is a new
 constraint with a new id; the old one stays on the page verbatim and gains `Superseded-by`, so a finding
 that cited it remains readable against the rule it was actually judged under.
 
@@ -66,9 +66,9 @@ constraint, not a vacancy.
 
 ## Adding one
 
-`sdlc propose constraints` is where one comes from. It reads this solution's whole history and reports
-which rules its findings keep citing, with the cycles behind each; where the record holds no pattern it
-prints the next free `LOC_` id with its four parts empty. A person writes the rule and places it; every
+`/sdlc:harvest-constraints` is where one comes from once cycles complete. `sdlc harvest constraints` reads what the completed cycles argued and reports
+which rules their findings keep citing, with the cycles behind each. For a rule a person already has in mind,
+`sdlc constraints --new` prints the next free `LOC_` id with its four parts empty. A person writes the rule and places it; every
 agent write to `.sdlc/constraints.md` is denied, because a cycle judged by the constraints it is
 changing is the same deadlock as the framework governing itself.
 

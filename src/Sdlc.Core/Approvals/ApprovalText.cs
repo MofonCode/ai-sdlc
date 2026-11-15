@@ -71,7 +71,7 @@ public static class ApprovalText
     /// The choices a plan lists at the head of <c>Shape and departures</c>, one line each.
     /// </summary>
     /// <remarks>
-    /// Both of MarketSense's reopens were a decision the person found in the plan only after approving
+    /// Both of one real solution's reopens were a decision the person found in the plan only after approving
     /// it -- Aspire left out, the chart tables drawn by hand -- because the plan was a hundred kilobytes
     /// and the choice was a clause in it. The list is what the approval draft puts in front of them, so
     /// the choices are read before the rename rather than discovered after it.
@@ -170,23 +170,9 @@ public static class ApprovalText
                     $"Cycle {status.Cycle.Id} was abandoned, and abandonment is terminal. Open a new cycle instead."), request.Decision);
             }
 
+            // Deviations are accepted at the pull request now (D-181), so nothing here waits on them. A reopen
+            // still takes in what the build recorded: the amended plan says it, and the entries become history.
             DeviationsState deviations = await CycleDeviations.Read(status.Cycle, cancellationToken).ConfigureAwait(false);
-
-            // A reopen folds the accepted deviations into the amended plan and gives the declined ones as its
-            // reason, so every one has to be answered first: a deviation nobody answered would be neither.
-            if (request.Decision == GateDecision.Reopened && deviations.Pending.Count > 0)
-            {
-                return Refuse(status, Unanswered(status, deviations), request.Decision);
-            }
-
-            // An approved cycle whose build recorded deviations: what the person approves now is each of them,
-            // one by one, beside the approval that stands. Same command, no flag of its own.
-            if (request.Decision == GateDecision.Approved
-                && status.Gate.Ledger?.IsApproved == true
-                && (deviations.Pending.Count > 0 || (deviations.Recorded && deviations.States.Count == 0 && deviations.Problems.Count > 0)))
-            {
-                return await Deviations(status, deviations, request.By, cancellationToken).ConfigureAwait(false);
-            }
 
             // D-123: once the plan is on the integration branch, a reopen is an amendment to what the team and
             // the factory read, and it travels by a plan pull request of its own. Drafted on the build branch,
@@ -230,7 +216,13 @@ public static class ApprovalText
                 return Refuse(status, Blocked(status), request.Decision);
             }
 
-            string entry = Entry(status, request.By, request.Decision, clock.GetUtcNow());
+            DateTimeOffset now = clock.GetUtcNow();
+            string entry = Entry(status, request.By, request.Decision, now);
+
+            if (request.Decision == GateDecision.Reopened && deviations.Current.Count > 0)
+            {
+                entry = TakenIn(request.By, now, deviations.Current) + entry;
+            }
 
             Result<LedgerFile> file = await Compose(status, entry, cancellationToken)
                 .ConfigureAwait(false);
@@ -268,87 +260,15 @@ public static class ApprovalText
 
 
         /// <summary>
-        /// Drafts the person's answer to every deviation nobody has answered: each one listed, accepted false
-        /// and an empty note, for the person to set to true or to decline by writing why.
+        /// The deviations a reopen takes in: each one the build recorded since the approval that stands, answered so
+        /// that once the amended plan is approved it is history and no longer held to the text it quoted.
         /// </summary>
-        private async Task<Result<Response>> Deviations(
-            ReadCycleStatus.Response status,
-            DeviationsState deviations,
-            string by,
-            CancellationToken cancellationToken)
-        {
-            if (deviations.States.Count == 0)
-            {
-                return Refuse(status, string.Join(Environment.NewLine,
-                [
-                    string.Create(CultureInfo.InvariantCulture, $"Cycle {status.Cycle.Id}'s {DeviationsFile.FileName} cannot be read, so there is nothing to answer yet:"),
-                    string.Empty,
-                    .. deviations.Problems.Select(problem => "    " + problem),
-                    string.Empty,
-                    "The build or remediation that wrote it corrects it; then draft again.",
-                ]), GateDecision.Deviations);
-            }
-
-            string entry = DeviationsEntry(by, clock.GetUtcNow(), deviations.Pending);
-
-            Result<LedgerFile> file = await Compose(status, entry, cancellationToken).ConfigureAwait(false);
-
-            if (file.IsFailed)
-            {
-                return file.ToResult<Response>();
-            }
-
-            string draftPath = status.Cycle.ApprovalDraftPath(ApprovalLedger.NameOf(GateDecision.Deviations));
-
-            List<string> review =
-            [
-                string.Create(CultureInfo.InvariantCulture, $"The build bent the approved documents in {deviations.Pending.Count} place{(deviations.Pending.Count == 1 ? string.Empty : "s")}. Read each one, in {DeviationsFile.FileName}:"),
-                string.Empty,
-            ];
-
-            foreach (DeviationState state in deviations.Pending)
-            {
-                Deviation deviation = state.Deviation;
-                review.Add("  " + DeviationsFile.Line(deviation) + (state.Changed ? "  - changed since you answered it" : string.Empty));
-                review.Add("    departs from: " + deviation.Document + (deviation.Section.Length > 0 ? ", " + deviation.Section : string.Empty));
-                review.Add("    blocker:      " + deviation.Blocker);
-                review.Add("    instead:      " + deviation.Instead);
-                review.Add(string.Empty);
-            }
-
-            if (deviations.Problems.Count > 0)
-            {
-                review.Add("What is wrong with them, which the pull request check refuses until it is fixed:");
-                review.AddRange(deviations.Problems.Select(problem => "    " + problem));
-                review.Add(string.Empty);
-            }
-
-            review.AddRange(
-            [
-                "For each one in the draft: set 'accepted: true' to accept it, or leave it false and write",
-                "why in its note to decline it. False with no note is not reviewed, and the pull request",
-                "check refuses until it is answered. A declined deviation is redone; to rethink the plan",
-                string.Create(CultureInfo.InvariantCulture, $"instead, decline it and then reopen with 'sdlc draft approval {status.Cycle.Id} --reopen'."),
-                string.Empty,
-            ]);
-
-            string instructions = string.Join(Environment.NewLine, review)
-                + Environment.NewLine
-                + Instructions(status, GateDecision.Deviations, draftPath, file.Value, null, []);
-
-            return Result.Ok(new Response(
-                status,
-                entry,
-                file.Value.Text,
-                draftPath,
-                file.Value.CarriesForward,
-                instructions,
-                MayApprove: true,
-                GateDecision.Deviations));
-        }
-
-        /// <summary>The deviations entry: who, when, and each deviation with its hash, unanswered.</summary>
-        private static string DeviationsEntry(string by, DateTimeOffset at, IReadOnlyList<DeviationState> pending)
+        /// <remarks>
+        /// The ledger's deviations entry from before D-181 is kept for exactly this. Nobody answers a deviation any
+        /// more, but a reopen still folds what the build learned into the amended plan, and the entry is how the
+        /// file's older deviations stop being checked against a plan that no longer says what they quote.
+        /// </remarks>
+        private static string TakenIn(string by, DateTimeOffset at, IReadOnlyList<DeviationState> current)
         {
             StringBuilder entry = new();
 
@@ -357,17 +277,15 @@ public static class ApprovalText
             entry.AppendLine(CultureInfo.InvariantCulture, $"    at: {at:yyyy-MM-ddTHH:mm:ssZ}");
             entry.AppendLine("    deviations:");
 
-            // The note is printed with its quotes already in place, so a colon the person types cannot turn the
-            // line into something else. False is the default, so anything nobody looked at blocks.
-            foreach (DeviationState state in pending)
+            foreach (DeviationState state in current)
             {
                 Deviation deviation = state.Deviation;
                 entry.AppendLine(CultureInfo.InvariantCulture, $"      - id: {deviation.Id}");
                 entry.AppendLine(CultureInfo.InvariantCulture, $"        gist: {Quoted(deviation.Gist)}");
                 entry.AppendLine(CultureInfo.InvariantCulture, $"        kind: {Deviation.NameOf(deviation.Kind)}");
                 entry.AppendLine(CultureInfo.InvariantCulture, $"        sha256: {deviation.Sha256}");
-                entry.AppendLine("        accepted: false");
-                entry.AppendLine("        note: \"\"");
+                entry.AppendLine("        accepted: true");
+                entry.AppendLine("        note: \"taken into the reopen\"");
             }
 
             return entry.ToString();
@@ -375,20 +293,6 @@ public static class ApprovalText
 
         private static string Quoted(string text) =>
             "\"" + text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
-
-        /// <summary>Says which deviations a reopen is waiting on.</summary>
-        private static string Unanswered(ReadCycleStatus.Response status, DeviationsState deviations) => string.Join(
-            Environment.NewLine,
-            [
-                string.Create(CultureInfo.InvariantCulture, $"Cycle {status.Cycle.Id} cannot be reopened yet: {deviations.Pending.Count} deviation{(deviations.Pending.Count == 1 ? " is" : "s are")} unanswered."),
-                string.Empty,
-                .. deviations.Pending.Select(state => "    " + DeviationsFile.Line(state.Deviation)),
-                string.Empty,
-                "A reopen writes the accepted ones into the amended plan and gives the declined ones as its",
-                "reason, so answer each one first:",
-                string.Empty,
-                string.Create(CultureInfo.InvariantCulture, $"    sdlc draft approval {status.Cycle.Id}"),
-            ]);
 
         /// <summary>A complete ledger file, and how much history it reproduces.</summary>
         /// <param name="Text">The file's whole contents.</param>
@@ -465,7 +369,6 @@ public static class ApprovalText
             [
                 "---",
                 string.Create(CultureInfo.InvariantCulture, $"cycle: {status.Cycle.Id}"),
-                string.Create(CultureInfo.InvariantCulture, $"framework_version: {Cycle.FrameworkVersion}"),
                 "decisions:",
                 .. entry.TrimEnd().Split(Environment.NewLine),
                 "---",
@@ -685,8 +588,8 @@ public static class ApprovalText
             IReadOnlyList<string>? decisions,
             IReadOnlyList<string> departing)
         {
-            string draft = FromRoot(status.Cycle, draftPath);
-            string target = FromRoot(status.Cycle, status.Cycle.ApprovalPath);
+            string draft = Absolute(draftPath);
+            string target = Absolute(status.Cycle.ApprovalPath);
             string ledger = Path.GetFileName(status.Cycle.ApprovalPath);
             bool overwriting = file.CarriesForward > 0 || file.Replacing;
 
@@ -722,11 +625,14 @@ public static class ApprovalText
             [
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Written to {draft}. Rename it, from the repository root, to record the decision:"),
+                    $"Written to {draft}. Rename it, from any directory, to record the decision. In bash or zsh:"),
                 string.Empty,
                 overwriting
                     ? string.Create(CultureInfo.InvariantCulture, $"    mv -f {draft} {target}")
                     : string.Create(CultureInfo.InvariantCulture, $"    mv {draft} {target}"),
+                string.Empty,
+                "In PowerShell:",
+                string.Empty,
                 overwriting
                     ? string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {draft} {target}")
                     : string.Create(CultureInfo.InvariantCulture, $"    Move-Item {draft} {target}"),
@@ -778,8 +684,13 @@ public static class ApprovalText
             return string.Join(Environment.NewLine, lines);
         }
 
-        // Forward slashes, because both shells the rename is written for accept them.
-        private static string FromRoot(Cycle cycle, string path) =>
-            Path.GetRelativePath(cycle.SolutionRoot, path).Replace('\\', '/');
+        // Absolute, because the draft is often in another worktree than the one the person's shell is in, and
+        // a path from the root ran from the wrong root (D-162). Forward slashes, because both shells the rename
+        // is written for accept them; quoted when a space would split it.
+        private static string Absolute(string path)
+        {
+            string full = Path.GetFullPath(path).Replace('\\', '/');
+            return full.Contains(' ', StringComparison.Ordinal) ? "\"" + full + "\"" : full;
+        }
     }
 }

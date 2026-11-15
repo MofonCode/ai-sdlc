@@ -336,7 +336,7 @@ public static class ProposalsRenderer
     }
 
     /// <summary>
-    /// Renders what the approved cycles stated, for a person to turn into entries.
+    /// Renders what the completed cycles stated, for a person to turn into entries.
     /// </summary>
     /// <remarks>
     /// A second method on this renderer rather than a renderer of its own, because both answer the same
@@ -348,7 +348,7 @@ public static class ProposalsRenderer
     /// recovered later — the reason a passage exists is rarely in the passage.
     /// </para>
     /// </remarks>
-    /// <param name="response">What the approved cycles held.</param>
+    /// <param name="response">What the completed cycles held.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
     public static string Render(ProposeDecisions.Response response)
     {
@@ -358,7 +358,7 @@ public static class ProposalsRenderer
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"{Indent}{Cycles(response.Cycles)} held, {Approved(response)}. {response.NextId} is the next free id."));
+            $"{Indent}{Cycles(response.Cycles)} held, {Read(response)}. {response.NextId} is the next free id."));
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
@@ -400,7 +400,7 @@ public static class ProposalsRenderer
         output.AppendLine();
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"{Indent}Stated in an approved cycle — {response.Candidates.Count}"));
+            $"{Indent}Stated in a completed cycle — {response.Candidates.Count}"));
 
         foreach (IGrouping<CycleId, Candidate> group in response.Candidates
             .GroupBy(candidate => candidate.Cycle)
@@ -433,7 +433,7 @@ public static class ProposalsRenderer
 
         if (!response.HasMaterial)
         {
-            output.AppendLine(Indent + "No approved cycle has stated anything. A decision is captured at the moment");
+            output.AppendLine(Indent + "No completed cycle has stated anything. A decision is captured at the moment");
             output.AppendLine(Indent + "a choice is made, so there is nothing to recover here -- record one by hand as");
             output.AppendLine(Indent + "the choice is taken, rather than waiting for a cycle to have said it.");
             return;
@@ -441,24 +441,30 @@ public static class ProposalsRenderer
 
         if (response.Candidates.Any(candidate => candidate.Source == DecisionSource.Departure))
         {
-            output.AppendLine(Indent + "A departure an approved cycle declared means the record no longer says what the");
+            output.AppendLine(Indent + "A departure a completed cycle declared means the record no longer says what the");
             output.AppendLine(Indent + "solution does. Propose a new entry for what the cycle chose, and Superseded-by on");
             output.AppendLine(Indent + "the one it departed from -- or the next cycle is judged by the decision this one");
             output.AppendLine(Indent + "set aside. If the departure was meant for that cycle alone, leave the record as is.");
             output.AppendLine();
         }
 
-        output.AppendLine(Indent + "None of this is a decision yet. Three tests, all of which have to pass:");
+        output.AppendLine(Indent + "None of this is a decision yet. A decision is a choice future cycles will meet again,");
+        output.AppendLine(Indent + "and all four tests have to pass:");
         output.AppendLine();
         output.AppendLine(Field + "1. the alternatives were real -- somebody could have chosen otherwise");
-        output.AppendLine(Field + "2. the reason is not recoverable from the code");
-        output.AppendLine(Field + "3. it forbids nothing");
+        output.AppendLine(Field + "2. future cycles will meet it again -- it reaches past the cycle that made it");
+        output.AppendLine(Field + "3. the reason is not recoverable from the code");
+        output.AppendLine(Field + "4. it forbids nothing -- departing from it is declared, not blocked");
         output.AppendLine();
-        output.AppendLine(Indent + "Test one is what separates a decision from a fact: an entry whose alternatives");
-        output.AppendLine(Indent + "were never real records something nobody chose. Test three is the one that sends");
-        output.AppendLine(Indent + "work elsewhere -- where a choice does forbid something, that half is a constraint");
-        output.AppendLine(Indent + "or an architecture test, and the two are separate artifacts of one choice: the");
-        output.AppendLine(Indent + "decision says why, the rule forbids the alternative.");
+        output.AppendLine(Indent + "Who wrote it decides how much it takes. A person's own words -- a fixed decision, an");
+        output.AppendLine(Indent + "abandonment, a reopen, a declined deviation -- qualify once. A plan's prose qualifies");
+        output.AppendLine(Indent + "only when the same choice is in two or more cycles, or it departs from a standing");
+        output.AppendLine(Indent + "decision. A belief marked unconfirmed is an assumption and was left out.");
+        output.AppendLine();
+        output.AppendLine(Indent + "Test four is the one that sends work elsewhere -- where a choice does forbid");
+        output.AppendLine(Indent + "something, that half is a constraint or an architecture test, and the two are");
+        output.AppendLine(Indent + "separate artifacts of one choice: the decision says why, the rule forbids the");
+        output.AppendLine(Indent + "alternative. A declined suggestion is a decline, not a decision: it stays in the sitting.");
         output.AppendLine();
         output.AppendLine(Indent + "Nothing here writes the record. A stage reads it for alignment, so an agent that");
         output.AppendLine(Indent + "could write it could invent doctrine and then align to it.");
@@ -467,20 +473,21 @@ public static class ProposalsRenderer
     private static string Section(DecisionSource source) => source switch
     {
         DecisionSource.Intent => "intent  fixed decisions",
-        DecisionSource.Plan => "plan    shape and departures",
+        DecisionSource.Plan => "plan    shape and departures -- counts only if the same choice is in two or more cycles",
         DecisionSource.Departure => "departs from a standing decision -- propose superseding it",
+        DecisionSource.Abandoned => "abandoned -- the person's reason",
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, "Unknown source."),
     };
 
-    private static string Approved(ProposeDecisions.Response response)
+    private static string Read(ProposeDecisions.Response response)
     {
-        int approved = response.Cycles - response.Unapproved;
+        int read = response.Cycles - response.Skipped;
 
-        return response.Unapproved == 0
-            ? string.Create(CultureInfo.InvariantCulture, $"{approved} approved")
+        return response.Skipped == 0
+            ? string.Create(CultureInfo.InvariantCulture, $"{read} read")
             : string.Create(
                 CultureInfo.InvariantCulture,
-                $"{approved} approved and {response.Unapproved} not read for having no standing approval");
+                $"{read} read and {response.Skipped} not, for not being completed or not being this sitting's");
     }
 
     private static string Standing(int number) => number == 1

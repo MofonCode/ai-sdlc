@@ -65,7 +65,7 @@ public static class WriteVerdict
                 return answer.ToResult<Response>();
             }
 
-            string text = answer.Value.Text;
+            string text = Unfenced(answer.Value.Text);
             const string Again = " Start a new adjudication; do not repair this one, because the repair is this session writing the verdict.";
 
             if (!text.StartsWith("---", StringComparison.Ordinal))
@@ -90,5 +90,31 @@ public static class WriteVerdict
 
             return Result.Ok(new Response(cycle, path, outcome));
         }
+    }
+
+    /// <summary>The answer with one fence around the whole of it taken off, and otherwise as it came.</summary>
+    /// <remarks>
+    /// An adjudicator that wraps its document in a fence has written the document, and refusing it cost a rerun
+    /// of the largest prompt the framework sends (D-161). Only a fence opening the answer and closing it is
+    /// taken: one inside the document is the document's own, and anything around a fence is still refused,
+    /// because prose beside a verdict is not a verdict.
+    /// </remarks>
+    /// <param name="text">The adjudicator's answer.</param>
+    /// <returns>The document inside the fence, or the answer unchanged.</returns>
+    internal static string Unfenced(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        string trimmed = text.Trim();
+
+        if (!trimmed.StartsWith("```", StringComparison.Ordinal) || !trimmed.EndsWith("```", StringComparison.Ordinal))
+        {
+            return text;
+        }
+
+        int open = trimmed.IndexOf('\n', StringComparison.Ordinal);
+        int close = trimmed.LastIndexOf("```", StringComparison.Ordinal);
+
+        return open < 0 || close <= open ? text : trimmed[(open + 1)..close].TrimEnd() + "\n";
     }
 }

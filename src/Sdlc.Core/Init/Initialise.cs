@@ -201,7 +201,7 @@ public static class Initialise
     /// is the exact failure this design is written against: a directory that appears enforced and is not.
     /// </para>
     /// <para><strong>Update needs no list of what it may touch.</strong> It updates what it owns, and what
-    /// it owns is everything not protected. So the six files only a person writes are safe by the same rule
+    /// it owns is everything not protected. So the files only a person writes are safe by the same rule
     /// the hook uses, rather than by a second list that could drift from it.
     /// </para>
     /// <para><strong>It never writes a protected file, in any mode.</strong> It drafts three beside where

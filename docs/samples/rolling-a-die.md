@@ -158,13 +158,13 @@ the gates cannot supply it: a numeral in a bare paragraph tag breaks no rule.
 
 **None of that answer becomes a constraint, and most of it is already placed.** The component library
 is a row in the declared stack you place in the next step, and the architecture suite already admits it
-in `Ui` and nowhere else. A brand would go in a theme, which `sdlc propose theme` drafts as roles for a
+in `Ui` and nowhere else. A brand would go in a theme, which `sdlc theme` prints as a skeleton of roles for a
 person to fill; this solution has no brand, so it has no theme, and that is a complete answer rather
 than a gap. What is left — pips rather than a number, failure said in words — is about this one piece of
 work, and the intent is where it is recorded.
 
 Those are the two interview questions on a greenfield repository, and there is no third. It does not ask
-what *done to a good standard* means: `CON_16`, `CON_17` and `CON_05` already put that to every spec,
+what *done to a good standard* means: `CON_16`, `CON_17` and `CON_26` already put that to every spec,
 one change at a time. If it asks you anything beyond these — what a reviewer would send back, what this
 will be judged on — it has gone past its own skill.
 
@@ -197,7 +197,7 @@ solution it is about a line:
 **`.sdlc/techstack.draft.md`.** The draft is the framework's default, and for a die on a page it needs
 nothing changed. The rows that matter here are MSTest on Microsoft.Testing.Platform for the unit layer,
 bUnit for the component layer, ASP.NET Core for the api, Blazor for web and MudBlazor for the components.
-The three stack rules under `## Rules` are all marked `true` — `PRO_01` is the one this work will meet,
+The five stack rules under `## Rules` are all marked `true` — `PRO_01` is the one this work will meet,
 at the plan — and so are the five files under `## Build settings`, because this repository held no code
 and nothing predates them. Read `## Notes worth keeping` before you rename it: its first four paragraphs
 are about exactly the two projects this cycle adds. What is in that file once it is placed is exactly
@@ -250,11 +250,9 @@ because a binary cannot ask a host what it loaded. It exits 0 and ends by naming
 
 **No `--type`.** This is a scaffolded solution with no cycle yet approved, so the skill recognises the
 first piece of work in a new solution and says so in a line. With nothing typed after the skill's name there is nothing
-to slice, so it opens one cycle. **The skill opens the cycle in a folder of
-its own, on its branch**, and says the id, the branch and the folder in one line — run neither `sdlc new`
-nor `sdlc branch` yourself, and carry on with the cycle in that folder. The branch is
-`cycle/<id>/plan`, and the name matters: the turn-end hook reads the cycle out of the current branch and
-silently governs nothing when it cannot parse one.
+to slice, so it opens one cycle. **The skill opens the cycle in a sandbox** — a folder of its own beside
+the repository, on `sandbox/<id>` — and says the id and the folder in one line. Run neither `sdlc new` nor
+`sdlc branch` yourself, and carry on with the cycle in that folder; your own checkout is never switched.
 
 **Then it waits for your answers.** The intent is written from them, so until you reply there is no
 intent, and an interrogation asked for now finds nothing to read. It asks **one question at a time**,
@@ -281,11 +279,8 @@ What is already decided becomes the intent's fixed decisions, each with your nam
 and what it touches its `perspectives: ui-ux, accessibility`. The first two decisions keep the spec from
 growing a second page; the third keeps it from shrinking the one it has.
 
-**Once you answer, the intent is interrogated for you.** The skill writes it, challenges it, fixes what
-comes back, asks once which of the readers' suggestions you want to take in — grouped by theme in a file,
-answered in your own words, and leaving them all is a fine answer — then shows the cycle's status and
-stops, offering to take it to plan. If it stops on a blocker, see
-[handling blockers](../guides/handling-blockers.md).
+**Once you answer, the skill writes the intent**, shows the cycle's status and stops, offering to take it to
+plan. Read it: taking it to plan is what checks it.
 
 ## 6. Take it to plan
 
@@ -400,10 +395,11 @@ If either stops on a blocker, see [handling blockers](../guides/handling-blocker
 
 ## 8. Approve
 
-The hand-back drafted the approval beside the ledger and printed the rename that records it:
+The hand-back drafted the approval beside the ledger and printed the rename that records it. Run that line as it
+printed it: it names both files by their full path in the sandbox, so it works from any terminal.
 
 ```pwsh
-Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approval.md
+Move-Item <the draft's full path, as printed> <approval.md's full path, as printed>
 ```
 
 **The rename is the decision and it is yours.** No tool places that file, there is no flag for an
@@ -412,18 +408,20 @@ finding is open: a blocking finding cannot be waived by any mechanism.
 
 ## 9. Build it
 
-In a new session in the cycle's folder, say *build it*, or:
+Say *build it*, or:
 
 ```
 /sdlc:build <id>
 ```
 
-The first stage that writes code and the first you are not expected to watch. It asks the gate, stops if
-the gate refuses, and implements what the plan decided and only that. The skeleton arrives first, because
+The first stage that writes code and the first you are not expected to watch. It asks the gate, then `sdlc
+build` commits your approval, takes the plan out of the sandbox, and builds in a process of its own — this
+session just waits for it to report. It implements
+what the plan decided and only that. The skeleton arrives first, because
 the plan declared it — a solution file, its projects, the architecture suite and a reference slice written
 in the shape every operation should have — and the two front-end projects and the component tests after
-it, from the plan's file table. It runs the tests, records the evidence and commits it; the commands it
-runs are in `../guides/running-a-cycle.md`.
+it, from the plan's file table. It runs the tests, records the evidence and commits it; what it records, and
+why, is in `../guides/running-a-cycle.md`, under *Build it*.
 
 One thing to expect: the scaffold writes a `Greet` reference slice that exists to be copied. The dice
 operation takes its shape, and the slice stays until there is enough real work to delete it — which is
@@ -431,17 +429,12 @@ not this cycle.
 
 ## 10. Verify — the build does it
 
-**A green build goes straight on to verify.** A fresh process reads `tests.json`, `diff.patch` and
-`base.sha` and does **not** run the tests. Per criterion: which test did the plan name, does the summary
-say it ran and passed, and does that test actually establish the criterion? The third is where judgement
-lives — a test that passed but does not reach its criterion is *not met*.
-
-It writes `pass` or `blocked`. On `blocked`, say *fix it* (`/sdlc:remediate`): it edits source and tests,
-never a planning document, and verifies again while each pass reduces what is open.
-`../guides/handling-blockers.md` has the rest.
+A green build goes straight on to verify, in a process that never saw it, and remediates by itself on `blocked`
+— `../guides/running-a-cycle.md`, under *Build it*, has how. This solution has no remote, so the build stops at a verified branch and hands back its report — what
+it did that the plan did not say:
 
 ```pwsh
-sdlc status <id> --brief
+sdlc report <id>
 ```
 
 ## 11. See it roll
@@ -484,7 +477,7 @@ gh repo create dice-trial --private --source . --remote origin
 ```
 
 ```pwsh
-git push -u origin main
+git push -u origin main development
 ```
 
 **A remote alone installs no guarantee.** Adoption wrote no pipeline for a local solution, so re-run it
@@ -501,8 +494,8 @@ sdlc pr-ready <id>
 /sdlc:pr <id>
 ```
 
-It asks before the push. **It is not approving the merge** — a code owner does that, and never the agent
-that wrote the change.
+It asks before the push, and the body leads with the report. **It is not approving the merge** — you do that,
+and merging is where you accept the report; to change anything in it, say what instead.
 
 ## Next steps
 

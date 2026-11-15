@@ -99,7 +99,7 @@ public sealed record Stopped(CycleId Cycle, string? Reason, string? Unreadable =
 /// Reads what a solution's whole history says about the rules it is missing. Writes nothing.
 /// </summary>
 /// <remarks>
-/// <para><strong>Mined backward, because a constraint is earned rather than chosen.</strong> The corpus
+/// <para><strong>Earned backward, because a constraint is earned rather than chosen.</strong> The corpus
 /// is every findings round on the default branch — blocking and suggestion alike, closed included,
 /// which is the deliberate difference from <c>sdlc suggestions</c>. That command lists what is
 /// <em>open</em> and non-blocking, and a closed blocker that recurred across three cycles is the
@@ -169,11 +169,12 @@ public static class ProposeConstraints
     /// Asks what the solution's history says about its rules.
     /// </summary>
     /// <remarks>
-    /// Takes no arguments. Narrowing it to one cycle would answer a question nobody has — recurrence
-    /// across cycles is the entire signal, and a single cycle is the sample size that produces
-    /// overfitted rules.
+    /// Never narrowed to one cycle: recurrence across cycles is the entire signal, and a single cycle is the
+    /// sample size that produces overfitted rules. A harvest narrows it to the completed cycles, because a cycle
+    /// still in flight has findings nobody has settled yet (D-190); closed cycles count from the ledger either way.
     /// </remarks>
-    public sealed record Query : IRequest<Response>;
+    /// <param name="Completed">The completed cycles whose findings count, or null for every cycle here.</param>
+    public sealed record Query(IReadOnlyCollection<CycleId>? Completed = null) : IRequest<Response>;
 
     /// <summary>
     /// What the record holds, as counts and ids.
@@ -208,7 +209,7 @@ public static class ProposeConstraints
     /// <param name="Cited">
     /// Every rule any blocking finding cited, whatever the number of cycles. Not this report's to render --
     /// one cycle is not a pattern for a rule -- but a rule argued over dozens of findings in one cycle is
-    /// where mining looks for a decision nobody recorded (D-104).
+    /// where a harvest looks for a decision nobody recorded (D-104).
     /// </param>
     /// <param name="Withdrawn">
     /// The findings a later reader took back, which no proposal rests on, kept so a reader that keeps
@@ -269,7 +270,8 @@ public static class ProposeConstraints
                 return rules.ToResult<Response>();
             }
 
-            IReadOnlyList<Cycle> cycles = CycleIndex.All(solution.Path);
+            IReadOnlyList<Cycle> here = CycleIndex.All(solution.Path);
+            IReadOnlyList<Cycle> cycles = request.Completed is { } completed ? [.. here.Where(cycle => completed.Contains(cycle.Id))] : here;
 
             List<Cited> cited = [];
             List<Uncited> uncited = [];
@@ -310,12 +312,12 @@ public static class ProposeConstraints
                 return Result.Fail<Response>(errors);
             }
 
-            // A mined cycle whose folder is gone still counts toward a rule's three cycles: the ledger kept
+            // A closed cycle whose folder is gone still counts toward a rule's three cycles: the ledger kept
             // which rules its findings cited (D-152). One whose folder is still here was counted above.
-            Result<Mining.MinedLedger> mined = await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false);
+            Result<Harvest.HarvestLedger> harvested = await Harvest.HarvestLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false);
 
-            foreach (Mining.MinedCycle husk in (mined.ValueOrDefault ?? Mining.MinedLedger.Empty).Cycles
-                .Where(husk => !cycles.Any(cycle => cycle.Id.ToString() == husk.Cycle)))
+            foreach (Harvest.HarvestedCycle husk in (harvested.ValueOrDefault ?? Harvest.HarvestLedger.Empty).Cycles
+                .Where(husk => !here.Any(cycle => cycle.Id.ToString() == husk.Cycle)))
             {
                 if (!CycleId.TryParse(husk.Cycle, out CycleId? id))
                 {
@@ -326,7 +328,7 @@ public static class ProposeConstraints
                 {
                     if (ConstraintId.TryParse(rule, out ConstraintId? ruleId))
                     {
-                        cited.Add(new Cited(ruleId.Value, null, id.Value, "(mined)", 1));
+                        cited.Add(new Cited(ruleId.Value, null, id.Value, "(closed)", 1));
                     }
                 }
             }

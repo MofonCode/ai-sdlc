@@ -83,6 +83,23 @@ public sealed class FindingsLedgerTests
     }
 
     [TestMethod]
+    public void A_suggestion_id_two_branches_both_gave_names_where_each_was_raised()
+    {
+        // D-162. A reopen ran on two branches, each numbered past the ledger it started from, and the merge kept both.
+        SuggestionLedger merged = new("20260929_1456_32",
+        [
+            new LedgerSuggestion("S_05", null, "Log it.", null, null, null, [new SuggestionEvent("plan", 3, SuggestionEventKind.Raised)]),
+            new LedgerSuggestion("S_05", null, "Cache it.", null, null, null, [new SuggestionEvent("verify", 1, SuggestionEventKind.Raised)]),
+        ]);
+
+        Result verified = merged.Verify("suggestions.json");
+
+        Assert.IsTrue(verified.IsFailed);
+        StringAssert.Contains(verified.Errors[0].Message, "raised in plan round 3 and raised in verify round 1");
+        StringAssert.Contains(verified.Errors[0].Message, "Two branches");
+    }
+
+    [TestMethod]
     public void An_edited_finding_fails_the_chain_at_the_round_that_raised_it()
     {
         FindingsLedger ledger = Build(Round(1, Open("F_01")), Round(2, Open("F_02")));

@@ -28,9 +28,11 @@ cycle does not advance.
 
 ---
 
-## `sdlc new` — the two ways a cycle is refused
+## Opening a cycle — `sdlc new`, and `sdlc branch <id> plan`
 
-**Both refuse before an id is spent**, so nothing is left behind to clean up.
+**`sdlc new` refuses one way, and before an id is spent**, so nothing is left behind to clean up. The second
+refusal here is `sdlc branch <id> plan`'s, met only when you ask to plan in this checkout rather than a
+sandbox.
 
 ### no declared stack
 
@@ -195,17 +197,20 @@ Under `approval: none` the rounds are the only record of what was judged, so a r
 recorded their subject is refused this way too: no person read the bytes instead.
 
 **Next:** re-interrogate the downstream artifact — `/sdlc:interrogate <id> spec`, and the plan after it
-if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
-documents by hand.
+if the spec changed. *Take it to plan* (`/sdlc:to-plan`) does this for you, after `steer` when you said what
+should change, which is the reason to use it rather than editing documents by hand.
 
-## `sdlc round` — the six ways a round is refused
+## `sdlc round` — the nine ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
-words, the third when a reader raised a blocker without saying in a sentence what set it off, and the
-fourth when a suggestion's id or its move does not fit the cycle's suggestions. The last two are about areas (D-150):
-a plan that leaves a declared file without one, and an area whose files have moved.
+words, the third when a reader raised a blocker without saying in a sentence what set it off, the
+fourth when a blocker cites a rule its reader was not handed (D-174), the fifth when a new finding quotes its
+rule in words other than the rule's own (D-177), and the sixth when a suggestion's id or its move does not fit
+the cycle's suggestions. The next two are about areas (D-150):
+a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
+that could not change where the cycle goes (D-165).
 
 ### something above it is unsettled
 
@@ -240,6 +245,30 @@ carried forward from before gists needs none.
 input — rather than writing one in this session, which would be reinterpreting a finding it did not
 raise. The refusal names each finding that wants one.
 
+### a new blocker cites a rule not in force for it
+
+The round raises a blocking finding the ledger has not seen, and the rule it cites is not one its reader was
+handed: superseded, written for another document — a spec's rule raised against a plan — not issued at all, or,
+for a perspective's finding, not one the perspective lists as a rule it blocks on (D-174, D-175). A blocker
+stops a cycle on the rule it names, so it has to name one that binds here. `sdlc round collect` already records
+such a blocker as a suggestion saying so; this refusal meets a draft edited after that. A blocker the ledger
+already holds is never judged again.
+
+**Next:** make the finding a suggestion, or cite the rule in force it actually breaks —
+`sdlc constraints --for <artifact>` lists them, and `sdlc perspective show <name>` a perspective's.
+
+### a new finding quotes its rule in other words
+
+The round carries a finding the ledger has not seen, and the line beside its citation is not the line of the rule
+it cites. A finding carries its rule's own words so a cycle read later shows what it was judged under, and a
+paraphrase there is a second version of the rule shown to the person at the gate as the rule (D-63, D-177).
+`sdlc round collect` already copies the rule's line in; this refusal meets a draft edited after that. Whitespace,
+quotes and dashes are evened out before comparing, and nothing else. A finding the ledger already holds keeps the
+line it was recorded with.
+
+**Next:** put the rule's line back as it is — the refusal prints it, and `sdlc constraints --for <artifact>` prints
+every one — or run `sdlc round collect` again, which copies it.
+
 ### a suggestion does not fit the cycle's suggestions
 
 A suggestion is the cycle's, not the document's, so `findings/suggestions.json` holds each concern once
@@ -270,9 +299,19 @@ Writing a round's prompts is refused while an area in `.sdlc/areas.md` has globs
 the solution. Its rules and decisions would reach no reader in full, which is the one thing areas must
 never do. The files usually moved in a refactor (D-150).
 
-**Next:** `sdlc areas` shows what each area covers. `/sdlc:mine` proposes the new globs as a `files`
-line, `sdlc draft mining` writes the draft and you rename it — or correct the `Files:` line by hand, since
+**Next:** `sdlc areas` shows what each area covers. `/sdlc:harvest-areas` proposes the new globs as a `files`
+line, `sdlc draft harvest` writes the draft and you rename it — or correct the `Files:` line by hand, since
 the file is yours.
+
+### a blocked verdict on evidence a round already judged
+
+Writing a verify round's prompts is refused when `verify.md` reads `blocked` and the evidence is what the last
+verify round judged. It happens after a new adjudication concedes a blocker: the outcome sends the cycle to
+remediate whatever the readers say, so a round there pays for every reader to confirm it. One verify spent
+1.1M tokens doing exactly that, four minutes after the round before (D-165). A verdict that still claims a
+pass on that evidence is judged as before, and the run remediate records gets a full round.
+
+**Next:** `/sdlc:remediate <id>`.
 
 ## `sdlc scaffold` — the two ways it is refused
 
@@ -327,48 +366,28 @@ amendment starts from the integration branch.
 
 ---
 
-## Deviations — the four ways they are refused
+## Deviations — the one way they are refused
 
-Where the build could not follow the approved text it recorded a deviation in `deviations.md`, and a person
-answers each one before the merge (D-156). `handling-blockers.md` has what a deviation is and how to answer one.
-`sdlc deviations <id>` shows each with where it stands.
+Where the build could not follow the approved text it recorded a deviation in `deviations.md`, and where the
+approved text was silent it recorded a choice (D-156, D-180). **Nothing answers them before the pull request**:
+they lead it in the build's report, and merging accepts them (D-181). `handling-blockers.md` has what a
+deviation is and how to ask for one to be changed. `sdlc deviations <id>` shows each with where it stands.
 
-### a reopen with deviations unanswered
-
-`sdlc draft approval <id> --reopen` on a cycle whose build recorded deviations nobody answered. A reopen writes
-the accepted ones into the amended plan and gives the declined ones as its reason, so an unanswered one would
-be neither.
-
-**Next:** `sdlc draft approval <id>`, answer each one — decline the ones the reopen is about — and rename it
-into place. Then reopen.
-
-### a deviation unanswered
-
-The pull-request check's *every deviation is answered* failed: a deviation has no answer, or its text moved
-after it was answered, which leaves it unanswered again. `accepted: false` with an empty note is not an answer.
-
-**Next:** `sdlc draft approval <id>`, set `accepted: true` or write why in the note, and rename it into place.
-Under `approval: none` there is nothing to answer: every deviation is accepted and the pull request is the
-review.
+**Two refusals are gone.** The pull-request check no longer waits for every deviation to be answered, and a
+reopen is no longer refused while one is unanswered: there is nothing left to answer before the merge.
 
 ### a deviation that does not hold
 
 The check's *the deviations are sound* failed, or `sdlc deviations <id>` exited 1: a deviation quotes text the
 approved document does not hold, quotes the wrong document for its kind, adds a file another open cycle
-claims, replaces a deviation the file does not record, or narrows a criterion you accepted with its successor
-not written.
+claims, replaces a deviation the file does not record, or **narrows a criterion** — no deviation changes what
+*done* means (D-179). On a cycle from before D-181, a criterion narrowing a person accepted in the approval ledger
+still holds, and fails only with its successor not written.
 
-**Next:** the stage that wrote it corrects it — quote the approved text word for word, or write the successor
+**Next:** the stage that wrote it corrects it — quote the approved text word for word. A criterion narrowed is not
+corrected but taken back out: the cycle escalates, and you reopen the plan. On an older cycle, write the successor
 under `.sdlc/successors/`. A file another cycle claims is not a deviation at all: leave it to that cycle, or
 reopen.
-
-### a declined deviation not verified again
-
-The check's *the verdict follows the deviations declined* failed: you declined a deviation after the verify that
-stands, so the passing verdict judged code you turned down.
-
-**Next:** `/sdlc:remediate <id>` redoes that part with your note as its instruction, records the evidence, and
-verifies again itself.
 
 ---
 
@@ -432,7 +451,7 @@ is not atomic: it needs the sibling merged first. The check names the plan, the 
 **Next:** make the dependent piece a successor of its sibling — abandon its cycle, and write
 `.sdlc/successors/<slug>.md` with `succeeds:` naming the sibling — or merge the two pieces into one cycle.
 Files two plans both name *without* one creating them for the other are only reported: their pull requests
-may conflict at merge, which `/sdlc:resolve-conflict` is for.
+may conflict at merge, which *fix it* (`/sdlc:remediate`) resolves through `resolve-conflict`.
 
 ### a slicing that carries more than plans
 
@@ -508,6 +527,16 @@ lists what the release asks.
 
 ---
 
+## `sdlc upgrade` — the one way the checklist is refused
+
+### no release to move to
+
+`sdlc upgrade` is refused when the release it would move to is a local build — this machine runs one through
+`SDLC_DEV_BUILD` and no release was named — or when the word given is not a release. A local build is never
+pinned or published (D-135), so a checklist moving a solution to one would end in a pin no feed can restore.
+
+**Next:** name the release: `sdlc upgrade 0.46.0`, as nuget.org lists `MofonCode.Sdlc.Cli`.
+
 ## A promotion's pull request — the one way it is refused
 
 A pull request into a branch that is neither the integration branch nor a `release/*` branch — main, usually —
@@ -523,36 +552,71 @@ main.
 **Next:** open the pull request into the integration branch instead, as a cycle, and promote from there. A fix
 a release needs now is a cycle on its `release/*` branch, which then promotes (D-88).
 
-## Mining — the two ways it is refused
+## A harvest — the ways it is refused
 
-Mining is not a cycle (D-104): a sitting proposes, a person places what they accept, `sdlc mine record`
-records it, and the husks it names leave through a pull request of their own (D-152).
+A harvest is not a cycle (D-104): each aspect's sitting proposes, a person places what they accept, `sdlc harvest
+record` records the aspect answered (D-191), `sdlc harvest close` closes the cycles every aspect has answered, and
+their folders leave through a pull request of their own (D-152, D-192).
 
 ### a draft is still beside its file
 
-`sdlc mine record` is refused while `constraints.draft.md`, `decisions.draft.md`, `techstack.draft.md` or
-`areas.draft.md` is still in `.sdlc/`. A draft not renamed is a decision the person has not made yet, and
-recording the sitting over it would mark cycles mined whose answers were never placed.
+`sdlc harvest record <aspect>` is refused while that aspect's draft — `constraints.draft.md`,
+`decisions.draft.md`, `techstack.draft.md` or `areas.draft.md` — is still in `.sdlc/`, and `sdlc harvest close`
+while any of them is. A draft not renamed is a decision the person has not made yet, and recording over it would
+mark an aspect answered whose answers were never placed.
 
-**Next:** rename each draft into place, or delete the ones you decided against, then run `sdlc mine record`
-again with the same proposal file.
+**Next:** rename the draft into place, or delete it if you decided against it, then run the command again.
 
-### a mining pull request carries something that is not mining's
+### nothing left to record
 
-A pull request with no cycle that carries only the records, the mining ledger, successors and changes under
-`.sdlc/cycles/` is checked as mining. It is refused when a cycle path is not the deletion of a cycle the
-ledger records as mined, when the records it places do not parse, when an area covers no file, or when an
-entry names an area nobody defines. A cycle's folder leaves only once it is mined, and only by deletion.
+`sdlc harvest record <aspect>` is refused when no completed cycle still needs that aspect answered, or when the
+proposal file's `## Cycles` names a cycle that is closed, still in flight, not merged, or has answered the aspect
+already. An aspect is answered once per cycle.
 
-**Next:** `sdlc verify-chain <branch> --base <integration branch>` names each failing check. Take out what is
-not a husk's deletion — a cycle that is not in the ledger yet is mined at the next sitting after it merges —
-and fix the record the check names.
+**Next:** `sdlc harvest` shows which aspects each completed cycle still needs. Copy `## Cycles` from the aspect's
+report as written.
+
+### an aspect is still unanswered
+
+`sdlc harvest close` is refused while no completed cycle has had every aspect answered. It names each cycle and the
+aspects it still needs, because a cycle closed early would lose with its folder what it could still give.
+
+**Next:** run the aspect's skill — `/sdlc:harvest-<aspect>` — or `/sdlc:harvest`, which runs every one still
+listed, then close again.
+
+### not on the integration branch
+
+`sdlc harvest close` is refused anywhere but the integration branch. The cycles merged there and the drafts were
+placed there, and the `harvest/<date>` branch it commits on starts from it; from anywhere else the pull request
+would carry other work with it.
+
+**Next:** switch to the integration branch, bring it up to date, and close again.
+
+### a harvest pull request carries something that is not a harvest's
+
+A pull request with no cycle that carries only the records, the harvest ledger, successors and changes under
+`.sdlc/cycles/` is checked as a harvest. It is refused when a cycle path is not the deletion of a cycle the ledger
+records as closed, when the records it places do not parse, when an area covers no file, or when an entry names an
+area nobody defines. A cycle's folder leaves only once it is closed, and only by deletion.
+
+**Next:** `sdlc verify-chain <branch> --base <integration branch>` names each failing check. Take out what is not a
+closed cycle's deletion, and fix the record the check names.
+
+### a command that was renamed
+
+`sdlc mine` and `sdlc draft mining` are now `sdlc harvest` and `sdlc draft harvest`, and `sdlc propose` is
+retired (D-191): `propose constraints` and `propose decisions` are `sdlc harvest constraints` and `sdlc harvest
+decisions`, and `propose theme` is `sdlc theme`. Each old name is answered with the new one and does nothing.
+
+**Next:** run the name it gives. For a rule you have in mind rather than one the cycles argued, `sdlc constraints
+--new` prints an empty entry at the next free id.
 
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take
 
-`sdlc init` takes `--platform`, `--integration-branch` and `--solution`, and nothing else. Any other
+`sdlc init` takes `--platform` and `--integration-branch`, and the global `--solution` every command takes, and
+nothing else. Any other
 option is refused before anything is written, with exit code `2`, rather than ignored — adoption writes
 the hook configuration and the pipeline, so a run that silently dropped part of the line would leave you
 believing you had asked for something you had not.
@@ -570,6 +634,46 @@ believing you had moved it.
 place, and create the branch. Otherwise run adoption without the option.
 
 ---
+
+## `sdlc build` — when the build cannot start
+
+`/sdlc:build` asks the gate, then hands the cycle to `sdlc build` (D-178, D-187), which commits a placed approval,
+admits the plan, prepares the build's worktree and starts the build in a process of its own. The gate's refusals
+are above; these are the binary's own.
+
+### the build's process cannot start
+
+The binary starts the build with the host's own command line, named tools and permission checks on (D-183). When
+that command is not on the path, there is nothing to start it with, and the build is never run in your session
+instead: a builder that sat through the planning is the separation the process exists to keep.
+
+**Next:** install the host's command line, or run the build where it is — the factory's agent has it.
+
+### the build ended without a report
+
+The build's process stopped before it reached an outcome: the toolchain failed, or the run was stopped. Nothing
+was opened, and `sdlc status <id>` says where the cycle got to.
+
+**Next:** read what `sdlc build` printed, fix the cause, and say *build it* again.
+
+## `sdlc round run` — when a reader cannot run
+
+`sdlc round run` starts every reader of a round, each in a fresh process (D-183). A round is never collected from
+a reader that did not answer.
+
+### no host to start a reader with
+
+The host's command line is not on the path, so no reader can be started — and a reader is never this session
+judging its own work instead.
+
+**Next:** install it, and run the round again.
+
+### a reader returned nothing
+
+A reader's process ended without an answer — a credential the host did not have, a stopped run. The binary names
+the reader.
+
+**Next:** fix what the message names, and run `sdlc round run` again: it starts only the readers with no answer.
 
 ## `sdlc evidence` — every way a recording is refused
 
@@ -594,11 +698,14 @@ ignore it.
 
 ### a verdict already stands
 
-`verify.md` exists, and it adjudicates the run recorded now. Recording a new run would leave every claim
-in that document citing evidence that is gone — and a stale verdict is the one a reader trusts, because
-it looks finished.
+`verify.md` exists, its outcome is not `blocked`, and it adjudicates the run recorded now. Recording a new
+run would leave every claim in that document citing evidence that is gone — and a stale verdict is the one
+a reader trusts, because it looks finished. A **blocked** verdict is never refused: recording a new run
+retires it, which is what remediation does, and the report says so (D-161). A **passed** verdict is retired only
+when a person has asked for a change at the pull request: remediate records with `--retire-pass` (D-181).
 
-**Next:** delete `verify.md`, record the new run, and verify again. The findings rounds under `findings/`
+**Next:** when a person asked for a change, record with `--retire-pass`. Otherwise delete `verify.md`, record the
+new run, and verify again. The findings rounds under `findings/`
 are kept either way, so the history of what was challenged survives.
 
 ### git cannot say where the branch diverged
@@ -649,19 +756,20 @@ build has not recorded any.
 The verdict is `blocked`. Not "no failures recorded" — an actual pass is required, because the verdict is
 the only thing standing between unattended building and work presented as ready for review.
 
-**Next:** `/sdlc:remediate <id>`. A batch run with `--pr` opens a **draft** pull request for it instead
+**Next:** `/sdlc:remediate <id>`. The build opens a **draft** pull request for it instead
 (D-85): marked not ready, its check red, so the attempt is somewhere a person looks rather than built again
 the next night. Remedy it on that branch and mark the draft ready once it passes.
 
 ### escalated
 
-Remediation stopped getting anywhere with blockers still open: a pass undid what an earlier one
-answered, two passes in a row reduced nothing, or a third deviation bent the same approved text. **An escalated cycle never opens a ready pull
-request** — a batch run opens a draft, which the check refuses to merge — and that stopping is the only
-reason an unattended batch is safe to run at all. There is no pass count to run
-out of — the refusal says which of the two stopped it, and they want different things from you: a
-regression means looking at what the last pass actually did, and a stall means asking whether the finding
-is answerable. `handling-blockers.md` has what to do with an escalated cycle.
+Remediation stopped getting anywhere with blockers still open, after the one different approach it may take
+(D-179): a pass undid what an earlier one answered or two passes in a row reduced nothing, after that deviation,
+or a third deviation bent the same approved text. **An escalated cycle never opens a ready pull request** — the
+build opens a draft, which the check refuses to merge — and that stopping is the only reason an unattended build
+is safe to run at all. There is no pass count to run out of — the refusal says which stopped it, and they want
+different things from you: a regression means looking at what the last pass actually did, a stall means asking
+whether the finding is answerable, and a third deviation on the same text means the approved text itself is what
+needs changing. `handling-blockers.md` has what to do with an escalated cycle.
 
 **Next:** a person decides. Either the criterion is wrong, in which case
 `sdlc draft approval <id> --reopen` withdraws the approval with a recorded reason and the documents can be
@@ -679,10 +787,9 @@ you were just told.
 **Next:** `sdlc verify-chain <id>`, which prints every check — passing and failing both, because a reader
 looking at a failed check needs to know what held. The checks are: the cycle exists, no shape problems,
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
-passed, every criterion is adjudicated, the verify was judged against this evidence, the changed lines are
-covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
-after a reopen), the deviations are sound, every deviation is answered and the verdict follows the deviations
-declined (only where the build recorded any), the change was verified. When the pull request changes the solution's constraints,
+passed, every criterion is adjudicated, the verify was judged against this evidence, git commits the
+evidence, the changed lines are covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
+after a reopen), the deviations are sound (only where the build recorded any), the change was verified. When the pull request changes the solution's constraints,
 decisions or declared stack, it also says whether that was committed before or after the verify — reported,
 never refused (D-113).
 
@@ -692,6 +799,12 @@ under a test, and the whole codebase holds its coverage: at or above the solutio
 commit in `.sdlc/coverage.json`. The first catches a change that arrived untested; the second catches a
 deleted or weakened test uncovering code nobody changed. **The baseline is the last rate a merged cycle
 recorded, not a target anybody chose.**
+
+**Git commits the evidence** (D-161). A pattern in the repository's own ignore file -- Visual Studio's
+`coverage*.json` is the one met -- leaves a file out of every commit: the check passes locally, where the
+file is in the working tree, and fails in the pipeline, where it is not. **Next:** `git check-ignore -v <path>`
+names the pattern; add `!<path>` after it, or `git add -f` the file once. A cycle opened since 0.44.0 carries
+the exception for the evidence in the cycles directory's own ignore file; `.sdlc/coverage.json` is outside it.
 
 **Next,** for the changed lines: add the tests that run them, build, and record again with `--coverage`.
 Code no test should run is excluded in the solution's coverage settings, declared in the plan with its
@@ -750,17 +863,17 @@ running, so a rule with no exception has nowhere for a bypass to live.
 |---|---|
 | writing `approval.md`, or moving anything onto it | an approval is a person's act, and a recorded one means something because no tool could have recorded it. `sdlc draft approval` writes a draft beside it; renaming that draft is the decision |
 | writing `abandoned.md` | an agent stuck on a blocking finding has an obvious escape — abandon and start clean. A hand-written reason keeps the objections that killed it on the record |
-| writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
-| writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc propose decisions` reads the approved cycles and proposes an entry; pasting it is the decision |
-| writing `areas.md` | the areas decide which rules and decisions reach each reader in full, so an agent that could write them could move a rule out of its own judge's sight. `/sdlc:mine` proposes areas once three cycles' plans name one, and `sdlc draft mining` writes the draft; renaming it is the decision |
+| writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc harvest constraints` reads the completed cycles and proposes an entry, and `sdlc constraints --new` prints an empty one; placing it is the decision |
+| writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc harvest decisions` reads the completed cycles and proposes an entry; placing it is the decision |
+| writing `areas.md` | the areas decide which rules and decisions reach each reader in full, so an agent that could write them could move a rule out of its own judge's sight. `/sdlc:harvest-areas` proposes areas once three cycles' plans name one, and `sdlc draft harvest` writes the draft; renaming it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live. Adoption drafts it; after that `sdlc draft solution` does |
 | writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
 | running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 | writing a findings round | not a person's file but the binary's: `sdlc round` numbers it, stamps when it ran and what it judged, and refuses it out of the chain's order. A round the session wrote itself carried whatever it typed (D-101). Put the findings in a scratch file and hand it to `sdlc round` |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
-refusal message names the command to run instead — a drafter for four of these files, `propose` for the
-rule file and the decision record, and mining's drafter for the areas. Run it yourself, and place what it produces.
+refusal message names the command to run instead — a drafter for four of these files, a harvest for the
+rule file and the decision record, and a harvest's drafter for the areas. Run it yourself, and place what it produces.
 
 **The last one matches the verb rather than parsing the line**, so even asking the adoption command for
 its own help is refused and `sdlc help` is the way to read its options. The same scan is why a refusal
@@ -785,7 +898,7 @@ a draft, or a file whose longer name ends in one of them, is not mistaken for th
 deliberately broad rather than a parser: a false refusal costs you a rephrasing, and a miss costs the
 guarantee.
 
-**Eight is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
+**Nine is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
 made it, so it cannot deny an edit that is wrong only because of where it came from — `remediate`
 touching `spec.md`, or `refine` touching source. Those rules are real and the skills state them, but
 they are the skill's own discipline rather than something denied at the call. What catches a breach is
@@ -830,8 +943,8 @@ code. Run the build and the suite again over what is there now, and record it.
 
 Deliberately most of the time. It is silent off a cycle branch, on a cycle with no directory, on an
 abandoned cycle, before the cycle has a plan, when nothing has changed, when the host is already
-continuing because it was sent back once already, and in a **fresh reader** — a process `interrogate`,
-`verify` or `propose` starts with `SDLC_READER=1` to judge a document. A reader builds nothing, and
+continuing because it was sent back once already, and in a **fresh reader** — a process the binary starts with
+`SDLC_READER=1` to judge a document, for a round, a verification or a harvest sitting (D-183). A reader builds nothing, and
 refusing its turn only replaced its verdict with an answer to the hook; the tool-call hook still holds it
 to the protected files. A governance hook that met a person finishing a thought
 would be switched off within a day, and then the one case it catches would go uncaught too.

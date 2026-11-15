@@ -45,7 +45,6 @@ public sealed class ArtifactSchemaTests
             ArtifactKind.Spec,
             """
             ---
-            framework_version: 1.0.0
             cycle: 20260929_1456_32
             ---
 
@@ -75,7 +74,6 @@ public sealed class ArtifactSchemaTests
             ArtifactKind.Intent,
             """
             ---
-            framework_version: 1.0.0
             cycle: 20260929_1456_32
             type: bug fix
             ---
@@ -151,11 +149,26 @@ public sealed class ArtifactSchemaTests
         {
             ArtifactValidation check = Validate(
                 kind,
-                WellFormed(kind).Replace("framework_version: 1.0.0\n", string.Empty, StringComparison.Ordinal));
+                WellFormed(kind).Replace("cycle: " + Id + "\n", string.Empty, StringComparison.Ordinal));
 
             Assert.IsTrue(
-                check.Violations.Any(v => v.Where == "framework_version"),
+                check.Violations.Any(v => v.Where == "cycle"),
                 $"{Cycle.NameOf(kind)} did not require it: {Describe(check)}");
+        }
+    }
+
+    [TestMethod]
+    public void An_artifact_written_before_the_format_version_was_retired_still_validates_on_every_kind()
+    {
+        // D-160: every artifact a solution wrote before 0.43.0 carries framework_version, and those files are
+        // signed by approvals and anchored by rounds, so the key is accepted as it stands rather than rewritten.
+        foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
+        {
+            ArtifactValidation check = Validate(
+                kind,
+                WellFormed(kind).Replace("---\n", "---\nframework_version: 1.0.0\n", StringComparison.Ordinal));
+
+            Assert.IsTrue(check.IsValid, $"{Cycle.NameOf(kind)}: {Describe(check)}");
         }
     }
 
@@ -198,11 +211,11 @@ public sealed class ArtifactSchemaTests
     }
 
     [TestMethod]
-    public void The_envelope_is_the_same_two_keys_on_every_artifact()
+    public void The_envelope_is_the_same_key_on_every_artifact()
     {
         // D-07's test for where a field goes, asserted. If a key were universal in name and not in
         // meaning, or carried on some artifacts and not others, it would not belong here.
-        CollectionAssert.AreEqual(new[] { "framework_version", "cycle" }, ArtifactSchema.EnvelopeKeys.ToArray());
+        CollectionAssert.AreEqual(new[] { "cycle" }, ArtifactSchema.EnvelopeKeys.ToArray());
 
         foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
         {
@@ -386,7 +399,6 @@ public sealed class ArtifactSchemaTests
         List<string> lines =
         [
             "---",
-            "framework_version: 1.0.0",
             "cycle: " + Id,
         ];
 

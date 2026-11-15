@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sdlc hook --host claude",
+            "command": "sdlc hook --host claude --source plugin",
             "timeout": 10,
             "statusMessage": "Asking the gate..."
           }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sdlc hook --host claude --event turn-end",
+            "command": "sdlc hook --host claude --event turn-end --source plugin",
             "timeout": 10,
             "statusMessage": "Checking the build is green..."
           }

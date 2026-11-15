@@ -32,13 +32,14 @@ public enum GateDecision
     Reopened,
 
     /// <summary>
-    /// A person's answer to each deviation a build or a remediation recorded, accepted or declined one by one.
+    /// An answer to each deviation a build or a remediation recorded: written now only by a reopen's draft, taking
+    /// every one in, and read as a person wrote it before D-181.
     /// </summary>
     /// <remarks>
     /// <strong>Not a decision about the cycle, so it never stands.</strong> It sits beside the approval it
     /// answers for and leaves it in force: <see cref="ApprovalLedger.Current"/> passes over it, so the gate
-    /// keeps reading the hashes and anchors of the approval itself. A deviation replaces approved text the
-    /// build could not follow, and a person signs the replacement, so nothing is waived (D-27).
+    /// keeps reading the hashes and anchors of the approval itself. A deviation is accepted by merging the pull
+    /// request it leads (D-181); this value is how a reopen makes the build's deviations history.
     /// </remarks>
     Deviations,
 }
@@ -102,11 +103,9 @@ public sealed record RoundAnchor(int Round, string Sha256);
 /// A cycle's gate history: an append-only ledger of decisions, read top to bottom.
 /// </summary>
 /// <param name="Cycle">The cycle the ledger belongs to.</param>
-/// <param name="FrameworkVersion">The version whose format the entries were written in.</param>
 /// <param name="Decisions">Every decision, in the order they were taken.</param>
 public sealed record ApprovalLedger(
     string Cycle,
-    string? FrameworkVersion,
     IReadOnlyList<GateEntry> Decisions)
 {
     /// <summary>
@@ -278,7 +277,7 @@ public sealed record ApprovalLedger(
 
         return errors.Count > 0
             ? Result.Fail<ApprovalLedger>(errors)
-            : Result.Ok(new ApprovalLedger(shape.Cycle ?? string.Empty, shape.FrameworkVersion, entries));
+            : Result.Ok(new ApprovalLedger(shape.Cycle ?? string.Empty, entries));
     }
 
     /// <summary>
@@ -338,8 +337,6 @@ public sealed record ApprovalLedger(
     private sealed class LedgerShape
     {
         public string? Cycle { get; set; }
-
-        public string? FrameworkVersion { get; set; }
 
         public List<EntryShape>? Decisions { get; set; }
     }

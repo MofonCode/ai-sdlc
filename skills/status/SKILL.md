@@ -55,14 +55,25 @@ cites.
 
 **Gate** — whether the build may run, and why not.
 
-**Next** — the literal command.
+**Next** — the literal command, named as the step a person takes: *take it to plan*, *build it*, *review the
+pull request* (D-182).
+
+**After a build, the report is a separate command**: `sdlc report <id>` prints every deviation, every choice the
+build made that nothing approved settled, and every concern its verification raised without blocking (D-181).
+Show it verbatim beside the panel when somebody asks what the build did.
+
+**Loop** — present only when a rule has been answered and raised again (D-65, D-110): which rule, what it is
+caught against, and what to do — a rule that *has come back* means look for an exit rather than editing the
+same words again; *stuck on* a rule means stop and hand back to a person. Absent, which is the ordinary case,
+it means keep going.
 
 ## What it will not tell you, on purpose
 
-**Whether to keep interrogating.** The panel reports what each round found and attaches no
-recommendation. That judgement has been wrong before: on one real intent, round seven found the headline
-change was unreachable and round eleven found that no success criterion failed without it. A tool that
-had suggested stopping at round four would have been confidently wrong.
+**When to stop on a count.** The `Loop` line speaks only when the loop goes backwards — a rule answered and
+raised again — never because it is going slowly, and nothing caps the rounds. A count has been wrong before:
+on one real intent, round seven found the headline change was unreachable and round eleven found that no
+success criterion failed without it. A tool that had suggested stopping at round four would have been
+confidently wrong.
 
 **A summary of the artifact's content.** A command-line tool cannot summarise, and inventing one would
 be worse than showing the headings a person wrote.

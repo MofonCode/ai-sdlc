@@ -63,7 +63,7 @@ public static class WriteTechStackDraft
     /// it.</strong> The menu outlives the rename — nothing deletes it — so an untracked copy would sit
     /// in <c>.sdlc/</c> indefinitely, and <c>evidence</c> stages untracked paths with
     /// <c>--intent-to-add</c> before diffing. It would therefore reach every later cycle's diff as a
-    /// file no plan declared, which is what <c>CON_07.2</c> fires on. <c>ReportFile</c> already carries
+    /// file no plan declared, which is what <c>CON_25</c> fires on. <c>ReportFile</c> already carries
     /// that argument and the directory that ignores itself, and the menu matches its definition exactly:
     /// a copy of what a command printed, worked through rather than read once, and read back by nothing.
     /// </para>

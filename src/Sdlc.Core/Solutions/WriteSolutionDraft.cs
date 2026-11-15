@@ -23,14 +23,14 @@ namespace Sdlc.Core.Solutions;
 /// placeholder is replaced, and then by a prompt rather than by invented prose — this knows what the
 /// keys are and has nothing to say about what the solution is for.</para>
 ///
-/// <para><strong>The three keys are carried through as recorded, never recomputed.</strong> The origin
+/// <para><strong>The keys are carried through as recorded, never recomputed.</strong> The origin
 /// is a historical fact, the standard decides which conventions new work follows, and the platform
 /// decides whether a pull-request check governs the merge (D-53). A draft that defaulted any of them
-/// would reclassify a solution by being renamed. The one exception is asked for by name:
-/// <c>--standard</c> moves that key and nothing else, and the draft says so in as many words, because
-/// which conventions new work follows is the one of the three a team is entitled to revisit (D-77).
-/// Any other line is not carried: the draft is written from the three keys, so a key nothing reads
-/// stops existing there.</para>
+/// would reclassify a solution by being renamed. The exceptions are asked for by name, and the draft
+/// says so in as many words: <c>--standard</c>, because which conventions new work follows is a team's
+/// to revisit (D-77), and <c>--approval</c> and <c>--coverage-floor</c>, because an agent's edit of the
+/// draft once left two approval keys (D-162). Any other line is not carried: the draft is written from
+/// the keys it knows, so a key nothing reads stops existing there.</para>
 ///
 /// <para><strong>The binary writes the draft, never a skill</strong> — the same rule
 /// <see cref="Approvals.WriteApprovalDraft"/> is written under. Every agent write to
@@ -110,12 +110,20 @@ public static class WriteSolutionDraft
     /// <param name="Standard">
     /// The standard the draft should carry, when a person is changing it. Null carries the recorded
     /// one through, which is every draft but the one somebody asked to move. It is the one key that
-    /// may move at all: the origin is a historical fact, and the platform changes with a pipeline
+    /// may move besides the approval and the coverage floor: the origin is a historical fact, and the platform changes with a pipeline
     /// that <c>sdlc init --platform</c> writes. An option here rather than on adoption, because
     /// adoption used to take it together with five .NET files and the two were never one decision
     /// (D-77).
     /// </param>
-    public sealed record Command(SolutionStandard? Standard = null) : IRequest<DraftResult>;
+    /// <param name="Approval">
+    /// The approval requirement the draft should carry, or null to carry the recorded one. An option, because
+    /// an agent's edit of the draft once left it with two <c>approval:</c> keys (D-162).
+    /// </param>
+    /// <param name="CoverageFloor">The coverage floor the draft should carry, as a fraction, or null to carry it.</param>
+    public sealed record Command(
+        SolutionStandard? Standard = null,
+        ApprovalRequirement? Approval = null,
+        double? CoverageFloor = null) : IRequest<DraftResult>;
 
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, DraftResult>
     {
@@ -168,8 +176,8 @@ public static class WriteSolutionDraft
                         document.Platform,
                         document.IntegrationBranch,
                         document.Telemetry,
-                        document.Approval,
-                        document.CoverageFloor),
+                        request.Approval ?? document.Approval,
+                        request.CoverageFloor ?? document.CoverageFloor),
 
                     "---",
                     string.Empty,
@@ -185,7 +193,7 @@ public static class WriteSolutionDraft
 
             return Result.Ok(DraftResult.Drafted(
                 draft,
-                Instructions(path, draftPath, untouched, document.Standard, standard)));
+                Instructions(path, draftPath, untouched, document.Standard, standard, Moved(document, request))));
         }
 
         /// <summary>The person's prose with the guard note under its heading, when it has none yet.</summary>
@@ -244,11 +252,35 @@ public static class WriteSolutionDraft
         /// reclassify the solution; one that was asked to move the standard does exactly that, and has
         /// to say which way and what follows from it rather than repeat the reassurance.
         /// </remarks>
-        private static string[] Keys(SolutionStandard recorded, SolutionStandard drafted) =>
-            recorded == drafted
+        /// <summary>The approval and coverage floor moves the person asked for, one phrase each.</summary>
+        private static List<string> Moved(SolutionDocument document, Command request)
+        {
+            List<string> moved = [];
+
+            if (request.Approval is { } approval && approval != document.Approval)
+            {
+                moved.Add($"approval goes from {SolutionDocument.NameOf(document.Approval)} to {SolutionDocument.NameOf(approval)}");
+            }
+
+            if (request.CoverageFloor is { } floor && SolutionDocument.FloorName(floor) != SolutionDocument.FloorName(document.CoverageFloor))
+            {
+                moved.Add($"coverage_floor goes from {SolutionDocument.FloorName(document.CoverageFloor)} to {SolutionDocument.FloorName(floor)}");
+            }
+
+            return moved;
+        }
+
+        private static string[] Keys(SolutionStandard recorded, SolutionStandard drafted, IReadOnlyList<string> moved) =>
+            recorded == drafted && moved.Count > 0
                 ?
                 [
-                    "The three keys are carried through as recorded and not recomputed, so this cannot",
+                    "The draft changes what was asked for: " + string.Join("; ", moved) + ".",
+                    "Every other key is carried through as recorded.",
+                ]
+                : recorded == drafted
+                ?
+                [
+                    "The keys are carried through as recorded and not recomputed, so this cannot",
                     "reclassify the solution by being renamed. Which stack rules apply is not in this file:",
                     "the declared stack lists them, and 'sdlc draft techstack' is how that changes.",
                 ]
@@ -267,6 +299,7 @@ public static class WriteSolutionDraft
                         : "when it departs toward the profile. It says nothing about the code already here, and it",
                     "writes no file: the .NET build settings are rows in the declared stack, switched on",
                     "with 'sdlc draft techstack' and brought by a cycle whose plan declares them.",
+                    .. moved.Count == 0 ? Array.Empty<string>() : [string.Empty, "It also changes what else was asked for: " + string.Join("; ", moved) + "."],
                 ];
 
         private static string Instructions(
@@ -274,7 +307,8 @@ public static class WriteSolutionDraft
             string draftPath,
             bool untouched,
             SolutionStandard recorded,
-            SolutionStandard drafted) => string.Join(
+            SolutionStandard drafted,
+            IReadOnlyList<string> moved) => string.Join(
             Environment.NewLine,
             [
                 string.Create(CultureInfo.InvariantCulture, $"Written to {draftPath}"),
@@ -291,7 +325,7 @@ public static class WriteSolutionDraft
                     : "you wrote. Edit it in the draft or after the rename, whichever you prefer.",
                 untouched ? "been told nothing about what good looks like here." : string.Empty,
                 string.Empty,
-                .. Keys(recorded, drafted),
+                .. Keys(recorded, drafted, moved),
                 string.Empty,
                 "Nothing here places it. Every agent write to that file is denied, and the rename is the act.",
             ]);

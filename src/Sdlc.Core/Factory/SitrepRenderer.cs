@@ -56,7 +56,7 @@ public static class SitrepRenderer
             {
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"   - also changed by `{overlap.Second}` ({string.Join(", ", overlap.Files)}) - expect it to conflict after this merges; resolve it with `resolve-conflict`"));
+                    $"   - also changed by `{overlap.Second}` ({string.Join(", ", overlap.Files)}) - expect it to conflict after this merges; fix it with `remediate`, which resolves it first"));
             }
         }
 
@@ -102,7 +102,7 @@ public static class SitrepRenderer
     private static string Next(Sitrep.Built cycle) => cycle.Outcome?.ToUpperInvariant() switch
     {
         "BLOCKED" => "blocked -> `remediate` on its branch, then mark the draft ready",
-        "ESCALATED" => "escalated: the loop stopped reducing -> `steer`, a reopen, or abandon",
+        "ESCALATED" => "escalated: the passes stopped converging -> say what to do, then `remediate`; or a reopen, or abandon",
         null => "no verify to read -> fetch the remote, or build it again by deleting the branch",
         _ => string.Create(CultureInfo.InvariantCulture, $"outcome '{cycle.Outcome}' -> read its verify"),
     };

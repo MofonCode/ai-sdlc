@@ -20,7 +20,7 @@ namespace Sdlc.Core.Decisions;
 /// constraint set is: a copy is a second place the truth lives, and <c>CON_09</c> forbids an artifact
 /// restating another document's content as its own authority.</para>
 ///
-/// <para><strong>A cycle may depart from any of these, and must say so.</strong> <c>CON_24</c> is
+/// <para><strong>A cycle may depart from any of these, and must say so.</strong> <c>CON_27</c> is
 /// the rule: a departure is declared where it arises, and the intent, the spec, the plan and the change
 /// are each judged against this record. So reading this is not advisory -- a stage written without it
 /// cannot tell whether it is departing, which is the one thing the rule forbids (D-72, D-139).</para>

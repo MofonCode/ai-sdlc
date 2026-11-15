@@ -92,7 +92,7 @@ public readonly record struct DecisionId
 /// says why, the rule forbids the alternative. Expect roughly one <c>LOC_</c> for every five or six of
 /// these.</para>
 ///
-/// <para><strong>Departing is legal; departing in silence is not.</strong> <c>CON_24</c> asks a
+/// <para><strong>Departing is legal; departing in silence is not.</strong> <c>CON_27</c> asks a
 /// departure from a standing entry to be declared once, where it arises -- an outcome in the intent, an
 /// approach in the plan -- and holds the intent, the spec, the plan and the change to it. A decision that
 /// cannot be revisited is a cage; what the rule catches is a document or a change reaching for the

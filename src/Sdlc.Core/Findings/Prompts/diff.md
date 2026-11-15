@@ -5,9 +5,10 @@ write it and you have no stake in it. Everything you may read is above and below
 else to look up.
 
 Another reader decides whether the spec's criteria are met. That is not your question. Yours is: **did the
-change do anything it was not given leave to do?** Leave comes from three places above: the plan, which
+change do anything it was not given leave to do?** Leave comes from four places above: the plan, which
 says what the change will do; the intent and the plan, which declare every departure from a recorded
-decision; and the decisions, which say what this solution already settled and what it set aside.
+decision; the deviations in force, which the build recorded where it could not follow the approved text; and
+the decisions, which say what this solution already settled and what it set aside.
 
 Here are the rules in force for a change. Each has an `Applies to`, a `Forbids` and a `Why`:
 
@@ -18,8 +19,9 @@ Here are the rules in force for a change. Each has an `Applies to`, a `Forbids` 
 ## Judge by purpose, never by the file list
 
 The plan's `Files` table is the author's best guess before the code existed, and it is a signal, not a
-contract. **A file the plan did not list is not a finding.** What `CON_07.2` forbids is a change the plan
-did not *describe*: an unrelated refactor, a drive-by rename, a fix to something else noticed in passing.
+contract. **A file the plan did not list is not a finding.** What `CON_25` forbids is a change neither the
+plan nor a deviation in force *describes*, in any file: an unrelated refactor, a drive-by rename, a fix to
+something else noticed in passing.
 Ask what each hunk is for. If its purpose is one the plan describes, it has leave, wherever it is.
 
 ## Read the deviations as leave, and nothing else as leave
@@ -27,26 +29,34 @@ Ask what each hunk is for. If its purpose is one the plan describes, it has leav
 Where the build could not follow the approved text, it recorded a **deviation**, listed above with whether it
 is in force. A deviation in force quotes the approved text it departs from and says what was done instead:
 **that is leave**, exactly as if the plan had said it, and a decision deviation is a declared departure from
-that decision. A declined deviation gives no leave, so a change still doing what it described departs from the
-approved text.
+that decision. One the person asked to change gives no leave, so a change still doing what it described departs
+from the approved text.
+
+A **choice** is different: it records something the approved text left open — a library, a pattern, a default,
+behaviour a user would see — and quotes nothing, because it departs from nothing. **A choice is never leave.**
+Judge the change it describes like any other: within the plan's purpose under `CON_25`, and against the
+decisions under `CON_27`. A choice that takes what a decision set aside is a departure, and a choice cannot
+declare one.
 
 A change that departs from what the plan describes, with **no deviation in force describing it**, is an
-undeclared deviation: a blocking finding under `CON_07.2`. The remedy names both ways out: take the change
-back out, or record the deviation for the person to answer.
+undeclared deviation: a blocking finding under `CON_25`. The remedy names both ways out: take the change
+back out, or record the deviation, which the pull request then leads with for the person to accept or change.
 
 A deviation may never widen the cycle: add an outcome, add a criterion, reach more cases than the approved
 text did, or touch the intent. One that does gives no leave for the widening, and the change doing it is a
-blocking finding under `CON_07.2` that says so.
+blocking finding under `CON_25` that says so.
 
 ## Judge against the decisions narrowly
 
-`CON_24` blocks on one thing: the change **does** what a standing decision's `Instead of` names — the
+`CON_27` blocks on one thing: the change **does** what a standing decision's `Instead of` names — the
 alternative that decision weighed and set aside — and neither the intent nor the plan declares that
-departure with a line opening `Departs from DEC_nn`. Before you write one:
+departure with a line opening `Departs from DEC_nn`, and no `decision` deviation in force departs from that
+entry. Before you write one:
 
 - Quote the diff lines that do it, and name the decision by its id and its own words.
-- Check the intent's `Fixed decisions` and the plan's `Shape and departures` for a departure naming that id.
-  If one is there, the change has leave and there is no finding.
+- Check the intent's `Fixed decisions` and the plan's `Shape and departures` for a departure naming that id,
+  and the deviations for a `decision` deviation in force that departs from it. If one is there, the change has
+  leave and there is no finding.
 
 These are **suggestions**, never blocking: a decision that seems relevant; a change that *might* conflict;
 code that could have cited a decision; a decision the change does not touch at all. A blocking finding you
@@ -65,7 +75,7 @@ plan, which a person then approves.
 For every blocking finding, also give a `gist`: **one plain sentence, on one line, under 240 characters,
 saying what in the change set it off and why that fails**, in a person's words rather than the rule's, for
 a reader who has seen nothing but this sentence. "`OrderService.cs` throws `NotFoundException`, where the
-solution decided errors are returned as a Result", not "CON_24 is not satisfied".
+solution decided errors are returned as a Result", not "CON_27 is not satisfied".
 
 Give `locus` as places a person can find: the file and line numbers in `diff.patch`, and a few words quoted
 from the line. When one defect occurs in more than one place, it is one finding naming every place.
@@ -74,7 +84,7 @@ Answer as JSON only, in this shape:
 
 ```json
 { "findings": [ { "id": "F_01", "severity": "blocking",
-  "cites": { "id": "CON_24", "heading": "..." },
+  "cites": { "id": "CON_27", "heading": "..." },
   "gist": "...", "statement": "...", "locus": "...", "remedy": "..." } ] }
 ```
 

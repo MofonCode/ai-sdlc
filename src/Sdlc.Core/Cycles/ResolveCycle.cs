@@ -104,20 +104,21 @@ public static class ResolveCycle
             string? branch = repo ? repository.CurrentBranch(root) : null;
 
             IEnumerable<Cycle> carried = CycleIndex.All(root).Where(cycle => !cycle.IsAbandoned);
+            string? integrationRef = null;
+
+            if (repo)
+            {
+                string integrationName = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
+                integrationRef = new[] { "origin/" + integrationName, integrationName }.FirstOrDefault(name => repository.RefExists(root, name));
+            }
 
             if (CycleBranch.TryParse(branch, out CycleBranch? own))
             {
                 carried = carried.Where(cycle => cycle.Id == own.Id);
             }
-            else if (repo)
+            else if (integrationRef is { } at)
             {
-                string integration = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
-                string? at = new[] { "origin/" + integration, integration }.FirstOrDefault(name => repository.RefExists(root, name));
-
-                if (at is not null)
-                {
-                    carried = carried.Where(cycle => !repository.PathExistsAt(root, at, Relative(cycle)));
-                }
+                carried = carried.Where(cycle => !repository.PathExistsAt(root, at, Relative(cycle)));
             }
 
             List<Candidate> all = [];
@@ -141,7 +142,13 @@ public static class ResolveCycle
 
                 all.Add(candidate);
 
-                if (IsReady(status.Value, request.Step))
+                // A passed cycle is remediable while a person may still ask for a change, which is until its verdict
+                // has merged into the integration branch (D-185). Whether the pull request is open is the platform's
+                // to say and needs the network; a verdict the integration branch holds is the offline answer.
+                bool merged = integrationRef is not null
+                    && repository.PathExistsAt(root, integrationRef, Relative(cycle, ArtifactKind.Verify));
+
+                if (IsReady(status.Value, request.Step, merged))
                 {
                     ready.Add(candidate);
                 }
@@ -150,10 +157,10 @@ public static class ResolveCycle
             return Result.Ok(new Response(request.Step, branch, all, ready));
         }
 
-        private static string Relative(Cycle cycle) =>
-            string.Create(CultureInfo.InvariantCulture, $"{Cycle.SdlcDirectoryName}/{Cycle.CyclesDirectoryName}/{cycle.Id}/{Cycle.FileNameOf(ArtifactKind.Intent)}");
+        private static string Relative(Cycle cycle, ArtifactKind kind = ArtifactKind.Intent) =>
+            string.Create(CultureInfo.InvariantCulture, $"{Cycle.SdlcDirectoryName}/{Cycle.CyclesDirectoryName}/{cycle.Id}/{Cycle.FileNameOf(kind)}");
 
-        private static bool IsReady(ReadCycleStatus.Response status, NextStep step)
+        private static bool IsReady(ReadCycleStatus.Response status, NextStep step, bool merged)
         {
             ReadCycleStatus.ArtifactState Of(ArtifactKind kind) => status.Artifacts.First(artifact => artifact.Kind == kind);
 
@@ -163,7 +170,12 @@ public static class ResolveCycle
                 NextStep.Plan => Of(ArtifactKind.Spec).IsClear && !Of(ArtifactKind.Plan).Exists,
                 NextStep.Build => status.Gate.Refusal == Approvals.ApprovalGate.GateRefusal.None && !status.Built,
                 NextStep.Verify => status.Built && status.Outcome is null,
-                NextStep.Remediate => string.Equals(status.Outcome, "blocked", StringComparison.OrdinalIgnoreCase),
+                // Blocked, escalated with a person's instruction to follow, or passed with a change asked for before
+                // the merge (D-185).
+                NextStep.Remediate => status.Outcome is { } outcome
+                    && (string.Equals(outcome, "blocked", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(outcome, "escalated", StringComparison.OrdinalIgnoreCase)
+                        || (string.Equals(outcome, "pass", StringComparison.OrdinalIgnoreCase) && !merged)),
                 NextStep.ToPlan => Of(ArtifactKind.Intent).Exists
                     && !Of(ArtifactKind.Plan).IsClear
                     && status.Gate.Ledger?.IsApproved != true,

@@ -65,6 +65,24 @@ public sealed class StartBranchTests
     }
 
     [TestMethod]
+    [DataRow("cycle/{0}/plan")]
+    [DataRow("slices/sandbox-20260929-1400-00/plan")]
+    public async Task An_unattended_build_starts_from_a_local_admission_the_integration_branch_does_not_hold_yet(string admission)
+    {
+        // D-178: build it admits locally and pushes nothing, then the run builds this one cycle unattended. The
+        // integration branch exists and does not hold the plan, so the run starts from the local admission.
+        string from = string.Format(System.Globalization.CultureInfo.InvariantCulture, admission, Id);
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.Refs.Add(from);
+        git.PathsAt.Add(from + ":" + Plan);
+
+        StartBranch.Response start = await Ask(git, CycleBranchKind.BuildUnattended);
+
+        Assert.AreEqual("git switch --no-track -c cycle/" + Id + "/build-unattended " + from, start.Command);
+    }
+
+    [TestMethod]
     public async Task An_older_cycle_on_the_bare_branch_keeps_building_there()
     {
         FakeRepository git = new();
@@ -94,6 +112,38 @@ public sealed class StartBranchTests
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "development");
+    }
+
+    [TestMethod]
+    public async Task A_build_starts_from_the_admission_branch_that_carries_its_plan()
+    {
+        // D-162. An admission of several cycles is named for the sandbox, so looking for this cycle's own
+        // plan branch never found it.
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.Refs.Add("slices/sandbox-20260929-1400-00/plan");
+        git.PathsAt.Add("slices/sandbox-20260929-1400-00/plan:" + Plan);
+
+        StartBranch.Response start = await Ask(git, CycleBranchKind.Build);
+
+        Assert.AreEqual("git switch --no-track -c cycle/" + Id + "/build slices/sandbox-20260929-1400-00/plan", start.Command);
+    }
+
+    [TestMethod]
+    public async Task A_plan_only_in_a_sandbox_names_admit_and_builds_from_it_only_with_nothing_to_admit_to()
+    {
+        FakeRepository git = new();
+        git.Refs.Add("sandbox/20260929_1400_00");
+        git.PathsAt.Add("sandbox/20260929_1400_00:" + Plan);
+
+        StartBranch.Response start = await Ask(git, CycleBranchKind.Build);
+        Assert.AreEqual("git switch --no-track -c cycle/" + Id + "/build sandbox/20260929_1400_00", start.Command, "Admit says so when there is no integration branch.");
+
+        git.Refs.Add("origin/development");
+        Result<StartBranch.Response> refused = await Send(git, CycleBranchKind.Build);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "sdlc admit");
     }
 
     [TestMethod]
@@ -207,7 +257,7 @@ public sealed class StartBranchTests
         {
             CycleWorkspace.WriteRaw(
                 workspace.Cycle.PathOf(ArtifactKind.Intent),
-                "---\nframework_version: 1.0.0\ncycle: " + Id + "\ntype: bug fix\nrelease: " + release + "\n---\n\n# A fix\n");
+                "---\ncycle: " + Id + "\ntype: bug fix\nrelease: " + release + "\n---\n\n# A fix\n");
         }
 
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));

@@ -67,7 +67,7 @@ public sealed class ApprovalTextTests
         // Exactly what a person does: the header, then the entry pasted under it.
         string pasted = string.Create(
             CultureInfo.InvariantCulture,
-            $"---\ncycle: {workspace.Cycle.Id}\nframework_version: 1.0.0\ndecisions:\n{text.Entry}---\n");
+            $"---\ncycle: {workspace.Cycle.Id}\ndecisions:\n{text.Entry}---\n");
 
         Result<ApprovalLedger> read = ApprovalLedger.Read(pasted, "pasted");
 
@@ -252,7 +252,7 @@ public sealed class ApprovalTextTests
             workspace.Cycle.ApprovalPath,
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"---\n  cycle: {workspace.Cycle.Id}\n  framework_version: 1.0.0\ndecisions:\n  - decision: approved\n---\n"));
+                $"---\n  cycle: {workspace.Cycle.Id}\ndecisions:\n  - decision: approved\n---\n"));
 
         ApprovalText.Response text = await Print(workspace);
 
@@ -316,18 +316,18 @@ public sealed class ApprovalTextTests
         StringAssert.Contains(rendered, "intent");
         StringAssert.Contains(rendered, "r1, clean");
         StringAssert.Contains(rendered, "This file:");
-        StringAssert.Contains(rendered, "Rename it, from the repository root, to record the decision:");
+        StringAssert.Contains(rendered, "Rename it, from any directory, to record the decision. In bash or zsh:");
     }
 
     [TestMethod]
-    public async Task The_rename_is_written_from_the_repository_root()
+    public async Task The_rename_is_written_with_absolute_paths()
     {
-        // It named the bare files, and a person typing it at the root -- where every other command here
-        // runs -- got "cannot stat".
+        // It named the bare files, and a person typing it at the root got "cannot stat". Then it named them
+        // from the root, and a person whose draft was in another worktree got it again (D-162).
         using CycleWorkspace workspace = Ready();
 
         string rendered = ApprovalRenderer.Render(await Print(workspace));
-        string directory = ".sdlc/cycles/" + workspace.Cycle.Id;
+        string directory = Path.GetFullPath(workspace.Cycle.Directory).Replace('\\', '/');
 
         StringAssert.Contains(rendered, $"mv {directory}/approval.approved.draft.md {directory}/approval.md");
         StringAssert.Contains(rendered, $"Move-Item {directory}/approval.approved.draft.md {directory}/approval.md");
@@ -425,17 +425,23 @@ public sealed class ApprovalTextTests
     }
 
     [TestMethod]
-    public async Task The_printed_header_declares_the_framework_version()
+    public async Task A_ledger_written_before_the_format_version_was_retired_still_reads()
     {
+        // D-160: every approval a solution placed before 0.43.0 carries framework_version under its cycle.
+        // Nobody rewrites a file only a person writes, so the old header has to read as it stands.
         using CycleWorkspace workspace = Ready();
 
         ApprovalText.Response text = await Print(workspace);
 
-        StringAssert.Contains(
-            text.FileText,
-            "framework_version: " + Cycle.FrameworkVersion,
-            "The envelope requires the field on every artifact. A printed header that omitted it would "
-            + "make a first entry the one file in the cycle that does not declare its format.");
+        Assert.IsFalse(text.FileText!.Contains("framework_version", StringComparison.Ordinal), text.FileText);
+
+        string older = string.Create(
+            CultureInfo.InvariantCulture,
+            $"---\ncycle: {workspace.Cycle.Id}\nframework_version: 1.0.0\ndecisions:\n{text.Entry}---\n");
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(older, "older");
+
+        Assert.IsTrue(read.IsSuccess, string.Join(" ", read.Errors.Select(error => error.Message)));
     }
 
     [TestMethod]

@@ -17,7 +17,7 @@ namespace Sdlc.Core.Findings;
 /// remarks why there must be exactly one — the gate and the status panel have to agree on what "open"
 /// means, and the one a person reads would not have been the one that refuses the build.
 /// </remarks>
-/// <param name="FrameworkVersion">The version that produced it.</param>
+/// <param name="FrameworkVersion">Retired (D-160): carried from rounds written before 0.43.0 so their hashes still verify, and never written.</param>
 /// <param name="Cycle">The cycle's id.</param>
 /// <param name="Artifact">The artifact's path, as the round recorded it.</param>
 /// <param name="UpstreamSha256">
@@ -173,7 +173,7 @@ public static class FindingsReader
             {
                 return Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                    $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_21 or LOC_02, with an optional revision such as CON_12.2."));
             }
         }
 
@@ -231,7 +231,7 @@ public static class FindingsReader
                 {
                     return Result.Fail<FindingsRound>(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                        $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_21 or LOC_02, with an optional revision such as CON_12.2."));
                 }
 
                 if (string.IsNullOrWhiteSpace(citation.Heading))
@@ -246,7 +246,7 @@ public static class FindingsReader
             {
                 return Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.2 objects to in a gate refusal and what the same reasoning objects to here."));
+                    $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.3 objects to in a gate refusal and what the same reasoning objects to here."));
             }
         }
 
@@ -541,6 +541,46 @@ public static class FindingsReader
         Result<FindingsRound> valid = Validate(asRound, source);
 
         return valid.IsFailed ? valid.ToResult<SuggestionLedger>() : Result.Ok(ledger);
+    }
+
+    /// <summary>
+    /// Reads a suggestions ledger that may record one id twice, renumbers it, and checks what results as
+    /// <see cref="ReadSuggestions(string, string)"/> does (D-171).
+    /// </summary>
+    /// <param name="json">The ledger's JSON.</param>
+    /// <param name="source">What to call it in an error message.</param>
+    /// <returns>The renumbered ledger and what moved, or a failure naming what else is wrong with the file.</returns>
+    public static Result<(SuggestionLedger Ledger, IReadOnlyList<RenumberedSuggestion> Moved)> Renumber(string json, string source)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        SuggestionLedger? ledger;
+
+        try
+        {
+            ledger = JsonSerializer.Deserialize<SuggestionLedger>(json, _options);
+        }
+        catch (JsonException error)
+        {
+            return Result.Fail<(SuggestionLedger, IReadOnlyList<RenumberedSuggestion>)>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not valid JSON. {error.Message}"));
+        }
+
+        if (ledger?.Suggestions is null)
+        {
+            return Result.Fail<(SuggestionLedger, IReadOnlyList<RenumberedSuggestion>)>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not a suggestions ledger. It holds a suggestions list, and every suggestion's history."));
+        }
+
+        (SuggestionLedger renumbered, IReadOnlyList<RenumberedSuggestion> moved) = ledger.Renumbered();
+        Result<SuggestionLedger> checkedLedger = ReadSuggestions(Write(renumbered), source);
+
+        return checkedLedger.IsFailed
+            ? checkedLedger.ToResult<(SuggestionLedger, IReadOnlyList<RenumberedSuggestion>)>()
+            : Result.Ok((checkedLedger.Value, moved));
     }
 
     /// <summary>

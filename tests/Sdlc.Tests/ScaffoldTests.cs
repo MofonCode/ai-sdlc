@@ -570,7 +570,7 @@ public sealed class ScaffoldTests
     [TestMethod]
     [DataRow("dice-trial", "DiceTrial")]
     [DataRow("my_app", "MyApp")]
-    [DataRow("MarketSense", "MarketSense")]
+    [DataRow("StockLedger", "StockLedger")]
     [DataRow("some.thing here", "SomeThingHere")]
     [DataRow("2fast", "Solution")]
     [DataRow("---", "Solution")]

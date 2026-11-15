@@ -85,7 +85,6 @@ public sealed class EvidenceTests
         // Everything downstream reads this rather than the runner's own output, so the two have to agree
         // after a write and a read.
         TestSummary written = new(
-            Cycle.FrameworkVersion,
             "20260929_1456_32",
             DateTimeOffset.Parse("2026-10-02T09:00:00Z", null),
             [new RecordedTest("A_test", TestOutcome.Passed), new RecordedTest("B_test", TestOutcome.Failed, "why")]);
@@ -108,7 +107,6 @@ public sealed class EvidenceTests
         TestSummary summary = new(
             null,
             null,
-            null,
             [new RecordedTest("Dice.Tests.RollTests.Rolls_within_one_and_six", TestOutcome.Passed)]);
 
         Assert.IsTrue(summary.DidPass("Rolls_within_one_and_six"));
@@ -119,7 +117,7 @@ public sealed class EvidenceTests
     [TestMethod]
     public void A_failing_test_does_not_count_as_passing_under_any_spelling()
     {
-        TestSummary summary = new(null, null, null, [new RecordedTest("A.B.C_test", TestOutcome.Failed)]);
+        TestSummary summary = new(null, null, [new RecordedTest("A.B.C_test", TestOutcome.Failed)]);
 
         Assert.IsFalse(summary.DidPass("C_test"));
         Assert.IsFalse(summary.DidPass("A.B.C_test"));
@@ -133,7 +131,6 @@ public sealed class EvidenceTests
         // pushed a trial cycle into collapsing two browser engines into a loop inside one test, which cost
         // the per-engine result the verify document was citing.
         TestSummary summary = new(
-            null,
             null,
             null,
             [
@@ -152,7 +149,6 @@ public sealed class EvidenceTests
         TestSummary summary = new(
             null,
             null,
-            null,
             [
                 new RecordedTest("Page_shows_a_face (\"chromium\")", TestOutcome.Passed),
                 new RecordedTest("Page_shows_a_face (\"webkit\")", TestOutcome.Failed, "the face was blank"),
@@ -169,7 +165,6 @@ public sealed class EvidenceTests
         TestSummary summary = new(
             null,
             null,
-            null,
             [new RecordedTest("Dice.Tests.DicePageTests.Page_shows_a_face(engine: \"webkit\")", TestOutcome.Passed)]);
 
         Assert.IsTrue(summary.DidPass("Page_shows_a_face"));
@@ -182,7 +177,6 @@ public sealed class EvidenceTests
         // A skipped case is not evidence of anything, and a proof whose second engine never ran is a proof
         // of one engine. TestOutcome keeps the value distinct precisely so this can be refused.
         TestSummary summary = new(
-            null,
             null,
             null,
             [
@@ -579,7 +573,7 @@ public sealed class EvidenceTests
             await Record(workspace, trx: null, changed: ["src/Thing.cs"]));
 
         StringAssert.Contains(rendered, "every declared file changed");
-        StringAssert.Contains(rendered, "Verify reads tests.json and the diff, and nothing else.");
+        StringAssert.Contains(rendered, "Verify reads tests.json, the diff and the coverage, and nothing else.");
     }
 
     [TestMethod]
@@ -594,7 +588,8 @@ public sealed class EvidenceTests
         StringAssert.Contains(rendered, "undeclared  src/Unexpected.cs");
         StringAssert.Contains(rendered, "undelivered src/Thing.cs");
         StringAssert.Contains(rendered, "not a refusal");
-        StringAssert.Contains(rendered, "outcome-based");
+        StringAssert.Contains(rendered, "What blocks: the build");
+        StringAssert.Contains(rendered, "(CON_25)");
     }
 
     /// <summary>
@@ -654,6 +649,60 @@ public sealed class EvidenceTests
 
         StringAssert.Contains(said, "already has a verdict");
         StringAssert.Contains(said, "verify.md", "A refusal says which file has to move.");
+        Assert.IsTrue(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "A refusal removes nothing.");
+    }
+
+    [TestMethod]
+    public async Task Recording_a_new_run_under_a_blocked_verdict_retires_it_and_says_so()
+    {
+        // D-161. Remediation is a new run under a blocked verdict, and every remediation met the refusal above
+        // only after its run -- most of an hour, on one solution -- then deleted the file by hand and ran again.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "blocked");
+
+        RecordEvidence.Response recorded = await Record(workspace, trx: null, changed: ["src/Roll.cs"]);
+
+        Assert.IsTrue(recorded.RetiredVerdict);
+        Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "The next verify starts from this run.");
+        StringAssert.Contains(EvidenceRenderer.Render(recorded), "the blocked verify.md was removed");
+    }
+
+    [TestMethod]
+    public async Task A_passed_verdict_is_retired_only_when_a_change_was_asked_for()
+    {
+        // D-185. A person asking for a change at the pull request is a new run over a pass; anything else
+        // re-recording over a pass is still the stale-verdict defect the refusal above exists for.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "pass");
+
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = ["src/Roll.cs"] });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null, RetirePass: true));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
+        Assert.IsTrue(result.Value.RetiredVerdict);
+        Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "The next verify starts from this run.");
+    }
+
+    [TestMethod]
+    public async Task A_blocked_verdict_stays_when_the_recording_is_refused()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "blocked");
+
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = ["src/Roll.cs"], Uncommitted = ["src/Roll.cs"] });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(result.IsFailed);
+        Assert.IsTrue(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)));
     }
 
     [TestMethod]

@@ -466,7 +466,7 @@ public static class ReadSuccessors
                 return known;
             }
 
-            // A mined cycle's folder may be gone, deleted as a husk; the ledger says it merged, and whether it
+            // A closed cycle's folder may be gone, deleted as a husk; the ledger says it merged, and whether it
             // passed or stopped, which is all readiness asks (D-152).
             if (Ledger().Find(id.ToString()) is { } mined)
             {
@@ -510,24 +510,24 @@ public static class ReadSuccessors
             return state;
         }
 
-        private Mining.MinedLedger? _ledger;
+        private Harvest.HarvestLedger? _ledger;
 
         // Read where merged is read: the integration branch, else the working copy.
-        private Mining.MinedLedger Ledger()
+        private Harvest.HarvestLedger Ledger()
         {
             if (_ledger is not null)
             {
                 return _ledger;
             }
 
-            string relative = Cycle.SdlcDirectoryName + "/" + Mining.MinedLedger.FileName;
+            string relative = Cycle.SdlcDirectoryName + "/" + Harvest.HarvestLedger.FileName;
             string? text = at is not null
                 ? repository!.ReadAt(root, at, relative)
-                : File.Exists(Mining.MinedLedger.PathIn(root)) ? File.ReadAllText(Mining.MinedLedger.PathIn(root)) : null;
+                : File.Exists(Harvest.HarvestLedger.PathIn(root)) ? File.ReadAllText(Harvest.HarvestLedger.PathIn(root)) : null;
 
             _ledger = text is null
-                ? Mining.MinedLedger.Empty
-                : Mining.MinedLedger.Parse(text, relative).ValueOrDefault ?? Mining.MinedLedger.Empty;
+                ? Harvest.HarvestLedger.Empty
+                : Harvest.HarvestLedger.Parse(text, relative).ValueOrDefault ?? Harvest.HarvestLedger.Empty;
 
             return _ledger;
         }

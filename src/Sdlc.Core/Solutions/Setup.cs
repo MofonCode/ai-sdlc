@@ -136,7 +136,7 @@ public static class Setup
                     "this solution's own constraints",
                     FileConstraintDocuments.SolutionConstraintsFileName,
                     ConstraintsDraftFileName,
-                    "sdlc propose constraints",
+                    "sdlc constraints --new",
                     "a rule of this solution's own, if it has one",
                     constraints,
                     Optional: true),

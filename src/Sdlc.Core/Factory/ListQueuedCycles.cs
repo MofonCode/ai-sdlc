@@ -27,6 +27,11 @@ namespace Sdlc.Core.Factory;
 /// <para><strong>Every cycle passed over is named with its reason.</strong> A forgotten plan branch would
 /// otherwise starve its cycle silently, night after night, which is the failure the sitrep exists to make
 /// visible.</para>
+/// <para><strong>A cycle named for a run may be admitted only on this machine</strong> (D-178). <i>Build it</i>
+/// admits the plan locally -- <c>sdlc admit</c> pushes nothing -- and starts the run from the person's own
+/// checkout, where the plan is not yet. So a named cycle the working copy does not carry is looked for on a local
+/// admission branch, and queued when it is approved there, unverified and not taken. The unnamed queue, the
+/// factory's, still reads only what the working copy and the remote hold.</para>
 /// </remarks>
 public static class ListQueuedCycles
 {
@@ -211,6 +216,14 @@ public static class ListQueuedCycles
                 return Result.Ok(new Response([asked], [], remote is not null));
             }
 
+            if (held.All(cycle => cycle.Id != only)
+                && await LocallyAdmitted(only, branches[only].ToList(), successors.Value, cancellationToken).ConfigureAwait(false) is { } local)
+            {
+                return local.Queued is { } admitted
+                    ? Result.Ok(new Response([admitted], [], remote is not null))
+                    : Result.Fail(string.Create(CultureInfo.InvariantCulture, $"Nothing was built: {only} is not queued, because {local.Reason}."));
+            }
+
             string why = held.FirstOrDefault(cycle => cycle.Id == only)?.Reason
                 ?? (Directory.Exists(new Cycle(only, solution.Path).Directory)
                     ? "it is not approved for a build, or it already has a verify - 'sdlc status " + only + "' says where it stands"
@@ -219,6 +232,66 @@ public static class ListQueuedCycles
             return Result.Fail(string.Create(
                 CultureInfo.InvariantCulture,
                 $"Nothing was built: {only} is not queued, because {why}."));
+        }
+
+        /// <summary>
+        /// A named cycle the working copy does not carry, found on a local admission branch: queued when it is approved
+        /// there, has no verify and no build branch on the remote has taken it; null when no local admission holds it.
+        /// </summary>
+        /// <remarks>
+        /// <c>sdlc admit</c> takes only what the gate lets through (D-144), so the approval is read rather than the
+        /// gate recomputed against another branch's files. Only local branches are looked at: one that reached the
+        /// remote is a plan pull request, which the working copy meets once it merges.
+        /// </remarks>
+        private async Task<(Queued? Queued, string? Reason)?> LocallyAdmitted(
+            CycleId id,
+            IReadOnlyList<CycleBranch> taken,
+            ReadSuccessors.Response successors,
+            CancellationToken cancellationToken)
+        {
+            string directory = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, id.ToString()) + "/";
+            string plan = directory + Cycle.FileNameOf(ArtifactKind.Plan);
+            string own = id.BranchName(CycleBranchKind.Plan);
+
+            IEnumerable<string> candidates = (repository.RefExists(solution.Path, own) ? [own] : Array.Empty<string>())
+                .Concat(repository.Branches(solution.Path, SlicingBranch.Prefix).Where(name => !name.StartsWith("origin/", StringComparison.Ordinal)));
+
+            if (candidates.FirstOrDefault(name => repository.PathExistsAt(solution.Path, name, plan)) is not { } admission)
+            {
+                return null;
+            }
+
+            if (repository.PathExistsAt(solution.Path, admission, directory + Cycle.FileNameOf(ArtifactKind.Verify)))
+            {
+                return (null, string.Create(CultureInfo.InvariantCulture, $"it already has a verify on {admission}"));
+            }
+
+            Cycle cycle = new(id, solution.Path);
+
+            if (repository.PathExistsAt(solution.Path, admission, directory + Path.GetFileName(cycle.AbandonedPath)))
+            {
+                return (null, string.Create(CultureInfo.InvariantCulture, $"it was abandoned on {admission}"));
+            }
+
+            string ledgerName = Path.GetFileName(cycle.ApprovalPath);
+
+            if (await SolutionDocument.ApprovalOf(solution.Path, cancellationToken).ConfigureAwait(false) == ApprovalRequirement.Required
+                && (repository.ReadAt(solution.Path, admission, directory + ledgerName) is not { } ledger
+                    || ApprovalLedger.Read(ledger, ledgerName) is not { IsSuccess: true, Value.IsApproved: true }))
+            {
+                return (null, string.Create(CultureInfo.InvariantCulture, $"it is on {admission} and not approved there - 'sdlc gate {id}' in that branch says why"));
+            }
+
+            if (taken.Where(branch => branch.IsBuild).ToList() is { Count: > 0 } building)
+            {
+                return (null, Why(building));
+            }
+
+            string? headline = repository.ReadAt(solution.Path, admission, directory + Cycle.FileNameOf(ArtifactKind.Intent)) is { } intent
+                ? ArtifactOutlineReader.Read(intent).Headline
+                : null;
+
+            return (new Queued(id, headline, Waiting(successors, id)), null);
         }
 
         /// <summary>The reason for a build branch older than the approval standing here, or null when none is.</summary>

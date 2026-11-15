@@ -8,7 +8,7 @@ Here are the rules in force. Each has an `Applies to`, a `Forbids` and a `Why`:
 <rules>
 {{constraints}}
 </rules>
-{{verify}}
+{{stage}}
 For each rule, decide whether the document to judge breaks it. Report only what you can point at in the
 document. Do not report style, wording you would have chosen differently, or anything the rules do not
 forbid.
@@ -62,7 +62,7 @@ Answer as JSON only, in this shape:
   "cites": { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" },
   "gist": "...", "statement": "...", "locus": "...", "remedy": "..." } ],
   "conflicts": [ { "between": [
-      { "id": "CON_05", "heading": "A spec introduces no scope its intent did not ask for" },
+      { "id": "CON_26", "heading": "A spec introduces no scope its intent did not ask for, beyond what a rule in force requires" },
       { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" } ],
     "statement": "why each remedy excludes the other", "locus": "..." } ]{{rowsShape}} }
 ```

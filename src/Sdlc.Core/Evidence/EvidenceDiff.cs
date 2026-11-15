@@ -79,7 +79,7 @@ public static class EvidenceDiff
         }
     }
 
-    private static async Task<string?> Commit(Cycle cycle, string name, CancellationToken cancellationToken)
+    internal static async Task<string?> Commit(Cycle cycle, string name, CancellationToken cancellationToken)
     {
         string path = Path.Combine(cycle.EvidenceDirectory, name);
 

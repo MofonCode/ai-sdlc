@@ -145,6 +145,25 @@ public static class NewCycle
                 "# chain rebuilds the patch from base.sha and head.sha (D-124).",
                 "/*/evidence/diff.patch",
             ],
+            [
+                "# What the chain and the verify read, kept in whatever the repository's own ignore file says:",
+                "# a template's 'coverage*.json' left a cycle's coverage out of every commit, green locally and",
+                "# red in the pipeline (D-161). A deeper file's pattern wins over a shallower one's.",
+                "!/*/evidence/tests.json",
+                "!/*/evidence/coverage.json",
+                "!/*/evidence/base.sha",
+                "!/*/evidence/head.sha",
+            ],
+            [
+                "# The files a proof rests on outside the change, as the verify reads them. Never committed: the",
+                "# binary rebuilds them from head.sha and the plan, as it does the patch (D-168).",
+                "/*/evidence/proof-sources.txt",
+            ],
+            [
+                "# How long the run took and its slowest tests, committed so cycles can be compared once the",
+                "# results files are gone. Kept whatever the repository's own ignore file says (D-169).",
+                "!/*/evidence/timings.json",
+            ],
         ];
 
         /// <inheritdoc />

@@ -42,7 +42,8 @@ public static class CollectRound
     /// <param name="Path">Where the draft was written.</param>
     /// <param name="Raised">Each finding the draft carries, under the id it will be recorded with.</param>
     /// <param name="Restated">Each reader's id the reconciler named a restatement, and the id it is carried under.</param>
-    /// <param name="Demoted">A perspective's blockers made suggestions, because they cite no rule it lists.</param>
+    /// <param name="Demoted">Blockers made suggestions: a perspective's citing no rule it lists, and any citing a rule
+    /// not handed to that reader (D-174, D-175).</param>
     /// <param name="Conflicts">The conflicts the draft carries.</param>
     /// <param name="NotRaised">Findings still open on this document that no reader raised again.</param>
     /// <param name="Usage">What each reader cost.</param>
@@ -62,7 +63,15 @@ public static class CollectRound
     /// <param name="Artifact">The artifact judged.</param>
     /// <param name="Directory">The round's directory, where <c>sdlc round prompt</c> wrote the prompts.</param>
     /// <param name="Host">The host the readers ran on, as the session names it, or null.</param>
-    public sealed record Command(CycleId Id, ArtifactKind Artifact, string Directory, string? Host = null) : IRequest<Response>;
+    /// <param name="Answered">Open findings on this document no reader raised again that the session settles as answered.</param>
+    /// <param name="Withdrawn">Those it settles as withdrawn.</param>
+    public sealed record Command(
+        CycleId Id,
+        ArtifactKind Artifact,
+        string Directory,
+        string? Host = null,
+        IReadOnlyList<string>? Answered = null,
+        IReadOnlyList<string>? Withdrawn = null) : IRequest<Response>;
 
     private static readonly JsonSerializerOptions _writing = new()
     {
@@ -109,7 +118,22 @@ public static class CollectRound
                 return active.ToResult<Response>();
             }
 
-            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name));
+            Result<bool> verifiedBefore = await ReaderAnswers.VerifiedBefore(mediator, request.Id, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (verifiedBefore.IsFailed)
+            {
+                return verifiedBefore.ToResult<Response>();
+            }
+
+            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name), verifiedBefore.Value);
+
+            Result<CitedRules.Handed> handed = await CitedRules.For(mediator, request.Artifact, cancellationToken).ConfigureAwait(false);
+
+            if (handed.IsFailed)
+            {
+                return handed.ToResult<Response>();
+            }
+
             List<Finding> raised = [];
             List<Conflict> conflicts = [];
             List<string> demoted = [];
@@ -136,7 +160,7 @@ public static class CollectRound
                     return answer.ToResult<Response>();
                 }
 
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader, handed.Value.Of(reader));
 
                 if (body.IsFailed)
                 {
@@ -172,7 +196,13 @@ public static class CollectRound
                     }
                 }
 
-                raised.AddRange(body.Value.Findings);
+                // The binary copies the rule's own line rather than trusting a reader to (D-177): a citation is
+                // the reader's choice, the words beside it are the library's, and a paraphrase there is a second
+                // version of the rule.
+                raised.AddRange(body.Value.Findings.Select(finding =>
+                    handed.Value.Misquoted(finding.Cites) is { } line
+                        ? finding with { Cites = finding.Cites! with { Heading = line } }
+                        : finding));
                 conflicts.AddRange(body.Value.Conflicts);
                 demoted.AddRange(body.Value.Demoted);
                 usage.Add(answer.Value.Usage);
@@ -251,6 +281,16 @@ public static class CollectRound
             HashSet<string> mentioned = [.. findings.Select(finding => finding.Id)];
             List<Finding> notRaised = [.. standingHere.Where(finding => finding.Disposition == Disposition.Open && !mentioned.Contains(finding.Id))];
 
+            Result<List<Finding>> settled = Settle(request, notRaised, mentioned);
+
+            if (settled.IsFailed)
+            {
+                return settled.ToResult<Response>();
+            }
+
+            findings.AddRange(settled.Value);
+            notRaised.RemoveAll(finding => settled.Value.Any(moved => moved.Id == finding.Id));
+
             Directory.CreateDirectory(request.Directory);
             string path = Path.Combine(request.Directory, ReaderAnswers.RoundFileName);
             Draft draft = new(findings, conflicts.Count == 0 ? null : conflicts, host, usage);
@@ -266,6 +306,46 @@ public static class CollectRound
                 conflicts,
                 notRaised,
                 usage));
+        }
+
+        /// <summary>
+        /// Each finding the session settles, copied from the ledger word for word with only its disposition
+        /// moved: retyping one by hand is what the session got wrong (D-162).
+        /// </summary>
+        private static Result<List<Finding>> Settle(Command request, List<Finding> notRaised, HashSet<string> mentioned)
+        {
+            IReadOnlyList<string> answered = request.Answered ?? [];
+            IReadOnlyList<string> withdrawn = request.Withdrawn ?? [];
+            List<Finding> settled = [];
+
+            if (answered.Intersect(withdrawn, StringComparer.Ordinal).FirstOrDefault() is { } both)
+            {
+                return Result.Fail(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{both} is named both answered and withdrawn. Name it once."));
+            }
+
+            foreach ((string id, Disposition disposition) in answered.Select(id => (id, Disposition.Answered))
+                .Concat(withdrawn.Select(id => (id, Disposition.Withdrawn))))
+            {
+                if (mentioned.Contains(id))
+                {
+                    return Result.Fail(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{id} is in the draft already: a reader raised it again this round, so it is not settled."));
+                }
+
+                if (notRaised.FirstOrDefault(finding => finding.Id == id) is not { } standing)
+                {
+                    return Result.Fail(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{id} is not open on {Cycle.NameOf(request.Artifact)}.md. Settle only the findings this lists as not raised again{(notRaised.Count == 0 ? ", and it lists none" : ": " + string.Join(", ", notRaised.Select(finding => finding.Id)))}."));
+                }
+
+                settled.Add(standing with { Disposition = disposition });
+            }
+
+            return Result.Ok(settled);
         }
 
         private static List<string> Ungisted(IEnumerable<Finding> findings) =>

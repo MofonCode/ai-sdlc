@@ -75,7 +75,7 @@ sdlc perspectives <id>
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |
 | `build` | **steers, and never widens.** It applies the *cover this* list to how the plan is written up in code and records the evidence each perspective needs. Anything a perspective wants that the plan did not describe becomes a tagged `Noticed: [name] …` line in the commit, not code |
-| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page |
+| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page. Asked in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164) |
 
 **Why steering as well as judging.** A perspective that only judges finds what it could have prevented,
 and the loop pays a refine round for every finding it raises. A perspective that steers mostly finds
@@ -92,10 +92,13 @@ an outcome, or widen one, becomes a successor that keeps its id (D-128).
 
 ## Reading what it found
 
-**A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
-method turns up is a **suggestion**, exactly as any finding that cites no rule is. Look at a perspective's
-rules with `sdlc perspective show <name> --for <stage>`; a perspective with none of its own can block on
-nothing.
+**A perspective's finding blocks only when it cites a rule the perspective lists, and that rule is in force
+for the document being read.** A rule is listed as a bullet in the perspective's Rules section that opens with
+its id; an id mentioned in a sentence there is a reference, not a rule it blocks on (D-175). So operability
+blocks on `CON_20` at a spec and nowhere else, and a perspective with none of its own can block on nothing.
+Everything else its method turns up is a **suggestion**, exactly as any finding that cites no rule is, and a
+blocker it raised under any other rule is recorded as a suggestion saying so. Look at a perspective's rules
+with `sdlc perspective show <name> --for <stage>`.
 
 **Where its findings appear:**
 
@@ -127,14 +130,14 @@ recorded against the plan under the intent's `S_` id, and listed once (D-115).
 
 ## How a perspective earns rules
 
-**A perspective's suggestions are its record.** `sdlc propose constraints` counts each perspective by the
+**A perspective's suggestions are its record.** `sdlc harvest constraints` counts each perspective by the
 distinct cycles it raised something in, across the findings rounds and the builds' tagged `Noticed:`
 lines, and marks one at three. That perspective is where to read first for a rule worth adding.
 
 **The count is a pointer, not a candidate.** Three cycles of security suggestions may be three different
 things. Only the same objection across three cycles is a rule worth proposing — and when one is adopted,
 it is one of your solution's own constraints, with the perspective named in its evidence.
-`../guides/handling-blockers.md` covers suggestions and `propose constraints` in general.
+`../guides/handling-blockers.md` covers suggestions and `harvest constraints` in general.
 
 **A rule the framework adopts goes to the global set, and the perspective lists it.** Operability's
 first is `CON_20`: a spec says what is recorded when the action fails. Two trial solutions raised it at
@@ -152,6 +155,6 @@ and nothing the scan cannot see. That gap was closed in the perspective's method
 | | |
 |---|---|
 | a blocking finding, and how a suggestion differs | `../guides/handling-blockers.md` |
-| the stages a perspective steers and judges, as a person walks them | `../guides/running-a-cycle.md`, §3 |
-| the interrogate, build and propose skills in depth — what each reader is handed | `../../skills/README.md` |
+| the stages a perspective steers and judges, as a person walks them | `../guides/running-a-cycle.md`, §1 and §2 |
+| the interrogate, build and harvest skills in depth — what each reader is handed | `../../skills/README.md` |
 | the two commands as one line each | `../reference/commands.md` |

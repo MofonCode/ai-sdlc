@@ -70,7 +70,8 @@ internal sealed record ReaderBody(
 /// <param name="Findings">What it raised, ids normalised.</param>
 /// <param name="Conflicts">The conflicts it declared.</param>
 /// <param name="Rows">Its row per criterion or outcome, under each rule judged item by item.</param>
-/// <param name="Demoted">A perspective's blockers made suggestions, because they cite no rule it lists.</param>
+/// <param name="Demoted">Blockers made suggestions: a perspective's citing no rule it lists, and any citing a rule not
+/// handed to that reader (D-174).</param>
 internal sealed record ReadBody(
     IReadOnlyList<Finding> Findings,
     IReadOnlyList<Conflict> Conflicts,
@@ -97,8 +98,9 @@ internal sealed record Pair(IReadOnlyList<string>? Between, string? Why);
 /// </summary>
 /// <remarks>
 /// <para>One directory per round, outside the repository: <c>&lt;reader&gt;.prompt.md</c> is what the
-/// binary wrote and <c>&lt;reader&gt;.json</c> what the reader returned. A naming convention rather than a
-/// list of paths on the command line, so the launch line is one loop over a glob on every shell.</para>
+/// binary wrote, <c>shared.md</c> the block the rules reader and every perspective open with, and
+/// <c>&lt;reader&gt;.json</c> what the reader returned. A naming convention rather than a list of paths on
+/// the command line, so the launch line is one loop over a glob on every shell.</para>
 /// <para><strong>The answer is read in either of two shapes.</strong> Claude Code's
 /// <c>--output-format json</c> wraps the reader's text in a result object carrying its usage; any other
 /// host's plain text is the answer itself, with nothing known about its cost. The binary never names a
@@ -140,9 +142,46 @@ public static class ReaderAnswers
     /// </summary>
     /// <param name="artifact">The artifact being judged.</param>
     /// <param name="perspectives">The active perspectives that have a document.</param>
+    /// <param name="verifiedBefore">
+    /// Whether the cycle has recorded a verify round already: the perspectives read a verify's first round
+    /// only (D-164).
+    /// </param>
     /// <returns>The readers' names.</returns>
-    public static IReadOnlyList<string> Blind(ArtifactKind artifact, IEnumerable<string> perspectives) =>
-        [Rules, .. artifact == ArtifactKind.Verify ? (string[])[Diff] : [], .. perspectives];
+    public static IReadOnlyList<string> Blind(ArtifactKind artifact, IEnumerable<string> perspectives, bool verifiedBefore = false) =>
+        [Rules, .. artifact == ArtifactKind.Verify ? (string[])[Diff] : [], .. Resting(artifact, verifiedBefore) ? [] : perspectives];
+
+    /// <summary>
+    /// Whether this round leaves the perspectives out: a verify round once the cycle has recorded one (D-164).
+    /// </summary>
+    /// <remarks>
+    /// In six real cycles no perspective blocked at verify, and a perspective's suggestion there can only
+    /// become a successor. A later verify round re-reads a verdict moved to answer the rules or the diff reader,
+    /// so the perspectives' look at the built change is taken once, in the first.
+    /// </remarks>
+    /// <param name="artifact">The artifact being judged.</param>
+    /// <param name="verifiedBefore">Whether the cycle has recorded a verify round already.</param>
+    /// <returns>True when the round runs no perspective.</returns>
+    public static bool Resting(ArtifactKind artifact, bool verifiedBefore) => artifact == ArtifactKind.Verify && verifiedBefore;
+
+    /// <summary>Whether the cycle has recorded a verify round, read from its ledger.</summary>
+    /// <param name="mediator">The mediator.</param>
+    /// <param name="id">The cycle.</param>
+    /// <param name="artifact">The artifact being judged; anything but a verify answers false without reading.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>Whether a verify round is recorded, or why the ledger could not be read.</returns>
+    internal static async Task<Result<bool>> VerifiedBefore(MofonCode.Core.Mediator mediator, CycleId id, ArtifactKind artifact, CancellationToken cancellationToken)
+    {
+        if (artifact != ArtifactKind.Verify)
+        {
+            return Result.Ok(false);
+        }
+
+        Result<ReadFindings.Response> standing = await mediator
+            .Send<ReadFindings.Query, ReadFindings.Response>(new ReadFindings.Query(id, ArtifactKind.Verify), cancellationToken)
+            .ConfigureAwait(false);
+
+        return standing.IsFailed ? standing.ToResult<bool>() : Result.Ok(standing.Value.Artifacts.Any(a => a.Rounds.Count > 0));
+    }
 
     /// <summary>The round file collect drafts in the round's directory.</summary>
     public const string RoundFileName = "round.json";
@@ -160,6 +199,23 @@ public static class ReaderAnswers
     /// <param name="reader">The reader.</param>
     /// <returns>The path.</returns>
     public static string PromptPath(string directory, string reader) => Path.Combine(directory, reader + ".prompt.md");
+
+    /// <summary>The block the rules reader and every perspective open with, written once per round.</summary>
+    public const string SharedFileName = "shared.md";
+
+    /// <summary>Where the shared block is written.</summary>
+    /// <param name="directory">The round's directory.</param>
+    /// <returns>The path.</returns>
+    public static string SharedPath(string directory) => Path.Combine(directory, SharedFileName);
+
+    /// <summary>
+    /// Whether a reader opens with the shared block, so its prompt file holds only its own part. The diff
+    /// reader and the reconciler are composed from what their questions need, and the adjudicator's block
+    /// leaves out the document it writes, so each of those prompts is whole.
+    /// </summary>
+    /// <param name="reader">The reader.</param>
+    /// <returns>True for the rules reader and every perspective.</returns>
+    public static bool OpensWithShared(string reader) => reader is not (Diff or Reconcile or Adjudicate);
 
     /// <summary>Where one reader's answer is expected.</summary>
     /// <param name="directory">The round's directory.</param>
@@ -184,8 +240,12 @@ public static class ReaderAnswers
         }
 
         string content = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+        // The size the reader was handed: its own part, and the shared block when it opens with one.
         string prompt = PromptPath(directory, reader);
-        long? bytes = File.Exists(prompt) ? new FileInfo(prompt).Length : null;
+        string shared = SharedPath(directory);
+        long? bytes = File.Exists(prompt)
+            ? new FileInfo(prompt).Length + (OpensWithShared(reader) && File.Exists(shared) ? new FileInfo(shared).Length : 0)
+            : null;
 
         return Parse(reader, content, bytes, path);
     }
@@ -286,7 +346,7 @@ public static class ReaderAnswers
     /// </summary>
     /// <remarks>
     /// <para>A perspective's ids are its own, so they are put under its name whatever prefix it wrote, and
-    /// <c>perspective</c> is set on each: the field is what <c>propose constraints</c> counts by (D-90).</para>
+    /// <c>perspective</c> is set on each: the field is what <c>harvest constraints</c> counts by (D-90).</para>
     /// <para><strong>A perspective's blocker citing a rule it does not list is a suggestion.</strong> Only a
     /// rule the perspective lists may block on its account, and this applies that, rather than refusing an
     /// answer whose finding is otherwise sound and paying for a rerun to hear it again.</para>
@@ -295,25 +355,27 @@ public static class ReaderAnswers
     /// <param name="perspective">The perspective that read, or null for the rules reader.</param>
     /// <returns>The findings, conflicts and rows, and the ids made suggestions; or a refusal.</returns>
     internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective) =>
-        FindingsOf(answer, perspective, prefix: null);
+        FindingsOf(answer, perspective, prefix: null, inForce: null);
 
     /// <summary>One reader's findings, by the reader's name: its perspective, or its own prefix.</summary>
     /// <remarks>
     /// The diff reader's ids go under <c>diff.</c>, as a perspective's go under its name, so they cannot
-    /// collide with the rules reader's in the same round. It names no perspective: <c>propose
+    /// collide with the rules reader's in the same round. It names no perspective: <c>harvest
     /// constraints</c> counts by perspective, and the diff reader is not one.
     /// </remarks>
     /// <param name="answer">The answer.</param>
     /// <param name="reader">The reader's name.</param>
+    /// <param name="inForce">The rules that reader was handed, as <see cref="CitedRules"/> keys; a blocker citing
+    /// anything else is made a suggestion (D-174). Null checks nothing.</param>
     /// <returns>The findings, or a refusal.</returns>
-    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader) => reader switch
+    internal static Result<ReadBody> FindingsOf(ReaderAnswer answer, string reader, IReadOnlySet<string>? inForce = null) => reader switch
     {
-        Rules => FindingsOf(answer, perspective: null, prefix: null),
-        Diff => FindingsOf(answer, perspective: null, prefix: Diff),
-        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null),
+        Rules => FindingsOf(answer, perspective: null, prefix: null, inForce),
+        Diff => FindingsOf(answer, perspective: null, prefix: Diff, inForce),
+        _ => FindingsOf(answer, Perspectives.PerspectiveLibrary.Find(reader).ValueOrDefault, prefix: null, inForce),
     };
 
-    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix)
+    private static Result<ReadBody> FindingsOf(ReaderAnswer answer, Perspectives.Perspective? perspective, string? prefix, IReadOnlySet<string>? inForce)
     {
         ArgumentNullException.ThrowIfNull(answer);
 
@@ -368,12 +430,32 @@ public static class ReaderAnswers
                 return Refuse<ReadBody>(answer, $"uses the id {id} twice");
             }
 
-            if (perspective is not null
-                && severity == Severity.Blocking
-                && (given.Cites?.Id is not { Length: > 0 } rule || !perspective.Rules.Contains(rule, StringComparison.Ordinal)))
+            string statement = given.Statement.Trim();
+            string? cited = CitedRules.Key(given.Cites?.Id);
+
+            // A blocker stands only on a rule this reader was handed (D-174), and a perspective's only on one its
+            // document lists as a rule it blocks on (D-175). Either way it is kept as a suggestion rather than
+            // refused: the observation may be sound, and a rerun to hear it again buys nothing.
+            if (severity == Severity.Blocking && cited is not null && inForce is not null && !inForce.Contains(cited))
             {
                 severity = Severity.Suggestion;
                 demoted.Add(id);
+                statement += string.Create(
+                    CultureInfo.InvariantCulture,
+                    $" (Raised as blocking under `{given.Cites!.Id!.Trim()}`, which is not a rule in force for this document, so it does not block.)");
+            }
+            else if (perspective is not null
+                && severity == Severity.Blocking
+                && (cited is null || !perspective.BlocksOn.Select(CitedRules.Key).Contains(cited, StringComparer.Ordinal)))
+            {
+                severity = Severity.Suggestion;
+                demoted.Add(id);
+
+                // Said in the finding, as the not-in-force case says it, so whoever reads the suggestion knows it
+                // was raised as a blocker and why it does not block.
+                statement += cited is null
+                    ? string.Create(CultureInfo.InvariantCulture, $" (Raised as blocking with no rule, and {perspective.Name} blocks only on a rule its document lists, so it does not block.)")
+                    : string.Create(CultureInfo.InvariantCulture, $" (Raised as blocking under `{given.Cites!.Id!.Trim()}`, which {perspective.Name} does not list as a rule it blocks on, so it does not block.)");
             }
 
             findings.Add(new Finding(
@@ -381,7 +463,7 @@ public static class ReaderAnswers
                 severity,
                 Disposition.Open,
                 given.Cites,
-                given.Statement.Trim(),
+                statement,
                 given.Locus,
                 given.Remedy,
                 Perspective: perspective?.Name,

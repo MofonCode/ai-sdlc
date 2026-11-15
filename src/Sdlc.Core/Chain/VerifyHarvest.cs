@@ -7,25 +7,25 @@ using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
-using Sdlc.Core.Mining;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Chain;
 
 /// <summary>
-/// The check on a pull request that carries a mining sitting and no cycle: the records a person placed, the
-/// ledger, successors, and the deletion of mined cycles' folders (D-152).
+/// The check on a pull request that carries a harvest and no cycle: the records a person placed, the
+/// ledger, successors, and the deletion of closed cycles' folders (D-152, D-192).
 /// </summary>
 /// <remarks>
 /// <para><strong>A husk can only leave through a pull request</strong>, and a pull request with no governed cycle
-/// is refused (D-45). Mining is the one other thing that reaches the integration branch without a cycle,
+/// is refused (D-45). A harvest is the one other thing that reaches the integration branch without a cycle,
 /// because it is not a change to the code: nothing in it is built, and every file it touches is one a person
 /// places or the binary writes.</para>
 /// <para><strong>Chosen by what the diff carries</strong>, like an upgrade (D-133): the branch can be called
 /// anything. One path outside the records, the ledger and the successors -- a source file, a cycle's document
-/// rather than its deletion -- and it is not mining, and is refused for having no chain.</para>
+/// rather than its deletion -- and it is not a harvest, and is refused for having no chain.</para>
 /// </remarks>
-public static class VerifyMining
+public static class VerifyHarvest
 {
     private static readonly HashSet<string> _records = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -33,13 +33,13 @@ public static class VerifyMining
         Cycle.SdlcDirectoryName + "/" + DecisionParser.FileName,
         Cycle.SdlcDirectoryName + "/" + Cycle.TechStackFileName,
         Cycle.SdlcDirectoryName + "/" + AreaParser.FileName,
-        Cycle.SdlcDirectoryName + "/" + MinedLedger.FileName,
+        Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName,
     };
 
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddVerifyMiningRequestHandler(this IServiceCollection services)
+    public static IServiceCollection AddVerifyHarvestRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -50,7 +50,7 @@ public static class VerifyMining
     /// <param name="Changed">The paths it changes, relative to the root.</param>
     public sealed record Query(IReadOnlyList<string> Changed) : IRequest<VerifyUpgrade.Response>;
 
-    /// <summary>Whether a pull request's changes are only what a mining sitting may change.</summary>
+    /// <summary>Whether a pull request's changes are only what a harvest may change.</summary>
     /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
     /// <returns>True when there is at least one, and every one is.</returns>
     public static bool Carries(IReadOnlyList<string> changed)
@@ -65,6 +65,16 @@ public static class VerifyMining
             || path.StartsWith(cycles, StringComparison.Ordinal));
     }
 
+    /// <summary>Whether a path is one of the records a harvest places, or its ledger.</summary>
+    /// <param name="path">The path, relative to the root, with either separator.</param>
+    /// <returns>True when it is.</returns>
+    public static bool IsRecord(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        return _records.Contains(Normalised(path));
+    }
+
     /// <summary>Renders the verdict.</summary>
     /// <param name="verdict">What the check found.</param>
     /// <returns>The text.</returns>
@@ -74,7 +84,7 @@ public static class VerifyMining
 
         StringBuilder output = new();
         output.AppendLine();
-        output.AppendLine("  mining - records, the ledger, and husks deleted");
+        output.AppendLine("  harvest - records, the ledger, and closed cycles deleted");
         output.AppendLine();
 
         foreach (VerifyChain.ChainCheck check in verdict.Checks)
@@ -85,8 +95,8 @@ public static class VerifyMining
 
         output.AppendLine();
         output.AppendLine(verdict.Holds
-            ? "  It holds, and needs no cycle: it carries what a person placed from mining, the ledger, and the folders of cycles the ledger records as mined."
-            : "  It does not hold. A mining pull request carries the records, the ledger, successors and mined cycles' deletions, and nothing else.");
+            ? "  It holds, and needs no cycle: it carries what a person placed from a harvest, the ledger, and the folders of cycles the ledger records as closed."
+            : "  It does not hold. A harvest pull request carries the records, the ledger, successors and closed cycles' deletions, and nothing else.");
 
         return output.ToString();
     }
@@ -100,11 +110,11 @@ public static class VerifyMining
             ArgumentNullException.ThrowIfNull(request);
 
             List<VerifyChain.ChainCheck> checks = [];
-            Result<MinedLedger> ledger = await MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false);
+            Result<HarvestLedger> ledger = await HarvestLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false);
 
             checks.Add(ledger.IsFailed
-                ? new VerifyChain.ChainCheck("the mining ledger reads", false, string.Join(" ", ledger.Errors.Select(error => error.Message)))
-                : new VerifyChain.ChainCheck("the mining ledger reads", true, string.Create(CultureInfo.InvariantCulture, $"{ledger.ValueOrDefault?.Cycles.Count ?? 0} mined cycles recorded.")));
+                ? new VerifyChain.ChainCheck("the harvest ledger reads", false, string.Join(" ", ledger.Errors.Select(error => error.Message)))
+                : new VerifyChain.ChainCheck("the harvest ledger reads", true, string.Create(CultureInfo.InvariantCulture, $"{ledger.ValueOrDefault?.Cycles.Count ?? 0} closed cycles recorded.")));
 
             // Each cycle path is a deletion of a cycle the ledger records: a husk. Anything else under the cycles
             // directory is a cycle's own work, which only that cycle's pull request carries.
@@ -128,8 +138,8 @@ public static class VerifyMining
             }
 
             checks.Add(notHusks.Count == 0
-                ? new VerifyChain.ChainCheck("every cycle it touches is a husk it deletes", true, string.Create(CultureInfo.InvariantCulture, $"{deleted.Count} mined cycle folder{(deleted.Count == 1 ? string.Empty : "s")} deleted."))
-                : new VerifyChain.ChainCheck("every cycle it touches is a husk it deletes", false, "carries " + string.Join(", ", notHusks.Take(5)) + (notHusks.Count > 5 ? " and more" : string.Empty) + ": a cycle's folder leaves only once the ledger records it mined, and only by deletion."));
+                ? new VerifyChain.ChainCheck("every cycle it touches is a husk it deletes", true, string.Create(CultureInfo.InvariantCulture, $"{deleted.Count} closed cycle folder{(deleted.Count == 1 ? string.Empty : "s")} deleted."))
+                : new VerifyChain.ChainCheck("every cycle it touches is a husk it deletes", false, "carries " + string.Join(", ", notHusks.Take(5)) + (notHusks.Count > 5 ? " and more" : string.Empty) + ": a cycle's folder leaves only once the ledger records it closed, and only by deletion."));
 
             checks.Add(await RecordsRead(cancellationToken).ConfigureAwait(false));
 

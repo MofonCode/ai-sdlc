@@ -38,6 +38,62 @@ public sealed class CollectRoundTests
     }
 
     [TestMethod]
+    public async Task A_blocker_citing_a_rule_not_in_force_for_the_document_is_drafted_as_a_suggestion_saying_so()
+    {
+        // CON_06 is superseded, and was never an intent's rule. The observation may be sound, so it is kept; it
+        // cannot stop the cycle on a rule that does not bind here (D-174).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string directory = await Answers(workspace, rules: Blocker.Replace("CON_01", "CON_06", StringComparison.Ordinal));
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Finding finding = drafted.Raised.Single();
+        Assert.AreEqual(Severity.Suggestion, finding.Severity);
+        StringAssert.Contains(finding.Statement, "under `CON_06`, which is not a rule in force for this document");
+        CollectionAssert.Contains(drafted.Demoted.ToArray(), finding.Id);
+    }
+
+    [TestMethod]
+    [DataRow("An intent names the problem and not a fix", DisplayName = "a paraphrase")]
+    [DataRow("", DisplayName = "no line at all")]
+    public async Task A_finding_quoting_its_rule_in_other_words_is_drafted_with_the_rules_own_line(string quoted)
+    {
+        // The citation is the reader's; the words beside it are the library's, so the binary copies them (D-177).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string directory = await Answers(workspace, rules: Blocker.Replace("An intent states the problem, not the solution", quoted, StringComparison.Ordinal));
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Assert.AreEqual("An intent states the problem, not the solution", drafted.Raised.Single().Cites!.Heading);
+        Assert.AreEqual(Severity.Blocking, drafted.Raised.Single().Severity, "Copying the line changes nothing else.");
+    }
+
+    [TestMethod]
+    [DataRow("maintainability", "CON_25", DisplayName = "a rule its prose mentions and does not list")]
+    [DataRow("operability", "CON_20", DisplayName = "a rule it lists, at a stage the rule does not bind")]
+    public async Task A_perspective_blocks_only_on_a_rule_it_lists_that_binds_this_document(string perspective, string rule)
+    {
+        // Matched by searching its Rules prose, maintainability could block on the CON_25 its sentence names, and
+        // operability on a spec's rule at the intent (D-175).
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string blocker = Blocker.Replace("CON_01", rule, StringComparison.Ordinal);
+        string directory = perspective == "maintainability"
+            ? await Answers(workspace, maintainability: blocker)
+            : await Answers(workspace, operability: blocker);
+        await Answer(directory, "reconcile", """{ "restatements": [], "pairs": [] }""");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory)).Value;
+
+        Assert.AreEqual(Severity.Suggestion, drafted.Raised.Single().Severity);
+        Assert.AreEqual(perspective, drafted.Raised.Single().Perspective);
+    }
+
+    [TestMethod]
     public async Task A_restatement_is_carried_under_the_standing_id_in_the_ledgers_words()
     {
         using var workspace = CycleWorkspace.Create();
@@ -130,7 +186,7 @@ public sealed class CollectRoundTests
     public async Task The_verdict_is_written_byte_for_byte_and_prose_is_refused()
     {
         using var workspace = CycleWorkspace.Create();
-        string verdict = "---\nframework_version: 1.0.0\ncycle: 20260929_1456_32\noutcome: pass\n---\n\n# Rolls\n\n## Criteria\n\n1. Met. `Rolls` passed.\n";
+        string verdict = "---\ncycle: 20260929_1456_32\noutcome: pass\n---\n\n# Rolls\n\n## Criteria\n\n1. Met. `Rolls` passed.\n";
         string from = Path.Combine(workspace.Root, "adjudicate.json");
 
         await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("Here is the verdict:\n\n" + verdict));
@@ -141,6 +197,50 @@ public sealed class CollectRoundTests
 
         Assert.AreEqual("pass", written.Outcome);
         Assert.AreEqual(verdict, await File.ReadAllTextAsync(workspace.Cycle.PathOf(ArtifactKind.Verify)));
+    }
+
+    [TestMethod]
+    public async Task A_fence_around_the_whole_verdict_is_taken_off_and_one_inside_it_is_kept()
+    {
+        // D-161. A fenced verdict was refused, and the rerun cost the largest prompt the framework sends.
+        using var workspace = CycleWorkspace.Create();
+        string verdict = "---\ncycle: 20260929_1456_32\noutcome: blocked\n---\n\n# Rolls\n\n## Criteria\n\n1. Not met.\n\n```\nAssert.AreEqual(1, roll);\n```\n";
+        string from = Path.Combine(workspace.Root, "adjudicate.json");
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("```markdown\n" + verdict + "```\n"));
+        WriteVerdict.Response written = (await Verdict(workspace, from)).Value;
+
+        Assert.AreEqual("blocked", written.Outcome);
+        Assert.AreEqual(verdict, await File.ReadAllTextAsync(workspace.Cycle.PathOf(ArtifactKind.Verify)));
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("Here it is:\n```markdown\n" + verdict + "```\n"));
+        Assert.IsTrue((await Verdict(workspace, from)).IsFailed, "Prose beside the fence is still prose.");
+    }
+
+    [TestMethod]
+    public async Task A_finding_settled_by_name_is_copied_from_the_ledger_and_records()
+    {
+        // D-162. Sessions retyped earlier findings into round.json by hand, and the ledger refused the retyping.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteBlockingRound(ArtifactKind.Intent, id: "F_01", cites: "CON_01", heading: "An intent states the problem, not the solution");
+        string directory = await Answers(workspace);
+
+        Assert.IsTrue((await Collect(workspace, directory, answered: ["F_01"], withdrawn: ["F_01"])).IsFailed, "One finding, one disposition.");
+        StringAssert.Contains((await Collect(workspace, directory, withdrawn: ["F_07"])).Errors[0].Message, "F_01");
+
+        CollectRound.Response drafted = (await Collect(workspace, directory, answered: ["F_01"])).Value;
+
+        Finding settled = drafted.Raised.Single();
+        Assert.AreEqual(Disposition.Answered, settled.Disposition);
+        Assert.AreEqual("something that must be answered.", settled.Statement, "The ledger's words, not retyped.");
+        Assert.AreEqual(0, drafted.NotRaised.Count);
+        StringAssert.Contains(FindingsRenderer.RenderCollected(drafted), "answered");
+
+        using var gate = Gate.For(workspace.Root);
+        Result<RecordRound.Response> recorded = await gate.Send<RecordRound.Command, RecordRound.Response>(
+            new RecordRound.Command(workspace.Cycle.Id, ArtifactKind.Intent, drafted.Path));
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
     }
 
     private static async Task<string> Answers(
@@ -164,11 +264,15 @@ public sealed class CollectRoundTests
     private static Task Answer(string directory, string reader, string body) =>
         File.WriteAllTextAsync(ReaderAnswers.AnswerPath(directory, reader), ReaderPromptsTests.Envelope(body));
 
-    private static async Task<Result<CollectRound.Response>> Collect(CycleWorkspace workspace, string directory)
+    private static async Task<Result<CollectRound.Response>> Collect(
+        CycleWorkspace workspace,
+        string directory,
+        string[]? answered = null,
+        string[]? withdrawn = null)
     {
         using var gate = Gate.For(workspace.Root);
         return await gate.Send<CollectRound.Command, CollectRound.Response>(
-            new CollectRound.Command(workspace.Cycle.Id, ArtifactKind.Intent, directory, "claude"));
+            new CollectRound.Command(workspace.Cycle.Id, ArtifactKind.Intent, directory, "claude", answered, withdrawn));
     }
 
     private static async Task<Result<WriteVerdict.Response>> Verdict(CycleWorkspace workspace, string from)
