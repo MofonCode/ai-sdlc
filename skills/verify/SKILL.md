@@ -95,11 +95,13 @@ change itself — not the verdict — against the intent, the plan and the decis
 (nothing the plan did not describe) and `CON_27` (nothing a decision set aside without a declared
 departure). **Its findings are about the code, so no adjudication answers them**: their ids start
 `diff.`, and the route is `/sdlc:remediate`, which `sdlc status` names. A departure the work genuinely
-needs is a deviation remediate records, for a person to answer.
+needs is a deviation remediate records; the report shows it, and the merge accepts it.
 
 **Every reader is handed the cycle's deviations** (D-156): where the build could not follow the approved text,
-with whether each is in force. They judge against the documents as deviated. **This stage never records a
-deviation, and never answers one**: it verifies, and the person answers.
+with whether each is in force, and every **choice** it recorded where the approved text was silent (D-180).
+They judge against the documents as deviated, and hold a choice to the decisions and the plan's purpose like the
+rest of the change. **This stage never records a deviation or a choice, and never accepts one**: it verifies,
+and the person accepts at the pull request (D-181).
 
 **Every other blocking finding in the round is answered by a new adjudication, not by an edit.** Changing a verdict
 is adjudicating, so it happens where adjudicating happens: start a fresh adjudicator from a prompt written
@@ -130,12 +132,12 @@ adjudication — the adjudicator's, not yours; a hand-back that re-argues it pro
 round, and a reader who disagrees with one cannot tell which one the chain carries.
 
 - **Passed?** The person decides whether to open a pull request: close with one plain offer — say *open
-  the pull request* (or `/sdlc:pr`). Where the build recorded deviations nobody has answered, the panel
-  lists them and names `sdlc draft approval <id>`: the pull request waits on the person's answer to each.
+  the pull request* (or `/sdlc:pr`). Its body leads with `sdlc report <id>` — the deviations, the choices and
+  the concerns — and merging accepts them (D-181).
 - **Blocked?** The person decides whether to remediate: close with one plain offer — say *fix it* (or
   `/sdlc:remediate`), which works until it passes or needs them. Do not start remediating on your own;
   the person chooses to, and it is remediate that loops, never this stage.
 
-**Run by `build` or `remediate`, this is the same stage with the same fresh adjudicator**, and the hand-back
-is theirs to give: after a build it is this one, below the build's lines; inside remediate's loop, the loop
-reads the outcome and decides whether to go on.
+**Run by `batch-build` or `remediate`, this is the same stage with the same fresh adjudicator**, and the
+hand-back is theirs to give: inside the build's own process the batch reads the outcome and opens the pull
+request or remediates (D-178); inside remediate's loop, the loop reads the outcome and decides whether to go on.

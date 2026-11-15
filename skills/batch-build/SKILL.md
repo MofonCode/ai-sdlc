@@ -10,15 +10,18 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Bash(g
 
 It collects the cycles waiting for a build, builds and verifies each on a branch of its own, and reports.
 Run by a person, it works from this working copy. Run by the factory, it works from a fresh checkout of the
-integration branch, in a run a person started, asking nothing (`CONCEPT.md` §10.5, D-84).
+integration branch, in a run a person started, asking nothing (`CONCEPT.md` §10.5, D-84). **And it is what
+*build it* runs**, for one cycle, in a process the build skill starts — `batch-build <id> --pr --unattended`,
+asking nothing, because saying *build it* was the decision (D-178).
 
 ## Read this first
 
 **Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
 than reaching a ready pull request, and that stopping is the only reason this is safe to run without
 watching. The bound is a progress rule rather than a pass count: remediation continues while each pass
-reduces what is open, and stops when a pass undoes earlier work or two in a row reduce nothing. **There is
-no ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a long time —
+reduces what is open; when a pass undoes earlier work or two in a row reduce nothing it may take one different
+approach, recorded as a deviation, and it stops when that stalls too or a third deviation bends the same approved
+text (D-179). **There is no ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a long time —
 which is why the factory's pipeline job has a timeout, and why the first few runs are worth watching.
 
 **It builds; it never merges.** A person reviews and merges each pull request, one at a time (D-84, D-86).
@@ -122,7 +125,7 @@ request from a draft.
 |---|---|
 | `passed` | built, verified, its verify outcome `pass` |
 | `blocked` | a criterion unmet, and remediation still reducing what is open when the run ended |
-| `escalated` | remediation stopped: a pass undid earlier work, or two in a row reduced nothing. A person picks this up |
+| `escalated` | remediation stopped: it stalled or regressed again after a deviation, or a third deviation bent the same text. A person picks this up |
 | did not finish | the build or the verify could not run to an outcome — the toolchain failed, the run was stopped |
 
 **A sibling's outcome changes nothing about another cycle.** Each is reported, and each gets its own pull
@@ -141,7 +144,7 @@ As each cycle finishes:
 
 | Outcome | Pull request |
 |---|---|
-| `passed` | `pr <id>`, ready for review |
+| `passed` | `pr <id>`, ready for review, its body led by `sdlc report <id>` |
 | `blocked`, `escalated` | `pr <id> --draft`: the attempted code, the verify and the evidence, marked as not ready. Its check goes red, which is accurate |
 | did not finish | none. Report it; nothing was verified, so there is nothing to review. Its branch, if pushed, holds it back until a person deletes the branch |
 

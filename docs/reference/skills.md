@@ -4,10 +4,10 @@ Every skill, one line each, in the order a cycle meets them. Each name links to 
 `../../skills/README.md`, which has the syntax, refusals and reasoning. Every skill is run by an agent;
 *started by* is who decides it should happen.
 
-**A cycle is seven of them**, and a person can name each in a sentence rather than a command: begin an
-intent (`intent`), take it to plan (`to-plan`), steer the plan (`steer`), approve (`draft`), build it
-(`build`, which verifies), fix it (`remediate`), and open the pull request (`pr`). The rest are run by those,
-or are for after a cycle.
+**A cycle is five steps**, and a person can name each in a sentence rather than a command: begin an
+intent (`intent`), take it to plan (`to-plan`, with `steer` to have it otherwise), approve (`draft`), build it
+(`build`, which verifies, remediates and opens the pull request), and review the pull request — merging it, or
+asking for a change (`remediate`). The rest are run by those, or are for after a cycle.
 
 In Claude Code a skill is also `/sdlc:<name> <arguments>`. On a host that loads skills through Agent Plugins
 there is no slash form: ask in a sentence, and include the cycle id.
@@ -30,9 +30,9 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | **The gate** | | | |
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |
-| [`build`](../../skills/README.md#build) | `[<cycle id>]` | implements the approved plan, builds, tests, records the evidence, and verifies a green build | a person, or `batch-build` |
-| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | `build`, `remediate` or `batch-build`, or a person |
-| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification and verifies again, going round while it is working and checking in every fourth pass | a person, or `batch-build` |
+| [`build`](../../skills/README.md#build) | `[<cycle id>]` | carries the approved cycle to its pull request: admits the plan, then in a process of its own builds, tests, records the evidence, verifies, remediates and opens the pull request; hands back the report | a person, or `batch-build` |
+| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | the build's process, `remediate`, or a person |
+| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification, or makes the change a person asks for at the pull request, and verifies again, going round while it is working and deviating once before it escalates | the build's process, or a person |
 | **Pull requests and unattended runs** | | | |
 | [`pr`](../../skills/README.md#pr) | `[<cycle id>...] [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; asks before every push | a person\*, or `batch-build` |
 | [`batch-build`](../../skills/README.md#batch-build) | `[<cycle id>] [--pr] [--unattended]` | builds and verifies every queued cycle — or the one named — each on its own branch, then reports the sitrep | a person, or the factory |

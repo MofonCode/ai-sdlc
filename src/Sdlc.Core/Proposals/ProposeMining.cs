@@ -84,7 +84,7 @@ public static class ProposeMining
     /// <summary>One deviation a cycle recorded, as mining tallies it.</summary>
     /// <param name="Id">Its id.</param>
     /// <param name="Kind">What it bent.</param>
-    /// <param name="Standing">Where it stands: accepted, declined, unanswered, or taken in by a reopen.</param>
+    /// <param name="Standing">Where it stands: recorded, accepted before D-181, changed at the person's request, or taken in by a reopen.</param>
     /// <param name="Rules">The rules its blocker named; empty when it named none.</param>
     public sealed record DeviationRecord(string Id, DeviationKind Kind, DeviationStanding Standing, IReadOnlyList<string> Rules);
 
@@ -479,7 +479,7 @@ public static class ProposeMining
             {
                 text.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"    deviated {deviated.Count}x ({string.Join(", ", deviated.GroupBy(deviation => deviation.Kind).OrderBy(group => group.Key).Select(group => string.Create(CultureInfo.InvariantCulture, $"{group.Count()} {Deviation.NameOf(group.Key)}")))}): {deviated.Count(deviation => deviation.Standing is DeviationStanding.Accepted)} accepted, {deviated.Count(deviation => deviation.Standing is DeviationStanding.Declined)} declined, {deviated.Count(deviation => deviation.Standing is DeviationStanding.Pending)} unanswered, {deviated.Count(deviation => deviation.Standing is DeviationStanding.History)} taken in by a reopen"));
+                    $"    deviated {deviated.Count}x ({string.Join(", ", deviated.GroupBy(deviation => deviation.Kind).OrderBy(group => group.Key).Select(group => string.Create(CultureInfo.InvariantCulture, $"{group.Count()} {Deviation.NameOf(group.Key)}")))}): {deviated.Count(deviation => deviation.Standing is DeviationStanding.Recorded or DeviationStanding.Accepted)} kept, {deviated.Count(deviation => deviation.Standing is DeviationStanding.Declined)} changed at the person's request, {deviated.Count(deviation => deviation.Standing is DeviationStanding.History)} taken in by a reopen"));
             }
 
             foreach (Reopen reopen in cycle.Reopens)

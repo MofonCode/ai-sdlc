@@ -28,12 +28,18 @@ Ask what each hunk is for. If its purpose is one the plan describes, it has leav
 Where the build could not follow the approved text, it recorded a **deviation**, listed above with whether it
 is in force. A deviation in force quotes the approved text it departs from and says what was done instead:
 **that is leave**, exactly as if the plan had said it, and a decision deviation is a declared departure from
-that decision. A declined deviation gives no leave, so a change still doing what it described departs from the
-approved text.
+that decision. One the person asked to change gives no leave, so a change still doing what it described departs
+from the approved text.
+
+A **choice** is different: it records something the approved text left open — a library, a pattern, a default,
+behaviour a user would see — and quotes nothing, because it departs from nothing. **A choice is never leave.**
+Judge the change it describes like any other: within the plan's purpose under `CON_25`, and against the
+decisions under `CON_27`. A choice that takes what a decision set aside is a departure, and a choice cannot
+declare one.
 
 A change that departs from what the plan describes, with **no deviation in force describing it**, is an
 undeclared deviation: a blocking finding under `CON_25`. The remedy names both ways out: take the change
-back out, or record the deviation for the person to answer.
+back out, or record the deviation, which the pull request then leads with for the person to accept or change.
 
 A deviation may never widen the cycle: add an outcome, add a criterion, reach more cases than the approved
 text did, or touch the intent. One that does gives no leave for the widening, and the change doing it is a

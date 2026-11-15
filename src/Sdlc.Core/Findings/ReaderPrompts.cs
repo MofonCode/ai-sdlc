@@ -252,26 +252,27 @@ public static class ReaderPrompts
     }
 
     /// <summary>
-    /// Where the build bent the approved documents: which deviations are in force and which a person declined,
-    /// then the file itself. A cycle with none is said to have none.
+    /// Where the build bent the approved documents, and the choices it made that they left open: which entries are
+    /// in force and which the person asked to change, then the file itself. A cycle with none is said to have none.
     /// </summary>
     /// <remarks>
-    /// A deviation in force -- accepted, or not yet answered -- replaces the approved text it quotes, so every
-    /// verify reader judges against the documents as deviated. A declined one replaces nothing, and code still
-    /// doing what it described departs from the approved text again. History, answered before a reopen, is left
-    /// out: the amended documents already say what it said.
+    /// A deviation in force replaces the approved text it quotes, so every verify reader judges against the
+    /// documents as deviated. One the person asked to change replaces nothing, and code still doing what it
+    /// described departs from the approved text again. A choice gives no leave at all: it is a change like any
+    /// other, judged against the plan's purpose and the recorded decisions (D-180). History, recorded before a
+    /// reopen, is left out: the amended documents already say what it said.
     /// </remarks>
     private static async Task Deviated(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
     {
         DeviationsState deviations = await CycleDeviations.Read(cycle, cancellationToken).ConfigureAwait(false);
 
-        block.Append("Where the build bent the approved documents. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; a declined one replaces nothing:\n\n");
+        block.Append("Where the build bent the approved documents, and the choices it made that they left open. A deviation in force replaces the approved text it quotes, so judge against the documents as deviated; one the person asked to change replaces nothing; a choice gives no leave and is judged like any other change, against the plan's purpose and the recorded decisions:\n\n");
 
         if (!deviations.Recorded || deviations.Current.Count == 0)
         {
             block.Append(deviations.Recorded && deviations.Problems.Count > 0
                 ? "deviations.md cannot be read: " + string.Join(" ", deviations.Problems) + "\n\n"
-                : "None. The build recorded no deviation, so the approved documents stand as written.\n\n");
+                : "None. The build recorded no deviation and no choice, so the approved documents stand as written.\n\n");
             return;
         }
 
@@ -279,9 +280,10 @@ public static class ReaderPrompts
         {
             string standing = state.Standing switch
             {
+                DeviationStanding.Declined => "changed at the person's request, not in force: " + state.Note,
+                _ when !state.Deviation.Bends => "a choice the approved text left open, instead of " + state.Deviation.Alternative + "; no leave",
                 DeviationStanding.Accepted => "in force, accepted",
-                DeviationStanding.Declined => "declined, not in force: " + state.Note,
-                _ => "in force, awaiting the person's answer",
+                _ => "in force, recorded by the build",
             };
 
             block.Append("- ").Append(DeviationsFile.Line(state.Deviation)).Append(" -- ").Append(standing).Append('\n');

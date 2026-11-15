@@ -25,10 +25,10 @@ internal static class Stages
         ["interrogate"] = "judges one artifact against the rules, in a fresh process",
         ["refine"] = "applies an artifact's findings to that artifact",
         ["steer"] = "carries a mid-cycle correction down the chain",
-        ["build"] = "implements the plan and records what happened as evidence",
+        ["build"] = "carries an approved cycle to its pull request: implements, verifies, fixes what it can, and reports",
         ["verify"] = "adjudicates the build against the spec, from the evidence alone",
-        ["remediate"] = "applies a blocked verification's findings to source and tests",
-        ["pr"] = "pushes, opens the pull request, and links the work item",
+        ["remediate"] = "fixes what a verification found, or applies a change the person asked for, and verifies again",
+        ["pr"] = "pushes and opens a pull request by hand; the build opens its own",
         ["batch-build"] = "completes every approved cycle, each on its own branch and independently",
         ["resolve-conflict"] = "resolves a collision on a file no cycle can claim exclusively",
     };

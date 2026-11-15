@@ -47,8 +47,9 @@ the code is bad; it is that nobody can tell**, and the next session cannot eithe
    what it *forbids*. Three tiers — global, the stack's, the solution's own — are rendered fresh into every
    reading, and every blocking finding cites one by id.
 3. **Accountability runs both ways.** A departure from a decision is declared where it arises and shown to the
-   person at the approval and in the pull request; a build that bends the plan records a deviation a person
-   answers; and the agent cannot edit what it is judged by. Ask for something a decision set aside and you are
+   person at the approval and in the pull request; a build that bends the plan records a deviation, and one that
+   settles what the plan left open records a choice, and both lead the pull request in one report that merging
+   accepts; and the agent cannot edit what it is judged by. Ask for something a decision set aside and you are
    told. Neither side can waive a blocking finding.
 4. **Nothing grades its own work.** Every planning document is read by a fresh process that never saw it
    written, and the verification by one that never saw the build. The reader never edits; the editor never

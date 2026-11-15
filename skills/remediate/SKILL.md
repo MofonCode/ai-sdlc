@@ -1,14 +1,17 @@
 ---
 name: remediate
-description: Fix what a blocked verification found -- apply its unmet criteria and findings to source and tests, verify again in a fresh process, and go round while each pass reduces what is open, checking in every fourth pass. Edits code, never a planning document. Use after verify recorded a blocked outcome, when a person says fix it.
+description: Fix what a blocked verification found, or change what a person asks of a built cycle -- apply unmet criteria, findings or the person's words to source and tests, verify again in a fresh process, and go round while each pass reduces what is open, deviating within limits before it escalates. Edits code, never a planning document. Use after verify recorded a blocked outcome, or when a person reviewing the pull request says what to change.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(claude *), Read, Write, Edit, Glob, Grep
 ---
 
-# Remediate a blocked verification
+# Remediate a blocked verification, or a change a person asks for
 
-A verification found a criterion unmet. Your job is to make the code meet it.
+Two ways in. **A verification found a criterion unmet**, and your job is to make the code meet it — usually
+inside the build's own process, where `batch-build` runs you with nobody watching. **Or a person reviewing the
+pull request says what to change** — *change deviation 2: use X instead*, *revert that choice* — and your job is
+to make the code say that, verified, on the same pull request (D-181).
 
 ## Which cycle
 
@@ -28,7 +31,7 @@ yourself** — the cycle a skill acts on is not a guess.
 |---|---|
 | **May edit** | source, tests, and `deviations.md` where the approved text cannot be followed |
 | **May never edit** | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
-| **Capped** | not on passes. It stops when a pass undoes earlier work, two in a row reduce nothing, or three deviations bend the same approved text, and checks in with the person every fourth pass |
+| **Capped** | not on passes. When a pass undoes earlier work or two in a row reduce nothing, it may take one different approach, recorded as a deviation; it escalates when that stalls or regresses too, or when a third deviation bends the same approved text |
 
 **`approval.md` is denied at the tool call. The other three are yours to keep.** The hook sees a tool
 call and not which skill made it, so it cannot tell your edit to `spec.md` from the same edit made by
@@ -44,7 +47,8 @@ a cycle that would have opened a pull request into one that cannot.**
 So when the honest conclusion is "the approved text cannot be followed", **record a deviation** rather
 than editing the document or stopping (D-156). Do not make the code satisfy a criterion you believe is
 mistaken, and do not edit the criterion: a `criterion` deviation narrows it, quoting it word for word, and
-names the successor the dropped part becomes. A person answers every deviation before the merge. **When
+names the successor the dropped part becomes. Every deviation reaches the person in the report, and merging
+the pull request accepts it. **When
 what could not be followed is a gap in the framework itself** — the verify was never handed a file, the
 evidence drops one — give that successor `framework:` and a line saying what fell short, so mining hands it
 to the framework rather than leaving it in the solution's backlog (D-173).
@@ -68,12 +72,32 @@ narrows, `decision` quotes `decisions.md`. The blocker is the finding it answers
 evidence. Never the intent, never wider, never a file another cycle claims — those stop you, and a person
 decides. Check it with `sdlc deviations <id>`, and commit it with the code.
 
-**A deviation a person declined is redone.** Its note is your instruction. If the redo still has to bend
-the approved text, record a new deviation with `Replaces: DEV_nn`; do not edit the declined one.
+**A reopen is the person's**, when the deviations show the plan is wrong in substance. Once the plan is on the
+integration branch it happens on the plan branch, not this one (D-123).
 
-**A reopen is the person's**, when the deviations show the plan is wrong in substance. It is refused until
-every deviation is answered, and once the plan is on the integration branch it happens on the plan branch,
-not this one (D-123).
+## When a person asks for a change
+
+**At the pull request, a person accepts by merging — or says, in words, what they want instead** (D-181): *change
+deviation 2: use X instead*, *revert that choice*, *keep the decision this departs from*. That is your
+instruction, and you are in their session.
+
+1. **Never act on a "no" that does not say what to do instead.** *Not like this* leaves you guessing, and a guess
+   is a new choice nobody approved. Ask, in one question, what they want in its place, and ask again until you
+   know.
+2. **Record it on the entry**, beneath the deviation or choice it changes, in the person's words:
+
+   ```markdown
+   Changed: "use the platform's retry policy instead" — at the person's request
+   ```
+
+   If doing what they asked still has to bend the approved text, that is a new deviation with
+   `Replaces: DEV_nn`; a choice they reverted needs nothing more than the line.
+3. **Change the code and the tests to match**, then build, record the evidence and verify as below, and go round
+   while it is working. Everything in *What you may and may not touch* still holds: a person's words never let you
+   edit the intent, the spec or the plan, and never widen the cycle.
+4. **Push to the same pull request** once the verification passes — `git push` on the branch it was opened from —
+   and refresh its body's report from `sdlc report <id>`. Hand back that report, and the same offer as the build's:
+   merging accepts it.
 
 ## Know whether the loop is still getting anywhere
 
@@ -87,8 +111,8 @@ anybody could edit. What matters is not how many there have been but whether the
 | What it says | What it means |
 |---|---|
 | *making progress* | each pass has reduced what is open. Keep going — **there is no pass limit to run out of** |
-| *a pass undid earlier work* | a finding an earlier pass answered has been raised again, and the cycle has stopped |
-| *the last two passes reduced nothing* | nothing is moving, and the cycle has stopped |
+| *a pass undid earlier work* | a finding an earlier pass answered has been raised again. With no deviation taken since, you may take one different approach (below); after one, the cycle has stopped |
+| *the last two passes reduced nothing* | nothing is moving. With no deviation taken since, you may take one different approach (below); after one, the cycle has stopped |
 | *DEV_nn, DEV_nn, DEV_nn bend the same text* | a third attempt at the same approved text, and the verification still blocks: the loop is going round, and the cycle has stopped |
 
 **There used to be a hard three and there is deliberately no ceiling now (D-66).** A blind three failed
@@ -102,6 +126,19 @@ than finding one more thing to adjust.
 do not reach for a fix: a loop that is undoing its own work is not going to finish, and what a person
 needs to see is what the pass actually did. Escalation refuses the pull request and somebody picks it up,
 and that stopping is what makes an unattended batch safe to run at all.
+
+## When it stalls, deviate once before you escalate
+
+**A stall is not yet an escalation** (D-179). When a pass undoes earlier work, or two passes reduce nothing, the
+approach the plan described may be what is failing. Take a different one — recorded as a deviation, quoting the
+approved text it departs from and resting on the finding or the failing test — and go round again. Three limits,
+and none bends:
+
+1. **Never change what *done* means.** Not the intent, not the spec, not a criterion, and never a test weakened
+   so it passes. If the criteria are what is wrong, that is a person's call, and you escalate.
+2. **Never widen the cycle.** No outcome or criterion added, no case reached that the approved text did not.
+3. **Never go on without end.** If the passes after your deviation stall or regress too, or a third deviation
+   would bend the same approved text, the cycle escalates: stop, and let the report say what is open.
 
 ## Work the findings
 
@@ -126,7 +163,8 @@ outcome reads `pass` (D-139). Two kinds:
   be followed without it**, keep it and record a `plan` deviation answering the finding.
 - **`CON_27` — the change takes what a recorded decision set aside, and nothing declared the departure.**
   The finding quotes the decision in its own words. Make the code keep the decision. **If the work cannot
-  be done without departing**, record a `decision` deviation quoting it, for the person to answer.
+  be done without departing**, record a `decision` deviation quoting it; the report shows it, and the merge
+  accepts it.
 
 Fix the **cause**, not the symptom. The failure modes to avoid, in order of how tempting they are:
 
@@ -173,15 +211,11 @@ sdlc pr-ready <id>
 | The outcome | What you do |
 |---|---|
 | `pass` | stop, and hand back |
-| `escalated` — a pass undid earlier work, two passes reduced nothing, or three deviations bend the same text | stop, and hand back |
+| `escalated` — it stalled or regressed again after a deviation, or three deviations bend the same text | stop, and hand back |
 | `blocked`, and *making progress* | work the next pass |
 
-**Check in every fourth pass** (D-159). After the fourth pass of this run, and every fourth after it, stop and
-hand back even though it is still making progress: what the passes closed, what is still open, and whether you
-can say what the next pass will fix. Then ask, in one line, whether to keep going. It is not a ceiling — D-66
-rejected one, and nothing here stops the loop on a number — it is the person back in front of a loop that is
-running long, which is the one shape the progress rule cannot catch: a loop that closes one finding while
-opening another. Name no new session: the build's hand-back is the one place that does (D-158).
+**There is no check-in on a count.** The build runs in a process of its own with nobody to ask (D-178), and the
+progress rule, the one deviation it allows and the third-deviation stop are what bound it.
 
 ## Report and hand back
 
@@ -198,6 +232,6 @@ the report, and it is the first thing a paragraph hides. Then:
 sdlc status <id>
 ```
 
-Show it verbatim and stop. **Close with one plain offer** that fits where it ended: on `pass`, say *open the
-pull request* (or `/sdlc:pr`); at a check-in, say *keep going* (or `/sdlc:remediate`); on `escalated`, what
-the passes did is the hand-back, and the person decides what happens next.
+Show it verbatim and stop. **Close with one plain offer** that fits where it ended: on `pass`, hand back
+`sdlc report <id>` and say *review the pull request — merging accepts it* (inside a batch, the batch opens it);
+on `escalated`, what the passes did is the hand-back, and the person decides what happens next.

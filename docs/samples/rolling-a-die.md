@@ -408,30 +408,21 @@ Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approva
 exception, and a draft nobody renamed records nothing. It refuses to print at all while a blocking
 finding is open: a blocking finding cannot be waived by any mechanism.
 
-**Then admit the plan.** It is still only in the sandbox, and the build refuses a plan there. This solution has
-no remote, so in the sandbox run:
-
-```pwsh
-sdlc admit
-```
-
-and the one git command it prints. [Running a cycle](../guides/running-a-cycle.md), under *Admit the plan*,
-says why, and what a solution with a remote does instead.
-
 ## 9. Build it
 
-In a new session in the repository's own folder, say *build it*, or:
+Say *build it*, or:
 
 ```
 /sdlc:build <id>
 ```
 
-The first stage that writes code and the first you are not expected to watch. It asks the gate, stops if
-the gate refuses, and implements what the plan decided and only that. The skeleton arrives first, because
+The first stage that writes code and the first you are not expected to watch. It asks the gate, takes the plan
+out of the sandbox, and builds in a process of its own — this session just waits for it to report. It implements
+what the plan decided and only that. The skeleton arrives first, because
 the plan declared it — a solution file, its projects, the architecture suite and a reference slice written
 in the shape every operation should have — and the two front-end projects and the component tests after
 it, from the plan's file table. It runs the tests, records the evidence and commits it; what it records, and
-why, is in `../guides/running-a-cycle.md`.
+why, is in `../guides/running-a-cycle.md`, under *Build it*.
 
 One thing to expect: the scaffold writes a `Greet` reference slice that exists to be copied. The dice
 operation takes its shape, and the slice stays until there is enough real work to delete it — which is
@@ -444,12 +435,13 @@ not this cycle.
 say it ran and passed, and does that test actually establish the criterion? The third is where judgement
 lives — a test that passed but does not reach its criterion is *not met*.
 
-It writes `pass` or `blocked`. On `blocked`, say *fix it* (`/sdlc:remediate`): it edits source and tests,
-never a planning document, and verifies again while each pass reduces what is open.
-`../guides/handling-blockers.md` has the rest.
+It writes `pass` or `blocked`. On `blocked` the build remediates by itself: it edits source and tests, never a
+planning document, and verifies again while each pass reduces what is open. `../guides/handling-blockers.md` has
+the rest. This solution has no remote, so the build stops at a verified branch and hands back its report — what
+it did that the plan did not say:
 
 ```pwsh
-sdlc status <id> --brief
+sdlc report <id>
 ```
 
 ## 11. See it roll
@@ -509,8 +501,8 @@ sdlc pr-ready <id>
 /sdlc:pr <id>
 ```
 
-It asks before the push. **It is not approving the merge** — a code owner does that, and never the agent
-that wrote the change.
+It asks before the push, and the body leads with the report. **It is not approving the merge** — you do that,
+and merging is where you accept the report; to change anything in it, say what instead.
 
 ## Next steps
 

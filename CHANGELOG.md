@@ -12,14 +12,13 @@ cycle block, or changes what a person or a stage writes, is announced.
 ## 0.47.0
 
 **The framework says what it is, in one definition, everywhere it introduces itself.** The README, `CONCEPT.md`
-§1 and the three plugin manifests carry the same statement; the README leads with why to choose it and the seven
-steps a person walks; Where it stands is one row per capability; and this file holds the release history the
+§1 and the three plugin manifests carry the same statement; the README leads with why to choose it and the steps a
+person walks; Where it stands is one row per capability; and this file holds the release history the
 README used to. The package page nuget.org shows is rewritten in the same voice, with its skill and
 protected-file counts corrected and held by the suite, and the definition's first sentence is held in every place
 the framework introduces itself. The documents, guides, skills and the binary's own help were read against each
-other and brought into agreement: among them, the admission a sandbox's approved plan needs before its build is
-now step 4's second half everywhere the steps are given, and the six skills that run interrogation rounds may
-start their readers without a prompt. No solution that adopted the framework is named anywhere in the repository:
+other and brought into agreement: among them, the six skills that run interrogation rounds may start their readers
+without a prompt. No solution that adopted the framework is named anywhere in the repository:
 evidence a release rests on is described, not attributed.
 
 **A blocking finding must stand on a rule that binds the document it judges.** A blocker citing a superseded rule,
@@ -33,8 +32,23 @@ supported, and `CON_27` supersedes `CON_24` and accepts a decision deviation as 
 collect` copies it in, and `sdlc round` refuses a new finding quoting it otherwise (D-177). Rounds already recorded
 are not judged again.
 
-**A minor** because a round may now demote or refuse what it recorded as blocking before, and three rules change
-what is forbidden.
+**A person walks five steps, and *build it* goes all the way to the pull request** (D-178..D-182). Begin an
+intent, take it to plan, approve (when the solution requires it), *build it*, review the pull request. *Build it*
+takes the approved plan out of its sandbox itself, then, in a process of its own — the factory's path for one
+cycle, asking nothing — builds, verifies, remediates while that is working and opens the pull request. A stalled
+remediation may take one different approach as a deviation, never changing what *done* means or widening the
+cycle, before it escalates when that stalls too or three deviations bend the same text; the every-fourth-pass
+check-in is gone (D-179). Where the approved text was silent and a reviewer would want to know, the build records
+a **choice** in `deviations.md` (D-180). It hands back **the report** — every deviation, every choice and every
+concern, `sdlc report <id>` — which leads the pull request, and **merging accepts it**: deviations are no longer
+answered in the approval ledger, the pull-request check and a reopen no longer wait on an answer, and
+`draft approval --accept/--decline` is gone. To change a line of the report, a person says what instead and
+remediate changes the code on the same pull request, asking until the instruction says what to do (D-181). No step
+names a new session or an admission, and the pull request no longer asks about mining (D-182).
+
+**A minor** because a round may now demote or refuse what it recorded as blocking before, three rules change
+what is forbidden, and a person walks different steps: they no longer admit a plan, open a session for the build,
+say *fix it* or *open the pull request*, or answer deviations in a file.
 
 ## 0.46.0
 

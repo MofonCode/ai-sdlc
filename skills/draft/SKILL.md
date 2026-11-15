@@ -15,7 +15,6 @@ by `sdlc draft mining` from what `/sdlc:mine` proposed (D-150).
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
-                             [--accept <ids>] [--decline <ids> --note <why>]
 sdlc draft abandon <id>
 sdlc draft solution          [--standard profile|existing] [--approval required|none]
                              [--coverage-floor <percent>]
@@ -71,14 +70,10 @@ Those three print the `reason` key with nothing after it, on purpose — the gat
 refuses a cycle and says nothing about why, so an unfilled one fails rather than standing quietly. Say
 that when you show it.
 
-**On an approved cycle whose build recorded deviations nobody answered, the same command drafts the answer
-to each one** (D-156): a `deviations` entry listing every deviation with `accepted: false` and `note: ""`.
-Show the deviations it prints, and tell the person: set `accepted: true` to accept one, or leave it false and
-write why in its note to decline it; false with no note is not reviewed, and the pull request waits on it.
-**When the person tells you their answers, draft them in rather than editing the draft** (D-162):
-`sdlc draft approval <id> --accept DEV_01,DEV_02 --decline DEV_03 --note "<their reason, in their words>"`.
-Any not named stays unanswered, and the rename is still theirs. A reopen is refused until every deviation is
-answered — decline first, then reopen.
+**Deviations are not answered here any more** (D-181). The build reports every deviation and every choice it
+made, at the head of its pull request, and **merging accepts them**; a person who wants one otherwise says what
+instead, in words, and `/sdlc:remediate` changes the code on the same pull request. So the approval drafter
+writes no `deviations` entry, `--accept` and `--decline` are gone, and a reopen no longer waits on an answer.
 
 **`abandon`** — why a cycle stopped. The reason is left empty and the file is rejected without one.
 Abandonment is terminal: the cycle will never build, even if it also holds an approval, and there is no

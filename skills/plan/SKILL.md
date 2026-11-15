@@ -519,19 +519,18 @@ beyond this paragraph, filled in:
 > agree, place it with `<the rename it printed>`. If anything should be done differently, tell me and
 > I'll carry it through the documents first. I can't place the approval myself — every agent write to
 > it is denied — and that is what makes a recorded approval mean something. Once it is placed, say
-> *admit it* (or `/sdlc:pr --plan`) and I'll take the plan out of this sandbox to the integration branch by
-> its own pull request; with no remote, `sdlc admit` here does it. The build runs best in a new session
-> after that: say *build it* there (or `/sdlc:build`).
+> *build it* (or `/sdlc:build`): it implements the plan, verifies it, fixes what it can and
+> opens the pull request, in a process of its own, then reports every deviation, every choice it made that the plan left
+> open, and every concern. Merging that pull request is where you accept it.
 
-Then stop. **This is the one hand-back that names a new session** (D-158): the planning chain stays in
-the session it started in, and the build, which reads the code, starts clean. A session carried past its
-stage rebuilds its whole context after every pause (D-122).
+Then stop. **Name no new session and no admission** (D-178, D-182): the build takes the plan out of this
+sandbox itself and runs in a process of its own, so this session stays as small as the planning left it.
 
 **If the drafter refuses**, show what it printed: it names what is still open, which is the loop not yet
 finished rather than an approval to place.
 
 **When the gate lets the cycle through instead, read why.** If it says the solution declares
 `approval: none`, nobody has to approve: say that the three documents are clean, that the solution runs
-without approvals so the plan's pull request is the first time a person reads it, and that the build runs
-in a new session. Do not ask for an approval the solution does not require, and do not offer one as a
+without approvals, and that *build it* carries the cycle to a pull request whose report and merge are where a
+person accepts it. Do not ask for an approval the solution does not require, and do not offer one as a
 step; a person who wants to sign this cycle anyway knows `sdlc draft approval <id>` from the panel.

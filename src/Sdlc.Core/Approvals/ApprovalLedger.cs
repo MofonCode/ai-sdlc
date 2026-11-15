@@ -32,13 +32,14 @@ public enum GateDecision
     Reopened,
 
     /// <summary>
-    /// A person's answer to each deviation a build or a remediation recorded, accepted or declined one by one.
+    /// An answer to each deviation a build or a remediation recorded: written now only by a reopen's draft, taking
+    /// every one in, and read as a person wrote it before D-181.
     /// </summary>
     /// <remarks>
     /// <strong>Not a decision about the cycle, so it never stands.</strong> It sits beside the approval it
     /// answers for and leaves it in force: <see cref="ApprovalLedger.Current"/> passes over it, so the gate
-    /// keeps reading the hashes and anchors of the approval itself. A deviation replaces approved text the
-    /// build could not follow, and a person signs the replacement, so nothing is waived (D-27).
+    /// keeps reading the hashes and anchors of the approval itself. A deviation is accepted by merging the pull
+    /// request it leads (D-181); this value is how a reopen makes the build's deviations history.
     /// </remarks>
     Deviations,
 }

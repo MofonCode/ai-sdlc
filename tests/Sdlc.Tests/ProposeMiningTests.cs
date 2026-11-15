@@ -90,7 +90,7 @@ public sealed class ProposeMiningTests
 
         string report = await Render(workspace, new FakeRepository());
 
-        StringAssert.Contains(report, "deviated 2x (1 plan, 1 proof): 0 accepted, 0 declined, 2 unanswered", report);
+        StringAssert.Contains(report, "deviated 2x (1 plan, 1 proof): 2 kept, 0 changed at the person's request", report);
         StringAssert.Contains(report, "Deviations   2 across 1 cycles, by the rule behind them");
         StringAssert.Contains(report, "CON_07.2: 2 in 1 cycle, 0 declined");
     }

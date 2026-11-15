@@ -50,8 +50,11 @@ When something contradicts a decision or a rule, it is brought up — to whoever
 
 - **The model.** A reader questions anything that contradicts a recorded decision. A cycle may depart from one,
   but it declares the departure where it arises, with a reason, and the person is shown it at the approval, in
-  `sdlc status` and in the pull request. A build that cannot follow the approved plan records a **deviation**
-  and a person answers each one before the pull request. And the agent cannot edit what it is judged by: seven
+  `sdlc status` and in the pull request. A build that cannot follow the approved plan records a **deviation**;
+  one that makes a choice nothing approved settled — a library, a pattern, a default — records a **choice**; and
+  both lead the pull request in one report, with every concern its verification raised. **The pull request is
+  where you accept them**: merging accepts the report, and to change any line you say what instead, in words,
+  and the agent changes the code on the same pull request. And the agent cannot edit what it is judged by: seven
   files — the approval, the rules, the decisions and the rest — are written only by a person, and every agent
   write to them is denied at the tool call.
 - **The person.** Ask for something a decision set aside and the interview says so, in a sentence, and asks
@@ -94,8 +97,10 @@ stage, so the target does not move once the work is underway.
   The turn cannot end on a red build or on missing evidence.
 - **The verification**, in a process that never saw the build, goes criterion by criterion: did the named test
   run, did it pass, and does it actually establish the criterion? When it blocks, remediation goes round only
-  while each pass reduces what is still unmet; a pass that undoes an earlier fix, or two that reduce nothing,
-  hand the cycle to a person.
+  while each pass reduces what is still unmet. When it stalls — a pass undoes an earlier fix, or two reduce
+  nothing — it may take one different approach, recorded as a deviation, never changing what *done* means and
+  never widening the cycle; if that stalls too, or three deviations bend the same approved text, it hands the
+  cycle to a person.
 
 So every test that decides the verdict traces back through a criterion to a line in the intent, the loop has an
 end you can name in advance, and what did not make this cycle is waiting for the next one rather than forgotten.
@@ -129,23 +134,23 @@ the test suite.
 
 ## How it works
 
-**A person walks seven steps, and can say each in a sentence.** Every hand-back offers the next one in words;
+**A person walks five steps, and can say each in a sentence.** Every hand-back offers the next one in words;
 the slash form is there if you prefer it.
 
 | | Step | Say | Or type |
 |---|---|---|---|
 | 1 | **Begin an intent** | *add …*, *fix …* or *change …* — or just describe it | `/sdlc:intent` |
-| 2 | **Take it to plan** | *take it to plan* | `/sdlc:to-plan` |
-| 3 | **Steer the plan** | *in that plan, make it … instead* | `/sdlc:steer` |
-| 4 | **Approve** | — you rename the approval it drafted, then *admit it* | `/sdlc:pr --plan` |
-| 5 | **Build it** | *build it*, in a new session | `/sdlc:build` |
-| 6 | **Fix it** | *fix it*, when verification blocks | `/sdlc:remediate` |
-| 7 | **Open the pull request** | *open the pull request* | `/sdlc:pr` |
+| 2 | **Take it to plan** | *take it to plan* — and, reading the plan, *make it … instead* if you want it otherwise | `/sdlc:to-plan` |
+| 3 | **Approve** | — you rename the approval it drafted. Skipped when the solution declares `approval: none` | — |
+| 4 | **Build it** | *build it* | `/sdlc:build` |
+| 5 | **Review the pull request** | merge it to accept it — or say what to change | `/sdlc:remediate` |
 
-**Step 4 has two halves.** The rename is the approval. Admitting it takes the approved plan out of the sandbox it
-was planned in and onto the integration branch, by a pull request of its own — `/sdlc:pr --plan` in the sandbox,
-or `sdlc admit` in a solution with no remote. It approves nothing a second time, and the build refuses a plan
-that has not left the sandbox.
+**Build it goes all the way.** It takes the approved plan out of the sandbox it was planned in, then, in a process
+of its own, implements it, tests it, records the evidence, has a fresh process verify it, remediates while that is
+working, and opens the pull request. It hands back **one report**: every deviation from the approved text, every
+choice it made that nothing approved settled, and every concern its verification raised. That report leads the
+pull request, and **merging is where you accept it**. To change anything in it, say what instead — *change
+deviation 2: use X instead* — and the agent changes the code, verifies again, and updates the same pull request.
 
 Underneath, each step produces a file the next one reads:
 
@@ -176,7 +181,8 @@ documents together, immediately before the build. A team may declare that no app
 down the chain before you approve, editing the intent, spec and plan rather than regenerating them; it changes
 **how, not what**, and a correction that changes the problem is a different cycle. `/sdlc:remediate` fixes code
 and tests against a verification that blocked, and runs **while each pass reduces what is open** — the bound is
-on progress, not on passes (D-66), which is the only reason an unattended run is safe to start.
+on progress, not on passes (D-66), with one deviation allowed before it escalates (D-179), which is the only
+reason an unattended build is safe to start.
 
 ## Features
 
@@ -217,16 +223,16 @@ cycles and which only fixtures.
 |---|---|---|
 | **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again. On by default; a team may declare it off, and `sdlc settings` shows which it is |
 | **Protected files** | An agent edits its own approval, or the rules it is judged by | Seven files — the approval, an abandonment, the solution's rules, its decisions, its areas, its stack and what it is — are written only by a person. The pre-tool hook denies every agent write to them, by path and by shell command alike |
-| **Recorded evidence** | "The tests pass" is a claim, and the turn ends on a red build | The build records the diff, a normalised test summary and coverage. The turn-end hook sends the turn back while the suite has a failure or the evidence is missing or stale |
+| **Recorded evidence** | "The tests pass" is a claim, and the turn ends on a red build | The build records the diff, a normalised test summary and coverage, and every deviation and choice in `deviations.md`. The turn-end hook sends the turn back while the suite has a failure or the evidence is missing or stale |
 | **Verify** | A reviewer re-reads the code and trusts the green tick | A fresh process that did not see the build judges it from the recorded evidence alone, criterion by criterion: did the named test run, pass, and actually establish the criterion? Beside it, another reads the change itself for anything the plan did not describe or a recorded decision set aside |
-| **Bounded remediation** | A fix loop either thrashes forever or gives up after an arbitrary count | `/sdlc:remediate` runs while each pass reduces what is open. When a pass undoes an earlier answer, or two reduce nothing, the cycle escalates to a person and never opens a pull request |
+| **Bounded remediation** | A fix loop either thrashes forever or gives up after an arbitrary count | `/sdlc:remediate` runs while each pass reduces what is open. When a pass undoes an earlier answer, or two reduce nothing, it may take one different approach, recorded as a deviation; when that stalls too, or three deviations bend the same text, the cycle escalates to a person and opens only a draft pull request |
 
 ### Merging and running
 
 | Feature | The problem | What it does |
 |---|---|---|
 | **Chain check** | The process is skipped and the change merged anyway | `sdlc verify-chain` runs as a required pull-request check and refuses a change whose chain is not complete, approved and hash-matched, or whose new lines are under 70% covered |
-| **The pull request from the cycle** | A pull request description is a summary somebody invented | The body is the cycle itself: the problem in the intent's words, each criterion with its verdict, the risk tier, and anything still open |
+| **The pull request from the cycle** | A pull request description is a summary somebody invented, and what the agent decided alone is buried in the diff | The build opens it. The body leads with the report — every deviation, every choice the build made alone, every concern — then the problem in the intent's words, each criterion with its verdict, the risk tier, and anything still open. Merging accepts it |
 | **Batch build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:batch-build` builds every approved cycle on its own branch; the factory runs it unattended whenever you start it and **never merges**. The sitrep it ends on says what is ready, in what order, and what needs a person |
 | **Leads** | Work arrives in a tracker and is retyped into a prompt | `/sdlc:intent --from` starts from an Azure DevOps or GitHub work item, a suggestion or a ready successor. Operate reads production's errors and files them as leads |
 | **Init** | Bringing governance into a repository is a week of setup nobody finishes | `/sdlc:init` interviews the team about what matters here and proposes its first rules. Adoption writes the hooks for every supported agent and the pipeline, drafts the files only a person writes, and creates the integration branch |
@@ -357,9 +363,9 @@ which is why the commit is a step and not a tidy-up.
 The skill opens the cycle in a **sandbox** — a folder of its own beside your clone, on `sandbox/<id>` — and
 never switches your own checkout; carry on in a session opened there. It interviews you into the intent and
 waits for your answers, because the intent is written from them. Then *take it to plan* — `/sdlc:to-plan` —
-writes the spec and the plan, and you approve all three. **The approved plan then leaves the sandbox by
-admission** — `/sdlc:pr --plan`, or `sdlc admit` in a solution with no remote — and the build, in a new session,
-runs and verifies itself.
+writes the spec and the plan, and you approve all three. Then *build it* — `/sdlc:build` — takes the plan out of
+the sandbox, builds, verifies and fixes it in a process of its own, and opens the pull request with its report.
+Merging it accepts the change.
 
 **Want the whole walkthrough, or the variations?**
 [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) is one cycle from the rules to an
@@ -458,8 +464,8 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Planning in a sandbox** | real use: one sandbox carried two approved plans to a pull request, composed by hand after `sdlc admit` crashed, fixed in 0.39.3 | `sdlc admit` composing one for real |
 | **The coverage floor** | one real solution's numbers | a cycle refused or passed by it |
 | **The decisions through every stage, and departures** | the suite | a cycle judged this way: how often the change's reader blocks, and whether it adds rounds |
-| **Deviations** | the suite | a recorded deviation: how often a build bends where it used to stop |
-| **The seven-step cycle** | the suite | a cycle run this way, and whether one session holds the whole planning chain |
+| **Deviations and choices** | the suite | a recorded deviation or choice: how often a build bends where it used to stop, and how often a stalled remediation's one deviation gets it to a pass |
+| **The five-step cycle: build it through to the pull request** | the suite | a cycle run this way: a build in its own process, the report, and a change asked for at the pull request |
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |

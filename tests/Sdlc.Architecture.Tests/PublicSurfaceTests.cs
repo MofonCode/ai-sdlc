@@ -46,7 +46,6 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Approvals.ApprovalLedger",
         "Sdlc.Core.Approvals.ApprovalRenderer",
         "Sdlc.Core.Approvals.ApprovalText",
-        "Sdlc.Core.Approvals.ApprovalText+DeviationAnswers",
         "Sdlc.Core.Approvals.ApprovalText+Query",
         "Sdlc.Core.Approvals.ApprovalText+Response",
         "Sdlc.Core.Approvals.GateDecision",
@@ -461,6 +460,9 @@ public sealed class PublicSurfaceTests
 
         // 'sdlc deviations': where the build bent the approved documents, against what a person answered.
         // The operation, the shapes its response exposes, the file's parser and the renderer.
+        "Sdlc.Core.Deviations.BuildReport",
+        "Sdlc.Core.Deviations.BuildReport+Query",
+        "Sdlc.Core.Deviations.BuildReport+Response",
         "Sdlc.Core.Deviations.CycleDeviations",
         "Sdlc.Core.Deviations.CycleDeviations+Query",
         "Sdlc.Core.Deviations.CycleDeviations+Response",

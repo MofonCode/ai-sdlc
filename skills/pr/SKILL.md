@@ -170,24 +170,16 @@ It refuses for five reasons, and each is final rather than advisory:
 **Do not push past a refusal.** The chain-broken one in particular: the pull-request check would refuse
 it anyway, so pushing would cost a round trip through CI to learn what you were just told.
 
-## Mine now, or after the merge
+## When the build opens it, ask nothing more
 
-Once `pr-ready` holds, ask the person once, and make it the only question before the push — not in a sweep,
-which runs with nobody to mark proposals: **open the pull request for `<id>` — `<headline>` — and mine on this
-branch first, or after it merges?** (D-111.) Either is right, and
-skipping it here is an answer: `/sdlc:mine` on the integration branch afterwards is the
-same act.
+**Saying *build it* was the consent to push** (D-178). The build carries a cycle all the way here, and its
+process opens the pull request as soon as `pr-ready` holds, with no question of its own: the plan's hand-back
+told the person that *build it* implements, verifies, fixes what it can and opens the pull request, and they
+said it. Asked for by hand — *open the pull request*, or `/sdlc:pr` — the one question before the push names
+the cycle, by id and headline, as above.
 
-Now, it runs exactly as `/sdlc:mine` describes, on this branch. The person marks the
-proposals, renames the drafts, and **commits that themselves, as a commit of its own** — the three files
-are theirs (`! git add .sdlc/constraints.md .sdlc/decisions.md .sdlc/techstack.md` and a
-`git commit -F` message). Then `sdlc pr-ready <id>` again, and on.
-
-**Only after the passing verify, and nothing in the cycle moves after it**, because rounds after a rule
-changed read the rule (D-104's twenty blockers). The pull-request check reports the order and refuses
-nothing for it — git cannot tell mining from a person's own edit in the cycle — so keeping it is
-this skill's job (D-113). If review sends the build back and the verify is
-written again, the mining commit comes out and goes back on top afterwards.
+**Mining is never asked here.** It reads what the cycle settled, and the pull request is where a person may
+still ask for a change; the report's last line suggests `/sdlc:mine` once it has merged (D-182).
 
 ## First: is there anywhere to push?
 
@@ -227,7 +219,7 @@ sdlc init --platform azure-devops
 ```
 
 That writes the pull-request check, and **prints the three `solution.md` keys for the person to place** —
-it cannot write them itself, because that file is one of the six only a person writes. Until they are
+it cannot write them itself, because that file is one of the seven only a person writes. Until they are
 pasted the record still says `platform: local`, so `doctor` still reports no check governs a merge and
 this skill still stops at the question above. Hand over what `init` printed and say it is the step that
 finishes the migration.
@@ -263,9 +255,11 @@ fails on an argument or a missing extension, say so plainly instead of trying va
 
 **The body is the cycle, not a summary you invented.** It should carry:
 
-- **first, a `Deviations` section when the build recorded any**: each line `sdlc deviations <id>` prints,
-  copied as it stands — the deviation, then whether it was accepted or declined. Under `approval: none` nobody
-  signed them, so this section *is* the review: a reviewer approving the pull request approves each one
+- **first, the report**: what `sdlc report <id>` prints, copied as it stands — every deviation, every choice
+  the build made that nothing approved settled, and every concern this cycle's verification raised and did not
+  block on (D-181). **Merging accepts everything in it.** Nothing was answered before the pull request, so
+  this section *is* the review: a reviewer merging it accepts each line, and one who wants a line otherwise
+  says so in words and the agent changes it, on this pull request
 - the intent's problem, in the intent's words
 - the spec's criteria, and the verification's verdict on each
 - the tier, so a reviewer knows how reversible this is
@@ -288,8 +282,9 @@ and open that pull request too (D-88).
 
 ## What you are not doing
 
-**You are not approving the merge.** A code owner reviews the pull request, and it is never the agent
-that authored the change. The local approval defended against an agent that forgets; this review is what
+**You are not approving the merge.** A person merges the pull request — and reviews it, with whoever branch
+policy asks for — and it is never the agent that authored the change. **The merge is the acceptance**: of the
+change, and of every deviation and choice the report lists (D-181). The local approval defended against an agent that forgets; this review is what
 defends against a human who did not look, and they are different jobs.
 
 **You are not claiming the chain proves a second person approved.** It cannot: the approval entry names
@@ -319,6 +314,7 @@ Then:
 ## Report
 
 **One line per cycle**, carrying three things: its id, its branch, and the pull request's link. For a
-verified build, one more line: *once this merges, `/sdlc:mine` brings the rules, decisions
-and stack up to what it settled* (D-104). Then stop. Nothing after this is yours — the merge belongs to a
+verified build, two more lines: *merging accepts it, report and all; to change anything in it, say what instead
+— `/sdlc:remediate` takes it in words, on this pull request*; and *once it merges, `/sdlc:mine` brings the
+rules, decisions and stack up to what it settled* (D-104, D-181). Then stop. Nothing after this is yours — the merge belongs to a
 reviewer, and a summary of what they are about to read is a reviewer being told what to think.

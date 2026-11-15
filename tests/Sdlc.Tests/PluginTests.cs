@@ -464,15 +464,21 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_hand_back_before_the_build_says_it_runs_in_a_new_session_and_the_planning_chain_does_not()
+    public void The_hand_back_before_the_build_offers_build_it_and_names_no_session_or_admission()
     {
-        // D-122, as D-158 narrowed it. The planning chain stays in one session and the build starts clean, so the
-        // new session is named once, at the approval, rather than at every stage where it read as ceremony.
+        // D-178, D-182. D-158 had the plan's hand-back name a new session for the build and, later, an admission
+        // the person ran. Both were steps a person had to remember that decided nothing: the build now takes the
+        // plan out of its sandbox itself and runs in a process of its own. So the hand-back offers build it, says
+        // it ends in a pull request, and asks for neither.
         foreach (string name in (string[])["plan", "to-plan"])
         {
-            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md")).ReplaceLineEndings(" ");
 
-            StringAssert.Contains(text, "new session", name + "'s hand-back does not say the build runs in a new session.");
+            StringAssert.Contains(text, "*build it*", name + "'s hand-back does not offer the build.");
+            StringAssert.Contains(text, "opens the pull request", name + "'s hand-back does not say the build ends in a pull request.");
+            StringAssert.Contains(text, "process of its own", name + "'s hand-back does not say where the build runs.");
+            Assert.IsFalse(text.Contains("*admit it*", StringComparison.Ordinal) || text.Contains("*admit them*", StringComparison.Ordinal), name + " still asks the person to admit the plan.");
+            Assert.IsFalse(text.Contains("say *build it* there", StringComparison.Ordinal), name + " still sends the build to a new session.");
         }
 
         foreach (string name in (string[])["intent", "spec"])
@@ -483,6 +489,19 @@ public sealed class PluginTests
                 text.Contains("**Say that it runs in a new session**", StringComparison.Ordinal),
                 name + " sends the planning chain to a new session at every stage.");
         }
+    }
+
+    [TestMethod]
+    public void The_build_skill_admits_the_plan_and_runs_the_build_in_a_process_of_its_own()
+    {
+        // D-178. The build is the factory's own path for one cycle, started from the person's session and asking
+        // nothing; the hand-back is the report the binary renders, so every host shows the same thing.
+        string text = File.ReadAllText(Path.Combine(Root, "skills", "build", "SKILL.md"));
+
+        StringAssert.Contains(text, "sdlc admit", "The build does not take the plan out of its sandbox.");
+        StringAssert.Contains(text, "/sdlc:batch-build <id> --pr --unattended", "The build does not start the factory's path for its cycle.");
+        StringAssert.Contains(text, "sdlc report <id>", "The build does not hand back the report.");
+        Assert.IsFalse(text.Contains("bypassPermissions", StringComparison.Ordinal), "The build skips the host's permission checks on a person's machine.");
     }
 
     [TestMethod]
@@ -644,7 +663,12 @@ public sealed class PluginTests
                     continue;
                 }
 
-                if (fenced && line.Contains("claude -p", StringComparison.Ordinal) && !line.Contains(marked, StringComparison.Ordinal))
+                // The build's own process is not a reader (D-178): it builds, and a red build must keep its turn
+                // from ending, which is exactly what the mark would switch off. So it is the one launch left
+                // unmarked, recognised by the skill it runs.
+                bool build = line.Contains("/sdlc:batch-build", StringComparison.Ordinal);
+
+                if (fenced && !build && line.Contains("claude -p", StringComparison.Ordinal) && !line.Contains(marked, StringComparison.Ordinal))
                 {
                     unmarked.Add($"{Path.GetRelativePath(Root, path)}: {line.Trim()}");
                 }

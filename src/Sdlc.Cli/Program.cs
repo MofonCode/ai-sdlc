@@ -115,6 +115,7 @@ try
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
+        "report" => await WithCycle(line, "report", ReportCommand).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
@@ -1317,6 +1318,23 @@ static async Task<int> DeviationsCommand(Workspace workspace, CycleId id)
     return result.Value.State.Problems.Count > 0 ? ExitCode.Refused : ExitCode.Ok;
 }
 
+// The report a build ends on and the pull request leads with (D-181). Exits 1 when a deviation is unsound, which
+// the pull request check would refuse anyway.
+static async Task<int> ReportCommand(Workspace workspace, CycleId id)
+{
+    Result<Sdlc.Core.Deviations.BuildReport.Response> result = await workspace
+        .Send<Sdlc.Core.Deviations.BuildReport.Query, Sdlc.Core.Deviations.BuildReport.Response>(new Sdlc.Core.Deviations.BuildReport.Query(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Deviations.BuildReport.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Deviations.Problems.Count > 0 ? ExitCode.Refused : ExitCode.Ok;
+}
+
 static async Task<int> SuccessorsCommand(Workspace workspace)
 {
     Result<Sdlc.Core.Successors.ReadSuccessors.Response> result = await workspace
@@ -1532,13 +1550,16 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
         return ExitCode.Usage;
     }
 
-    line.TryOption("accept", out string? accept);
-    line.TryOption("decline", out string? decline);
-    line.TryOption("note", out string? note);
+    // D-181 retired answering deviations here: the pull request leads with them and merging it accepts them.
+    if (line.TryOption("accept", out _) || line.TryOption("decline", out _) || line.TryOption("note", out _))
+    {
+        await Console.Error.WriteLineAsync("Deviations are no longer answered here: the pull request leads with them, and merging it accepts them. To change one, tell the build what to do instead, and it goes round again into the same pull request.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
 
     Result<ApprovalText.Response> result = await workspace
         .Send<WriteApprovalDraft.Command, ApprovalText.Response>(
-            new WriteApprovalDraft.Command(id, by, decision, new ApprovalText.DeviationAnswers(Ids(accept), Ids(decline), note)))
+            new WriteApprovalDraft.Command(id, by, decision))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -2403,7 +2424,7 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         Departures = Departures.Named(await Departures.Of(status.Cycle, CancellationToken.None).ConfigureAwait(false), recorded),
     };
 
-    // Where the build bent the approved documents, and what the person has answered.
+    // Where the build bent the approved documents, and the choices it made that they left open.
     Sdlc.Core.Deviations.DeviationsState deviations = await Sdlc.Core.Deviations.CycleDeviations.Read(status.Cycle, CancellationToken.None).ConfigureAwait(false);
     if (deviations.Current.Count > 0)
     {
@@ -2414,12 +2435,9 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
                 .. deviations.Current.Select(deviation => Sdlc.Core.Deviations.DeviationsFile.Line(deviation.Deviation) + " - " + deviation.Standing switch
                 {
                     Sdlc.Core.Deviations.DeviationStanding.Accepted => "accepted",
-                    Sdlc.Core.Deviations.DeviationStanding.Declined => "declined",
-                    _ => "unanswered",
+                    Sdlc.Core.Deviations.DeviationStanding.Declined => "changed at your request",
+                    _ => "for the pull request",
                 }),
-                .. deviations.Pending.Count > 0
-                    ? [string.Create(CultureInfo.InvariantCulture, $"{deviations.Pending.Count} unanswered: sdlc draft approval {status.Cycle.Id}")]
-                    : Array.Empty<string>(),
             ],
         };
     }

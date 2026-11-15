@@ -713,5 +713,5 @@ point, and a skill that chained straight into the spec would remove it while app
 
 **Close with one plain offer**, in a line of your own: when they are happy with it, they can say *take it
 to plan* — or type `/sdlc:to-plan` — and if anything reads wrong, they can just say what, and you will
-change it first. It can carry on in this session: an interview leaves little behind, and the session worth
-starting fresh is the build's (D-158).
+change it first. It can carry on in this session: an interview leaves little behind, and the build runs in a
+process of its own (D-178).

@@ -365,29 +365,15 @@ amendment starts from the integration branch.
 
 ---
 
-## Deviations — the four ways they are refused
+## Deviations — the one way they are refused
 
-Where the build could not follow the approved text it recorded a deviation in `deviations.md`, and a person
-answers each one before the merge (D-156). `handling-blockers.md` has what a deviation is and how to answer one.
-`sdlc deviations <id>` shows each with where it stands.
+Where the build could not follow the approved text it recorded a deviation in `deviations.md`, and where the
+approved text was silent it recorded a choice (D-156, D-180). **Nothing answers them before the pull request**:
+they lead it in the build's report, and merging accepts them (D-181). `handling-blockers.md` has what a
+deviation is and how to ask for one to be changed. `sdlc deviations <id>` shows each with where it stands.
 
-### a reopen with deviations unanswered
-
-`sdlc draft approval <id> --reopen` on a cycle whose build recorded deviations nobody answered. A reopen writes
-the accepted ones into the amended plan and gives the declined ones as its reason, so an unanswered one would
-be neither.
-
-**Next:** `sdlc draft approval <id>`, answer each one — decline the ones the reopen is about — and rename it
-into place. Then reopen.
-
-### a deviation unanswered
-
-The pull-request check's *every deviation is answered* failed: a deviation has no answer, or its text moved
-after it was answered, which leaves it unanswered again. `accepted: false` with an empty note is not an answer.
-
-**Next:** `sdlc draft approval <id>`, set `accepted: true` or write why in the note, and rename it into place.
-Under `approval: none` there is nothing to answer: every deviation is accepted and the pull request is the
-review.
+**Two refusals are gone.** The pull-request check no longer waits for every deviation to be answered, and a
+reopen is no longer refused while one is unanswered: there is nothing left to answer before the merge.
 
 ### a deviation that does not hold
 
@@ -399,14 +385,6 @@ not written.
 **Next:** the stage that wrote it corrects it — quote the approved text word for word, or write the successor
 under `.sdlc/successors/`. A file another cycle claims is not a deviation at all: leave it to that cycle, or
 reopen.
-
-### a declined deviation not verified again
-
-The check's *the verdict follows the deviations declined* failed: you declined a deviation after the verify that
-stands, so the passing verdict judged code you turned down.
-
-**Next:** `/sdlc:remediate <id>` redoes that part with your note as its instruction, records the evidence, and
-verifies again itself.
 
 ---
 
@@ -698,19 +676,20 @@ build has not recorded any.
 The verdict is `blocked`. Not "no failures recorded" — an actual pass is required, because the verdict is
 the only thing standing between unattended building and work presented as ready for review.
 
-**Next:** `/sdlc:remediate <id>`. A batch run with `--pr` opens a **draft** pull request for it instead
+**Next:** `/sdlc:remediate <id>`. The build, and a batch run with `--pr`, open a **draft** pull request for it instead
 (D-85): marked not ready, its check red, so the attempt is somewhere a person looks rather than built again
 the next night. Remedy it on that branch and mark the draft ready once it passes.
 
 ### escalated
 
-Remediation stopped getting anywhere with blockers still open: a pass undid what an earlier one
-answered, two passes in a row reduced nothing, or a third deviation bent the same approved text. **An escalated cycle never opens a ready pull
-request** — a batch run opens a draft, which the check refuses to merge — and that stopping is the only
-reason an unattended batch is safe to run at all. There is no pass count to run
-out of — the refusal says which of the three stopped it, and they want different things from you: a
-regression means looking at what the last pass actually did, a stall means asking whether the finding
-is answerable, and a third deviation on the same text means the approved text itself is what needs changing. `handling-blockers.md` has what to do with an escalated cycle.
+Remediation stopped getting anywhere with blockers still open, after the one different approach it may take
+(D-179): a pass undid what an earlier one answered or two passes in a row reduced nothing, after that deviation,
+or a third deviation bent the same approved text. **An escalated cycle never opens a ready pull request** — the
+build opens a draft, which the check refuses to merge — and that stopping is the only reason an unattended build
+is safe to run at all. There is no pass count to run out of — the refusal says which stopped it, and they want
+different things from you: a regression means looking at what the last pass actually did, a stall means asking
+whether the finding is answerable, and a third deviation on the same text means the approved text itself is what
+needs changing. `handling-blockers.md` has what to do with an escalated cycle.
 
 **Next:** a person decides. Either the criterion is wrong, in which case
 `sdlc draft approval <id> --reopen` withdraws the approval with a recorded reason and the documents can be
@@ -730,8 +709,7 @@ looking at a failed check needs to know what held. The checks are: the cycle exi
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
 passed, every criterion is adjudicated, the verify was judged against this evidence, git commits the
 evidence, the changed lines are covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
-after a reopen), the deviations are sound, every deviation is answered and the verdict follows the deviations
-declined (only where the build recorded any), the change was verified. When the pull request changes the solution's constraints,
+after a reopen), the deviations are sound (only where the build recorded any), the change was verified. When the pull request changes the solution's constraints,
 decisions or declared stack, it also says whether that was committed before or after the verify — reported,
 never refused (D-113).
 

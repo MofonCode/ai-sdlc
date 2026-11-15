@@ -65,6 +65,24 @@ public sealed class StartBranchTests
     }
 
     [TestMethod]
+    [DataRow("cycle/{0}/plan")]
+    [DataRow("slices/sandbox-20260929-1400-00/plan")]
+    public async Task An_unattended_build_starts_from_a_local_admission_the_integration_branch_does_not_hold_yet(string admission)
+    {
+        // D-178: build it admits locally and pushes nothing, then the run builds this one cycle unattended. The
+        // integration branch exists and does not hold the plan, so the run starts from the local admission.
+        string from = string.Format(System.Globalization.CultureInfo.InvariantCulture, admission, Id);
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.Refs.Add(from);
+        git.PathsAt.Add(from + ":" + Plan);
+
+        StartBranch.Response start = await Ask(git, CycleBranchKind.BuildUnattended);
+
+        Assert.AreEqual("git switch --no-track -c cycle/" + Id + "/build-unattended " + from, start.Command);
+    }
+
+    [TestMethod]
     public async Task An_older_cycle_on_the_bare_branch_keeps_building_there()
     {
         FakeRepository git = new();

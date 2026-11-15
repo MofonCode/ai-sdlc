@@ -157,8 +157,10 @@ public static class SdlcServices
         services.AddRecordMiningRequestHandler();
         services.AddVerifyMiningRequestHandler();
 
-        // Where the build bent the approved documents, against what a person answered (deviations).
+        // Where the build bent the approved documents, and what it chose that they left open (deviations), and
+        // the report a build ends on, which the pull request leads with (D-181).
         services.AddCycleDeviationsRequestHandler();
+        services.AddBuildReportRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

@@ -43,7 +43,7 @@ argument for each part of it. Three things it exists to make possible:
   D-132).
 - **What was settled carries forward.** The solution's constraints and decisions are files in its
   repository, every reader of every cycle is handed them, and a departure from one is declared where it
-  arises and answered by a person rather than made silently (§7, §8.1, D-139, D-156).
+  arises and shown to a person at the pull request rather than made silently (§7, §8.1, D-139, D-181).
 
 **Approved plans can then build unattended**, one or many at a time (§10). That is a capability the three
 make safe rather than a reason of its own: a cycle that cannot be made to pass stops and escalates instead of
@@ -171,13 +171,22 @@ verify      -> remediate -> verify           the code, while each pass reduces w
 ```
 
 **Neither loop counts rounds, and both stop on oscillation.** An artifact loop stops when one rule has
-been answered and raised again three times (D-65); a remediation loop stops when a pass undoes earlier
-work, or two in a row reduce nothing (D-66). **A remediation halt sets the verify outcome to `escalated`,
+been answered and raised again three times (D-65). A remediation loop that stops converging — a pass undoes
+earlier work, or two in a row reduce nothing — may take one different approach, recorded as a deviation, and
+the next pass must then reduce what is open; it stops on the second time, or when three deviations bend the
+same approved text (D-66, D-179). **A remediation halt sets the verify outcome to `escalated`,
 and `pr` refuses it except as a draft (D-85). An artifact-loop halt reports and hands back to a person:** what decides whether
 the artifact advances is still its open blockers, which already refuse the build (D-65). The
 reason neither is a count: on the intent that ran eleven rounds, round seven found that the headline
 change was unreachable and round eleven found that no success criterion failed if it were skipped
 entirely — and a cap low enough to catch a loop going in circles would have stopped it at four.
+
+**A person walks five steps** (D-182): begin an intent, take it to plan, approve — under `approval: required` —
+build it, and review the pull request. *Build it* carries the cycle the rest of the way in a process of its
+own: it admits the plan, builds, verifies, remediates and opens the pull request, and hands back one report of
+every deviation, every choice the approved text left open, and every concern (D-178, D-181). Merging the pull
+request is how the person accepts what the report says; asking for a change sends the build round again into the
+same pull request.
 
 Each stage skill runs the artifact loop itself: it writes, interrogates, refines, and interrogates
 again until the round is clean, a reader reports a conflict, or the loop is stuck, then reports and hands
@@ -531,11 +540,12 @@ carries a reason, which `CON_10` governs. A reopen supersedes an approval, retur
 pre-approval so the documents can be rewritten and re-approved — the recovery path when a plan turns
 out to be wrong about *what* the cycle delivers.
 
-**A fifth value, `deviations`, answers for an approval rather than replacing it** (D-156). Where the build could
-not follow the approved text it records a deviation in `deviations.md`, and the person answers each one in a
-`deviations` entry: its id and hash, `accepted: true`, or `false` with a note saying why. The entry never stands
-in the approval's place, so the gate keeps reading the approval's hashes; the pull request waits until every
-deviation is answered. A reopen is refused until then, and folds the accepted ones into the amended plan.
+**A fifth value, `deviations`, answers for an approval rather than replacing it** (D-156). Nobody answers a
+deviation in the ledger any more: the pull request leads with every one, and merging it is the acceptance
+(D-181). The value stays for a reopen, whose draft answers every deviation the build recorded so that, once the
+amended plan is approved, they are history and no longer held to the text they quoted. An entry from before D-181
+is still read, each answer held to the hash of the text it answered. The entry never stands in the approval's
+place, so the gate keeps reading the approval's hashes.
 
 **A plan already on the integration branch is reopened on its plan branch, not on a build** (D-123). The
 reopen and the re-approval travel by a pull request of their own, so the amended plan reaches the team and the
@@ -861,12 +871,12 @@ rewritten, and nothing has to be run to upgrade.
 
 | | `refine <id> <artifact>` | `remediate <id>` | Enforced by |
 |---|---|---|---|
-| Runs after | `interrogate` | a blocked `verify` | the skill |
-| May edit | the one named artifact | source and tests, and `deviations.md` where the approved text cannot be followed (D-156) | the skill |
+| Runs after | `interrogate` | a blocked `verify`, or a change the person asks for at the pull request (D-181) | the skill |
+| May edit | the one named artifact | source and tests, and `deviations.md`: a deviation where the approved text cannot be followed, a choice it left open, and the person's words on an entry they asked to change (D-156, D-180, D-181) | the skill |
 | May never edit `approval.md` | yes | yes | **the hook**, at the tool call |
 | May never edit source or tests | yes | — | the skill |
 | May never edit a planning document | — | yes | the skill, and **the gate** afterwards |
-| Capped | not on rounds; stops when one rule has come back three times | not on passes; stops when a pass undoes earlier work, two reduce nothing, or three deviations bend the same approved text | the skill |
+| Capped | not on rounds; stops when one rule has come back three times | not on passes; the first stop — a pass undoing earlier work, or two reducing nothing — allows one different approach recorded as a deviation, the second escalates, and so do three deviations bending the same approved text (D-179) | the binary's budget, read by the skill |
 | Also refuses | once the cycle is approved | — | the skill |
 
 **Read the right-hand column before the other three.** Only one row is denied at the tool call, and
@@ -1588,7 +1598,14 @@ Tests discover endpoints through `Aspire.Hosting.Testing` rather than knowing a 
 ### 10.3 `pr`
 
 `pr` is what touches the remote: it pushes, opens the pull request, and links the work item with
-the intent and spec details.
+the intent and spec details. **The pull request leads with the report** — `sdlc report <id>`: deviations,
+choices, and concerns — **and merging it is how a person accepts them** (D-181).
+
+**Build it opens the pull request itself** (D-178). Saying it is the consent: the plan's hand-back says *build
+it* implements, verifies, fixes what it can and opens the pull request, so nothing asks again before the push. The
+build runs `batch-build <id> --pr --unattended` for its one cycle, in a process of its own, after admitting the
+plan locally. A person reaches for `pr` by hand only when that could not happen — no remote when it ran, or a
+draft to share.
 
 **`pr --all`** sweeps every cycle whose verdict is `passed`, with five guards (D-23): it opens one only
 for `passed`; it re-checks each cycle's gate rather than trusting the verdict; it reports what it would
@@ -1599,8 +1616,8 @@ and each pull request is reported individually.
 is `blocked` or `escalated` (D-85) — and asks before the run rather than at the end (D-24); with
 `--unattended` starting the run is that question (D-143). Plain `batch-build` never pushes.
 
-**Before pushing a verified build, `pr` asks once whether to mine on the branch now** — as the
-person's own commit, which merges with the code — or after the merge; a sweep never asks (D-111).
+**Mining is never asked at the pull request** (D-182): the hand-back suggests it after the merge, on the
+integration branch. The question D-111 put before the push was a decision nobody needed at that moment.
 
 **`pr --plan`** admits an approved plan to the integration branch before it is built, asked of the gate
 rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
@@ -2299,12 +2316,12 @@ which is the ordinary case.
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | applies an artifact's findings to that artifact |
-| `remediate` | applies a blocked verify's unmet criteria and findings to source and tests, and verifies again while it is working — D-159 |
-| `build` | implements the plan; builds; tests; records evidence; verifies a green build — D-159 |
+| `remediate` | applies a blocked verify's unmet criteria and findings to source and tests, or a change the person asked for, and verifies again while it is working; when the passes stop converging, may take one different approach recorded as a deviation — D-159, D-179, D-181 |
+| `build` | carries an approved cycle to its pull request in a process of its own: admits the plan, builds, tests, records evidence, verifies, remediates, opens the pull request, and hands back the report — D-178 |
 | `verify` | adjudicates the build against the spec from evidence alone |
 | `batch-build` | completes the queued cycles, each on its own branch and independently, and reports the sitrep — §10.1, D-86 |
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in a fresh verify — D-86 |
-| `pr` | pushes the cycle's branch, opens the pull request into the integration branch, links the work item; `--plan` admits an approved plan, `--draft` a build that did not pass — D-85 |
+| `pr` | pushes the cycle's branch, opens the pull request into the integration branch led by the report, links the work item; the build opens its own, so a person uses this by hand, with `--plan` to admit an approved plan for the factory, or `--draft` for a build that did not pass — D-85, D-178 |
 | `draft` | prints a protected file's entry for a person to place — §5.3 |
 | `propose` | reads the record and proposes what it is missing — a `LOC_` rule from the findings, a decision from approved cycles, or a theme's roles — with the evidence — D-69, D-70, D-71 |
 | `mine` | reads the finished cycles — every one, or a few at a time — and proposes the rules, decisions, stack rows, areas and successors they settled, answering every item and recording the sitting — D-104, D-148, D-166 |
@@ -2320,10 +2337,10 @@ each list their own steps and nothing past the hand-back; `batch-build` and `to-
 `sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
 for the person to choose from; nothing picks among several. `draft approval` keeps the id required, and so does every form of `pr` that is not a verified build's — `pr --plan` in a sandbox excepted, which names every cycle it takes (D-144). A verified build's `pr` resolves its cycle like the stages, and names it in the one question before the push (D-158).
 
-**The hand-back before the build names a new session**, and no other does. A session carried past one
-stage rebuilds its whole context on every turn after an idle wait, and that, not the judging, was most of
-what one solution's cycles cost (D-122); but the planning chain is short and runs as one step, so it is the
-build, which reads the code, that is worth starting clean (D-158).
+**No hand-back names a new session** (D-178). The build reads the code, which is what made a session carried
+past the planning chain expensive (D-122); it runs in a process of its own now, so the person's session stays
+small without the person managing sessions. The plan's hand-back says what *build it* does — implements,
+verifies, fixes what it can and opens the pull request — because saying it is the consent to push.
 
 **Every hand-back closes with one plain offer** of the next step, in words a person can say back — *take it
 to plan*, *build it*, *fix it*, *open the pull request* — with the slash form beside it. The panel names the
@@ -2351,7 +2368,7 @@ mechanical rather than promised.
 | `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
 | `build` | the gate satisfied, and the plan where a build can start from it — the integration branch, an admission branch, or the sandbox when there is no integration branch (D-162) | the gate refuses; the plan is only in a sandbox while there is an integration branch to admit it to | code, evidence |
 | `verify` | evidence exists | no evidence | `verify.md` |
-| `remediate` | verify blocked | not blocked; the loop has regressed or stalled (D-66) | code and tests only |
+| `remediate` | verify blocked, or a change the person asked for | not blocked and nothing asked; escalated — a second stop, or three deviations at one place (D-179) | code, tests and `deviations.md` |
 | `pr` | verify passed; with `--plan`, the gate satisfied; with `--draft`, verify blocked or escalated | not passed; escalated — except as `--draft`; the chain broken | push, pull request |
 | `batch-build` | a queued cycle (§10.1) | nothing; a cycle held back by a branch on the remote is not built, and the sitrep says why | code, evidence and a verify document per cycle, each on its own branch. Never pushes without `--pr` (D-22) |
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
@@ -2388,7 +2405,8 @@ they print verbatim.
 | `constraints [--for <artifact>] [--cycle <id>]` | renders the effective set, all tiers. How the rules reach a session. With `--cycle`, this solution's own rules outside the areas the stage touches are rendered by their headline, from the plan on; `constraints show <id>` prints one in full — D-151 |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
-| `deviations <id>` | where the build bent the approved documents: each deviation, whether a person accepted, declined or has yet to answer it, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, an accepted narrowing with no successor. Exits 1 while anything is wrong (D-156) |
+| `deviations <id>` | where the build bent the approved documents, and the choices it made that they left open: each entry, whether it is in force or was changed at the person's request, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, a criterion narrowed (D-156, D-179, D-180). Exits 1 when anything is |
+| `report <id>` | the report a build ends on and the pull request leads with: deviations, choices, what was changed at the person's request, and the verification's open suggestions as concerns, in markdown. Merging the pull request accepts it (D-181) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session decides the dispositions of earlier findings (D-49), and `--answered`/`--withdrawn` copy the ones it settles in from the ledger word for word — D-117, D-121, D-162 |
@@ -2523,7 +2541,7 @@ rides into it.
       verify.md
       approval.md           append-only ledger of gate decisions
       abandoned.md          why this cycle stopped, if it did
-      deviations.md         where the build bent the approved text, each answered by a person (D-156)
+      deviations.md         where the build bent the approved text, and the choices it left open; accepted at the pull request (D-156, D-180, D-181)
       parked.md             what a parked cycle waits on, and the commit it was planned against (D-145)
       findings/             one ledger per artifact, every round of it chained (D-107)
         intent.json
@@ -3195,6 +3213,9 @@ reversible but **outward-facing** — and printing the list also covers the surp
 ### D-24 — `batch-build --pr` composes the two; plain `batch-build` stops at completion
 
 **Governs:** §10.3
+
+**Amended by D-178.** For one cycle, saying *build it* is the confirmation: the hand-back before it says the build
+opens the pull request.
 
 **Why.** A pull request is not a new decision: the approval already said *this plan is agreed, build it*,
 and a pull request **requests** review rather than committing anything. So the confirmation is about
@@ -5474,6 +5495,9 @@ would bite.
 **Amended by D-159.** Remediation verifies again after each pass and goes round on its own while it is working,
 checking in with a person every fourth pass. The bound is still progress, never a count.
 
+**Amended by D-179.** The first stop no longer escalates: the next pass may take one different approach, recorded
+as a deviation, and must reduce what is open; the second stop escalates. The every-fourth-pass check-in is gone.
+
 **Decision.** `RemediationBudget.Limit` is removed. Remediation continues while each pass strictly
 reduces the open blocking findings. It stops when a pass undoes what an earlier one answered — a relapse
 on the verification, read by the same counter the artifact loop uses — or when two consecutive passes
@@ -7452,6 +7476,128 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-182 — The cycle a person walks is five steps: intent, plan, approve, build it, the pull request
+
+**Governs:** §3, §10.3, §14, §15
+
+**Supersedes in part D-158:** its seven steps become five, and its new session before the build is retired by
+D-178. **Amends D-111:** mining is no longer asked before the push.
+
+**Decision.** A person begins an intent, takes it to plan, approves under `approval: required`, says *build it*, and
+reviews the pull request. Steering is a sentence at plan review and not a step; asking for a change after the build
+is a sentence too. Every hand-back offers the next step in words, and the panel names that step — after the gate,
+*build it*; after a passing build, the pull request; on an escalation, *fix it*. Mining is suggested after the
+merge and never asked at the pull request.
+
+**Why.** Of D-158's seven steps, three were mechanical hand-offs nobody decided anything at: fixing a blocked
+verification, opening the pull request, and admitting a plan from its sandbox. Each was a moment a person could
+stall a cycle by forgetting it, and none was a moment their judgement was needed. The two acts that are judgement
+— approving the plan and accepting the result — stay, and everything between them is the binary's and the build's.
+
+**Rejected.** *Keeping fix it and open the pull request as steps.* A step that asks nothing of a person is a place
+the cycle waits. *Dropping the approval for teams that keep it.* The definition rests on a person approving the
+exact text before code exists; `approval: none` already serves teams who choose otherwise.
+
+### D-181 — The pull request is where a person accepts, and the report leads it
+
+**Governs:** §1, §5.2, §6.3, §10.3, §15.2, §16
+
+**Revisits D-156:** deviations are no longer answered in the approval ledger before the pull request.
+
+**Decision.** A build ends on a report — `sdlc report <id>`, rendered by the binary — of every deviation in force,
+every choice the approved text left open (D-180), everything changed at the person's request, and the
+verification's open suggestions as concerns, every reader's. It is the build's hand-back and the head of the pull
+request's body. Merging the pull request accepts it. The pull-request check asks only that the deviations are
+sound; `draft approval --accept/--decline` is retired, and a reopen is no longer refused for an unanswered
+deviation — its draft answers every one, taking it in. A person asks for a change in words: remediate applies it,
+writes their words onto the entry as a `Changed:` line, verifies, and pushes to the same pull request with the
+report refreshed. **It does not act on a "no" that does not say what to do instead; it asks until it knows.** A
+redo that still bends approved text is a new deviation with `Replaces:`. Entries in the ledger from before are read
+as they were.
+
+**Why.** The person's acceptance was split across two places: a file they renamed to answer each deviation, and the
+merge that accepted the code. The file was a second gate on one decision, and a step that stalled the pull request
+until somebody remembered it. The pull request is where accountability already lives (§18: the local approval is
+not unforgeable), and it is where the person reads the diff the deviations describe. A report the binary renders
+reads the same on every host, and an agent's summary is where a deviation quietly goes missing.
+
+**Rejected.** *Answering deviations in a person's file before the pull request* — D-156's shape, for the reasons
+above. *Accepting by silence before a pull request exists.* Nothing would record that anybody read them.
+*Declining as a flag on a command.* A decline the build cannot act on is the failure; a sentence the agent asks
+about until it can is what fixes it, which is why the rule is the skill's rather than a constraint.
+
+### D-180 — A choice the approved text left open is recorded beside the deviations
+
+**Governs:** §6.3, §15.2, §16
+
+**Decision.** When the build or remediation makes a choice the intent, the decisions, the constraints and the plan
+did not settle, and a reviewer would want to know it — a library, a pattern, a default, behaviour a user would
+see — it records it in `deviations.md` as `Kind: choice`: what was chosen (`Deviation:`), what it was chosen
+against (`Instead of:`), and why. It departs from no approved text, so it names no document and quotes nothing;
+a choice that quotes is refused. A choice is never leave: the verify readers judge the change it describes like any
+other, within the plan's purpose under `CON_25` and against the decisions under `CON_27`. It never circles, and
+it leads the report beside the deviations.
+
+**Why.** The decisions made without the person were the ones nobody saw. D-156 kept a choice the plan left open off
+the deviations list on purpose — nothing was departed from — and so it went unrecorded, to be found in the diff
+or never. Recording it costs one entry, and it is exactly what a person accepting a pull request should be told.
+
+**Rejected.** *Making a choice a kind of deviation that gives leave.* Leave comes from approved text; a choice has
+none behind it. *Recording every choice.* Names and formatting are noise that would bury the ones that matter.
+*A separate file.* One list the report and the readers already read is one place to look.
+
+### D-179 — When remediation stops converging, the build may take one different approach before it escalates
+
+**Governs:** §3, §6.3, §6.4, §15, §15.1
+
+**Amends D-66 and D-159:** the first stop no longer escalates, and the every-fourth-pass check-in is gone.
+
+**Decision.** Remediation goes round while each pass reduces what is still unmet. When a pass undoes earlier work
+or two passes in a row reduce nothing, it may take a different approach than the approved text described, recorded
+as a deviation, and the very next pass must reduce what is open. It escalates on the second stop, or when three
+deviations bend the same approved text. A deviation may never change what *done* means — touch the intent, the
+spec or a criterion, or weaken a test so it passes; a criterion narrowed by the build is a problem the pull-request
+check refuses — and may never widen the cycle. The binary's budget reads the stops from the verify rounds and says
+when one different approach is allowed; the every-fourth-pass check-in is dropped, because the build runs in a
+process of its own with nobody to ask (D-178).
+
+**Why.** Escalating on the first stop handed a person cycles that a different approach would have finished: the
+stop says the approved approach is not converging, not that nothing will. Once is enough to tell those apart — a
+second stop after a change of approach says the problem is not the approach. The limits keep the freedom from
+becoming the inversion §2.4 forbids: what reacts to a failing test may change how, never what done means.
+
+**Rejected.** *Escalating at once on a stall*, as D-66 did, for the reason above. *A fixed pass count* — D-66's
+evidence stands: a hard three failed an honest cycle and let a stuck one spend all three. *Unlimited deviations
+until it passes.* Without the second stop the loop has no end; the circle at three deviations on one place stays.
+*Letting a deviation narrow a criterion*, as D-156 allowed with a person's signature: with acceptance moved to the
+merge, nobody would sign the narrowing before the code relied on it.
+
+### D-178 — Build it carries a cycle to its pull request, in a process of its own
+
+**Governs:** §3, §10.3, §14, §15
+
+**Amends D-24:** for one cycle, saying *build it* is the confirmation before the push. **Retires** D-158's new
+session before the build.
+
+**Decision.** `/sdlc:build` in a person's session checks the gate, admits the plan when it is only in a sandbox and
+an integration branch exists — `sdlc admit` and the git command it prints, local, pushing nothing — and launches
+the build in a fresh process: `batch-build <id> --pr --unattended`, the factory's path for one cycle, asking
+nothing. That process implements, records evidence, verifies, remediates (D-179) and opens the pull request; with
+no remote it stops at a verified local branch and says so. The skill hands back the report (D-181) and the link,
+or the escalation with what is open. `sdlc cycles --queued <id>` finds a named cycle admitted only locally, and
+`sdlc branch <id> build-unattended` starts from that admission while the integration branch does not hold the plan;
+the unnamed queue, the factory's, still reads only the working copy and the remote.
+
+**Why.** The build is the part that reads the code, and a session carried into it pays for the code on every
+later turn (D-122) — which D-158 answered by asking the person to open a new session. A process of its own answers
+it without asking anything, and it is the design's own principle: a builder that did not sit through the planning
+conversation works only from what was written down, as the readers do (§2.5). One path for a person's cycle and the
+factory's means one thing to get right.
+
+**Rejected.** *Asking for a new session*, as D-158 did: session management is the person's least useful job.
+*Building in the person's session.* Its cost was most of what one solution's cycles spent. *A separate unattended
+path for one cycle.* Two paths drift; the factory's is already the tested one.
+
 ### D-176 — Three rules are superseded so each forbids what its reader already applies it to
 
 **Governs:** §7.5, §7.7
@@ -8007,6 +8153,9 @@ migration over signed files is the thing D-93's rejected list already declined.
 
 **Governs:** §6, §15
 
+**Amended by D-178 and D-179.** The build goes on through remediation to the pull request in a process of its own,
+with no check-in every fourth pass, and a stop allows one different approach before it escalates.
+
 **Amends D-66:** the stop rules are unchanged; the loop is driven by `remediate` rather than by a person typing
 each pass, and it checks in every fourth pass.
 
@@ -8043,6 +8192,9 @@ same argument D-66 lost. *Verifying in the remediating session* — the self-gra
 ### D-158 — The cycle a person walks is seven steps, and every hand-back offers the next in words
 
 **Governs:** §3, §14, §15
+
+**Superseded in part by D-182 and D-178.** Five steps, and no hand-back names a new session: the build runs in a
+process of its own.
 
 **Amends D-122:** the new session is named once, before the build. **Amends D-142:** `batch-plan` is `to-plan`,
 takes one cycle or every one, and picks a cycle up wherever its planning stopped.
@@ -8144,6 +8296,10 @@ nothing changes, so no solution is refused on the upgrade that would have passed
 
 
 **Governs:** §5.2, §6.3, §6.4, §10.3
+
+**Revisited by D-181.** Deviations are accepted by merging the pull request they lead, not answered in the ledger
+first; a change the person asks for is a `Changed:` line on the entry. **And by D-179:** a criterion deviation is
+no longer the build's to make. The ledger's `deviations` value stays for a reopen's taking-in.
 
 **Amended by D-176.** The undeclared deviation it blocks is a finding under `CON_25`, which forbids it in any file,
 and an accepted `decision` deviation is a declared departure under `CON_27`.
@@ -10278,6 +10434,8 @@ review in a fresh process saw only what was proposed, never what was missed.
 ### D-111 — Convergence may ride on the cycle's branch after the passing verify, and the chain holds the order
 
 **Governs:** §8, §15.2
+
+**Amended by D-182.** Mining is no longer asked before the push; it is suggested after the merge.
 
 **Renamed by D-148.** *Convergence* here is now **mining** — `/sdlc:mine` and `sdlc draft mining`; *converge*
 means only a document's rounds settling. The decision stands under the new name.

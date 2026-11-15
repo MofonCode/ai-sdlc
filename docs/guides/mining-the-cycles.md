@@ -10,9 +10,10 @@ approval, because you decide what binds, and what you place binds the **next** c
 
 ## When to run it
 
-**Once a cycle's verify has passed, and never before.** Either on the cycle's branch, before its pull request —
-mining then rides in as a commit of its own and merges with the code — or on the integration branch after the
-merge. `/sdlc:pr` asks once which you want. A rule placed while a cycle is still being argued re-judges
+**Once a cycle's verify has passed, and never before** — and **usually after it merges**, on the integration
+branch. The pull request is where you may still ask for a change, so nothing asks about mining there; the build's
+report suggests `/sdlc:mine` once the merge lands (D-182). Mining on the cycle's branch before its pull request
+still works when you ask for it: it rides in as a commit of its own and merges with the code. A rule placed while a cycle is still being argued re-judges
 documents that were already settled, which in one real cycle cost about twenty blockers.
 
 You do not have to mine after every cycle. A sitting reads every finished cycle not mined yet, so mining after

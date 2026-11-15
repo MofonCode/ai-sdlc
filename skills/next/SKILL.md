@@ -77,9 +77,9 @@ sdlc backlog
 
 verbatim, so the person sees the waves still to come.
 
-**Then stop, at the approvals.** Approving is the person's, one cycle at a time; then `/sdlc:pr --plan` in the
-sandbox admits what they approved, and the factory, or `/sdlc:batch-build`, builds it. Once those merge, this
-skill takes the wave after. Say so in one line.
+**Then stop, at the approvals.** Approving is the person's, one cycle at a time; then *build it* carries each to
+its pull request, taking its plan out of this sandbox itself (D-178) — or `/sdlc:pr --plan` here hands what they
+approved to the factory. Once those merge, this skill takes the wave after. Say so in one line.
 
 ## What you may not do
 

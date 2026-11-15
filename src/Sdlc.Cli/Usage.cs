@@ -262,10 +262,16 @@ internal static class Usage
                                      command and any successor that is ready or stuck.
             findings <id>            What the interrogations said, per artifact, each finding at the
                                      disposition that stands.
-            deviations <id>          Where the build bent the approved documents: each deviation
-                                     in deviations.md, whether a person accepted, declined or has
-                                     yet to answer it, and anything wrong with it. Exits 1 while a
-                                     deviation misquotes the approved text or takes a claimed file.
+            deviations <id>          Where the build bent the approved documents, and the choices
+                                     it made that they left open: each entry in deviations.md,
+                                     whether it is in force or was changed at the person's request,
+                                     and anything wrong with it. Exits 1 while a deviation misquotes
+                                     the approved text, takes a claimed file or narrows a criterion.
+            report <id>              The report a build ends on and the pull request leads with:
+                                     deviations, choices, what was changed at the person's request,
+                                     and the verification's concerns, as markdown. Merging the pull
+                                     request accepts them (D-181). Exits 1 when a deviation is
+                                     unsound.
             round <id> <artifact>    Append the next round to the artifact's findings ledger from
                                      --from <file>: the readers' findings merged in, stamped with
                                      the time and the hashes of what was judged, and chained to the
@@ -533,12 +539,9 @@ internal static class Usage
         A refusal is drafted on the same terms as an approval, and leaves the reason line empty for
         the person to write. The gate rejects a refusal that says nothing about why.
 
-        On an approved cycle whose build recorded deviations, the same command drafts the answer to
-        each one instead: accepted: false and an empty note per deviation, beside the approval that
-        stands. Set accepted to true to accept one, or leave it false and write why to decline it.
-        False with no note is not reviewed. A reopen is refused until every deviation is answered.
-        --accept <ids> drafts those accepted, and --decline <ids> --note <why> drafts those declined
-        with that note; any not named stays unanswered. The rename is still the person's.
+        Deviations are not answered here: the pull request leads with them and merging it accepts
+        them (D-181). A reopen takes in every deviation the build recorded, so once the amended plan
+        is approved they are history.
 
         The draft is a complete file named for its decision -- approval.approved.draft.md and so on
         -- written beside the ledger and never onto it. Renaming it is what records the decision,

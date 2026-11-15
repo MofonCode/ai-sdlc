@@ -55,7 +55,12 @@ cites.
 
 **Gate** — whether the build may run, and why not.
 
-**Next** — the literal command.
+**Next** — the literal command, named as the step a person takes: *take it to plan*, *build it*, *review the
+pull request* (D-182).
+
+**After a build, the report is a separate command**: `sdlc report <id>` prints every deviation, every choice the
+build made that nothing approved settled, and every concern its verification raised without blocking (D-181).
+Show it verbatim beside the panel when somebody asks what the build did.
 
 **Loop** — present only when a rule has been answered and raised again (D-65, D-110): which rule, what it is
 caught against, and what to do — a rule that *has come back* means look for an exit rather than editing the

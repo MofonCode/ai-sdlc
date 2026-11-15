@@ -392,11 +392,13 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    [DataRow(null, null, false, DisplayName = "unanswered")]
-    [DataRow(true, null, true, DisplayName = "accepted")]
-    [DataRow(false, "Fix the fixture instead.", true, DisplayName = "declined")]
-    public async Task Every_deviation_is_answered_before_the_pull_request(bool? accepted, string? note, bool holds)
+    [DataRow(null, null, DisplayName = "recorded")]
+    [DataRow(true, null, DisplayName = "accepted before D-181")]
+    [DataRow(false, "Fix the fixture instead.", DisplayName = "declined before D-181")]
+    public async Task Nothing_waits_for_a_deviation_to_be_answered_before_the_pull_request(bool? accepted, string? note)
     {
+        // D-181: the pull request leads with the deviations and merging it accepts them, so the check asks only
+        // that each is sound. An answer from before D-181 is still read, and changes nothing here.
         using CycleWorkspace workspace = Sound();
         string sha = Deviate(workspace);
 
@@ -407,38 +409,36 @@ public sealed class VerifyChainTests
 
         VerifyChain.Response verdict = await Check(workspace);
 
-        VerifyChain.ChainCheck answered = verdict.Checks.Single(check => check.Name == "every deviation is answered");
-        Assert.AreEqual(holds, answered.Passed, answered.Detail);
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name == "every deviation is answered"), Describe(verdict));
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name == "the verdict follows the deviations declined"), Describe(verdict));
         Assert.IsTrue(verdict.Checks.Single(check => check.Name == "the deviations are sound").Passed, Describe(verdict));
-
-        if (!holds)
-        {
-            StringAssert.Contains(answered.Detail, "DEV_01 has no answer. 'sdlc draft approval");
-        }
     }
 
     [TestMethod]
-    [DataRow("2026-10-01T10:00:00Z", false)]
-    [DataRow("2026-10-03T10:00:00Z", true)]
-    public async Task A_declined_deviation_is_verified_again_before_the_pull_request(string verifiedAt, bool holds)
+    public async Task A_criterion_the_build_narrowed_on_its_own_is_refused()
     {
-        // A decline means the build redoes that part, so a verdict from before it judged code the person
-        // turned down.
+        // D-179: what done means is the spec's, and a deviation never changes it.
         using CycleWorkspace workspace = Sound();
-        AnswerDeviation(workspace, Deviate(workspace), accepted: false, "Fix the fixture instead.");
-        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Verify, 1), $$"""
-            { "framework_version": "1.0.0", "cycle": "{{workspace.Cycle.Id}}", "artifact": "verify.md",
-              "upstream_sha256": "{{workspace.HashOf(ArtifactKind.Plan)}}", "interrogated_at": "{{verifiedAt}}",
-              "round": 1, "findings": [] }
+        CycleWorkspace.WriteRaw(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle), $"""
+            ## DEV_01 — Criterion 1 is narrowed to the happy path
+
+            Kind: criterion
+            Departs from: spec.md, Acceptance criteria
+            > cycle: {workspace.Cycle.Id}
+            Blocker: the failure path cannot be reached in the test host
+            Deviation: only the happy path is proved.
+            Why: the host has no way to fail.
+            Successor: failure-path — the rest of criterion 1
+
             """);
 
         VerifyChain.Response verdict = await Check(workspace);
 
-        VerifyChain.ChainCheck follows = verdict.Checks.Single(check => check.Name == "the verdict follows the deviations declined");
-        Assert.AreEqual(holds, follows.Passed, follows.Detail);
+        VerifyChain.ChainCheck sound = verdict.Checks.Single(check => check.Name == "the deviations are sound");
+        Assert.IsFalse(sound.Passed);
+        StringAssert.Contains(sound.Detail, "never changes what done means");
     }
 
-    // Records one plan deviation quoting the plan's own frontmatter, and returns its hash.
     private static string Deviate(CycleWorkspace workspace)
     {
         CycleWorkspace.WriteRaw(Sdlc.Core.Deviations.DeviationsFile.PathOf(workspace.Cycle), $"""

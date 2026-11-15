@@ -248,25 +248,26 @@ It is handed two more rules, as every reader of a change is — `CON_09`, which 
 
 ### Answering it
 
-Say *fix it*, or `/sdlc:remediate`. Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
+**Inside the build, nobody has to say anything**: *build it* runs remediation in the build's own process
+(D-178). Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
 latest verify round. They are not the same list. A Not met that the verdict's readers agree with raises
 no finding, so a pass that worked only the findings could leave the criterion that blocked the cycle
 untouched. It edits source and tests to fix the **cause**, never a planning document. After each pass it builds,
 tests, records the evidence again and commits it, then **runs verify again** — whose adjudicator is a fresh
 process that never saw the fix, so the session that wrote it never grades it (D-159).
 
-**It runs while each pass reduces what is open, and stops when it is not getting anywhere** (D-66):
+**It runs while each pass reduces what is open, and deviates once before it escalates** (D-66, D-179):
 
-| It stops when | Because |
-|---|---|
-| a pass undoes what an earlier one answered | a loop undoing its own work is not going to finish |
-| two passes in a row reduce nothing | nothing is moving |
-| a third deviation bends the same approved text, and the verification still blocks | the loop is going round, not converging |
+| When | It | Because |
+|---|---|---|
+| a pass undoes what an earlier one answered, or two in a row reduce nothing | takes one different approach, recorded as a deviation, and goes round again | the approach the plan described may be what is failing |
+| the same happens again after that deviation | escalates | a loop that a different approach did not unstick is not going to finish |
+| a third deviation bends the same approved text, and the verification still blocks | escalates | the loop is going round, not converging |
 
-There is no pass ceiling. Nothing stops pass nine if pass nine is still making progress. **Every fourth pass
-it checks in** — what closed, what is open — and asks whether to keep going, in a new session. That is not a
-ceiling: it is you back in front of the one loop the progress rule cannot catch, which closes one finding
-while opening another.
+**The deviation has limits that do not bend**: it never changes what *done* means — the intent, the spec, a
+criterion, or a test weakened so it passes — and never widens the cycle. There is no pass ceiling, and no
+check-in on a count: the build runs in a process of its own with nobody to ask, and the progress rule bounds
+it.
 
 ### When the approved text cannot be followed
 
@@ -278,7 +279,7 @@ departs from, word for word, names the blocker with its evidence, and says what 
 criterion may only be narrowed, and the part dropped becomes a successor.
 
 **A deviation doesn't excuse a blocker. It replaces the approved text the blocker was measured against,
-and you sign the replacement.** Every verify reader reads them and judges against the documents as
+and you accept the replacement by merging.** Every verify reader reads them and judges against the documents as
 deviated. A change that departs from the plan with no deviation describing it is blocked as an undeclared
 one, so the build can bend the plan but not silently.
 
@@ -286,30 +287,18 @@ one, so the build can bend the plan but not silently.
 sdlc deviations <id>
 ```
 
-lists each one with where it stands. **Before the pull request, answer every one**, with the same drafter
-that approves:
+lists each one with where it stands. **Where the approved text was silent**, the build records a **choice**
+in the same file — a library, a pattern, a default a reviewer would want to know (D-180).
 
-```pwsh
-sdlc draft approval <id>
-```
+**Nothing is answered before the pull request** (D-181). Every deviation and choice, with every concern the
+verification raised without blocking, is in the report the build hands back — `sdlc report <id>` — and at the
+head of the pull request. **Merging accepts them.** To have one otherwise, say what instead, in words — *change
+deviation 2: use X instead*, *revert that choice* — or `/sdlc:remediate`: it records your words on the entry,
+changes the code, verifies again and pushes to the same pull request. It asks until your instruction says what
+to do instead.
 
-On an approved cycle with unanswered deviations it drafts a `deviations` entry, each one listed with
-`accepted: false` and `note: ""`:
-
-| You leave | Means |
-|---|---|
-| `accepted: true` | accepted: it is part of what the cycle promises |
-| `accepted: false`, a note written | declined: remediate redoes that part, with your note as its instruction |
-| `accepted: false`, the note empty | not reviewed. The pull request check refuses until you answer it |
-
-Accept some and decline others in one entry; each is held to the hash of its text, so one edited after you
-answered it is unanswered again. A declined one has to be verified again before the pull request. **Under
-`approval: none`** every deviation is accepted, and the pull request, whose body leads with them, is your
-review.
-
-**When the deviations show the plan is wrong in substance, reopen** — but answer every deviation first;
-the drafter refuses a reopen until you have. The accepted ones are written into the amended plan, and the
-declined ones, with your notes, are the reopen's reason.
+**When the deviations show the plan is wrong in substance, reopen.** Say why in the reopen's reason; the
+deviations are what the amended plan is written from.
 
 ```pwsh
 sdlc draft approval <id> --reopen
@@ -320,8 +309,8 @@ deviation. The stage stops and hands back, and the choice is a successor or a re
 
 ### Escalated
 
-**A remediation loop that stops making progress sets the verify outcome to `escalated`.** It is computed,
-never declared, and `pr` refuses it — a batch run with `--pr` opens a draft pull request for it instead,
+**A remediation loop that stops making progress, even after its one deviation, sets the verify outcome to
+`escalated`.** It is computed, never declared, and `pr` refuses it — the build opens a draft pull request for it instead,
 which the check will not let merge (D-85). Its body leads with the criteria marked Not met and each open
 blocker's rule, gist, place and fix. An escalated cycle is waiting for a person: read what the passes
 actually did, then decide whether the plan needs reopening, the work needs a different approach, or the

@@ -24,8 +24,10 @@ cycles this sitting reads, and which it leaves.
 **Mining is reading the record across cycles; converging is a document's rounds settling.** The two
 were once both called convergence, and this skill was `/sdlc:propose convergence` (D-148).
 
-**Once a cycle's verify passes, this is the one to run** — on the cycle's branch before its pull request,
-as a commit of its own that merges with the code, or on the integration branch after the merge (D-111).
+**Once a cycle's verify passes, this is the one to run** — usually on the integration branch after the merge,
+which the build's report suggests (D-182); or, when a person asks for it, on the cycle's branch before its pull
+request merges, as a commit of its own that merges with the code (D-111). Nothing asks about it at the pull
+request, which is where a person may still ask for a change.
 It brings the rules, the decisions and the declared stack up to what the cycles have settled, in one
 sitting, and it is not a cycle and not part of one: the person decides what binds, so nothing about it
 needs a plan or an approval (D-104). What mining places binds the **next** cycle, never one in flight —

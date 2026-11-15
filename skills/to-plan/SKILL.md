@@ -102,17 +102,17 @@ so a person is handed the file rather than told to make it. Then one paragraph, 
 > The plans are clean. I've drafted each approval — `<path>` for `<id>`, one line each — read each, and
 > place the ones you agree with by the rename it printed. If anything should be done differently, tell me
 > and I'll carry it through the documents first. I can't place an approval myself — every agent write to
-> one is denied — and that is what makes it mean something. Once they are placed, say *admit them* (or
-> `/sdlc:pr --plan`) and I'll take every approved plan out of this sandbox to the integration branch by one
-> pull request; with no remote, `sdlc admit` here does it. The build runs best in a new session after that:
-> say *build it* there (or `/sdlc:build`).
+> one is denied — and that is what makes it mean something. Once they are placed, say *build it* (or
+> `/sdlc:build`), once per cycle: each implements its plan, verifies it, fixes what it can and
+> opens the pull request, in a process of its own, then reports every deviation, every choice it made that the plan left open,
+> and every concern. Merging a pull request is where you accept it.
 
-When the solution declares `approval: none` (D-137), draft nothing: say the plans are clean, that they leave
-the sandbox the same way — *admit them*, or `/sdlc:pr --plan` — that the plan's pull request is the first time
-a person reads them, and that the build runs in a new session.
+When the solution declares `approval: none` (D-137), draft nothing: say the plans are clean, and that *build it*
+carries each to a pull request whose report and merge are where a person accepts it. To hand them to the factory
+instead, `/sdlc:pr --plan` admits them to the integration branch by one pull request.
 
-**Then stop.** This run stayed in one session, which grew with every cycle; the build is the step worth a fresh
-one, and the paragraph above is the one place that says so (D-158).
+**Then stop.** Name no new session and no admission (D-178, D-182): the build takes each plan out of this sandbox
+itself and runs in a process of its own.
 
 ## What you may not do
 
