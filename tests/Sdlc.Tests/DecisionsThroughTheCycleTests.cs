@@ -64,7 +64,7 @@ public sealed class DecisionsThroughTheCycleTests
     [TestMethod]
     public void A_departure_from_a_decision_since_superseded_still_stands()
     {
-        // Mining may supersede the very decision a cycle departed from, on the cycle's own branch (D-111).
+        // A harvest may supersede the very decision a cycle departed from, once the cycle has merged (D-190).
         IReadOnlyList<Decision> recorded = [Recorded(8) with { SupersededBy = DecisionId.Of(9) }, Recorded(9)];
 
         Assert.AreEqual(0, Departures.Check(ArtifactKind.Intent, "## Fixed decisions\n\n- Departs from DEC_08 (x): y.\n", recorded).Count);
@@ -176,7 +176,7 @@ public sealed class DecisionsThroughTheCycleTests
 
         StringAssert.StartsWith(finding.Id, "diff.", "Prefixed, so it cannot collide with the rules reader's ids.");
         Assert.AreEqual(Severity.Blocking, finding.Severity, "CON_27 is a rule the diff reader is handed, so it blocks (D-174).");
-        Assert.IsNull(finding.Perspective, "Not a perspective: propose constraints counts by perspective.");
+        Assert.IsNull(finding.Perspective, "Not a perspective: harvest constraints counts by perspective.");
         Assert.IsTrue(ReaderAnswers.IsAboutTheChange(finding));
     }
 
@@ -249,7 +249,7 @@ public sealed class DecisionsThroughTheCycleTests
             workspace.Cycle.ApprovalPath,
             string.Create(CultureInfo.InvariantCulture, $"---\ncycle: {workspace.Cycle.Id}\ndecisions:\n{printed.Entry}---\n"));
 
-        ProposeDecisions.Response proposed = (await gate.Send<ProposeDecisions.Query, ProposeDecisions.Response>(new ProposeDecisions.Query())).Value;
+        ProposeDecisions.Response proposed = (await gate.Send<ProposeDecisions.Query, ProposeDecisions.Response>(new ProposeDecisions.Query([workspace.Cycle.Id]))).Value;
 
         Candidate departure = proposed.Candidates.Single(candidate => candidate.Source == DecisionSource.Departure);
         StringAssert.StartsWith(departure.Passage, "Departs from DEC_08");

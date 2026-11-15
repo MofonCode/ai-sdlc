@@ -77,7 +77,7 @@ public static class Suggestions
     /// substituted source -- and both would have been lost without somewhere to read them back from.
     /// <para>
     /// A listing rather than an analysis, and deliberately so: it answers what is outstanding. What keeps
-    /// recurring across cycles is <c>propose constraints</c>, which reads the same rounds for the other
+    /// recurring across cycles is <c>harvest constraints</c>, which reads the same rounds for the other
     /// half of them -- the answered blockers included -- and reports a rule cited in three distinct
     /// cycles (D-69). Neither records which stage a problem was caused at; that half is still open.
     /// </para>

@@ -1,6 +1,6 @@
 ---
 name: draft
-description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, or the solution document. Use when a person needs to approve, refuse, stop a cycle, or declare or change what the solution is built from and which stack rules it is held to. For a solution's own constraints, the skill is propose.
+description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, or the solution document. Use when a person needs to approve, refuse, stop a cycle, or declare or change what the solution is built from and which stack rules it is held to. For a solution's own constraints and decisions, the skills are harvest-constraints and harvest-decisions.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "approval <id> | abandon <id> | solution [--standard profile|existing] | techstack [--empty]"
 allowed-tools: Bash(sdlc *), Bash(git *)
@@ -9,9 +9,9 @@ allowed-tools: Bash(sdlc *), Bash(git *)
 # Draft a file only a person writes
 
 Seven protected files, one rule: **a tool never places them, a person does.** This drafter serves four
-of them. Two more — this solution's own rules and its decision record — are served by `propose`
-rather than drafted, for the reason at the foot of this page. The seventh, `areas.md`, is drafted only
-by `sdlc draft mining` from what `/sdlc:mine` proposed (D-150).
+of them. Two more — this solution's own rules and its decision record — are harvested rather than
+drafted, for the reason at the foot of this page. The seventh, `areas.md`, is drafted only by
+`sdlc draft harvest` from what `/sdlc:harvest-areas` proposed (D-150, D-191).
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
@@ -145,11 +145,12 @@ impossible declaration.
 **Two of the seven are not drafted, and that is the asymmetry here.** Every drafter above hands back a
 finished file for a decision somebody already took. A rule is the opposite: its wording *is* the
 decision, so there was nothing to hand back and this printed a blank form — the one member of the
-family that did. A recorded decision has the same shape. Both moved to `propose`, which argues from the
-record instead: `sdlc propose constraints` from the findings, `sdlc propose decisions` from what an
-approved cycle stated. The licence that makes the difference: **a tool may propose when it brings the
-evidence, and may not shape what somebody just typed.** If somebody asks you to draft either, send
-them there.
+family that did. A recorded decision has the same shape. Both are harvested, which argues from the
+record instead: `/sdlc:harvest-constraints` from the completed cycles' findings, `/sdlc:harvest-decisions`
+from what a completed cycle settled (D-191). The licence that makes the difference: **a tool may propose
+when it brings the evidence, and may not shape what somebody just typed.** If somebody asks you to draft
+either, send them there — and for a rule they already have in mind, `sdlc constraints --new` prints the
+empty entry at the next free id.
 
 **A solution records no profile.** Which technologies are pinned and which stack rules apply are both
 rows in the declared stack, so changing either is an edit to the `techstack` draft.

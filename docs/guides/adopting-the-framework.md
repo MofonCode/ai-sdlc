@@ -139,12 +139,12 @@ spec, one change at a time, where there is a change to ask it about.
 |---|---|
 | what the solution is and who it is for | the paragraph in `solution.md`, below |
 | which component library, which packages, which project may reference what | the declared stack, and an architecture test |
-| the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts as roles for you to fill |
+| the names a visual treatment is expressed in | a theme, which `sdlc theme` prints as a skeleton of roles for you to fill |
 | whether a judgement was made and recorded | a `LOC_` constraint |
 
-**For each answer that might be a constraint, the skill runs `sdlc propose constraints` itself** and fills
-in the entry it prints. With no history to read, that is the next free `LOC_` id with its four parts
-empty, beside the three admission tests — and **all three must pass:**
+**For each answer that might be a constraint, the skill runs `sdlc constraints --new` itself** and fills
+in the entry it prints: the next free `LOC_` id with its four parts empty. There is no history to harvest
+yet, and three admission tests decide whether it is a rule — **all three must pass:**
 
 1. its `Forbids` clause names something that becomes illegal
 2. **no analyzer, schema or hook could decide it**
@@ -324,9 +324,9 @@ alike — `../mechanisms/protected-files.md` is the whole of how.
 |---|---|---|---|
 | `.sdlc/solution.md` | its keys and the paragraph | the paragraph whenever it stops being true; `standard` or `approval` when you choose | adoption drafts it first; after that `sdlc draft solution`. Then your rename |
 | `.sdlc/techstack.md` | what the solution is built from, the stack rules it is held to, the build settings it takes | a default or a rule turns out wrong for this solution | adoption drafts it first; after that `sdlc draft techstack`. Then your rename — `declaring-the-stack.md` |
-| `.sdlc/constraints.md` | this solution's own `LOC_` rules, the last word over every other tier | a rule keeps being cited across cycles, or one stops earning its place | adoption drafts it empty; `sdlc propose constraints` proposes entries; you paste and rename |
-| `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | an approved cycle settles something worth not re-deciding | `sdlc propose decisions` reads approved cycles; you paste |
-| `.sdlc/areas.md` | the parts of the code, each a name for a set of files, so a reader gets in full only the rules and decisions its change reaches. Absent until three cycles' plans name an area | mining proposes an area, a rename, a merge, or globs for files that moved | `/sdlc:mine` proposes; `sdlc draft mining` drafts; you rename |
+| `.sdlc/constraints.md` | this solution's own `LOC_` rules, the last word over every other tier | a rule keeps being cited across cycles, or one stops earning its place | adoption drafts it empty; `sdlc harvest constraints` proposes entries from the completed cycles and `sdlc constraints --new` prints an empty one; you paste and rename |
+| `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | a completed cycle settles something future cycles will meet again | `sdlc harvest decisions` reads completed cycles; you paste |
+| `.sdlc/areas.md` | the parts of the code, each a name for a set of files, so a reader gets in full only the rules and decisions its change reaches. Absent until three cycles' plans name an area | a harvest proposes an area, a rename, a merge, or globs for files that moved | `/sdlc:harvest-areas` proposes; `sdlc draft harvest` drafts; you rename |
 | `.sdlc/cycles/<id>/approval.md` | the decision on one cycle's three planning documents | at the gate, and again if a document changes | `sdlc draft approval <id>`, then your rename |
 | `.sdlc/cycles/<id>/abandoned.md` | why one cycle stopped for good | once, and it is terminal | `sdlc draft abandon <id>`, then your rename |
 
@@ -339,7 +339,7 @@ and did not commit is missing from every cycle you open next.
 
 **One solution file is deliberately not on that list.** `.sdlc/theme.json` holds the roles this
 solution's surfaces use and the values that fill them. Nobody is judged against a colour, so an ordinary
-cycle may declare it and change a value like any other file. `sdlc propose theme` prints its roles for
+cycle may declare it and change a value like any other file. `sdlc theme` prints a skeleton of roles for
 you to fill, and never a colour.
 
 **The rules themselves are not in your repository.** `sdlc constraints` renders the global set, the

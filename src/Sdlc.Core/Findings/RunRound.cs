@@ -50,7 +50,7 @@ public static class RunRound
     /// <param name="Timeout">How long any one reader may take before it is stopped.</param>
     /// <param name="Text">
     /// Whether each answer is plain text, written as <c>&lt;name&gt;.md</c>, rather than a round reader's JSON, written as
-    /// <c>&lt;name&gt;.json</c>. Mining's readers answer in prose.
+    /// <c>&lt;name&gt;.json</c>. A harvest's readers answer in prose.
     /// </param>
     public sealed record Command(string Directory, TimeSpan Warm, TimeSpan Timeout, bool Text = false) : IRequest<Response>;
 

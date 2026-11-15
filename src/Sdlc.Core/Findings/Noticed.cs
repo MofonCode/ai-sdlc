@@ -8,7 +8,7 @@ namespace Sdlc.Core.Findings;
 /// <param name="Statement">What it said, as one line of prose.</param>
 /// <param name="Perspective">
 /// The perspective that asked for it, when the line was tagged <c>Noticed: [security] ...</c>, or null.
-/// Counted per perspective by <c>propose constraints</c>, the same as a finding's.
+/// Counted per perspective by <c>harvest constraints</c>, the same as a finding's.
 /// </param>
 public sealed record Noticed(CycleId Cycle, string Statement, string? Perspective = null)
 {
@@ -21,7 +21,7 @@ public sealed record Noticed(CycleId Cycle, string Statement, string? Perspectiv
     /// <remarks>
     /// The tag is the first thing after the prefix, in square brackets. Anything else in brackets is the
     /// statement's own, so a line that opens with a bracketed word nobody meant as a tag reads with the
-    /// word as its perspective -- which <c>propose constraints</c> then shows under a name nobody
+    /// word as its perspective -- which <c>harvest constraints</c> then shows under a name nobody
     /// recognises, rather than silently counting it somewhere.
     /// </remarks>
     /// <param name="cycle">The cycle whose build wrote it.</param>

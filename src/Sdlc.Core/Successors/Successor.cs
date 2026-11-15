@@ -66,7 +66,7 @@ public sealed record SuccessorReference(CycleId? Cycle, string? Slug)
 /// <param name="Why">Why that matters.</param>
 /// <param name="Framework">
 /// What in the framework fell short, when the work exists because of a gap there rather than in the solution
-/// (D-173). Mining lists these for a person to take to the framework.
+/// (D-173). A harvest lists these for a person to take to the framework.
 /// </param>
 public sealed record Successor(
     string Slug,

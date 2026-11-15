@@ -9,7 +9,7 @@ intent (`intent`), take it to plan (`to-plan`, with `steer` to have it otherwise
 (`build`, which verifies, remediates and opens the pull request), and review the pull request — merging it, or
 asking for a change (`remediate`). The rest are run by those, or are for after a cycle.
 
-**Two kinds** (D-186): a **playbook** — `to-plan`, `next`, `build`, `remediate` —
+**Two kinds** (D-186): a **playbook** — `to-plan`, `next`, `build`, `remediate`, `harvest` —
 composes the skills it runs and does no stage work; every other skill does one job and starts none, whoever starts it. The skills index has
 the table.
 
@@ -45,8 +45,15 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`status`](../../skills/README.md#status) | `[<cycle id>] [intent\|spec\|plan]` | where a cycle stands, and the next command | anyone |
 | [`constraints`](../../skills/README.md#constraints) | `[intent\|spec\|plan\|diff\|verify]` | the rules in force, all tiers resolved | every stage skill, first |
 | [`suggestions`](../../skills/README.md#suggestions) | `[cycle id] [--all]` | what was noticed and not acted on, each concern once; with `--all`, what became of each | a person |
-| [`propose`](../../skills/README.md#propose) | `constraints \| decisions \| theme` | proposes entries for a person to adopt, with the evidence behind each | a person |
-| [`mine`](../../skills/README.md#mine) | `` | reads every finished cycle at once, proposes the rules, decisions, stack, areas and successors together, and records the sitting so mined cycles become husks — once a verify passes, on the cycle's branch or after the merge | a person |
+| [`theme`](../../skills/README.md#theme) | `` | the roles the solution's surfaces use and their values, or a skeleton of roles to fill; never a value | a person |
+| **Harvesting** | | | |
+| [`harvest`](../../skills/README.md#harvest) | `[--cycles <id>,<id>]` | a playbook: once a pull request has merged, takes back what the completed cycles settled — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`, `harvest-stack`, `harvest-areas`, one at a time, each answered with you before the next — then `close-cycle` | a person |
+| [`harvest-constraints`](../../skills/README.md#harvest-constraints) | `[--cycles <id>,<id>]` | proposes the rules the completed cycles' findings argued for, with the evidence behind each | `harvest`, or a person |
+| [`harvest-decisions`](../../skills/README.md#harvest-decisions) | `[--cycles <id>,<id>]` | proposes the decisions the completed cycles settled: a person's words once, a plan's only when two cycles chose the same | `harvest`, or a person |
+| [`harvest-suggestions`](../../skills/README.md#harvest-suggestions) | `[--cycles <id>,<id>]` | answers each open suggestion: taken further as a successor, declined with why, or ignored and tallied | `harvest`, or a person |
+| [`harvest-stack`](../../skills/README.md#harvest-stack) | `[--cycles <id>,<id>]` | proposes the declared stack's rows for what it never mentions | `harvest` |
+| [`harvest-areas`](../../skills/README.md#harvest-areas) | `[--cycles <id>,<id>]` | proposes the areas to add, rename, merge, remove, re-glob or tag | `harvest` |
+| [`close-cycle`](../../skills/README.md#close-cycle) | `` | once every aspect is answered, commits the closed cycles' removal on a branch of its own and opens its pull request | `harvest`, or a person |
 
 \* **A person must start these two.** Every other skill may be started by an agent as well — nothing in
 the plugin stops one — so *started by* there is who normally decides. These two are different, because

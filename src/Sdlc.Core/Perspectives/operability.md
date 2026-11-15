@@ -88,7 +88,7 @@ only read what the code writes down — a change that fails silently is one no l
   solutions raised it at every stage as a suggestion and both built the gap anyway.
 
 Anything else this method finds that no rule forbids is a suggestion; one that keeps recurring across
-cycles is what `sdlc propose constraints` turns into a rule.
+cycles is what `/sdlc:harvest-constraints` turns into a rule.
 
 ## Evidence
 

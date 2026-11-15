@@ -1,13 +1,13 @@
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Git;
-using Sdlc.Core.Proposals;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Successors;
 
 namespace Sdlc.Tests;
 
 /// <summary>
-/// A successor can say it is a gap in the framework, and mining lists it to be carried there (D-173).
+/// A successor can say it is a gap in the framework, and a harvest lists it to be carried there (D-173).
 /// </summary>
 [TestClass]
 public sealed class FrameworkGapTests
@@ -26,26 +26,30 @@ public sealed class FrameworkGapTests
     }
 
     [TestMethod]
-    public async Task Mining_lists_every_successor_marked_as_a_framework_gap_and_no_other()
+    public async Task The_suggestions_harvest_lists_every_successor_marked_as_a_framework_gap_and_no_other()
     {
         // One solution filed two framework defects as its own successors, and they sat beside its real work.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
+        workspace.WriteVerify("pass");
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.History["origin/development:.sdlc/cycles/" + workspace.Cycle.Id] = [("merged", DateTimeOffset.UnixEpoch)];
         string directory = Successor.DirectoryOf(workspace.Root);
         Directory.CreateDirectory(directory);
         await File.WriteAllTextAsync(Path.Combine(directory, "coverage-in-verify.md"), SuccessorTests.File(workspace.Cycle.Id.ToString(), "framework: " + Gap + "\n"));
         await File.WriteAllTextAsync(Path.Combine(directory, "export-totals.md"), SuccessorTests.File(workspace.Cycle.Id.ToString()));
 
-        ProposeMining.Response report;
-        using (var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(new FakeRepository())))
+        HarvestReport.Response report;
+        using (var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git)))
         {
-            Result<ProposeMining.Response> asked = await gate.Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query());
+            Result<HarvestReport.Response> asked = await gate.Send<HarvestReport.Query, HarvestReport.Response>(new HarvestReport.Query(HarvestAspect.Suggestions));
             Assert.IsTrue(asked.IsSuccess, string.Join("; ", asked.Errors.Select(error => error.Message)));
             report = asked.Value;
         }
 
-        CollectionAssert.AreEqual(new[] { "coverage-in-verify" }, report.FrameworkGaps!.Select(gap => gap.Slug).ToArray());
-        string rendered = ProposeMining.Render(report, "proposed.md");
+        CollectionAssert.AreEqual(new[] { "coverage-in-verify" }, report.FrameworkGaps.Select(gap => gap.Slug).ToArray());
+        string rendered = HarvestReport.Render(report, "proposed.md");
         StringAssert.Contains(rendered, "Gaps in the framework");
         StringAssert.Contains(rendered, "coverage-in-verify -- " + Gap);
     }

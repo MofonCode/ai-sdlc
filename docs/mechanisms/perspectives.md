@@ -130,14 +130,14 @@ recorded against the plan under the intent's `S_` id, and listed once (D-115).
 
 ## How a perspective earns rules
 
-**A perspective's suggestions are its record.** `sdlc propose constraints` counts each perspective by the
+**A perspective's suggestions are its record.** `sdlc harvest constraints` counts each perspective by the
 distinct cycles it raised something in, across the findings rounds and the builds' tagged `Noticed:`
 lines, and marks one at three. That perspective is where to read first for a rule worth adding.
 
 **The count is a pointer, not a candidate.** Three cycles of security suggestions may be three different
 things. Only the same objection across three cycles is a rule worth proposing — and when one is adopted,
 it is one of your solution's own constraints, with the perspective named in its evidence.
-`../guides/handling-blockers.md` covers suggestions and `propose constraints` in general.
+`../guides/handling-blockers.md` covers suggestions and `harvest constraints` in general.
 
 **A rule the framework adopts goes to the global set, and the perspective lists it.** Operability's
 first is `CON_20`: a spec says what is recorded when the action fails. Two trial solutions raised it at
@@ -156,5 +156,5 @@ and nothing the scan cannot see. That gap was closed in the perspective's method
 |---|---|
 | a blocking finding, and how a suggestion differs | `../guides/handling-blockers.md` |
 | the stages a perspective steers and judges, as a person walks them | `../guides/running-a-cycle.md`, §1 and §2 |
-| the interrogate, build and propose skills in depth — what each reader is handed | `../../skills/README.md` |
+| the interrogate, build and harvest skills in depth — what each reader is handed | `../../skills/README.md` |
 | the two commands as one line each | `../reference/commands.md` |

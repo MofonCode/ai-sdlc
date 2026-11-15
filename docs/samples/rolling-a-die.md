@@ -158,7 +158,7 @@ the gates cannot supply it: a numeral in a bare paragraph tag breaks no rule.
 
 **None of that answer becomes a constraint, and most of it is already placed.** The component library
 is a row in the declared stack you place in the next step, and the architecture suite already admits it
-in `Ui` and nowhere else. A brand would go in a theme, which `sdlc propose theme` drafts as roles for a
+in `Ui` and nowhere else. A brand would go in a theme, which `sdlc theme` prints as a skeleton of roles for a
 person to fill; this solution has no brand, so it has no theme, and that is a complete answer rather
 than a gap. What is left — pips rather than a number, failure said in words — is about this one piece of
 work, and the intent is where it is recorded.

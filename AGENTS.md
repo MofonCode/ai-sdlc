@@ -32,7 +32,7 @@ the cheapest way to discover that what you were about to add already lives somew
 
 | Index | Describes |
 |---|---|
-| [`skills/README.md`](skills/README.md) | the twenty-one skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-seven skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
 | [`docs/guides/README.md`](docs/guides/README.md) | the guides, one task each: what each covers, when to read it, what it leaves to another |
 | [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | the mechanisms, one page each: how it works and why, for a person using it rather than doing a task |
@@ -206,8 +206,8 @@ the command that starts a build's own process, and the `build` skill runs it (D-
 `constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
 belongs in them — `sdlc draft approval`, `draft abandon`, `draft solution`, `draft techstack` — and a
 person places it. **Two are proposed rather than drafted**, because their
-wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
-`sdlc propose decisions` from what an approved cycle stated. **The areas are mined**: `sdlc draft mining`
+wording is argued from the record rather than dictated: a harvest proposes both from the completed cycles —
+`sdlc harvest constraints` from the findings, `sdlc harvest decisions` from what they settled. **The areas are harvested**: `sdlc draft harvest`
 drafts `areas.md` from what three cycles' plans proposed.
 
 `.sdlc/theme.json` is a solution file and is **not** on that list: nobody is judged against a colour, so

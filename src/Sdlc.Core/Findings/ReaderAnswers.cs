@@ -346,7 +346,7 @@ public static class ReaderAnswers
     /// </summary>
     /// <remarks>
     /// <para>A perspective's ids are its own, so they are put under its name whatever prefix it wrote, and
-    /// <c>perspective</c> is set on each: the field is what <c>propose constraints</c> counts by (D-90).</para>
+    /// <c>perspective</c> is set on each: the field is what <c>harvest constraints</c> counts by (D-90).</para>
     /// <para><strong>A perspective's blocker citing a rule it does not list is a suggestion.</strong> Only a
     /// rule the perspective lists may block on its account, and this applies that, rather than refusing an
     /// answer whose finding is otherwise sound and paying for a rerun to hear it again.</para>
@@ -360,7 +360,7 @@ public static class ReaderAnswers
     /// <summary>One reader's findings, by the reader's name: its perspective, or its own prefix.</summary>
     /// <remarks>
     /// The diff reader's ids go under <c>diff.</c>, as a perspective's go under its name, so they cannot
-    /// collide with the rules reader's in the same round. It names no perspective: <c>propose
+    /// collide with the rules reader's in the same round. It names no perspective: <c>harvest
     /// constraints</c> counts by perspective, and the diff reader is not one.
     /// </remarks>
     /// <param name="answer">The answer.</param>

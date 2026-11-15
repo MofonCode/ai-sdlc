@@ -99,7 +99,7 @@ and diff readers', and `sdlc round prompt` names the perspectives it leaves out.
 report; it is the design, not a gap.
 
 > **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
-> method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
+> method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc harvest constraints`
 > turns into a rule; a perspective reader inventing a blocker is the waiver of D-27 run backwards.
 
 Then **one reconciling reader**, in a fresh process of its own, once every other reader has answered:
@@ -143,7 +143,7 @@ repaired finding is this session writing it. What it applies, so that you do not
   another document raised is carried under its id and recorded against this one.
 - **Every other id is new, and numbered past what the ledgers hold**: a blocker's past this document's, a
   suggestion's past the cycle's, under the reader's prefix — `maintainability.S_04`. Each perspective's
-  findings carry `perspective`, which is what `sdlc propose constraints` counts them by.
+  findings carry `perspective`, which is what `sdlc harvest constraints` counts them by.
 - **A suggestion raised again as a blocker** keeps neither id: the blocker is new, and the suggestion is
   withdrawn in the same round.
 - **A blocker citing a rule its reader was not handed is a suggestion** (D-174), with a note saying which rule

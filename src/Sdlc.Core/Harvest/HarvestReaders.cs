@@ -6,26 +6,25 @@ using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
-using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
 
-namespace Sdlc.Core.Mining;
+namespace Sdlc.Core.Harvest;
 
 /// <summary>
-/// Mining's two sets of fresh readers, written and started by the binary: one per finished cycle and document with
-/// findings, and the two that review what a person approved (D-183).
+/// A harvest's two sets of fresh readers, written and started by the binary: one per completed cycle and document
+/// with findings, and the two that review what a person approved from one aspect (D-183).
 /// </summary>
 /// <remarks>
-/// <para><strong>The mine skill started these itself</strong>, with the reader's launch line typed per reader. Moved
+/// <para><strong>The skill started these itself</strong>, with the reader's launch line typed per reader. Moved
 /// here for the reason every reader moved: a headless or careful host has to approve each such line, and the binary
 /// starts a process the same way on every host. Each reader is handed only what its prompt holds, answers in prose,
 /// and its answer is written beside its prompt, where the skill reads it.</para>
 /// <para><strong>What is in each prompt is the record and nothing else.</strong> A reader of one document's findings
 /// is handed that document's findings as <c>sdlc findings</c> prints them; the reviewers are handed the files the
-/// skill named, and no conversation.</para>
+/// aspect's sitting wrote, and no conversation.</para>
 /// </remarks>
-public static class MineReaders
+public static class HarvestReaders
 {
     /// <summary>What each reader of one document's findings is asked.</summary>
     public const string ReadQuestion =
@@ -41,20 +40,10 @@ public static class MineReaders
         + "solution toward what solution.md says it is, or away from it? Answer **in alignment**, or **deviates**, with "
         + "each place it deviates and why. Do not argue for the proposals.";
 
-    /// <summary>What the second reviewer, handed the report and the proposals, is asked.</summary>
-    public const string CompletenessQuestion =
-        "Here is everything the record raised, and what was made of it. Name each argued rule, reopen, criterion that "
-        + "failed more than one verdict, and perspective at the bar that has **no answer** in the proposal file -- "
-        + "neither a proposal nor a line under `## Not proposed` or `## For the framework` -- and each open suggestion "
-        + "that is neither a successor, a `## Declined` line nor counted on an `## Ignored` line. Name each concern the "
-        + "report marks at the bar that is ignored again, and each `## Ignored` gist that rewords one the report already "
-        + "lists. Then name each `no proposal, because` whose reason the report contradicts. Answer **complete**, or list "
-        + "the gaps. Do not propose anything yourself.";
-
     /// <summary>Registers this operation's handlers.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddMineReadersRequestHandlers(this IServiceCollection services)
+    public static IServiceCollection AddHarvestReadersRequestHandlers(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -63,17 +52,50 @@ public static class MineReaders
             .AddTransient<IRequestHandler<Review, RunRound.Response>, ReviewHandler>();
     }
 
-    /// <summary>Starts one reader per finished cycle and document with findings, as the sitting reads them.</summary>
-    /// <param name="Directory">Where the prompts and answers go: outside the repository.</param>
-    /// <param name="Cycles">The cycles the sitting reads, or null for every finished one not mined yet.</param>
-    /// <param name="Timeout">How long any one reader may take.</param>
-    public sealed record Read(string Directory, IReadOnlyList<CycleId>? Cycles, TimeSpan Timeout) : IRequest<RunRound.Response>;
+    /// <summary>
+    /// What the second reviewer, handed one aspect's report and its proposal file, is asked: whether every item the
+    /// report raised has an answer.
+    /// </summary>
+    /// <param name="aspect">The aspect reviewed.</param>
+    /// <returns>The question.</returns>
+    public static string CompletenessQuestion(HarvestAspect aspect) =>
+        "Here is everything the record raised for " + HarvestAspects.NameOf(aspect) + ", and what was made of it. Name each "
+        + Items(aspect) + " that has **no answer** in the proposal file -- neither a proposal nor a line under "
+        + "`## Not proposed` or `## For the framework`. "
+        + (aspect == HarvestAspect.Suggestions
+            ? "Name each concern the report marks at the bar that is ignored again, and each `## Ignored` gist that rewords one the report already lists. "
+            : string.Empty)
+        + "Then name each `no proposal, because` whose reason the report contradicts. Answer **complete**, or list the "
+        + "gaps. Do not propose anything yourself.";
 
-    /// <summary>Starts the two readers that review what a person approved from a sitting.</summary>
+    private static string Items(HarvestAspect aspect) => aspect switch
+    {
+        HarvestAspect.Constraints => "rule cited across cycles, argued rule, group of findings that rested on no rule, perspective at the bar, rule behind deviations in more than one cycle, criterion that failed more than one verdict, and rule over its word budget",
+        HarvestAspect.Decisions => "passage stated in a completed cycle, reopen, change made at a person's request, rule argued inside a cycle, and decision over its word budget",
+        HarvestAspect.Suggestions => "open suggestion (a successor, a `## Declined` line, or counted on an `## Ignored` line answers it) and gap in the framework",
+        HarvestAspect.Stack => "row or rule the declared stack never mentions",
+        HarvestAspect.Areas => "area name proposed at the bar, defined area every plan or no plan touched, and changed file in no area",
+        _ => "item",
+    };
+
+    /// <summary>Starts one reader per completed cycle and document with findings, as an aspect's sitting reads them.</summary>
     /// <param name="Directory">Where the prompts and answers go: outside the repository.</param>
-    /// <param name="Proposals">The marked proposal file, or null for the newest one the sitting wrote.</param>
+    /// <param name="Aspect">The aspect whose sitting is read.</param>
+    /// <param name="Cycles">The cycles the sitting reads, or null for every completed one still needing the aspect.</param>
+    /// <param name="Timeout">How long any one reader may take.</param>
+    public sealed record Read(string Directory, HarvestAspect Aspect, IReadOnlyList<CycleId>? Cycles, TimeSpan Timeout) : IRequest<RunRound.Response>;
+
+    /// <summary>Starts the two readers that review what a person approved from one aspect's sitting.</summary>
+    /// <param name="Directory">Where the prompts and answers go: outside the repository.</param>
+    /// <param name="Aspect">The aspect reviewed.</param>
+    /// <param name="Proposals">The marked proposal file, or null for the newest one the aspect's sitting wrote.</param>
     /// <param name="Timeout">How long either reader may take.</param>
-    public sealed record Review(string Directory, string? Proposals, TimeSpan Timeout) : IRequest<RunRound.Response>;
+    public sealed record Review(string Directory, HarvestAspect Aspect, string? Proposals, TimeSpan Timeout) : IRequest<RunRound.Response>;
+
+    /// <summary>The name a sitting's report is kept under, in the reports directory.</summary>
+    /// <param name="aspect">The aspect.</param>
+    /// <returns>The kind, as <c>sdlc</c> keeps it.</returns>
+    public static string ReportKind(HarvestAspect aspect) => "harvest-" + HarvestAspects.NameOf(aspect);
 
     private sealed class ReadHandler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Read, RunRound.Response>
     {
@@ -81,8 +103,8 @@ public static class MineReaders
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            Result<ProposeMining.Response> sitting = await mediator
-                .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query(request.Cycles), cancellationToken)
+            Result<HarvestReport.Response> sitting = await mediator
+                .Send<HarvestReport.Query, HarvestReport.Response>(new HarvestReport.Query(request.Aspect, request.Cycles), cancellationToken)
                 .ConfigureAwait(false);
 
             if (sitting.IsFailed)
@@ -93,7 +115,7 @@ public static class MineReaders
             Directory.CreateDirectory(request.Directory);
             int written = 0;
 
-            foreach (CycleId id in sitting.Value.Sitting ?? [])
+            foreach (CycleId id in sitting.Value.Sitting)
             {
                 if (!new Cycle(id, solution.Path).Exists)
                 {
@@ -124,7 +146,7 @@ public static class MineReaders
 
             if (written == 0)
             {
-                return Result.Fail<RunRound.Response>("No finished cycle in this sitting has a document with findings, so there is nothing for a reader to group.");
+                return Result.Fail<RunRound.Response>("No completed cycle in this sitting has a document with findings, so there is nothing for a reader to group.");
             }
 
             return await mediator
@@ -139,9 +161,10 @@ public static class MineReaders
         {
             ArgumentNullException.ThrowIfNull(request);
 
+            string kind = ReportKind(request.Aspect);
             string reports = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, ReportFile.DirectoryName);
-            string? proposals = request.Proposals ?? Newest(reports, "*-mining.proposed.md");
-            string? report = Newest(reports, "*-mining.md");
+            string? proposals = request.Proposals ?? Newest(reports, "*-" + kind + ".proposed.md");
+            string? report = Newest(reports, "*-" + kind + ".md");
 
             if (proposals is null || !File.Exists(proposals))
             {
@@ -150,7 +173,7 @@ public static class MineReaders
 
             if (report is null)
             {
-                return Result.Fail<RunRound.Response>("There is no mining report to review against. 'sdlc mine' keeps one in .sdlc/reports; run it again.");
+                return Result.Fail<RunRound.Response>(string.Create(CultureInfo.InvariantCulture, $"There is no {HarvestAspects.NameOf(request.Aspect)} report to review against. 'sdlc harvest {HarvestAspects.NameOf(request.Aspect)}' keeps one in .sdlc/reports; run it again."));
             }
 
             string sdlc = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
@@ -158,9 +181,9 @@ public static class MineReaders
 
             Section(alignment, "The proposal file, as the person marked it", await File.ReadAllTextAsync(proposals, cancellationToken).ConfigureAwait(false));
 
-            foreach (string draft in Directory.Exists(sdlc) ? [.. Directory.GetFiles(sdlc, "*.draft.md").Order(StringComparer.Ordinal)] : Array.Empty<string>())
+            if (HarvestAspects.DraftOf(request.Aspect) is { } draft && File.Exists(Path.Combine(sdlc, draft)))
             {
-                Section(alignment, Path.GetFileName(draft), await File.ReadAllTextAsync(draft, cancellationToken).ConfigureAwait(false));
+                Section(alignment, draft, await File.ReadAllTextAsync(Path.Combine(sdlc, draft), cancellationToken).ConfigureAwait(false));
             }
 
             string document = Path.Combine(sdlc, "solution.md");
@@ -170,7 +193,7 @@ public static class MineReaders
                 Section(alignment, "solution.md", await File.ReadAllTextAsync(document, cancellationToken).ConfigureAwait(false));
             }
 
-            StringBuilder completeness = new(CompletenessQuestion + "\n\n");
+            StringBuilder completeness = new(CompletenessQuestion(request.Aspect) + "\n\n");
             Section(completeness, "The report", await File.ReadAllTextAsync(report, cancellationToken).ConfigureAwait(false));
             Section(completeness, "The proposal file", await File.ReadAllTextAsync(proposals, cancellationToken).ConfigureAwait(false));
 

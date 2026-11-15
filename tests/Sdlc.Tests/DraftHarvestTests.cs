@@ -1,16 +1,16 @@
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Decisions;
 using Sdlc.Core.Drafts;
-using Sdlc.Core.Proposals;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
 
 /// <summary>
-/// Mining (D-104, D-148): proposals a person marks, drafted as byte copies with only those lines applied.
+/// A harvest (D-104, D-148, D-191): proposals a person marks, drafted as byte copies with only those lines applied.
 /// </summary>
 [TestClass]
-public sealed class DraftMiningTests
+public sealed class DraftHarvestTests
 {
     private const string Rules = """
         # This solution's own constraints
@@ -37,7 +37,7 @@ public sealed class DraftMiningTests
         """;
 
     private const string Proposals = """
-        # Mining proposals
+        # Harvest proposals
 
         ## Rules
 
@@ -72,7 +72,7 @@ public sealed class DraftMiningTests
     [TestMethod]
     public void A_proposal_file_reads_every_heading_and_which_were_accepted()
     {
-        IReadOnlyList<DraftMining.Proposal> read = DraftMining.Parse(Proposals).Value;
+        IReadOnlyList<DraftHarvest.Proposal> read = DraftHarvest.Parse(Proposals).Value;
 
         Assert.AreEqual(5, read.Count);
         Assert.AreEqual(4, read.Count(proposal => proposal.Accepted));
@@ -86,7 +86,7 @@ public sealed class DraftMiningTests
         // The skill writes what goes to the framework and what it chose not to propose into the same file,
         // so the review in a fresh process can look for an item with no answer (D-112). Neither is an entry
         // in any of the three files, so a heading under either must never reach a draft.
-        IReadOnlyList<DraftMining.Proposal> read = DraftMining.Parse(
+        IReadOnlyList<DraftHarvest.Proposal> read = DraftHarvest.Parse(
             Proposals
             + "\n## For the framework\n\n### CON_08 — verify spent twelve rounds on its own wording\n> cycle 2, F_03\n"
             + "\n## Not proposed\n\n- criterion 15 — already recorded as DEC_09\n").Value;
@@ -97,7 +97,7 @@ public sealed class DraftMiningTests
     [TestMethod]
     public void There_is_no_remove()
     {
-        FluentResults.Result<IReadOnlyList<DraftMining.Proposal>> parsed = DraftMining.Parse("## Rules\n\n### [x] remove LOC_01 — gone\n");
+        FluentResults.Result<IReadOnlyList<DraftHarvest.Proposal>> parsed = DraftHarvest.Parse("## Rules\n\n### [x] remove LOC_01 — gone\n");
 
         Assert.IsTrue(parsed.IsFailed);
         StringAssert.Contains(parsed.Errors[0].Message, "There is no remove");
@@ -106,11 +106,11 @@ public sealed class DraftMiningTests
     [TestMethod]
     public void Accepted_rules_are_inserted_and_the_superseded_one_keeps_its_place()
     {
-        List<DraftMining.Proposal> accepted = [.. DraftMining.Parse(Proposals).Value
-            .Where(proposal => proposal.Accepted && proposal.Record == DraftMining.Record.Rules)];
+        List<DraftHarvest.Proposal> accepted = [.. DraftHarvest.Parse(Proposals).Value
+            .Where(proposal => proposal.Accepted && proposal.Record == DraftHarvest.Record.Rules)];
         List<string> assigned = [];
 
-        string draft = DraftMining.ApplyRules(Rules, accepted, assigned).Value;
+        string draft = DraftHarvest.ApplyRules(Rules, accepted, assigned).Value;
         IReadOnlyList<Constraint> rules = ConstraintParser.Parse(draft, "draft").Value;
 
         CollectionAssert.AreEqual(new[] { "LOC_03", "LOC_04" }, assigned);
@@ -125,9 +125,9 @@ public sealed class DraftMiningTests
     [TestMethod]
     public void A_reword_keeps_the_id_and_takes_the_next_revision()
     {
-        DraftMining.Proposal reword = new(DraftMining.Record.Rules, DraftMining.Operation.Reword, "LOC_01", "Every screen meets the row in full", "**Applies to:** a spec.\n\n**Forbids:** less.\n\n**Why:** the same.", Accepted: true);
+        DraftHarvest.Proposal reword = new(DraftHarvest.Record.Rules, DraftHarvest.Operation.Reword, "LOC_01", "Every screen meets the row in full", "**Applies to:** a spec.\n\n**Forbids:** less.\n\n**Why:** the same.", Accepted: true);
 
-        string draft = DraftMining.ApplyRules(Rules, [reword], []).Value;
+        string draft = DraftHarvest.ApplyRules(Rules, [reword], []).Value;
 
         StringAssert.Contains(draft, "## LOC_01.2 — Every screen meets the row in full");
         Assert.AreEqual(2, ConstraintParser.Parse(draft, "draft").Value.Count);
@@ -150,15 +150,15 @@ public sealed class DraftMiningTests
             **From:** 20261021_0118_04.
             """;
 
-        DraftMining.Proposal supersede = new(DraftMining.Record.Decisions, DraftMining.Operation.Supersede, "DEC_01", "One AppHost, two profiles", "**Decided:** two profiles.\n\n**Because:** tests collide.\n\n**Instead of:** one profile.\n\n**From:** 20261024_1205_42.", Accepted: true);
+        DraftHarvest.Proposal supersede = new(DraftHarvest.Record.Decisions, DraftHarvest.Operation.Supersede, "DEC_01", "One AppHost, two profiles", "**Decided:** two profiles.\n\n**Because:** tests collide.\n\n**Instead of:** one profile.\n\n**From:** 20261024_1205_42.", Accepted: true);
         List<string> assigned = [];
 
-        string draft = DraftMining.ApplyDecisions(record, [supersede], assigned).Value;
+        string draft = DraftHarvest.ApplyDecisions(record, [supersede], assigned).Value;
         IReadOnlyList<Decision> decisions = DecisionParser.Parse(draft, "draft").Value;
 
         CollectionAssert.AreEqual(new[] { "DEC_02" }, assigned);
         Assert.AreEqual("DEC_02", decisions.Single(decision => decision.Id.Number == 1).SupersededBy?.ToString());
-        Assert.IsTrue(DraftMining.ApplyDecisions(record, [supersede with { Operation = DraftMining.Operation.Reword }], []).IsFailed);
+        Assert.IsTrue(DraftHarvest.ApplyDecisions(record, [supersede with { Operation = DraftHarvest.Operation.Reword }], []).IsFailed);
     }
 
     [TestMethod]
@@ -177,10 +177,10 @@ public sealed class DraftMiningTests
             ## Rules
             """;
 
-        List<DraftMining.Proposal> accepted = [.. DraftMining.Parse(Proposals).Value
-            .Where(proposal => proposal.Accepted && proposal.Record == DraftMining.Record.Stack)];
+        List<DraftHarvest.Proposal> accepted = [.. DraftHarvest.Parse(Proposals).Value
+            .Where(proposal => proposal.Accepted && proposal.Record == DraftHarvest.Record.Stack)];
 
-        string draft = DraftMining.ApplyStack(stack, accepted).Value;
+        string draft = DraftHarvest.ApplyStack(stack, accepted).Value;
         IReadOnlyList<StackTable.Row> rows = StackTable.Rows(draft);
 
         Assert.AreEqual(3, rows.Count);
@@ -199,7 +199,7 @@ public sealed class DraftMiningTests
         await File.WriteAllTextAsync(proposals, Proposals);
 
         using var gate = Gate.For(workspace.Root);
-        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+        DraftResult drafted = (await gate.Send<DraftHarvest.Command, DraftResult>(new DraftHarvest.Command(proposals))).Value;
 
         Assert.IsTrue(drafted.MayDraft, drafted.Instructions);
         Assert.IsTrue(File.Exists(Path.Combine(workspace.Root, ".sdlc", "constraints.draft.md")));
@@ -220,7 +220,7 @@ public sealed class DraftMiningTests
         await File.WriteAllTextAsync(proposals, "## Rules\n\n### [x] add — " + title + "\n**Applies to:** a plan.\n\n**Forbids:** a secret.\n\n**Why:** it leaks.\n");
 
         using var gate = Gate.For(workspace.Root);
-        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+        DraftResult drafted = (await gate.Send<DraftHarvest.Command, DraftResult>(new DraftHarvest.Command(proposals))).Value;
 
         Assert.IsFalse(drafted.MayDraft);
         StringAssert.Contains(drafted.Instructions, "LOC_03 (title 20 of 15)");
@@ -239,7 +239,7 @@ public sealed class DraftMiningTests
         await File.WriteAllTextAsync(proposals, "## Rules\n\n### [x] add — A secret never appears in source\n**Applies to:** a plan.\n\n**Forbids:** a secret.\n\n**Why:** it leaks.\n");
 
         using var gate = Gate.For(workspace.Root);
-        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+        DraftResult drafted = (await gate.Send<DraftHarvest.Command, DraftResult>(new DraftHarvest.Command(proposals))).Value;
 
         Assert.IsTrue(drafted.MayDraft, drafted.Instructions);
     }

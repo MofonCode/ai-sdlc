@@ -43,7 +43,7 @@ than a line — `../guides/handling-blockers.md`.
 ## `data-views.md`
 
 **Data views**: every piece of data the framework keeps, one row each — the solution's records, one
-cycle's, what spans cycles, and mining's ledger — with the file it lives in, the command that shows it, and
+cycle's, what spans cycles, and the harvest ledger — with the file it lives in, the command that shows it, and
 whether a person, the binary or a stage writes it. Each row links to the document that owns that data. The
 suite holds that every command it names is one the binary has, and that every file only a person writes has
 a row.

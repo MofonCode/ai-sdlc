@@ -299,8 +299,8 @@ Writing a round's prompts is refused while an area in `.sdlc/areas.md` has globs
 the solution. Its rules and decisions would reach no reader in full, which is the one thing areas must
 never do. The files usually moved in a refactor (D-150).
 
-**Next:** `sdlc areas` shows what each area covers. `/sdlc:mine` proposes the new globs as a `files`
-line, `sdlc draft mining` writes the draft and you rename it — or correct the `Files:` line by hand, since
+**Next:** `sdlc areas` shows what each area covers. `/sdlc:harvest-areas` proposes the new globs as a `files`
+line, `sdlc draft harvest` writes the draft and you rename it — or correct the `Files:` line by hand, since
 the file is yours.
 
 ### a blocked verdict on evidence a round already judged
@@ -552,30 +552,64 @@ main.
 **Next:** open the pull request into the integration branch instead, as a cycle, and promote from there. A fix
 a release needs now is a cycle on its `release/*` branch, which then promotes (D-88).
 
-## Mining — the two ways it is refused
+## A harvest — the ways it is refused
 
-Mining is not a cycle (D-104): a sitting proposes, a person places what they accept, `sdlc mine record`
-records it, and the husks it names leave through a pull request of their own (D-152).
+A harvest is not a cycle (D-104): each aspect's sitting proposes, a person places what they accept, `sdlc harvest
+record` records the aspect answered (D-191), `sdlc harvest close` closes the cycles every aspect has answered, and
+their folders leave through a pull request of their own (D-152, D-192).
 
 ### a draft is still beside its file
 
-`sdlc mine record` is refused while `constraints.draft.md`, `decisions.draft.md`, `techstack.draft.md` or
-`areas.draft.md` is still in `.sdlc/`. A draft not renamed is a decision the person has not made yet, and
-recording the sitting over it would mark cycles mined whose answers were never placed.
+`sdlc harvest record <aspect>` is refused while that aspect's draft — `constraints.draft.md`,
+`decisions.draft.md`, `techstack.draft.md` or `areas.draft.md` — is still in `.sdlc/`, and `sdlc harvest close`
+while any of them is. A draft not renamed is a decision the person has not made yet, and recording over it would
+mark an aspect answered whose answers were never placed.
 
-**Next:** rename each draft into place, or delete the ones you decided against, then run `sdlc mine record`
-again with the same proposal file.
+**Next:** rename the draft into place, or delete it if you decided against it, then run the command again.
 
-### a mining pull request carries something that is not mining's
+### nothing left to record
 
-A pull request with no cycle that carries only the records, the mining ledger, successors and changes under
-`.sdlc/cycles/` is checked as mining. It is refused when a cycle path is not the deletion of a cycle the
-ledger records as mined, when the records it places do not parse, when an area covers no file, or when an
-entry names an area nobody defines. A cycle's folder leaves only once it is mined, and only by deletion.
+`sdlc harvest record <aspect>` is refused when no completed cycle still needs that aspect answered, or when the
+proposal file's `## Cycles` names a cycle that is closed, still in flight, not merged, or has answered the aspect
+already. An aspect is answered once per cycle.
 
-**Next:** `sdlc verify-chain <branch> --base <integration branch>` names each failing check. Take out what is
-not a husk's deletion — a cycle that is not in the ledger yet is mined at the next sitting after it merges —
-and fix the record the check names.
+**Next:** `sdlc harvest` shows which aspects each completed cycle still needs. Copy `## Cycles` from the aspect's
+report as written.
+
+### an aspect is still unanswered
+
+`sdlc harvest close` is refused while no completed cycle has had every aspect answered. It names each cycle and the
+aspects it still needs, because a cycle closed early would lose with its folder what it could still give.
+
+**Next:** run the aspect's skill — `/sdlc:harvest-<aspect>` — or `/sdlc:harvest`, which runs every one still
+listed, then close again.
+
+### not on the integration branch
+
+`sdlc harvest close` is refused anywhere but the integration branch. The cycles merged there and the drafts were
+placed there, and the `harvest/<date>` branch it commits on starts from it; from anywhere else the pull request
+would carry other work with it.
+
+**Next:** switch to the integration branch, bring it up to date, and close again.
+
+### a harvest pull request carries something that is not a harvest's
+
+A pull request with no cycle that carries only the records, the harvest ledger, successors and changes under
+`.sdlc/cycles/` is checked as a harvest. It is refused when a cycle path is not the deletion of a cycle the ledger
+records as closed, when the records it places do not parse, when an area covers no file, or when an entry names an
+area nobody defines. A cycle's folder leaves only once it is closed, and only by deletion.
+
+**Next:** `sdlc verify-chain <branch> --base <integration branch>` names each failing check. Take out what is not a
+closed cycle's deletion, and fix the record the check names.
+
+### a command that was renamed
+
+`sdlc mine` and `sdlc draft mining` are now `sdlc harvest` and `sdlc draft harvest`, and `sdlc propose` is
+retired (D-191): `propose constraints` and `propose decisions` are `sdlc harvest constraints` and `sdlc harvest
+decisions`, and `propose theme` is `sdlc theme`. Each old name is answered with the new one and does nothing.
+
+**Next:** run the name it gives. For a rule you have in mind rather than one the cycles argued, `sdlc constraints
+--new` prints an empty entry at the next free id.
 
 ## `sdlc init` — the two ways adoption is refused
 
@@ -829,17 +863,17 @@ running, so a rule with no exception has nowhere for a bypass to live.
 |---|---|
 | writing `approval.md`, or moving anything onto it | an approval is a person's act, and a recorded one means something because no tool could have recorded it. `sdlc draft approval` writes a draft beside it; renaming that draft is the decision |
 | writing `abandoned.md` | an agent stuck on a blocking finding has an obvious escape — abandon and start clean. A hand-written reason keeps the objections that killed it on the record |
-| writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
-| writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc propose decisions` reads the approved cycles and proposes an entry; pasting it is the decision |
-| writing `areas.md` | the areas decide which rules and decisions reach each reader in full, so an agent that could write them could move a rule out of its own judge's sight. `/sdlc:mine` proposes areas once three cycles' plans name one, and `sdlc draft mining` writes the draft; renaming it is the decision |
+| writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc harvest constraints` reads the completed cycles and proposes an entry, and `sdlc constraints --new` prints an empty one; placing it is the decision |
+| writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc harvest decisions` reads the completed cycles and proposes an entry; placing it is the decision |
+| writing `areas.md` | the areas decide which rules and decisions reach each reader in full, so an agent that could write them could move a rule out of its own judge's sight. `/sdlc:harvest-areas` proposes areas once three cycles' plans name one, and `sdlc draft harvest` writes the draft; renaming it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live. Adoption drafts it; after that `sdlc draft solution` does |
 | writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
 | running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 | writing a findings round | not a person's file but the binary's: `sdlc round` numbers it, stamps when it ran and what it judged, and refuses it out of the chain's order. A round the session wrote itself carried whatever it typed (D-101). Put the findings in a scratch file and hand it to `sdlc round` |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
-refusal message names the command to run instead — a drafter for four of these files, `propose` for the
-rule file and the decision record, and mining's drafter for the areas. Run it yourself, and place what it produces.
+refusal message names the command to run instead — a drafter for four of these files, a harvest for the
+rule file and the decision record, and a harvest's drafter for the areas. Run it yourself, and place what it produces.
 
 **The last one matches the verb rather than parsing the line**, so even asking the adoption command for
 its own help is refused and `sdlc help` is the way to read its options. The same scan is why a refusal
@@ -910,7 +944,7 @@ code. Run the build and the suite again over what is there now, and record it.
 Deliberately most of the time. It is silent off a cycle branch, on a cycle with no directory, on an
 abandoned cycle, before the cycle has a plan, when nothing has changed, when the host is already
 continuing because it was sent back once already, and in a **fresh reader** — a process the binary starts with
-`SDLC_READER=1` to judge a document, for a round, a verification or a mining sitting (D-183). A reader builds nothing, and
+`SDLC_READER=1` to judge a document, for a round, a verification or a harvest sitting (D-183). A reader builds nothing, and
 refusing its turn only replaced its verdict with an answer to the hook; the tool-call hook still holds it
 to the protected files. A governance hook that met a person finishing a thought
 would be switched off within a day, and then the one case it catches would go uncaught too.

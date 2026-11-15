@@ -116,7 +116,7 @@ What a perspective adds here is its questions of the **evidence** — did the ab
 refused, did the vulnerable-package scan run and what did it report (D-90). An answer that breaks a rule the
 perspective lists is a criterion not met, citing that rule. **Anything else it finds is not yours to
 record here**: the interrogation of this document that follows runs every perspective's reader against the
-same evidence, and writes what they find with the perspective named, which is where `sdlc propose
+same evidence, and writes what they find with the perspective named, which is where `sdlc harvest
 constraints` counts it. Writing it into `verify.md` as well would put it in a file nothing counts. It never
 adds a criterion the spec did not state.
 

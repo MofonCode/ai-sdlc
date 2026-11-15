@@ -131,7 +131,7 @@ turn end with its verdict (D-109).
 files, in which order, under which headings is deterministic, so `sdlc round prompt` writes every
 reader's prompt and `sdlc round collect` validates every answer into a draft round. A reader is started
 with no tools, because everything it may read is in its prompt (D-118). **The binary starts it too**: `sdlc round
-run` launches every reader, mining's readers and the build's own process are started the same way, and no skill
+run` launches every reader, a harvest's readers and the build's own process are started the same way, and no skill
 types a launch line or runs with the host's permission checks switched off (D-183).
 
 ### 2.6 Flexibility comes from making compliance cheap
@@ -243,9 +243,9 @@ is checked by writing those files again and comparing. `sdlc upgrade` prints eve
 order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
 change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
 checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
-both. **Nor does mining** (D-152): a pull request carrying only the records a person placed from a sitting, the
-mining ledger, successors, and the deletion of folders the ledger records as mined is checked by reading those
-records and finding every deleted cycle in the ledger. It is how a husk leaves, and how what mining placed
+both. **Nor does a harvest** (D-152, D-192): a pull request carrying only the records a person placed from a sitting, the
+harvest ledger, successors, and the deletion of folders the ledger records as closed is checked by reading those
+records and finding every deleted cycle in the ledger. It is how a closed cycle leaves, and how what a harvest placed
 after a merge reaches the integration branch.
 
 ### 3.2 Steering a cycle that is already underway
@@ -297,7 +297,7 @@ record on every read. `sdlc successors` lists them. `intent --from successor:<sl
 interview resumes against the code that merged, the new intent records `lead: successor:<slug>`, which is what
 resolves every other reference to the slug, and the file is deleted on the new cycle's plan branch. A
 successor whose work exists because the framework fell short may carry `framework:` and one line saying what;
-mining lists it to be carried to ai-sdlc, and nothing about it blocks (D-173).
+a harvest lists it to be carried to ai-sdlc, and nothing about it blocks (D-173).
 
 **A parked cycle is the other thing the backlog holds** (D-145): planned, its spec and plan kept, waiting on
 another cycle's code. `sdlc backlog` shows the successors and the parked together, in the waves they come ready
@@ -580,9 +580,9 @@ Seven files only a person writes:
 |---|---|
 | `approval.md` | a gate decision — three hashes, who, when, and a reason on anything but an approval |
 | `abandoned.md` | why the cycle stopped |
-| `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69. Adoption drafts the file itself with its header and no rule, D-94 |
-| `decisions.md` | a proposed `DEC_nn` — proposed from the approved record, D-70 |
-| `areas.md` | the area file copied beside itself, or the empty form for a solution's first area, with only the accepted area changes applied — drafted by `sdlc draft mining` from what three cycles' plans proposed, D-150 |
+| `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69, by a harvest of the completed cycles, D-191; `sdlc constraints --new` prints the empty entry for a rule a person has in mind. Adoption drafts the file itself with its header and no rule, D-94 |
+| `decisions.md` | a proposed `DEC_nn` — proposed by a harvest from what the completed cycles settled, D-70, D-189, D-190 |
+| `areas.md` | the area file copied beside itself, or the empty form for a solution's first area, with only the accepted area changes applied — drafted by `sdlc draft harvest` from what three cycles' plans proposed, D-150 |
 | `techstack.md` | the declared stack — the file copied beside itself, or the framework's default where none is placed yet, for a person to rename, D-67 and D-76. Adoption writes the first draft, D-94 |
 | `solution.md` | the whole document, beside itself — its keys carried through and its prose unchanged, D-62. Adoption writes the first draft, D-94 |
 
@@ -591,26 +591,26 @@ changes it, so the file a person opens explains a denied agent write before the 
 install (D-94).
 
 One verb drafts them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft solution`, `draft techstack`,
-and `draft mining <file>`, which drafts the constraints, decisions, stack and areas from what a mining sitting
-accepted (D-104, D-150). There was another drafter, `draft profile`, until no solution recorded a profile
+and `draft harvest <file>`, which drafts the constraints, decisions, stack and areas from what a harvest sitting
+accepted (D-104, D-150, D-191). There was another drafter, `draft profile`, until no solution recorded a profile
 (D-76). `draft approval` also takes `--deny` and `--changes-requested`
 (D-11). Each produces a ready-made entry; the person reads it, decides, and places it.
 
 **Two of the seven are the exception, and the verbs split on them (D-69, D-70).** A constraint's wording
 *is* the decision, so there is no finished entry to hand back and the drafter printed a blank form — the
 one member of the family that did. A recorded decision has the same shape, and is proposed from the
-approved record rather than drafted. `sdlc propose constraints` replaces the drafter: it reads the solution's whole
-history and argues from the record, and prints the empty form only when the record holds no pattern.
-What separates the two verbs is who made the decision — **`draft` is for one already taken, `propose`
+completed record rather than drafted. A harvest replaces the drafter (D-191): it reads what the completed cycles
+settled and argues from the record, one aspect at a time, and `sdlc constraints --new` prints the empty form.
+What separates the two verbs is who made the decision — **`draft` is for one already taken, `harvest`
 for one the record is pushing toward** — and the licence that makes proposing legitimate is that it
 arrives with its evidence: a tool may propose a rule when it brings the record, and may not shape a
 rule somebody just typed.
 
 **Almost everything is placed by renaming a draft** (D-52, D-62, D-67, D-94, D-104). `draft approval` writes
-the gate decision, `draft solution` and `draft techstack` their documents, `draft mining` the four record files,
+the gate decision, `draft solution` and `draft techstack` their documents, `draft harvest` the four record files,
 and adoption the first `solution.md`, `techstack.md` and `constraints.md` — each beside the file it would
 replace, for a person to rename. What is placed **by hand** is an abandonment, which `draft abandon` prints, and
-an entry a person copies from what `propose` argued. `draft approval`
+an entry a person copies from what a harvest argued. `draft approval`
 writes the complete ledger — `approval.<decision>.draft.md`, named for what it records — beside the
 ledger it would replace, and prints it with the rename. Where a decision already stands, the draft
 reproduces it above the new entry fence to fence, so the rename cannot lose history.
@@ -967,10 +967,10 @@ with a finding.
 
 **Blocking or a suggestion, as every finding is.** Only a finding citing a rule blocks — a rule the perspective
 lists as a bullet opening with its id, and one in force for the document being read (D-174, D-175); what a method
-finds beyond the rules is a suggestion, and a suggestion that keeps recurring is what `propose constraints` turns
+finds beyond the rules is a suggestion, and a suggestion that keeps recurring is what `harvest constraints` turns
 into a rule. **So a suggestion carries the perspective that raised it** — a finding's `perspective` field,
 checked against the perspectives the binary carries, and a build's `Noticed: [name]` line — and
-`propose constraints` counts each perspective by the distinct cycles it raised something in, across both
+`harvest constraints` counts each perspective by the distinct cycles it raised something in, across both
 stores. A perspective starts with no rules, and this count is how it earns them. **Two perspectives contradicting** apply neither: both become suggestions, each referring to the
 other. A rule beats a method finding; two rules that cannot both be met are a conflict (D-64).
 
@@ -1228,9 +1228,9 @@ D-150 protected three more:
 
 | File | Changed by | Protection |
 |---|---|---|
-| `constraints.md` | a person, by renaming adoption's or mining's draft, or by hand | the hook denies every agent write |
-| `decisions.md` | a person, by renaming mining's draft, or by hand | the hook denies every agent write (D-70) |
-| `areas.md` | a person, by renaming mining's draft — nothing creates it until three cycles' plans name an area (D-150) | the hook denies every agent write (D-150) |
+| `constraints.md` | a person, by renaming adoption's or a harvest's draft, or by hand | the hook denies every agent write |
+| `decisions.md` | a person, by renaming a harvest's draft, or by hand | the hook denies every agent write (D-70) |
+| `areas.md` | a person, by renaming a harvest's draft — nothing creates it until three cycles' plans name an area (D-150) | the hook denies every agent write (D-150) |
 | `techstack.md` | a person, by renaming a draft — `init` does not create it (D-76) | the hook denies every agent write (D-67) |
 | `solution.md` | a person, by renaming adoption's draft, and later a draft from `sdlc draft solution` (D-62, D-94) | the hook denies every agent write |
 | `theme.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
@@ -1273,6 +1273,14 @@ decision stops it re-deciding something.** Cycle forty cannot otherwise see that
 outbox over two-phase commit, because the reasoning sits in one plan's `Shape and departures` and nothing
 reads across cycles.
 
+**What a decision is** (D-189): a choice that had a real alternative, that future cycles will meet again, whose
+reason is not recoverable from the code, and that steers without forbidding. **Who wrote it decides what it takes
+to be proposed**: a person's own words — a fixed decision, an abandonment's or a reopen's reason, a declined
+deviation's note — once; an agent's prose, a plan's shape, only when the same choice is in two or more completed
+cycles or departs from a standing decision. A fixed decision marked unconfirmed is an assumption and never a
+candidate, and a declined suggestion is a decline, kept in its sitting, not a decision. Candidates come only from
+completed cycles — merged after a passing verify, or abandoned (D-190).
+
 Four parts, and `Instead of` is the load-bearing one: an entry whose alternatives were never real records
 something nobody chose. **A decision forbids nothing** — where a choice does, that half is a constraint
 or an architecture test, and the two are separate artifacts of one choice. Ids are monotonic and a
@@ -1287,11 +1295,11 @@ opening `Departs from DEC_nn`. A spec, a plan or a change taking what a decision
 line above it is a blocking finding — at the change, a `decision` deviation in force declares it too (D-176) —
 and one that merely seems relevant is a suggestion. The verify round's
 diff reader holds the change to it. The binary parses the lines and reports them — first and apart
-in the approval draft, in `sdlc status`, in the pull request — and `propose decisions` offers each one an
-approved cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
+in the approval draft, in `sdlc status`, in the pull request — and `harvest decisions` offers each one a
+completed cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
 supersedes the plan-only rule of D-72).
 
-**An entry's title is its headline**, at most fifteen words, and each clause at most sixty: mining's drafter
+**An entry's title is its headline**, at most fifteen words, and each clause at most sixty: a harvest's drafter
 refuses a new entry past either, and an entry already on the page is named and proposed for rewording, never
 refused (D-149). **An entry may carry an `Areas:` line** naming the parts of the code it applies to, which
 `areas.md` defines by file globs (D-150). Where there are areas, every reader is handed every headline and, in
@@ -1629,8 +1637,8 @@ and each pull request is reported individually.
 `blocked` or `escalated` (D-85). Saying *build it*, or starting the factory's run, is the one question before the
 push (D-143, D-178). A build always ends at a pull request when there is a remote, so there is no `--pr` (D-187).
 
-**Mining is never asked at the pull request** (D-182): the hand-back suggests it after the merge, on the
-integration branch. The question D-111 put before the push was a decision nobody needed at that moment.
+**A harvest is never asked at the pull request** (D-182): the hand-back suggests it after the merge, on the
+integration branch, and only a merged cycle is read (D-190). The question D-111 put before the push was a decision nobody needed at that moment.
 
 **`pr --plan`** admits an approved plan to the integration branch before it is built, asked of the gate
 rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
@@ -2220,7 +2228,7 @@ implies.
 
 When the pull request changes `constraints.md`, `decisions.md` or `techstack.md`, it also **reports**
 whether that change was committed before or after the commit that wrote the verify, and never fails on it:
-a person changes those files inside a cycle for reasons git cannot tell from mining (D-111, D-113).
+a person changes those files inside a cycle for reasons git cannot tell from a harvest (D-111, D-113).
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
 `D-15` made it a signal the evidence reports as a suggestion, because a rule judging purpose — now `CON_25` —
@@ -2349,8 +2357,14 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `resolve-conflict` | single | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in fresh evidence; `remediate` runs it and verifies — D-86, D-186 |
 | `pr` | single | pushes the cycle's branch, opens the pull request into the integration branch led by the report, links the work item; the build opens its own, so a person uses this by hand, with `--plan` to admit an approved plan for the factory, or `--draft` for a build that did not pass — D-85, D-178 |
 | `draft` | single | prints a protected file's entry for a person to place — §5.3 |
-| `propose` | single | reads the record and proposes what it is missing — a `LOC_` rule from the findings, a decision from approved cycles, or a theme's roles — with the evidence — D-69, D-70, D-71 |
-| `mine` | single | reads the finished cycles — every one, or a few at a time — and proposes the rules, decisions, stack rows, areas and successors they settled, answering every item and recording the sitting — D-104, D-148, D-166 |
+| `harvest` | playbook | takes back what the completed cycles settled, one aspect at a time — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`, `harvest-stack`, `harvest-areas`, each answered with the person before the next — then `close-cycle` — D-189, D-190, D-191 |
+| `harvest-constraints` | single | proposes the rules the completed cycles' findings argued, each with its evidence — D-69, D-191 |
+| `harvest-decisions` | single | proposes the decisions the completed cycles settled, a person's words once and a plan's only when it recurs — D-70, D-189 |
+| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor, declined, or ignored — D-153, D-191 |
+| `harvest-stack` | single | proposes the `techstack.md` rows the record asks for — D-191 |
+| `harvest-areas` | single | proposes the areas the plans named, and their renames, merges, removals and tags — D-150, D-191 |
+| `close-cycle` | single | closes the cycles every aspect has answered: `sdlc harvest close`, then the push and the pull request that removes their folders — D-192 |
+| `theme` | single | shows the theme's roles and values, or the skeleton of roles for a person to fill — D-71, D-191 |
 | `status` | single | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | single | renders the effective constraint set, all tiers |
 | `suggestions` | single | lists accumulated non-blocking findings |
@@ -2402,19 +2416,19 @@ mechanical rather than promised.
 | `constraints` | nothing | nothing | nothing; it prints |
 | `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69). With `--renumber`, the cycle's suggestions ledger: each id recorded twice takes the next free one (D-171) |
 | `resolve-conflict` | a cycle whose pull request conflicts with the integration branch or went red after another merge | a resolution needing a file the plan never declared — a change of plan, handed back; or two settings carry one key with different values | the cycle's declared files and its evidence, with the old verify removed; the fresh verify is `remediate`'s (D-86, D-186) |
-| `mine` | nothing; on a cycle's branch, a passing verify | a draft left beside its file when recording; on a cycle's branch, no passing verify — the skill stops (D-111) | nothing that binds: the report, drafts for a person to rename, and with `record` the mining ledger (D-152) |
-| `propose` | nothing | nothing; an unreadable rule file, decision record or theme is reported rather than worked around | nothing that binds; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
+| `harvest` and its five aspect skills | a completed cycle not closed, still needing the aspect — merged after a passing verify, or abandoned (D-190) | nothing; a cycle in flight or not merged is waiting, and the overview says so; recording refuses while the aspect's draft is beside its file | nothing that binds: the report, drafts for a person to rename, and with `record` the harvest ledger (D-191) |
+| `close-cycle` | every aspect answered for a cycle, every draft placed or refused, the integration branch checked out | any of those missing — `sdlc harvest close` names what (D-192) | the harvest ledger, a `harvest/<date>` commit removing the closed folders, a push and a pull request |
+| `theme` | nothing | nothing; an unreadable theme is reported | nothing; it prints |
 
 **Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row
 saying `nothing` are not the same claim, and the first is what lets a skill quietly check the wrong
 precondition — which is the whole of D-20. It is the same rule `## Open` follows when it is empty (§4.1),
 that `Rejected` follows with "nothing" as a real answer (§20), and that D-64 settled for `conflicts`.
 
-**`propose` is one row and not three.** Its subjects read different corpora — findings rounds for a
-rule, approved cycles for a decision, the theme for a theme — and none of them refuses on an empty one.
-A solution with no history, no approved cycle or no theme gets an empty report or a skeleton, which is
-D-69's statelessness rather than a precondition: nothing records what has been absorbed, so there is
-nothing for a missing corpus to invalidate.
+**The five aspect skills share one row.** Each reads its own corpus — findings for a rule, what was stated for a
+decision, the suggestions, the stack, the plans' areas — and none refuses on an empty one: a sitting with nothing to
+propose answers its items under `## Not proposed` and records the aspect answered, which is D-69's statelessness
+rather than a precondition (D-191).
 
 **A stage skill whose artifact already exists refuses and names what you probably meant** —
 `interrogate` to judge it, or `steer` to change it (D-18).
@@ -2429,7 +2443,7 @@ they print verbatim.
 |---|---|
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
 | `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10), in the directory every worktree of the repository shares (D-144) |
-| `constraints [--for <artifact>] [--cycle <id>]` | renders the effective set, all tiers. How the rules reach a session. With `--cycle`, this solution's own rules outside the areas the stage touches are rendered by their headline, from the plan on; `constraints show <id>` prints one in full — D-151 |
+| `constraints [--for <artifact>] [--cycle <id>]` | renders the effective set, all tiers. How the rules reach a session. With `--cycle`, this solution's own rules outside the areas the stage touches are rendered by their headline, from the plan on; `constraints show <id>` prints one in full; `constraints --new` the empty entry at the next free `LOC_` id — D-151, D-191 |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `deviations <id>` | where the build bent the approved documents, and the choices it made that they left open: each entry, whether it is in force or was changed at the person's request, and what is wrong with any — a quote the approved text does not hold, a file another cycle claims, a criterion narrowed (D-156, D-179, D-180). Exits 1 when anything is |
@@ -2441,14 +2455,16 @@ they print verbatim.
 | `round run <id> <artifact> --dir <directory> [--timeout <minutes>]` | starts every reader whose prompt `round prompt` wrote there and that has no answer yet — the rules reader first and alone, then the rest — each a fresh process from that directory with no tools and no MCP servers, marked as a reader, its answer written beside its prompt. The adjudicator the same way; run again for the reconciler, or for a reader that returned nothing. Refuses with no host to start a reader with — D-183 |
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
-| `draft approval\|abandon\|solution\|techstack\|mining` | prints or writes what belongs in a file only a person writes — §5.3 |
-| `mine [--cycles <id>,<id>]` | what the record says the rules, decisions and stack are missing, in one ranked report — over every finished cycle not yet mined, or with `--cycles` those alone (D-166) — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — and the open suggestions of the finished cycles not yet mined, with the concerns earlier sittings ignored, ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113, D-148, D-153 |
-| `draft mining <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
-| `mine record <file>` | once the drafts are placed, records the sitting in `.sdlc/mined.json`: each cycle the sitting read, finished on the integration branch, becomes a husk, with its merge commit, its files, the rules it cited and the areas it proposed, the suggestions ignored are tallied by concern, and the deletion of the husks' folders is printed for a person to run. Deletes nothing; refuses while a draft is still beside its file — D-152, D-153 |
-| `mine read --dir <directory> [--cycles <id>,<id>]` | writes one prompt per finished cycle and document with findings in the sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
-| `mine review --dir <directory> [--proposals <file>]` | writes and starts the two readers that review a sitting: one handed the marked proposal file, the drafts and `solution.md`, one handed the report and the proposal file — D-183 |
-| `mine --history` | the mining ledger: every mined cycle, every sitting with what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in — D-152, D-153 |
-| `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
+| `draft approval\|abandon\|solution\|techstack\|harvest` | prints or writes what belongs in a file only a person writes — §5.3 |
+| `harvest` | the completed cycles not closed, the aspects each still needs, and the next step; a cycle passed and not merged is listed as waiting — D-190, D-191 |
+| `harvest <aspect> [--cycles <id>,<id>]` | one aspect — constraints, decisions, suggestions, stack or areas — for the completed cycles that have not answered it, ending with the proposal file a person marks; the constraints aspect carries the rules cited and argued, findings that rested on no rule, each cycle's rounds, reopens and every verdict; the decisions aspect what was stated, reopens and declined deviations; the suggestions aspect the open suggestions and the concerns ignored before. With `--cycles` those alone, the rule counts the whole completed record's — D-104, D-112, D-153, D-166, D-189, D-190, D-191 |
+| `draft harvest <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
+| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied and the suggestions declined kept. Closes nothing; refuses while the draft is still beside its file — D-152, D-153, D-191 |
+| `harvest close` | closes every completed cycle whose five aspects are answered: records what later harvests read, and on `harvest/<date>` commits the removal of their folders with the ledger and the records placed. Pushes nothing; refuses while a draft is beside its file, while nothing can close, or off the integration branch — D-192 |
+| `harvest read --dir <directory> [--aspect <aspect>] [--cycles <id>,<id>]` | writes one prompt per completed cycle and document with findings in the aspect's sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
+| `harvest review <aspect> --dir <directory> [--proposals <file>]` | writes and starts the two readers that review an aspect's sitting: one handed the marked proposal file, the aspect's draft and the solution document, one handed the aspect's report and the proposal file — D-183 |
+| `harvest --history` | the harvest ledger: every closed cycle, every sitting with its aspect and what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in — D-152, D-153 |
+| `mine`, `propose` | retired, and answered with what replaced them: `harvest`, and for `propose constraints` also `constraints --new`, for `propose theme` `theme` — D-191 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5. Retires a blocked verdict (D-161), and a passed one with `--retire-pass` when a person asked for a change (D-185) |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
@@ -2476,11 +2492,9 @@ they print verbatim.
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |
 | `decisions [--brief\|--all] [--for <stage> --cycle <id>] [--area <name>]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again. With `--cycle`, an entry outside the areas the stage touches is rendered by its headline; `decisions show <id>` prints one in full — D-70, D-149, D-151 |
 | `areas` | each area `areas.md` defines: the files it covers today, the entries carrying it, and an entry naming an area nobody defined. Exits 1 when an area covers nothing, which refuses a round until fixed — D-150 |
-| `theme` | the roles this solution's surfaces use and the values that fill them — D-71 |
+| `theme` | the roles this solution's surfaces use and the values that fill them, or the skeleton of roles when there is no theme — D-71, D-191 |
 | `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
-| `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
-| `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
 | `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise; on `slices/<slug>/plan`, `true` when it carries only planning and successors. Always exits 0 (D-87, D-125) |
@@ -2539,8 +2553,8 @@ rides into it.
   decisions.md              its own DEC_nn: the choices it has settled, placed by a person (D-70)
   areas.md                  names for sets of its files, carried by rules and decisions, so a
                             reader is handed in full only what its change reaches (D-150)
-  mined.json                the mining ledger: every sitting, every husk, the concerns ignored
-                            (D-152, D-153)
+  harvested.json            the harvest ledger: which aspects each completed cycle has answered,
+                            every sitting, every closed cycle, the concerns ignored (D-152, D-192)
   coverage.json             the codebase's coverage baseline, held under coverage_floor (D-157)
   theme.json              the roles its surfaces use and the values that fill them (D-71)
   README.md                 terminology, flow and commands
@@ -2548,7 +2562,7 @@ rides into it.
                             <slug>.md: succeeds:, sliced_from:, an optional mirror:, then the
                             outcome and its why. Not cycles. Each reaches the integration branch with
                             its slicing's plans and is deleted when a cycle starts from it (D-125)
-  reports/                  what suggestions, propose and `draft techstack` printed last, kept
+  reports/                  what suggestions, a harvest and `draft techstack` printed last, kept
                             because a person works through one of these rather than reading it
                             once. Ignored by a .gitignore the directory carries itself, and read
                             back by nothing -- which is the whole difference between a report and a
@@ -2648,7 +2662,7 @@ design.
   readers raising one more imagined case each round. The closed definition of done — proof rules that block
   what a test never reaches, suggestions that may only sharpen an outcome, criteria that list their cases —
   came from it (D-127..D-132), and so did measuring what rounds cost (D-121, D-122).
-- **Reading the record across cycles finds what no single cycle shows.** Mining one solution's finished
+- **Reading the record across cycles finds what no single cycle shows.** Mining — now a harvest — one solution's finished
   cycles found gaps in the plumbing, the hand work and the design, closed as D-161..D-173.
 - **Each first real run found something the suite could not.** The factory's first unattended run built a
   cycle and opened its pull request, and found that a verify run unattended went uninterrogated without a
@@ -2715,7 +2729,7 @@ block, then remediate, then exhaust the budget.
 
 ## 19. Open questions
 
-**A candidate here never carries an id.** D-69 settled this for the rules `propose constraints`
+**A candidate here never carries an id.** D-69 settled this for the rules `harvest constraints`
 reports and the reasoning is the same wherever a rule is waiting: *"§7.4 makes a gap the record of a
 constraint that was **removed**. A proposal nobody took would be indistinguishable from a rule somebody
 retired."* An id on a candidate is worse than a gap, because it can also be issued to something else
@@ -2761,8 +2775,8 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    untouched and stays untouched while nothing leaves the solution — a report is local and read by
    nothing, so no corpus exists to have a boundary. **A decision cannot be mined backward**: a colour, a layout
    convention or a code-style choice never collides with a constraint, so it produces no finding. It is
-   captured forward instead, from what an approved cycle fixed and departed from (D-70), and `/sdlc:mine`
-   reads every finished cycle for rules, decisions and stack rows in one sitting (D-104, D-148). What
+   captured forward instead, from what a completed cycle fixed and departed from (D-70, D-190), and `/sdlc:harvest`
+   reads every completed cycle for rules, decisions, suggestions, stack rows and areas, one aspect at a time (D-191). What
    remains open is `caused-by`.
 4. **The coverage delta against the target branch.** §13 described this as taken and nothing reported
    it. It is cheap only in the sense that it breaks no rule: a delta needs the target branch's own
@@ -2787,7 +2801,7 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
 7. ~~**A frozen citation heading can drift from the library, and nothing checks.**~~ Closed by D-177: `sdlc
    round collect` copies the rule's own line into every new finding, and `sdlc round` refuses a draft whose new
    finding quotes it otherwise. A line frozen in a recorded round stays as it was judged (D-63).
-8. **Where an adopted codebase's first rules come from.** `propose constraints` mines cycle history
+8. **Where an adopted codebase's first rules come from.** `harvest constraints` reads completed cycles
    (D-69), and a repository adopted with existing code has none — so on the day it most wants rules it
    gets the empty form. Three paths, none chosen. *The interview that already exists*: §9 has `init` ask
    what matters and propose a `LOC_` set from the answers, which is the only honest source on day one,
@@ -7529,6 +7543,124 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-192 — A cycle closes once every aspect is answered, and its folder leaves through a pull request
+
+**Governs:** §3.1, §5.3, §15, §15.2, §16
+
+**Supersedes in part D-152:** a husk is no longer made by recording a sitting, and its deletion is no longer printed
+for a person to run. **Keeps** what D-152 keeps for later reading: the merge commit, the files, the rules cited, the
+areas proposed.
+
+**Decision.** `sdlc harvest close` closes every completed cycle whose five aspects have all been answered, and only
+those: it refuses while a draft is still beside its file, while nothing can close — naming each cycle and the
+aspects it still needs — and anywhere but the integration branch, where the cycles merged and the drafts were
+placed. It records each closed cycle in `.sdlc/harvested.json`, then on a new `harvest/<date>` branch commits the
+removal of their folders with the ledger, the records the person placed and the successors written. It pushes
+nothing. The `close-cycle` skill runs it, then pushes the branch and opens the pull request into the integration
+branch a person merges; the check admits that pull request as a harvest when it carries only those files (D-152).
+The ledger is `.sdlc/harvested.json` — renamed from `mined.json` with no fallback, because no solution had mined.
+
+**Why.** A cycle's folder is the last place what it settled can be read. Deleting it while an aspect is unanswered
+loses that aspect for good, so the close waits for all five, and because a ledger and a file listing decide it, the
+binary decides it rather than a skill's reading. The deletion was a printed list of commands a person ran by hand —
+a step that decided nothing — and a commit on a branch of its own keeps the same review with one step fewer.
+
+**Rejected.** *Each aspect closing its part, the folder going with the last*: the same outcome, said in a way that
+invites a folder deleted after four. *Deleting in place and committing to the integration branch*: everything else
+reaches it through a pull request, and this would be the one write nobody reviewed. *Keeping the printed commands*:
+a person running six lines of git is the step D-182 removes elsewhere. *Close as a skill's judgement*: whether every
+aspect is answered is in the ledger, and a skill reading it could only be wrong.
+
+### D-191 — Mining becomes a harvest: a playbook runs one skill per aspect, one at a time, and `propose` is retired
+
+**Governs:** §8.1.1, §8.1.2, §15, §15.1, §15.2
+
+**Supersedes in part D-104 and D-148:** the one ranked report becomes one report per aspect, and mining is renamed.
+**Supersedes D-69's and D-70's commands:** `sdlc propose constraints` and `sdlc propose decisions` are a harvest's
+aspects, and **D-71's** `sdlc propose theme` is what `sdlc theme` prints when there is no theme. **Amends D-112 and
+D-153**: every item is still answered, now within its aspect.
+
+**Decision.** The playbook `harvest` runs five single skills, each reading one aspect of the completed cycles and
+writing one proposal file — `harvest-constraints` (`constraints.md`), `harvest-decisions` (`decisions.md`),
+`harvest-suggestions` (each open suggestion taken further as a successor, declined, or ignored), `harvest-stack`
+(`techstack.md`) and `harvest-areas` (`areas.md`) — then `close-cycle` (D-192). Each can be run alone. They run **one
+at a time**: one aspect's report, the person's marks, its draft, review and record, then the next. Every hand-back is
+short: the count, one line per proposal saying what and why, and what is needed from the person. The binary reads
+an aspect with `sdlc harvest <aspect>`, prints the overview with `sdlc harvest`, and records an aspect answered for
+the sitting's cycles with `sdlc harvest record <aspect> <file>`; a sitting never closes anything. The binary assigns
+every item one owner — a finding to the constraints, a suggestion to the suggestions — and a skill that finds part
+of an item belongs elsewhere hands that part to its owner. Framework notes are no aspect: any skill may raise one.
+`propose` is retired. A rule a person has in mind is `sdlc constraints --new`, the empty entry at the next free id;
+`theme` is a skill of its own. The old names are answered with the new ones.
+
+**Why.** Two ways in read different sources by different rules: mining read finished cycles and gave decisions no
+definition, `propose decisions` read approved cycles in flight, and only the second applied the decision tests. And
+the one report was too much to sort through: a person marking rules, decisions, suggestions, stack rows and areas at
+once does none of them with care. One skill per aspect keeps each readable and runnable alone, and the playbook keeps
+the order in one place (D-186). *Harvest* says both halves of the act — gather what a cycle grew, then clear it —
+where *mine* said only the first, and the close is now half the job.
+
+**Rejected.** *Keeping `mine` with the per-aspect split inside it*: one skill holding five jobs is the shape D-186
+splits. *Four aspects, the stack and the areas together*: one skill writing two files. *Three aspects, the stack and
+the areas left out*: what the cycles settled about either would stop being proposed. *Keeping `propose` for the
+theme alone*: a verb with one subject is a name nobody guesses. *Keeping the name `mine`*: it said nothing about
+closing, and the rename was a one-time sweep.
+
+### D-190 — A harvest reads only completed cycles: merged after a passing verify, or abandoned
+
+**Governs:** §8.1.1, §15, §15.1
+
+**Supersedes in part D-70:** a decision is read from completed cycles, not approved ones. **Supersedes in part D-111**:
+nothing is harvested on a cycle's branch before its pull request merges. **Amends D-69 and D-150**: the rule counts and
+the area replay read completed cycles, and closed ones from the ledger.
+
+**Decision.** A cycle is **completed** when its verify passed and its folder is on the integration branch — its pull
+request merged — or a person abandoned it and its folder is there. A harvest reads completed cycles and nothing else:
+a cycle in flight is read by no aspect and counts toward no rule, and one that passed verify and has not merged waits,
+and the overview says so. An abandoned cycle gives selectively: its abandonment reason may become a decision, its
+findings count toward rules, its suggestions may be taken further — and its plan's approach is never offered as a
+decision, because that approach is what was abandoned.
+
+**Why.** Since D-181 the pull request is where a person accepts a build. A cycle that passed verify and whose pull
+request was closed or sent back was never accepted, and choices lifted from it would be choices a person refused. An
+approval was the old provenance, and a cycle approved and still in flight has findings nobody has settled. Merged or
+abandoned is the one moment a person has said the cycle is over.
+
+**Rejected.** *Passed verify*: sooner, and it records what a person may reject at the pull request. *Approved cycles,
+as D-70 read*: a plan approved and then built differently, or abandoned after approval, is not settled. *Abandoned
+cycles giving everything*: an abandoned approach would come back as a recommended choice. *Abandoned cycles giving
+nothing*: the reason a person stopped is the clearest decision in the record, and dropping it invites the same
+attempt again. *Harvesting on the cycle's branch before the merge (D-111)*: the merge is the acceptance it would be
+reading ahead of.
+
+### D-189 — A decision is a choice future cycles will meet again; a person's words qualify once, an agent's must recur
+
+**Governs:** §8.1.1, §15
+
+**Amends D-70**, which defined a decision's shape and not what qualifies, **and D-153**, whose declined suggestion is a
+decline rather than a decision.
+
+**Decision.** A decision is a choice that had a real alternative, that future cycles will meet again, whose reason is
+not recoverable from the code, and that steers without forbidding: departing from it is declared, not blocked (CON_27).
+Four tests, all of which must pass; the fourth sends a choice that forbids something to a rule or an architecture test,
+the two being separate artifacts of one choice. **What qualifies as a candidate depends on who wrote it.** A person's own
+words qualify once: an intent's fixed decision, an abandonment's reason, a reopen's reason, a declined deviation's note.
+An agent's prose — a plan's shape and departures, what a plan finally did about an argued rule — qualifies only when the
+same choice appears in two or more completed cycles, or when it departs from a standing decision. A fixed decision
+marked unconfirmed is an assumption and is never a candidate; the binary leaves it out. Whether two passages are one
+choice is a judgement about prose, so the binary hands them over side by side and the skill judges. **A declined
+suggestion is a decline**: it stays in the sitting and never reaches `decisions.md`.
+
+**Why.** The record had a shape and no definition: every paragraph of two sections was a candidate, and the tests lived
+in one skill's text that the other way in never read. Most of a plan's shape is how one cycle was done, and recording
+it costs every later reader attention for a choice nobody will meet again. Recurrence is what shows a choice reaches
+past its cycle; a person who already decided needs no recurrence to prove it.
+
+**Rejected.** *Three cycles for an agent's prose, as a rule needs*: a decision forbids nothing, so one recorded wrongly
+costs less than a rule, and two cycles is enough to tell a default from a one-off. *The binary counting recurrence*: it
+cannot tell whether two passages are one choice. *Declines in `decisions.md`*: a decline answers one proposal; nothing a
+future cycle does meets it. *Every fixed decision, unconfirmed ones included*: a belief would become doctrine.
 
 ### D-188 — The loop leaves the stage skills: a playbook runs interrogate and refine, and a stage writes its document
 

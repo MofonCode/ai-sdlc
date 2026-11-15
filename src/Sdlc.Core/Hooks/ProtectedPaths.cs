@@ -85,9 +85,9 @@ public static class ProtectedPaths
                 "this solution's own constraints",
                 "A cycle judged by the constraints it is changing is the same deadlock as the framework "
                 + "governing itself. Constraints are edited by a person, by hand. Run "
-                + "'sdlc propose constraints' and hand back what it prints: it reads this solution's "
-                + "whole history, says which rules its findings keep citing, and prints an empty entry "
-                + "at the next free id when the record holds no pattern.");
+                + "'sdlc harvest constraints' and hand back what it prints: it reads what this solution's "
+                + "completed cycles argued and which rules their findings keep citing. For a rule a person "
+                + "has in mind, 'sdlc constraints --new' prints an empty entry at the next free id.");
         }
 
         if (string.Equals(fileName, Cycle.TechStackFileName, StringComparison.OrdinalIgnoreCase))
@@ -107,8 +107,8 @@ public static class ProtectedPaths
                 "the choices this solution has already settled",
                 "A stage reads the decision record for alignment, so an agent that could write it could "
                 + "invent doctrine and then align to it - which is the one failure this record exists to "
-                + "avoid. Provenance is the point: an entry traced to an approved cycle carries a "
-                + "person's signature. Run 'sdlc propose decisions' and hand back what it prints.");
+                + "avoid. Provenance is the point: an entry traced to a completed cycle carries a "
+                + "person's acceptance. Run 'sdlc harvest decisions' and hand back what it prints.");
         }
 
         if (string.Equals(fileName, AreaParser.FileName, StringComparison.OrdinalIgnoreCase))
@@ -117,7 +117,7 @@ public static class ProtectedPaths
                 "the parts of this solution's code, and the files each covers",
                 "The areas decide which rules and decisions reach each reader in full, so an agent that "
                 + "could write them could move a rule out of its own judge's sight. Areas are proposed "
-                + "from what three cycles' plans named by '/sdlc:mine'. Run 'sdlc draft mining <file>', which writes "
+                + "from what three cycles' plans named by '/sdlc:harvest-areas'. Run 'sdlc draft harvest <file>', which writes "
                 + "the draft a person renames.");
         }
 
@@ -185,8 +185,8 @@ public static class ProtectedPaths
             && string.Equals(segments[^2], "findings", StringComparison.OrdinalIgnoreCase)
             && (IsRoundFileName(segments[^1]) || IsLedgerFileName(segments[^1]))
                 ? Round
-                : string.Equals(segments[^1], Mining.MinedLedger.FileName, StringComparison.OrdinalIgnoreCase)
-                    ? Mined
+                : string.Equals(segments[^1], Harvest.HarvestLedger.FileName, StringComparison.OrdinalIgnoreCase)
+                    ? Harvested
                     : Describe(segments[^1]);
 
         return file is not null;
@@ -209,18 +209,18 @@ public static class ProtectedPaths
         + "'sdlc round <id> <artifact> --from <file>'.");
 
     /// <summary>
-    /// The mining ledger: not a person's file but the binary's, denied to an agent like a round (D-152).
+    /// The harvest ledger: not a person's file but the binary's, denied to an agent like a round (D-152).
     /// </summary>
     /// <remarks>
-    /// It records which cycles are mined and so may be deleted, and carries the counts later mining reads. An
-    /// agent that could write it could mark a cycle mined that was not, and its folder would go with nothing
-    /// taken from it.
+    /// It records which aspects each completed cycle has had answered and which cycles are closed, and carries the
+    /// counts later harvests read. An agent that could write it could mark a cycle answered that was not, and its
+    /// folder would go with nothing taken from it.
     /// </remarks>
-    public static ProtectedFile Mined { get; } = new(
-        "the mining ledger",
-        "It is written by the binary once a person has placed what a mining sitting decided, and it says which "
-        + "cycles are husks whose folders may go. Run 'sdlc mine record <file>' with the proposal file the "
-        + "person marked.");
+    public static ProtectedFile Harvested { get; } = new(
+        "the harvest ledger",
+        "It is written by the binary once a person has placed what a harvest sitting decided, and it says which "
+        + "aspects each cycle has answered and which cycles are closed. Run 'sdlc harvest record <aspect> <file>' "
+        + "with the proposal file the person marked, or 'sdlc harvest close'.");
 
     /// <summary>
     /// Whether a file name is a findings ledger's: <c>&lt;artifact&gt;.json</c> (D-107).
@@ -335,7 +335,7 @@ public static class ProtectedPaths
             foreach (string target in RedirectTargets(segment))
             {
                 string name = target.Replace('\\', '/').Split('/')[^1];
-                if ((IsFindingsPath(target) ? Round : string.Equals(name, Mining.MinedLedger.FileName, StringComparison.OrdinalIgnoreCase) ? Mined : Describe(name)) is { } redirected)
+                if ((IsFindingsPath(target) ? Round : string.Equals(name, Harvest.HarvestLedger.FileName, StringComparison.OrdinalIgnoreCase) ? Harvested : Describe(name)) is { } redirected)
                 {
                     file = redirected;
                     return true;
@@ -362,9 +362,9 @@ public static class ProtectedPaths
                 return true;
             }
 
-            if (NamesWhole(segment, Mining.MinedLedger.FileName))
+            if (NamesWhole(segment, Harvest.HarvestLedger.FileName))
             {
-                file = Mined;
+                file = Harvested;
                 return true;
             }
         }

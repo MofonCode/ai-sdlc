@@ -54,7 +54,7 @@ Hardening the plan already decided, applied as you write — validation at the b
 the evidence a perspective needs recorded with the rest. **It never widens the plan**: a perspective asking
 for something the plan did not describe is a `Noticed:` line, tagged with the perspective —
 `Noticed: [security] the token is logged when the call fails.` — so it counts for that perspective when
-`sdlc propose constraints` reads the history.
+`sdlc harvest constraints` reads the completed cycles.
 
 ## Handed the plan: implement it, and only it
 

@@ -439,7 +439,7 @@ BannedSymbols.txt, .editorconfig, a hook configuration and the pipeline.>
 give the part of the code it belongs to, or under 'none' for a one-off. A name is lower case words joined
 by hyphens, in the team's own words -- 'trade-import' before 'backend'. The round refuses a declared file
 with no answer. A proposed name is recorded as an area suggestion; once three cycles' plans name one over
-the same files, mining proposes it (D-150). It is not something this cycle delivers, so never take one in
+the same files, a harvest proposes it (D-150). It is not something this cycle delivers, so never take one in
 through 'steer'.>
 
 ## Proof

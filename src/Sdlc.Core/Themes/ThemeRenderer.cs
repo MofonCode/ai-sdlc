@@ -4,7 +4,7 @@ using System.Text;
 namespace Sdlc.Core.Themes;
 
 /// <summary>
-/// Renders a theme for a person, and proposes one for a solution that has none.
+/// Renders a theme for a person, and a skeleton of one for a solution that has none.
 /// </summary>
 /// <remarks>
 /// Both outputs live here for the reason the constraint renderer gives: a skill shows this verbatim, so
@@ -32,8 +32,10 @@ public static class ThemeRenderer
             output.AppendLine("No theme.");
             output.AppendLine();
             output.AppendLine("This solution has no theme. That is correct for one with no front-end surface");
-            output.AppendLine("and no report; nothing here judges which it is. For one that does,");
-            output.AppendLine("'sdlc propose theme' prints a skeleton of roles for a person to fill.");
+            output.AppendLine("and no report; nothing here judges which it is. For one that does, here is a");
+            output.AppendLine("skeleton of roles for a person to fill.");
+            output.AppendLine();
+            output.Append(Propose(response));
             return output.ToString();
         }
 

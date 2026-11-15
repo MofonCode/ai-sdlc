@@ -25,7 +25,7 @@ sdlc doctor             # check this installation and this repository
 | | |
 |---|---|
 | this package | the `sdlc` command: what every host hook and pipeline step calls |
-| the plugin | the twenty-one skills that write and judge the documents, which need language |
+| the plugin | the twenty-seven skills that write and judge the documents, which need language |
 
 Install only this and you get a working gate and no stages — `sdlc help` lists what the binary does on
 its own, and every stage name typed at it answers with the invocation to use instead of "unknown
@@ -62,8 +62,8 @@ the code is bad; it is that nobody can tell**, and the next session cannot eithe
 6. **Enforcement that does not depend on the agent's goodwill.** This binary decides everything a program can,
    and `sdlc verify-chain` as a required pull-request check refuses any change whose chain is not complete,
    approved and hash-matched — whichever agent wrote it.
-7. **A record that learns from itself.** Mining reads finished cycles for the rule the findings keep reaching
-   for and the choices the cycles settled, and proposes each for a person to adopt. It never places one.
+7. **A record that learns from itself.** A harvest reads merged and abandoned cycles for the rule the findings keep reaching
+   for and the choices the cycles settled, one aspect at a time, and proposes each for a person to adopt. It never places one.
 8. **An audit trail you can read months later.** The pull-request body is the cycle; each document's findings
    are a ledger chained by hash; the approval records a hash of what it approved.
 

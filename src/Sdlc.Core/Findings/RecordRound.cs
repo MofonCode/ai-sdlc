@@ -392,7 +392,7 @@ public static class RecordRound
                 null,
                 statement,
                 "## " + PlanAreas.Section,
-                known?.Remedy ?? "Mining proposes it once three cycles' plans name an area over these files: " + string.Join(", ", line.Files) + ".",
+                known?.Remedy ?? "A harvest proposes it once three cycles' plans name an area over these files: " + string.Join(", ", line.Files) + ".",
                 Perspective: PlanAreas.Perspective,
                 Gist: statement));
         }
@@ -662,7 +662,7 @@ public static class RecordRound
             }
 
             // A name the plan proposes is a suggestion of kind area, raised by the plan itself rather than a
-            // reader; one the plan stops proposing is withdrawn. Mining collects them (D-150).
+            // reader; one the plan stops proposing is withdrawn. A harvest collects them (D-150).
             if (request.Artifact == ArtifactKind.Plan)
             {
                 toSuggestions.AddRange(AreaSuggestions(suggestions.Value, planAreas.Value, toSuggestions));

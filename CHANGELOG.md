@@ -44,13 +44,13 @@ concern, `sdlc report <id>` — which leads the pull request, and **merging acce
 answered in the approval ledger, the pull-request check and a reopen no longer wait on an answer, and
 `draft approval --accept/--decline` is gone. To change a line of the report, a person says what instead and
 remediate changes the code on the same pull request, asking until the instruction says what to do (D-181). No step
-names a new session or an admission, and the pull request no longer asks about mining: the report's last line
+names a new session or an admission, and the pull request no longer asks about a harvest: the report's last line
 suggests it once the pull request has merged (D-182).
 
 **The binary starts every process the chain runs** (D-183). No skill starts a reader, an adjudicator or the build
 itself any more, so a skill needs no permission to start one and no multi-line shell its host could not
 pre-approve — which is what kept a headless build from getting past its first reader. `sdlc round run` starts a
-round's readers, `sdlc mine read` and `sdlc mine review` mining's, and `sdlc build` is *build it*: it commits
+round's readers, `sdlc harvest read` and `sdlc harvest review` a harvest's, and `sdlc build` is *build it*: it commits
 the approval a person placed if it is uncommitted, admits the plan, prepares the build's worktree and starts the
 build there with its tools named and permission checks on. A person's change at the pull request, and their
 instruction after an escalation, reach remediate: `sdlc cycles --here --for remediate` finds a cycle `blocked`,
@@ -72,19 +72,37 @@ build [<id>]` starts the build, and is the one stage name the binary runs rather
 new skill — the code, the tests, the deviations and choices, and the evidence — which `build` hands the plan and
 `remediate` hands findings or a person's instruction; `remediate` is the *fix it* playbook around it. **The loop
 leaves the stage skills**: `intent`, `spec` and `plan` each write their document and stop, and `to-plan` runs the
-interrogate-and-refine loop on each — the intent's first — handing back once (D-188, reversing D-29). The skill count
-stays twenty-one.
+interrogate-and-refine loop on each — the intent's first — handing back once (D-188, reversing D-29).
+
+**Mining becomes a harvest, read one aspect at a time, and only from completed cycles** (D-189..D-192). A cycle is
+**completed** once its pull request merged after a passing verify, or a person abandoned it; nothing still in flight,
+and nothing that passed verify without merging, is read or counted (D-190). The `harvest` playbook runs five skills,
+each one aspect and callable alone — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`,
+`harvest-stack`, `harvest-areas` — one at a time, each handing back a short report for the person to mark before the
+next starts (D-191). **A decision is defined** (D-189): a choice with a real alternative that future cycles will meet
+again, whose reason is not in the code, and that forbids nothing. A person's own words — a fixed decision, an
+abandonment or reopen reason, a declined deviation — qualify once; a plan's prose only when the same choice recurs in
+two or more cycles; a fixed decision marked unconfirmed never. An abandoned cycle gives its reason, its findings and its
+suggestions, never its plan's approach. **A cycle closes only once every aspect is answered**: `sdlc harvest close`
+checks the ledger, records each closed cycle and commits the removal of their folders on a `harvest/<date>` branch,
+and `close-cycle` pushes it and opens the pull request (D-192). The ledger is `.sdlc/harvested.json`. **`propose` is
+retired**: its constraints and decisions are harvest aspects, a rule a person has in mind is `sdlc constraints --new`,
+and the theme's skeleton is `sdlc theme`, now a skill of its own. `sdlc mine`, `sdlc draft mining` and `sdlc propose
+...` answer with their new names. The skill count is now twenty-seven.
 
 **A minor** because a round may now demote or refuse what it recorded as blocking before, three rules change
 what is forbidden, a deviation narrowing a criterion is refused, and a person walks different steps: they no longer
 admit a plan, open a session for the build, say *open the pull request*, or answer deviations in a file; and
-*take it to plan* now checks the intent, which the intent skill no longer does itself.
+*take it to plan* now checks the intent, which the intent skill no longer does itself; and a harvest reads only
+merged or abandoned cycles and closes one only once every aspect is answered.
 
 **Moving to it.** A cycle in flight keeps its deviations: one answered in the approval ledger before this release
 is still read as answered, and one left unanswered no longer holds the pull request — merging accepts it. A
 criterion narrowing a person accepted before this release still holds; a new one is refused. **A solution with
 a factory pipeline** receives `/sdlc:build --unattended` in place of `/sdlc:batch-build --pr --unattended` in the
 upgrade pull request that moves its pin, which `sdlc upgrade` lists; nothing else needs a hand edit.
+**A solution that used `sdlc propose` or `/sdlc:mine`** runs `/sdlc:harvest` instead; the old commands answer with
+their new names. No solution had a `mined.json`, so there is no ledger to move.
 
 ## 0.46.0
 

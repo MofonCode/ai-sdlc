@@ -5,12 +5,12 @@ using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
-using Sdlc.Core.Mining;
+using Sdlc.Core.Harvest;
 
 namespace Sdlc.Tests;
 
 /// <summary>
-/// The processes the binary starts on a skill's behalf: a round's readers, mining's readers, and the build's own
+/// The processes the binary starts on a skill's behalf: a round's readers, a harvest's readers, and the build's own
 /// process (D-183, D-184, D-185).
 /// </summary>
 [TestClass]
@@ -84,26 +84,28 @@ public sealed class AgentProcessTests
     }
 
     [TestMethod]
-    public async Task Mining_review_hands_each_reader_only_its_own_files_and_answers_in_prose()
+    public async Task A_harvest_review_hands_each_reader_only_its_own_aspects_files_and_answers_in_prose()
     {
         using var workspace = CycleWorkspace.Create();
         string reports = Path.Combine(workspace.Root, ".sdlc", "reports");
         Directory.CreateDirectory(reports);
-        await File.WriteAllTextAsync(Path.Combine(reports, "20261114_0900_00-mining.md"), "the report");
-        await File.WriteAllTextAsync(Path.Combine(reports, "20261114_0900_00-mining.proposed.md"), "the proposals");
+        await File.WriteAllTextAsync(Path.Combine(reports, "20261114_0900_00-harvest-decisions.md"), "the report");
+        await File.WriteAllTextAsync(Path.Combine(reports, "20261114_0900_00-harvest-decisions.proposed.md"), "the proposals");
         await File.WriteAllTextAsync(Path.Combine(workspace.Root, ".sdlc", "decisions.draft.md"), "a draft");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Root, ".sdlc", "areas.draft.md"), "another aspect's draft");
         using TempDirectory review = new();
         FakeAgentProcess agents = new();
 
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IAgentProcess>(agents));
-        Result<RunRound.Response> ran = await gate.Send<MineReaders.Review, RunRound.Response>(
-            new MineReaders.Review(review.Root, null, TimeSpan.FromMinutes(1)));
+        Result<RunRound.Response> ran = await gate.Send<HarvestReaders.Review, RunRound.Response>(
+            new HarvestReaders.Review(review.Root, HarvestAspect.Decisions, null, TimeSpan.FromMinutes(1)));
 
         Assert.IsTrue(ran.IsSuccess, string.Join("; ", ran.Errors.Select(error => error.Message)));
         string alignment = await File.ReadAllTextAsync(Path.Combine(review.Root, "alignment.prompt.md"));
         string completeness = await File.ReadAllTextAsync(Path.Combine(review.Root, "completeness.prompt.md"));
         StringAssert.Contains(alignment, "the proposals");
         StringAssert.Contains(alignment, "a draft");
+        Assert.IsFalse(alignment.Contains("another aspect", StringComparison.Ordinal), "Only the aspect's own draft is reviewed.");
         Assert.IsFalse(alignment.Contains("the report", StringComparison.Ordinal), "The first reviewer sees only what was proposed and approved.");
         StringAssert.Contains(completeness, "the report");
         Assert.IsTrue(agents.Launches.All(launch => launch.Arguments.Contains("text") && launch.Output!.EndsWith(".md", StringComparison.Ordinal)));

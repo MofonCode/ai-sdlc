@@ -21,7 +21,7 @@ public static class AreasRenderer
             text.AppendLine();
             text.AppendLine("Every rule and decision applies everywhere, so every reader is handed each one in full. Areas");
             text.AppendLine("are named from the plans' '## Areas' sections: once three cycles propose one over the same");
-            text.AppendLine("files, '/sdlc:mine' proposes it, and a person places .sdlc/areas.md.");
+            text.AppendLine("files, '/sdlc:harvest-areas' proposes it, and a person places .sdlc/areas.md.");
             return text.ToString();
         }
 

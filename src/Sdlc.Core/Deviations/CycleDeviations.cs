@@ -29,7 +29,7 @@ public enum DeviationStanding
     /// </summary>
     Declined,
 
-    /// <summary>Recorded before the approval that stands, so a reopen took it in; it stays for mining.</summary>
+    /// <summary>Recorded before the approval that stands, so a reopen took it in; it stays for the harvest.</summary>
     History,
 }
 
@@ -84,7 +84,7 @@ public sealed record DeviationsState(
 /// still read, held to the hash of the text it answered.</para>
 /// <para><strong>History is what a reopen left behind.</strong> A deviation answered before the approval that
 /// stands now -- the reopen's draft answers every recorded one, taking it in -- no longer bends anything and is
-/// not checked; it stays in the file for mining.</para>
+/// not checked; it stays in the file for the harvest.</para>
 /// </remarks>
 public static class CycleDeviations
 {

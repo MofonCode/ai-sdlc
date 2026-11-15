@@ -102,7 +102,7 @@ approved settled, and every concern its verification raised without blocking —
 the pull request too.
 
 **Close with one plain offer**: *review the pull request — merging accepts it, report and all; to change anything
-in it, say what instead* (`/sdlc:remediate`). Once it merges, `/sdlc:mine` takes what the cycle settled into the
+in it, say what instead* (`/sdlc:remediate`). Once it merges, `/sdlc:harvest` takes what the cycle settled into the
 solution's record, as the report's last line says. **If the build escalated**, its pull request is a draft and
 the report says what stopped it: *say what to do, then fix it* (`/sdlc:remediate`). Name no new session.
 

@@ -11,17 +11,8 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, solution, techstack, mining <file>. "
-        + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
-
-    /// <summary>
-    /// Which proposals exist, for a message about one that does not.
-    /// </summary>
-    /// <remarks>
-    /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
-    /// something about. Only what is built is offered, for the same reason the drafters are.
-    /// </remarks>
-    public const string Proposals = "One of: constraints, decisions, theme. Reading every cycle at once is 'sdlc mine'.";
+        "One of: approval <id>, abandon <id>, solution, techstack, harvest <file>. "
+        + "A constraint is harvested from the completed cycles, 'sdlc harvest constraints', or begun empty, 'sdlc constraints --new'.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -49,6 +40,8 @@ internal static class Usage
                                      code and no build settings.
             constraints              Render the constraint set in force.
             constraints show <id>    One rule in full, in force or superseded.
+            constraints --new        An empty entry at the next free LOC_ id, for a rule a person
+                                     has in mind. Writes nothing; takes no wording.
             areas                    Each area areas.md defines: the files it covers today, the
                                      rules and decisions carrying it, and entries naming an area
                                      nobody defined. Exits 1 when an area covers no file, which
@@ -241,8 +234,8 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft mining <file>      Write drafts of constraints.md, decisions.md, techstack.md and
-                                     areas.md from the proposals marked [x] in a mining proposal
+            draft harvest <file>     Write drafts of constraints.md, decisions.md, techstack.md and
+                                     areas.md from the proposals marked [x] in a harvest proposal
                                      file: each a copy of the file as it stands with only those
                                      lines applied, refused if any rule, decision or stack row
                                      would go missing. An area may be renamed, merged or removed.
@@ -347,11 +340,13 @@ internal static class Usage
             decisions                The choices this solution has already settled, so a cycle reads
                                      what was argued rather than arguing it again. CON_27 asks a cycle
                                      departing from one to declare it where it arises. Names
-                                     the entries over the word budget, for mining to reword.
+                                     the entries over the word budget, for a harvest to reword.
             decisions show <id>      One decision in full, standing or superseded: what a reader
                                      handed only its headline asks for.
-            theme                 The roles this solution's surfaces use and the values that
-                                     fill them -- the one place a colour or a typeface lives.
+            theme                    The roles this solution's surfaces use and the values that
+                                     fill them -- the one place a colour or a typeface lives. With
+                                     no theme, a skeleton of roles for a person to fill; never a
+                                     value, because a colour is a brand's, not a tool's.
             stack                    What this solution declares it is built from: its defaults,
                                      the stack rules switched on, and each build settings file --
                                      whether the stack takes it and whether it is on disk. Then
@@ -364,53 +359,50 @@ internal static class Usage
                                      that fixes it. Points at constraints, stack and decisions
                                      rather than repeating them. Writes nothing. Exits 1 when
                                      solution.md cannot be read.
-            mine                     Everything the record says the rules, decisions and stack are
-                                     missing, in one ranked report: rules cited across cycles,
-                                     findings that rested on no rule grouped by who raised them,
-                                     each cycle's rounds, reopens and every verdict its verify
-                                     reached, what approved cycles stated, the open suggestions
-                                     of the finished cycles and the concerns ignored before, and
-                                     what the stack never mentions.
-                                     Ends with the proposal file a person marks for 'draft
-                                     mining'. Proposes; writes nothing that binds.
-                                     --cycles <id>,<id> reads those finished cycles alone and
-                                     leaves the rest for a later sitting; the rule counts stay
-                                     the whole record's.
-            mine record <file>       Once the drafts are renamed into place: record the sitting in
-                                     .sdlc/mined.json -- each finished cycle on the integration
-                                     branch becomes a husk, with its merge commit, its files, the
-                                     rules it cited and the areas it proposed, and the concerns
-                                     under '## Ignored' tallied -- and print the
-                                     deletion of the husks' folders, for a person to run on a
-                                     branch of its own. Deletes nothing. Refuses while a draft is
-                                     still beside its file. A file with a '## Cycles' section
-                                     records the cycles it lists and no others.
-            mine read --dir <directory> [--cycles <ids>]
-                                     Write one prompt per finished cycle and document with findings
-                                     in the sitting, each that document's findings and the question
-                                     that groups them, and start one fresh reader for each, its
-                                     answer written beside its prompt (D-183).
-            mine review --dir <directory> [--proposals <file>]
-                                     Write and start the two readers that review a sitting: one
-                                     handed the marked proposal file, the drafts and solution.md;
-                                     one handed the report and the proposal file. The newest of
-                                     each in .sdlc/reports unless --proposals names the file.
-            mine --history          The mining ledger: every mined cycle, every sitting with what
-                                     was accepted and declined, the concerns watched below the
-                                     bar of three cycles, and the concerns ignored, with the
-                                     cycles each was ignored in.
-            propose constraints      Read this solution's whole history and say which rules its
-                                     findings keep citing, with the cycles and finding ids behind
-                                     each. Proposes; writes nothing that binds. Where the record
-                                     holds no pattern it prints an empty entry at the next free
-                                     LOC_ id with the three admission tests beside it.
-            propose decisions        Read what this solution's approved cycles stated -- an intent's
-                                     fixed decisions, a plan's shape and departures -- and hand the
-                                     passages over for a person to record. Approved cycles only:
-                                     an approval is what makes a passage something a person signed.
-            propose theme          Print the roles a theme declares, for a solution that has
-                                     none, or name the ones left empty in the one it has. Never
-                                     proposes a value: a colour is a brand's, not a tool's.
+            harvest                  What the completed cycles can still give back: each completed
+                                     cycle not closed yet, the aspects it still needs answered, and
+                                     the next step. A cycle is completed once its pull request
+                                     merged after a passing verify, or a person abandoned it; one
+                                     still in flight is read by nothing here.
+            harvest <aspect> [--cycles <id>,<id>]
+                                     One aspect -- constraints, decisions, suggestions, stack or
+                                     areas -- for the completed cycles that have not answered it,
+                                     ending with the proposal file a person marks for 'draft
+                                     harvest'. Proposes; writes nothing that binds. --cycles reads
+                                     those cycles alone and leaves the rest for a later sitting;
+                                     the rule counts stay the whole completed record's. So:
+                                     harvest constraints, harvest decisions, harvest suggestions,
+                                     harvest stack, harvest areas.
+            harvest record <aspect> <file>
+                                     Once the aspect's draft is renamed into place: record in
+                                     .sdlc/harvested.json that the cycles the file's '## Cycles'
+                                     names have answered it, with the concerns under '## Watch' and
+                                     '## Ignored' tallied and the suggestions under '## Declined'
+                                     kept. Closes nothing. Refuses while the draft is still beside
+                                     its file.
+            harvest close            Close every completed cycle whose five aspects have all been
+                                     answered: record what later harvests need, and on a new
+                                     harvest/<date> branch commit the removal of their folders with
+                                     the ledger and the records a person placed. Pushes nothing.
+                                     Refuses, naming what each cycle still needs, while nothing can
+                                     close; while a draft is still beside its file; and anywhere
+                                     but the integration branch.
+            harvest read --dir <directory> [--aspect <aspect>] [--cycles <ids>]
+                                     Write one prompt per completed cycle and document with findings
+                                     in the aspect's sitting, constraints unless given, each that
+                                     document's findings and the question that groups them, and
+                                     start one fresh reader for each, its answer written beside its
+                                     prompt (D-183).
+            harvest review <aspect> --dir <directory> [--proposals <file>]
+                                     Write and start the two readers that review one aspect's
+                                     sitting: one handed the marked proposal file, the aspect's
+                                     draft and solution.md; one handed the aspect's report and the
+                                     proposal file. The newest of each in .sdlc/reports unless
+                                     --proposals names the file.
+            harvest --history        The harvest ledger: every closed cycle, every sitting with its
+                                     aspect and what was accepted and declined, the concerns
+                                     watched below the bar of three cycles, and the concerns
+                                     ignored, with the cycles each was ignored in.
             doctor                   Check this installation and this repository: the rules, git,
                                      how many decisions every reader is handed,
                                      adoption, which release wrote adoption's files against this
@@ -594,11 +586,12 @@ internal static class Usage
         Where a decision already stands, the draft reproduces it above the new entry, so the rename
         replaces the ledger without losing what it held.
 
-        Two verbs, split by who made the decision
+        Draft and harvest, split by who made the decision
             'draft' is for a decision you have already taken: it hands back a finished file and the
-            rename or the paste that places it. 'propose' is for one you have not: it reads the
-            record and argues. A tool may propose a rule when it brings the evidence, and may not
-            shape a rule somebody just typed -- which is why there is no way to pass wording in.
+            rename or the paste that places it. 'harvest' is for one you have not: it reads what
+            the completed cycles settled, one aspect at a time, and argues. A tool may propose a
+            rule when it brings the evidence, and may not shape a rule somebody just typed -- which
+            is why there is no way to pass wording in.
 
             'suggestions' is neither. It lists what a reader already raised and nobody acted on,
             and forms no opinion of its own.
@@ -618,7 +611,7 @@ internal static class Usage
             because it is mechanical. Silence is what the rules catch, never the departure.
 
         Reports
-            'suggestions' and 'propose' both print their answer and keep a copy under
+            'suggestions' and 'harvest <aspect>' both print their answer and keep a copy under
             .sdlc/reports/, because a person works through one of these rather than reading it
             once. Nothing reads one back, ever: the directory ignores itself, and a report found
             later is already out of date if a cycle has run since. Re-run the command rather than

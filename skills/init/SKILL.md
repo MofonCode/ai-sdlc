@@ -214,7 +214,7 @@ tests.** Sort before you propose:
 |---|---|---|
 | what the solution is and who for | the paragraph in `.sdlc/solution.draft.md`, under its keys | every plan reads it for what good looks like here, and `sdlc doctor` fails while it is the template's text |
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
-| the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
+| the names a visual treatment is expressed in | a theme, whose skeleton `sdlc theme` prints | roles survive a rebrand where values do not, and a stage can look a role up |
 | whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
 
 **Where an answer reaches none of those four, record it nowhere, and say so.** There is no fifth home,
@@ -223,10 +223,10 @@ somewhere no revision, no id and no admission test reaches. The three tiers, the
 declared stack are the whole of where a rule may live; `sdlc constraints` renders the tiers and
 `sdlc decisions` the record.
 
-**`DEC_` is not available here, and that is structural.** `sdlc propose decisions` reads only approved
-cycles, and a repository being adopted has none — so at adoption the live homes are a `LOC_`, an
-architecture test and a theme. A choice worth recording as a decision is recorded a cycle later, from
-the cycle that settled it.
+**`DEC_` is not available here, and that is structural.** Decisions come from `/sdlc:harvest-decisions`,
+which reads only completed cycles, and a repository being adopted has none — so at adoption the live homes
+are a `LOC_`, an architecture test and a theme. A choice worth recording as a decision is recorded once
+the cycle that settled it completes (D-190).
 
 `solution.md` is protected, so you cannot write it, and adoption has already drafted it:
 `.sdlc/solution.draft.md` carries the keys exactly as observed and a prompt where the paragraph goes.
@@ -246,12 +246,11 @@ itself on findings about work nobody is defending.
 Then, for each answer that survives, propose a constraint:
 
 ```
-sdlc propose constraints
+sdlc constraints --new
 ```
 
-A repository being adopted has no cycles, so this is the empty-handed mode: it prints the next free
-`LOC_` id with its four parts empty, and the three admission tests. Fill the parts in from the answer
-and show it. **All three tests must pass**, and test two rejects most candidates:
+A repository being adopted has no cycles to harvest, so a rule starts here: this prints the next free
+`LOC_` id with its four parts empty. Fill the parts in from the answer and show it. **All three tests must pass**, and test two rejects most candidates:
 
 1. its `Forbids` clause names something that becomes illegal
 2. **no analyzer, schema or hook could decide it**

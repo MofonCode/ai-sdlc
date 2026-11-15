@@ -36,12 +36,12 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [every cycle and where each stands](../guides/running-a-cycle.md) | `.sdlc/cycles/` | `sdlc cycles` | — |
 | [which pull requests will likely conflict, and the order to merge them](../guides/running-the-factory.md) | worked out from the plans' files | `sdlc cycles --claims` | — |
 | [what is ready to merge and what needs a person](../guides/setting-up-the-factory.md) | worked out from the cycles and the remote | `sdlc sitrep` | — |
-| [work waiting on other work](../guides/running-a-cycle.md) | `.sdlc/successors/<slug>.md`, and the parked cycles | `sdlc backlog`, `sdlc successors` | the intent stage, or `sdlc draft mining` |
+| [work waiting on other work](../guides/running-a-cycle.md) | `.sdlc/successors/<slug>.md`, and the parked cycles | `sdlc backlog`, `sdlc successors` | the intent stage, or `sdlc draft harvest` |
 | [the open suggestions, every cycle](../guides/running-a-cycle.md) | each cycle's `suggestions.json` | `sdlc suggestions` | the binary |
-| [what the record says is missing](../../skills/README.md#mine) | read from every cycle and the ledger | `sdlc mine` | — |
-| **Mining** | | | |
-| [the mined cycles, each sitting, what is watched and what was ignored](../../skills/README.md#mine) | `.sdlc/mined.json` | `sdlc mine --history` | the binary, through `sdlc mine record` |
-| [a husk's contents, once its folder is gone](../../skills/README.md#mine) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
+| [what the completed cycles can still give back](../../skills/README.md#harvest) | read from every completed cycle and the ledger | `sdlc harvest`, `sdlc harvest <aspect>` | — |
+| **Harvest** | | | |
+| [the aspects each completed cycle has answered, the closed cycles, each sitting, what is watched and what was ignored](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
+| [a closed cycle's contents, once its folder is gone](../../skills/README.md#harvest) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |
 
 **Not here:** what a whole session cost, which is a host's transcript rather than a solution's file —

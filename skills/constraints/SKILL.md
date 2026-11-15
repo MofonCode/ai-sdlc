@@ -66,9 +66,9 @@ constraint, not a vacancy.
 
 ## Adding one
 
-`sdlc propose constraints` is where one comes from. It reads this solution's whole history and reports
-which rules its findings keep citing, with the cycles behind each; where the record holds no pattern it
-prints the next free `LOC_` id with its four parts empty. A person writes the rule and places it; every
+`/sdlc:harvest-constraints` is where one comes from once cycles complete. `sdlc harvest constraints` reads what the completed cycles argued and reports
+which rules their findings keep citing, with the cycles behind each. For a rule a person already has in mind,
+`sdlc constraints --new` prints the next free `LOC_` id with its four parts empty. A person writes the rule and places it; every
 agent write to `.sdlc/constraints.md` is denied, because a cycle judged by the constraints it is
 changing is the same deadlock as the framework governing itself.
 

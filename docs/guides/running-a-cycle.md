@@ -205,7 +205,7 @@ When the build ends, it hands back **the report** (D-181), which is also what `s
 - **every concern** its verification raised without blocking, the perspectives' included
 
 The same report leads the pull request, so you read the same thing in both places. Its last line suggests
-mining once the pull request has merged.
+a harvest once the pull request has merged.
 
 ## 5. Review the pull request
 
@@ -238,9 +238,9 @@ verified again in a fresh process and the pull request updated.
 
 ## Afterwards
 
-**Mine what merged**: `/sdlc:mine`, then `sdlc mine record <the
-proposal file>` once its drafts are placed — mined cycles become husks you may delete (D-152).
-`mining-the-cycles.md` has the sitting step by step.
+**Harvest what merged**: `/sdlc:harvest` takes back what the completed cycles settled — rules,
+decisions, suggestions, stack rows, areas — one aspect at a time, then closes them in a pull request you merge (D-191, D-192).
+`harvesting-the-cycles.md` has it step by step.
 
 **Clear away what merged**: `sdlc tidy` prints the removal of every worktree and local branch whose work has
 reached the integration branch — the plan branches, the build branches, the sandboxes and admissions — for you to
@@ -248,7 +248,7 @@ run. It deletes nothing itself, and a squash merge is why git cannot tell you th
 
 **What was noticed and not acted on**: `sdlc suggestions`. Non-blocking is not trivial — two real ones from a
 single trial cycle were "the suite did not actually run" and "this criterion's proof rests entirely on a
-substituted source". **What keeps happening**: `sdlc propose constraints`, once a few cycles have run, reports
+substituted source". **What keeps happening**: `sdlc harvest constraints`, once a few cycles have completed, reports
 the rules cited in three or more distinct cycles. It proposes and never places; adding a rule to
 `.sdlc/constraints.md` is a person's job.
 

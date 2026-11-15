@@ -1,0 +1,125 @@
+# Harvesting the cycles
+
+What to do once a cycle is completed: take back what it settled — rules, decisions, successors, stack rows,
+areas — one aspect at a time, then close it and clear its folder out.
+
+**This used to be called mining**, and before that convergence. *Converge* means only a document's rounds settling
+inside a cycle (D-148). A harvest is not a cycle and not part of one: nothing in it needs a plan or an approval,
+because you decide what binds, and what you place binds the **next** cycle, never one in flight.
+
+## Which cycles it reads
+
+**Completed cycles only** (D-190): a cycle whose pull request merged after a passing verify, or one a person
+abandoned. The pull request is where you accept a build (D-181), so a cycle that passed verify and whose pull request
+is still open, closed or sent back has not been accepted yet. `sdlc harvest` lists it as waiting. A cycle in flight is
+read by nothing here.
+
+**An abandoned cycle gives some things and not others.** Your reason for abandoning it can become a decision, its
+findings still count as evidence for rules, and its suggestions can become new intents. Its plan's approach is never
+offered as a decision, because that approach is what you abandoned.
+
+You do not have to harvest after every cycle. The three-cycle bar — one cycle is an instance, two a coincidence,
+three a pattern — is easier to see with several cycles in front of you.
+
+**A long backlog is harvested in batches.** Name the cycles for a sitting and each step reads those alone
+(`--cycles <id>,<id>`). The rule counts still cover every completed cycle, and the rest wait for a later sitting
+(D-166).
+
+## A harvest, step by step
+
+Say `/sdlc:harvest`. It is a playbook: it runs five skills, **one at a time**, and then closes (D-191).
+
+| Step | Skill | What it proposes | Placed in |
+|---|---|---|---|
+| 1 | `/sdlc:harvest-constraints` | rules the findings kept arguing | `constraints.md` |
+| 2 | `/sdlc:harvest-decisions` | choices the cycles settled | `decisions.md` |
+| 3 | `/sdlc:harvest-suggestions` | each open suggestion: taken further, declined or ignored | `.sdlc/successors/`, and the ledger |
+| 4 | `/sdlc:harvest-stack` | rows the declared stack never mentions | `techstack.md` |
+| 5 | `/sdlc:harvest-areas` | areas the plans named | `areas.md` |
+| 6 | `/sdlc:close-cycle` | — it closes the cycles every aspect has answered | a pull request you merge |
+
+`sdlc harvest` shows which aspects each completed cycle still needs, and the playbook runs only those. Each step is
+also a skill you can say on its own — *just harvest the decisions* — and nothing is lost if you stop after one: the
+ledger remembers which aspects each cycle has answered.
+
+**Every aspect runs the same way:**
+
+1. The skill writes a proposal file under `.sdlc/reports/` and hands back a short report: how many proposals, one
+   line each saying what and why, and what it needs from you. It places nothing.
+2. You open the file, mark `[x]` on each proposal you accept, and edit its wording to yours.
+3. The skill runs `sdlc draft harvest <file>`, which writes the draft beside the real file — a copy with only your
+   accepted lines applied — and two fresh processes review it: whether what you approved still serves its evidence
+   and `solution.md`, and whether any item was left without an answer. A gap goes back to the skill first.
+4. You rename the draft over its file, or delete it. The rename is yours, because these are files only a person
+   writes.
+5. The skill runs `sdlc harvest record <aspect> <file>`, which records in `.sdlc/harvested.json` that the cycles in
+   the file's `## Cycles` have answered that aspect. Recording closes nothing.
+
+Every proposal arrives with its evidence beneath it on `>` lines. Refuse one on that evidence as freely as you accept
+one. **There is no remove** for a rule or a decision: one out of force is superseded and keeps its place.
+
+## What makes a decision
+
+**A decision is a choice that had a real alternative, that future cycles will meet again, whose reason is not in the
+code, and that steers without forbidding** (D-189). Departing from it is declared, not blocked. Where a choice forbids
+something, that half is a rule instead.
+
+**Who wrote it decides how much evidence it needs:**
+
+| Source | Qualifies |
+|---|---|
+| your own words: a fixed decision in an intent, your reason for abandoning or reopening, your note on a declined deviation | once |
+| a plan's approach, which an agent wrote | only when the same choice appears in two or more cycles |
+| a departure from a standing decision | once, as a supersede of that decision |
+| a fixed decision marked unconfirmed | never: it is an assumption, not a choice |
+
+**A declined suggestion is not a decision.** It stays in the sitting with its reason and never reaches
+`decisions.md`.
+
+## Answering the suggestions
+
+Every open suggestion of a completed cycle gets one of three answers (D-153):
+
+| Answer | Means | Afterwards |
+|---|---|---|
+| **taken further** | it is worth doing | a successor, its text copied in, which `/sdlc:next` picks up |
+| **declined** | you decided against it, and someone who raises it again deserves the reason | the reason, kept in the sitting in the ledger |
+| **ignored** | nothing to do, nothing to decide | a tally of the concern and the cycles it was ignored in |
+
+**Ignoring is counted, by concern.** One ignored in three cycles is at the bar: that sitting takes it further or
+declines it, rather than ignoring it a fourth time.
+
+## Closing
+
+Once every aspect is answered for a cycle and every draft is placed or deleted, `/sdlc:close-cycle` runs
+`sdlc harvest close` on the integration branch (D-192). It records each closed cycle in the ledger, commits the
+removal of their folders with the ledger and the records you placed on a `harvest/<date>` branch, pushes it, and
+opens the pull request. **You merge it**; nothing reaches the integration branch unreviewed. The check admits it as a
+harvest when it carries only the records, the ledger, successors and the removed folders.
+
+**Nothing is lost when a folder goes.** It is in git at the merge commit the ledger names, and what later harvests
+need — the rules it cited, the files it touched, the areas its plan proposed — is kept in the ledger.
+`sdlc harvest --history` shows it.
+
+## When it refuses
+
+| Refusal | What to do |
+|---|---|
+| `sdlc draft harvest` refuses an entry or a row that would go missing | supersede it or set it to `none` instead |
+| `sdlc draft harvest` refuses an entry over its word budget | a title takes at most fifteen words and a clause sixty: shorten it and draft again |
+| `sdlc draft harvest` refuses an entry naming an area nobody defines | add the area in the same file, or take the tag off |
+| `sdlc harvest record` refuses while the aspect's draft is beside its file | rename it into place or delete it, then record |
+| `sdlc harvest close` refuses while a cycle still needs an aspect | run that aspect's skill first; the refusal names it |
+| `sdlc harvest close` refuses anywhere but the integration branch | switch to it, where the cycles merged and the drafts were placed |
+
+[`handling-refusals.md`](handling-refusals.md) has every refusal in full.
+
+## Where to go next
+
+| | |
+|---|---|
+| the suggestions a solution has, and what became of each | `sdlc suggestions --all` |
+| the skills in depth, with everything they read | [`../../skills/README.md`](../../skills/README.md#harvest) |
+| the files a harvest drafts, and why only you place them | [`../mechanisms/protected-files.md`](../mechanisms/protected-files.md) |
+| where the ledger lives and what shows it | [`../reference/data-views.md`](../reference/data-views.md) |
+| the cycle a harvest reads | [`running-a-cycle.md`](running-a-cycle.md) |

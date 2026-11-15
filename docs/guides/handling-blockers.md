@@ -346,10 +346,10 @@ collect, each concern once however many of a cycle's documents raised it.
 is read from what a person wrote in an intent through `/sdlc:steer`, from a cycle begun with `--from
 suggestion:<cycle>/<id>`, and from an abandonment's `declining` lines (D-115).
 
-What keeps going wrong across cycles — answered blockers included — is `sdlc propose constraints`, which
+What keeps going wrong across cycles — answered blockers included — is `sdlc harvest constraints`, which
 reports a rule cited in three or more distinct cycles as a candidate for one of this solution's own.
 
-**A perspective's suggestions are how its rules get written** — `propose constraints` counts them by
+**A perspective's suggestions are how its rules get written** — `harvest constraints` counts them by
 perspective, and How a perspective earns rules in `../mechanisms/perspectives.md` says how to read that count.
 
 ## Where to go next

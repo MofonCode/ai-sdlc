@@ -180,8 +180,8 @@ told the person that *build it* implements, verifies, fixes what it can and open
 said it. Asked for by hand — *open the pull request*, or `/sdlc:pr` — the one question before the push names
 the cycle, by id and headline, as above.
 
-**Mining is never asked here.** It reads what the cycle settled, and the pull request is where a person may
-still ask for a change; the report's last line suggests `/sdlc:mine` once it has merged (D-182).
+**A harvest is never asked here.** It reads what the cycle settled, and the pull request is where a person may
+still ask for a change; the report's last line suggests `/sdlc:harvest` once it has merged (D-182).
 
 ## When the pull request is already open: push and refresh its report
 
@@ -326,6 +326,6 @@ Then:
 
 **One line per cycle**, carrying three things: its id, its branch, and the pull request's link. For a
 verified build, two more lines: *merging accepts it, report and all; to change anything in it, say what instead
-— `/sdlc:remediate` takes it in words, on this pull request*; and *once it merges, `/sdlc:mine` brings the
+— `/sdlc:remediate` takes it in words, on this pull request*; and *once it merges, `/sdlc:harvest` brings the
 rules, decisions and stack up to what it settled* (D-104, D-181). Then stop. Nothing after this is yours — the merge belongs to a
 reviewer, and a summary of what they are about to read is a reviewer being told what to think.

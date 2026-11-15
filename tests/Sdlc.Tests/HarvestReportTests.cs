@@ -2,12 +2,13 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
+using Sdlc.Core.Harvest;
 using Sdlc.Core.Proposals;
 
 namespace Sdlc.Tests;
 
 /// <summary>
-/// The mining report's reading of how each cycle went (D-112): what the findings alone never held.
+/// The harvest report's reading of how each cycle went (D-112): what the findings alone never held.
 /// </summary>
 /// <remarks>
 /// One real solution's second cycle is the case. Its findings showed a verify that argued about wording; what
@@ -16,7 +17,7 @@ namespace Sdlc.Tests;
 /// in git's history of <c>verify.md</c>, one in the approval ledger -- and the report read neither.
 /// </remarks>
 [TestClass]
-public sealed class ProposeMiningTests
+public sealed class HarvestReportTests
 {
     [TestMethod]
     public async Task Every_verdict_the_verify_reached_is_read_from_git_and_a_repeated_failure_is_named()
@@ -38,7 +39,7 @@ public sealed class ProposeMiningTests
         git.Files["c2:" + path] = Verdict("blocked", "1. Met. Shown.", "2. Not met. Still not.");
         git.Files["c3:" + path] = Verdict("pass", "1. Met. Shown.", "2. Met. Shown now.");
 
-        string report = await Render(workspace, git);
+        string report = await Render(workspace, git, HarvestAspect.Constraints);
 
         StringAssert.Contains(report, "verdicts: blocked on 2 -> blocked on 2 -> pass");
         StringAssert.Contains(report, "criterion 2 not met in 2 verdicts");
@@ -53,16 +54,16 @@ public sealed class ProposeMiningTests
         workspace.WriteAllArtifacts();
         workspace.WriteApproval("reopened", reason: "Skip the review records rather than narrow the matcher.");
 
-        string report = await Render(workspace, new FakeRepository());
+        string report = await Render(workspace, new FakeRepository(), HarvestAspect.Decisions);
 
-        StringAssert.Contains(report, "1 reopen,");
+        StringAssert.Contains(report, "reopened ");
         StringAssert.Contains(report, "Skip the review records rather than narrow the matcher.");
     }
 
     [TestMethod]
     public async Task Deviations_are_counted_per_cycle_and_tallied_by_the_rule_behind_them()
     {
-        // How far each plan had to bend, and which rules keep making it bend: the two things mining is asked
+        // How far each plan had to bend, and which rules keep making it bend: the two things a harvest is asked
         // to say about deviations.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
@@ -88,10 +89,10 @@ public sealed class ProposeMiningTests
 
             """);
 
-        string report = await Render(workspace, new FakeRepository());
+        string report = await Render(workspace, new FakeRepository(), HarvestAspect.Constraints);
 
         StringAssert.Contains(report, "deviated 2x (1 plan, 1 proof): 2 kept, 0 changed at the person's request", report);
-        StringAssert.Contains(report, "Deviations   2 across 1 cycles, by the rule behind them");
+        StringAssert.Contains(report, "Deviations   2 across 1 cycle, by the rule behind them");
         StringAssert.Contains(report, "CON_07.2: 2 in 1 cycle, 0 declined");
     }
 
@@ -107,22 +108,23 @@ public sealed class ProposeMiningTests
         workspace.WriteBlockingRound(ArtifactKind.Spec, round: 2, id: "F_01", cites: "CON_03");
         workspace.WriteBlockingRound(ArtifactKind.Spec, round: 3, id: "F_01", cites: "CON_03");
 
-        string report = await Render(workspace, new FakeRepository());
+        string report = await Render(workspace, new FakeRepository(), HarvestAspect.Constraints);
 
         StringAssert.Contains(report, "one standing 3 rounds", report);
-        StringAssert.Contains(report, "a note for ai-sdlc");
+        StringAssert.Contains(report, "a note for the framework");
     }
 
     [TestMethod]
     public async Task An_entry_past_its_word_budget_is_listed_for_rewording()
     {
-        // D-149. Mining is where a long entry already on the page gets shortened: proposed, never refused.
+        // D-149. A harvest is where a long entry already on the page gets shortened: proposed, never refused.
         using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
         CycleWorkspace.WriteRaw(
             Path.Combine(workspace.Root, ".sdlc", "decisions.md"),
             "# Decisions\n\n## DEC_01 — " + string.Join(' ', Enumerable.Repeat("long", 20)) + "\n\n**Decided:** one.\n\n**Because:** two.\n\n**Instead of:** three.\n\n**From:** here.\n");
 
-        string report = await Render(workspace, new FakeRepository());
+        string report = await Render(workspace, new FakeRepository(), HarvestAspect.Decisions);
 
         StringAssert.Contains(report, "Over the word budget");
         StringAssert.Contains(report, "DEC_01 (title 20 of 15)");
@@ -137,7 +139,7 @@ public sealed class ProposeMiningTests
         workspace.WriteBlockingRound(ArtifactKind.Spec, round: 1);
         workspace.WriteCleanRound(ArtifactKind.Spec, round: 2);
 
-        string report = await Render(workspace, new FakeRepository());
+        string report = await Render(workspace, new FakeRepository(), HarvestAspect.Constraints);
 
         StringAssert.Contains(report, workspace.Cycle.Id + ": intent 1, spec 2;");
     }
@@ -154,7 +156,7 @@ public sealed class ProposeMiningTests
               "readers": [ { "role": "rules", "model": null, "effort": null, "prompt_bytes": null, "input": 50000, "cache_write": null, "cache_read": null, "output": null, "turns": null, "seconds": null } ] } ] }
             """);
 
-        string report = await Render(workspace, new FakeRepository());
+        string report = await Render(workspace, new FakeRepository(), HarvestAspect.Constraints);
 
         StringAssert.Contains(report, "spent 1 round, 50k weighted tokens: rules 50k");
         StringAssert.Contains(report, "intent 1 round, 50k weighted tokens");
@@ -164,16 +166,25 @@ public sealed class ProposeMiningTests
         "---\ncycle: c\noutcome: " + outcome + "\n---\n\n# A verify\n\n## Criteria\n\n"
         + string.Join("\n", criteria) + "\n";
 
-    private static async Task<string> Render(CycleWorkspace workspace, FakeRepository git)
+    // Every case is a completed cycle: its verify passed and its folder merged into the integration branch.
+    private static async Task<string> Render(CycleWorkspace workspace, FakeRepository git, HarvestAspect aspect)
     {
         workspace.WriteTechStack(string.Empty);
 
+        if (!File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)))
+        {
+            workspace.WriteVerify("pass");
+        }
+
+        git.Refs.Add("origin/development");
+        git.History["origin/development:.sdlc/cycles/" + workspace.Cycle.Id] = [("merged", DateTimeOffset.UnixEpoch)];
+
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 
-        Result<ProposeMining.Response> result = await gate
-            .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query());
+        Result<HarvestReport.Response> result = await gate
+            .Send<HarvestReport.Query, HarvestReport.Response>(new HarvestReport.Query(aspect));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
-        return ProposeMining.Render(result.Value, "proposals.md");
+        return HarvestReport.Render(result.Value, "proposals.md");
     }
 }

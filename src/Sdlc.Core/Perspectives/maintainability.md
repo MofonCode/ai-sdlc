@@ -79,7 +79,7 @@ next one.
 
 None of its own yet; `CON_25` already forbids a change doing more than its plan described, and the diff
 reader holds every change to it. A finding this method makes that no rule forbids is a suggestion; one that
-keeps recurring across cycles is what `sdlc propose constraints` turns into a rule.
+keeps recurring across cycles is what `/sdlc:harvest-constraints` turns into a rule.
 
 ## Evidence
 

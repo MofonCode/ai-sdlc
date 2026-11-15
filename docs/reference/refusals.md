@@ -45,7 +45,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a new finding quotes its rule in other words](../guides/handling-refusals.md#a-new-finding-quotes-its-rule-in-other-words) | put the rule's own line back, which the refusal prints, or collect the round again |
 | [a suggestion does not fit the cycle's suggestions](../guides/handling-refusals.md#a-suggestion-does-not-fit-the-cycles-suggestions) | number a new one past the cycle's `S_` ids, carry a restated one under its id, answer it only where it was raised |
 | [a declared file with no area](../guides/handling-refusals.md#a-declared-file-with-no-area) | name its area in the plan's `## Areas`: `- new <name>: <files>`, or `- none: <files>` |
-| [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:mine` for new globs, or correct the `Files:` line by hand |
+| [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:harvest-areas` for new globs, or correct the `Files:` line by hand |
 | [a blocked verdict on evidence a round already judged](../guides/handling-refusals.md#a-blocked-verdict-on-evidence-a-round-already-judged) | `/sdlc:remediate <id>`; the run it records gets a full round |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
@@ -79,9 +79,13 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [no release to move to](../guides/handling-refusals.md#no-release-to-move-to) | name the release: `sdlc upgrade <release>` |
 | **A promotion's pull request — `sdlc promotion`** | |
 | [a branch that may not promote](../guides/handling-refusals.md#a-branch-that-may-not-promote) | open it into the integration branch as a cycle, and promote from there or from a `release/*` branch |
-| **Mining — `sdlc mine record`, and its pull request** | |
-| [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename each draft into place or delete it, then record again |
-| [a mining pull request carries something that is not mining's](../guides/handling-refusals.md#a-mining-pull-request-carries-something-that-is-not-minings) | take out what is not a husk's deletion, and fix the record the check names |
+| **A harvest — `sdlc harvest record`, `sdlc harvest close`, and its pull request** | |
+| [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename the draft into place or delete it, then run the command again |
+| [nothing left to record](../guides/handling-refusals.md#nothing-left-to-record) | `sdlc harvest` shows what each cycle still needs; copy `## Cycles` as the report wrote it |
+| [an aspect is still unanswered](../guides/handling-refusals.md#an-aspect-is-still-unanswered) | run that aspect's skill, or `/sdlc:harvest`, then close again |
+| [not on the integration branch](../guides/handling-refusals.md#not-on-the-integration-branch) | switch to the integration branch and close again |
+| [a harvest pull request carries something that is not a harvest's](../guides/handling-refusals.md#a-harvest-pull-request-carries-something-that-is-not-a-harvests) | take out what is not a closed cycle's deletion, and fix the record the check names |
+| [a command that was renamed](../guides/handling-refusals.md#a-command-that-was-renamed) | run the name it gives: `sdlc harvest`, `sdlc draft harvest`, `sdlc theme`, or `sdlc constraints --new` |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
@@ -99,9 +103,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Denied to an agent — the pre-tool hook\*** | |
 | writing `approval.md` | `sdlc draft approval <id>`, then rename |
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |
-| writing `constraints.md` | `sdlc propose constraints`, then paste |
-| writing `decisions.md` | `sdlc propose decisions`, then paste |
-| writing `areas.md` | `/sdlc:mine`, then `sdlc draft mining <file>` and rename |
+| writing `constraints.md` | `sdlc harvest constraints` or `sdlc constraints --new`, then paste |
+| writing `decisions.md` | `sdlc harvest decisions`, then paste |
+| writing `areas.md` | `/sdlc:harvest-areas`, then `sdlc draft harvest <file>` and rename |
 | writing `solution.md` | `sdlc draft solution`, then rename |
 | writing `techstack.md` | `sdlc draft techstack`, then rename |
 | running the adoption command | run it yourself; `sdlc help` for its options |

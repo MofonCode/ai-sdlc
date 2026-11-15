@@ -116,9 +116,9 @@ it](#what-stops-an-agent-talking-its-way-past-it) has the three layers.
 ### 7. A record that learns from itself
 
 The same mistake recurring across cycles should become a rule, and a choice a cycle settled should become a
-decision. **`/sdlc:mine` and `/sdlc:propose` read the record for both** — the rule the findings keep reaching for,
-the choices approved cycles settled, the suggestions nobody has answered — and argue each as an entry a person
-may adopt. They propose and never place, so the rules and decisions grow from the solution's own history and
+decision. **`/sdlc:harvest` reads the completed cycles for both**, one aspect at a time — the rule the findings keep reaching for,
+the choices merged cycles settled, the suggestions nobody has answered — and argues each as an entry a person
+may adopt, then closes each cycle once nothing is left in it. It proposes and never places, so the rules and decisions grow from the solution's own history and
 stay a person's.
 
 ### 8. An audit trail you can read months later
@@ -225,7 +225,7 @@ cycles and which only fixtures.
 | **Constraints** | A rule written into a prompt is forgotten next session, and the agent bends it when it is inconvenient | Rules have ids and four clauses, including what each one **forbids**. Three tiers — global, the stack's, and the solution's own — are resolved and rendered fresh into every reading, never copied into a document where they go stale |
 | **Decisions charter** | Each new session re-argues choices made weeks ago, unless somebody remembers to prompt it | `decisions.md` records what the solution chose and what it chose *instead of*. Every stage reads it without anybody asking, and every reader is handed it — the intent's, the spec's, the plan's, and the one that reads the code at verify. A cycle may depart from a decision, but not silently: it declares the departure where it arises, and the person is shown it at the approval, in `sdlc status` and in the pull request |
 | **Stack definition** | The agent picks frameworks and packages ad hoc, and every cycle drifts a little | `techstack.md` declares what the solution is built from, which stack rules hold it, and which build settings it takes. What is in the file is exactly what binds, and a plan is read against it |
-| **Propose** | The same mistake recurs across cycles, and nobody turns it into a rule | `/sdlc:propose` reads the findings for the rule a solution keeps reaching for, and approved cycles for the choices they settled, and argues each as an entry a person may adopt |
+| **Harvest** | The same mistake recurs across cycles, and nobody turns it into a rule | `/sdlc:harvest` reads each merged or abandoned cycle for the rule a solution keeps reaching for, the choices it settled and the suggestions nobody answered, one aspect at a time, argues each as an entry a person may adopt, and closes the cycle once nothing is left |
 
 ### Approving and building it
 
@@ -401,7 +401,7 @@ refusal with its remedy.
 | [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) | one cycle end to end, stage by stage |
 | [`docs/guides/setting-up-the-factory.md`](docs/guides/setting-up-the-factory.md) | the factory set up once, step by step, to a watched first run |
 | [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built unattended, whenever you start the factory: the integration branch, the factory, and its sitrep |
-| [`docs/guides/mining-the-cycles.md`](docs/guides/mining-the-cycles.md) | after a cycle finishes: what the solution keeps from it, every open suggestion answered, and the finished cycles' folders cleared |
+| [`docs/guides/harvesting-the-cycles.md`](docs/guides/harvesting-the-cycles.md) | after a cycle merges: what the solution keeps from it, one aspect at a time, every open suggestion answered, and the closed cycles' folders cleared |
 | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
 | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
 | [`docs/guides/testing-a-local-build.md`](docs/guides/testing-a-local-build.md) | a cycle run end to end on a change to the framework nobody has published, and why it never reaches a pull request |
@@ -411,11 +411,11 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill, refusal and piece of data, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-one skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-seven skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/reference/data-views.md`](docs/reference/data-views.md) | **data views** — every piece of data, where it lives, and the command that shows it |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the twenty-one skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-seven skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
@@ -479,7 +479,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |
-| **Mining, areas and husks** | the suite, and one solution's history for reading a cycle's record | an area, a husk or a mined ledger in any solution; mining on a cycle's branch before its pull request |
+| **Harvesting, areas and closing** | the suite, and one solution's history for reading a cycle's record (as mining) | a harvest one aspect at a time, a closed cycle or a harvest ledger in any solution |
 | **Amending a plan after admission** | the suite | an amended plan through a real pull request |
 | **The rebuilt patch** | a real git repository in the suite | a pull-request check rebuilding one |
 | **The upgrade check** | a refused real upgrade, replayed and passing in a copy of the repository | a real upgrade pull request passing it |

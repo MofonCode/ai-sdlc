@@ -61,7 +61,7 @@ public static class BuildReport
         if (response.Empty)
         {
             text.Append("Nothing to report: the build followed the approved documents, made no choice they left open, and the verification raised no concern.\n");
-            text.Append(MiningLine);
+            text.Append(HarvestLine);
             return text.ToString();
         }
 
@@ -120,7 +120,7 @@ public static class BuildReport
             text.Append("Merging the pull request accepts the deviations and choices above. To change one, say what to do instead: the build goes round again and updates this pull request.\n");
         }
 
-        text.Append(MiningLine);
+        text.Append(HarvestLine);
         return text.ToString();
     }
 
@@ -128,7 +128,7 @@ public static class BuildReport
     /// The report's last line: what the solution keeps from a cycle is read once it has merged, never asked about at
     /// the pull request (D-181, D-182).
     /// </summary>
-    public const string MiningLine = "Once the pull request has merged, `/sdlc:mine` reads what this cycle settled and proposes what the solution keeps from it.\n";
+    public const string HarvestLine = "Once the pull request has merged, `/sdlc:harvest` reads what this cycle settled and proposes what the solution keeps from it.\n";
 
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
     {

@@ -404,7 +404,7 @@ public static class ReaderPrompts
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:mine' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
+                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:harvest-areas' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
             }
 
             bool adjudicating = string.Equals(request.Reader, ReaderAnswers.Adjudicate, StringComparison.Ordinal);

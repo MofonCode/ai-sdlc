@@ -35,7 +35,7 @@ public sealed record Slot(string Role, string? Value);
 ///
 /// <para><strong>It is not protected, unlike the rule file and the decision record.</strong> Nobody is
 /// judged against a colour: no constraint reads this, so an agent that writes it cannot satisfy a rule by
-/// doing so. Changing a value is ordinary declared work in a cycle. What <c>propose theme</c> is for is
+/// doing so. Changing a value is ordinary declared work in a cycle. What <c>sdlc theme</c> prints for a solution with none is
 /// a well-formed one arriving in the first place.</para>
 ///
 /// <para><strong>Blank says which kind of blank it is.</strong> An empty theme could mean <em>not

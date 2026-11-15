@@ -371,7 +371,7 @@ public sealed class DeviationsTests
         StringAssert.Contains(text, "Chose retries through Polly instead of a hand-written loop.");
         StringAssert.Contains(text, "\"keep the old socket\"");
         StringAssert.Contains(text, "Merging the pull request accepts the deviations and choices above.");
-        StringAssert.EndsWith(text, BuildReport.MiningLine, "Mining is suggested after the merge, last, and never asked at the pull request.");
+        StringAssert.EndsWith(text, BuildReport.HarvestLine, "A harvest is suggested after the merge, last, and never asked at the pull request.");
     }
 
     [TestMethod]
@@ -384,7 +384,7 @@ public sealed class DeviationsTests
 
         Assert.IsTrue(report.Value.Empty);
         StringAssert.Contains(BuildReport.Render(report.Value), "Nothing to report");
-        StringAssert.EndsWith(BuildReport.Render(report.Value), BuildReport.MiningLine);
+        StringAssert.EndsWith(BuildReport.Render(report.Value), BuildReport.HarvestLine);
     }
 
     [TestMethod]
