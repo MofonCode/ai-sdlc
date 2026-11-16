@@ -161,7 +161,8 @@ pull request; nothing is pushed straight to it, and there is no integration bran
 [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub never counts an author's own approval, so the one bypass is the
 `owners` team, on pull requests only: a member merges their own pull request by ticking the bypass box, **and only
 once the checks are green**, because the same box would merge past them. Nobody else bypasses, and nobody bypasses
-a push.
+a push. **Settings > General** allows squash merging only, so a pull request offers no other button; the ruleset is
+what enforces it.
 
 **`cd.yml` runs as main has it.** GitHub starts a `workflow_run` workflow from the default branch, so a change to
 `cd.yml` takes effect when it merges and cannot be tried on a branch. Read the first run after such a merge.
