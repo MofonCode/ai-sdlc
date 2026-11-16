@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.47.0** · .NET 10 · [changelog](CHANGELOG.md)
+**Version 0.48.0** · .NET 10 · [changelog](CHANGELOG.md)
 
 **ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
@@ -216,6 +216,8 @@ cycles and which only fixtures.
 | **Interrogator** | The agent that wrote a document reviews it, and agrees with itself | `/sdlc:interrogate` has a fresh process — no memory of writing it, no tools — read the document against the rules in force. It judges and never edits; `/sdlc:refine` edits and never judges. The loop runs until a round raises nothing blocking, and a rule answered then raised again is reported as going backwards |
 | **Findings** | Review comments are vague, cite nothing, and quietly get dismissed | Every blocking finding cites one rule in force for that document by id, and every finding says where, what and the remedy. **A blocking one cannot be waived by any mechanism** — it is answered, or the cycle does not advance. Each artifact's rounds are one ledger chained by hash, so the argument behind an approval cannot be rewritten |
 | **Suggestions** | Good observations that block nothing are lost the moment the session ends | Non-blocking findings go to a ledger, each concern once. `/sdlc:suggestions` lists what is still open across the solution, what became of each, and any of them can start the next cycle |
+| **Records-only pull requests and tested promotions** | the suite, and both templates parsed; the records-only skip answers the pull request that prompted it | a records-only pull request skipping the build on a real pipeline; a promotion skipping its tests on either platform, which needs the pipeline's token to read the runs |
+| **Guidance** | the suite, and one entry: the pipeline | a plan handed it and following it; a solution writing its own |
 | **Perspectives** | Security, operability, maintainability and accessibility are considered only if somebody happens to think of them | Each perspective steers the author with a short list at every stage and judges in a reader of its own. Only a finding citing a rule it lists, where that rule binds, blocks; the rest arrive as suggestions under its name |
 
 ### Remembering what was settled
@@ -321,7 +323,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.47.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.48.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer

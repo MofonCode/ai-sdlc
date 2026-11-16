@@ -90,6 +90,7 @@ try
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "admission" => await AdmissionCommand(line).ConfigureAwait(false),
+        "tested" => await TestedCommand(line).ConfigureAwait(false),
         "promotion" => await PromotionCommand(line).ConfigureAwait(false),
         "branch-policy" => await Workspace.Run(line, w => BranchPolicyCommand(w, line)).ConfigureAwait(false),
         "branch" => await BranchCommand(line).ConfigureAwait(false),
@@ -906,6 +907,40 @@ static async Task<int> AdmissionCommand(CommandLine line)
         IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
         bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.RecordsOnly(changed);
         await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+}
+
+// Whether a promotion's source branch already built and tested exactly what it merges (D-196). The pipeline pipes its
+// platform's runs on that branch to standard input; 'true' lets it skip the tests, and anything unreadable is 'false'.
+static async Task<int> TestedCommand(CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync(
+            "Tested on which branch? As in 'curl <the platform's runs on development> | sdlc tested development'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string runs = Console.IsInputRedirected ? await Console.In.ReadToEndAsync().ConfigureAwait(false) : string.Empty;
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        string source = line.Arguments[0].StartsWith("refs/heads/", StringComparison.Ordinal)
+            ? line.Arguments[0]["refs/heads/".Length..]
+            : line.Arguments[0];
+        string? Ask(string arguments) =>
+            workspace.Repository.Git(workspace.SolutionRoot, arguments) is { IsSuccess: true } answer ? answer.Value.Trim() : null;
+
+        string? tip = Ask("rev-parse origin/" + source);
+        bool tested = Promotion.AlreadyTested(
+            Ask("rev-parse HEAD^{tree}"),
+            tip is null ? null : Ask("rev-parse " + tip + "^{tree}"),
+            tip,
+            runs);
+
+        await Console.Out.WriteLineAsync(tested ? "true" : "false").ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
 }

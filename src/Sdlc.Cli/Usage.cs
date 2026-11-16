@@ -72,6 +72,11 @@ internal static class Usage
                                      so a pipeline may skip the build and tests; false when one
                                      path is outside. The chain still judges it (D-193). Always
                                      exits 0.
+            tested <branch>          Print true when this promotion merges exactly <branch>'s tip
+                                     and the platform's runs on it, piped in, list a green one,
+                                     so a pipeline builds and skips the tests; false for anything
+                                     else, or anything it cannot read. Holds no token (D-196).
+                                     Always exits 0.
             promotion <source> --base <target>
                                      Print true when a pull request promotes the integration
                                      branch or a release/* branch into another branch, so a

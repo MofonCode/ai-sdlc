@@ -2281,7 +2281,9 @@ merge that broke it.
 **The guarantee covers `development`** (D-88). What reaches main is still the team's to choose; how it gets
 there has a default (D-136): only `development` or a `release/*` branch may open a pull request into the
 default branch, which `sdlc promotion` decides inside the same `verify` job, and the chain is not asked of a
-promotion, which has no cycle. A release branch's own policy is the team's.
+promotion, which has no cycle. A release branch's own policy is the team's. **A promotion always builds, and
+skips the tests when the integration branch already passed on exactly what it merges** (D-196): `sdlc tested`
+reads the platform's runs the pipeline hands it, and anything else runs everything.
 
 Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
 wrapping one command.
@@ -2524,6 +2526,7 @@ they print verbatim.
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
+| `tested <branch>` | `true` when a promotion merges exactly that branch's tip and the platform's runs, piped to standard input, list a green one of it, so a pipeline builds and skips the tests; `false` for anything else, including what it cannot read. Holds no token: the pipeline fetches the runs. Always exits 0 (D-196) |
 | `admission <branch> --base <branch>` | `true` when everything a pull request changes is under `.sdlc/`, so a pipeline skips the build and the tests; `false` when one path is outside. Always exits 0 (D-87, D-125, D-193) |
 | `promotion <source> --base <target>` | `true` when a pull request promotes the integration branch or a `release/*` branch into another branch, so a pipeline skips the chain; `false` when it targets the integration branch or a release branch; exits 1 when anything else targets another branch (D-136) |
 | `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing. `--approvals`, `--owner` and `--self-approve` set who must approve (D-136) |
@@ -7570,6 +7573,35 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-196 — A promotion always builds, and skips the tests the integration branch already ran on exactly what it merges
+
+**Governs:** §13
+
+**Extends D-136**, whose promotion check gains a second question, **and D-88**, whose guarantee at `development` it
+leans on.
+
+**Decision.** On a promotion, both generated pipelines ask the platform for this pipeline's green runs on the source
+branch and pipe the answer to `sdlc tested <source>`. It prints `true` only when the commit being built has exactly
+the source tip's tree — the default branch holds no change of its own — and a green run of that tip is listed:
+Azure DevOps' builds list or GitHub's workflow runs. Then the tests, and publishing their coverage and results, are
+skipped. The build always runs. Anything else — a tree of its own, a run red, older or still going, a token that
+cannot read the runs, an answer it cannot parse — prints `false`, and everything runs.
+
+**Why.** A promotion re-ran a governed solution's full suite on the same tree its integration branch's merge build
+had just passed: thirteen minutes that could find nothing new. The person wanted those minutes back, and the build
+kept: every promotion ends in a published artifact, and the release must be built with its own version. Rebuilding
+is the only honest way to get that version: a package built as a preview has the version compiled in, so renaming
+it a release would ship binaries that report themselves as a preview.
+
+**Why the binary decides and the pipeline fetches.** Every check lives in the binary, so the pipeline stays a thin
+wrapper and the two platforms cannot drift apart in what they accept. The binary holds no token (D-136), so it is
+handed the runs rather than fetching them, and it reads both platforms' shapes.
+
+**Rejected.** *Skipping the build too*: no artifact, and a release built with a preview's version. *Promoting the
+integration branch's artifact, re-versioned*: the version is compiled in. *Trusting the integration branch's last
+build without comparing trees*: a hotfix on the default branch would merge untested. *An opt-in*: the person made it
+the default, because the condition is exact — the same tree, already green.
 
 ### D-195 — Guidance: the framework's opinion, handed to a plan, overridden by the solution
 

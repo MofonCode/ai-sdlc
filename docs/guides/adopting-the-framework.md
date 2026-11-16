@@ -297,6 +297,12 @@ nothing a build reads, so the pipeline skips the build and the tests and the cha
 (D-193). If one of your own tests reads a file under `.sdlc/`, it is skipped there too, and the integration
 branch's merge build is what runs it.
 
+**A promotion skips the tests the integration branch already ran.** A pull request into the default branch always
+builds, so the release carries its own version. When it merges exactly the integration branch's tip, and the
+integration branch's merge build of that tip passed, the pipeline skips the tests (D-196). It asks the platform for
+those runs with the pipeline's own token: on GitHub the workflow's token needs to read actions, and on Azure DevOps
+the build service needs to read builds. Where either cannot, the answer is no and everything runs.
+
 **On Azure DevOps the build validation policy is not only what makes the check required — it is what runs
 it.** Azure Repos ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the
 file says so at the top. Until the policy exists, no pull request is built, tested or verified, and nothing
