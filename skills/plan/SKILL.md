@@ -112,6 +112,20 @@ it holds the roles and values somebody chose, and a value invented beside them i
 exists to prevent. It is also not protected, so changing one is ordinary declared work — just declare
 the file.
 
+**Guidance is the other one nothing judges** (D-195): how the framework, or this solution, would do one kind of
+thing — build a pipeline, say — where nothing above has decided it.
+
+```
+sdlc guidance
+sdlc guidance <id>
+```
+
+The first lists every entry and the files that switch it on; read any whose files you are about to touch with
+`sdlc guidance show <name>` before you choose a shape. Once `Files` is written, the second hands you each entry the
+declared files switch on. **It comes last**: where the code already does it another way, or a decision or a rule
+says how, that stands and the plan follows it without arguing. Where nothing has decided, follow the entry — and
+where the plan does otherwise, say why under `Shape and departures`, in a line. No reader asks for it.
+
 ## Compare what is declared with what is there
 
 **You have now read both halves — the declared stack and the code — so say where they differ before

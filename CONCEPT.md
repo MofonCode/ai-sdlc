@@ -987,6 +987,27 @@ reader is: where the solution names areas, in full only those in the areas its s
 headline (§8.1.1, D-151). The fixtures that prove a perspective catches its planted
 defect need a model to run, so they are an evaluation outside the suite and are not built.
 
+### 6.6 Guidance
+
+**The framework is strongly opinionated, and where a solution has said nothing its opinion applies; where the
+solution has said something, the solution's word wins** (D-195). For the stack that opinion is the profile (§11).
+For how to do one kind of thing well — build a pipeline, say — it is **guidance**: a short document the binary
+carries, handed to a plan whose declared files switch it on.
+
+**A perspective is used to plan and to verify; guidance only guides planning.** Nobody judges a plan against it,
+no reader asks for it, and it never blocks. It comes last: the solution's code where it already does the thing,
+then its decisions and its rules, then guidance for what none of those decided. A plan that departs from it says
+why in a line. The gate's own steps are never guidance and no entry may weaken them.
+
+**Two levels.** The framework's entries are embedded under `Guidance/`; a solution's own live under
+`.sdlc/guidance/` and replace the framework's by name. Each names the file patterns that switch it on, so the
+binary decides which a plan gets from its `Files` section — `sdlc guidance <id>` — and every host gets the same.
+Advice that keeps proving right reaches the rules through a harvest, never by itself.
+
+**What is built.** The document format, `sdlc guidance`, `sdlc guidance show` and `sdlc guidance <id>`; the
+`plan` skill reading them; and one entry, **pipeline**: the shape the framework would give a solution's pipeline
+where the solution has not chosen one.
+
 ---
 
 ## 7. Constraints
@@ -2490,6 +2511,7 @@ they print verbatim.
 | `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle, and every branch of a cycle the harvest ledger there records closed — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
 | `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes, the factory's images, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
+| `guidance [show <name> \| <id>]` | the guidance a plan is handed: every entry in force, the framework's and the solution's own under `.sdlc/guidance/`, which win by name, with the files that switch each on; one entry in full; or the entries a cycle's plan switches on by its declared files, in full. Advises; never blocks (D-195) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
@@ -7548,6 +7570,35 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-195 — Guidance: the framework's opinion, handed to a plan, overridden by the solution
+
+**Governs:** §6.6
+
+**Decision.** A guidance entry is a Markdown document naming the file patterns that switch it on. The framework's
+are embedded in the binary; a solution's own are under `.sdlc/guidance/` and replace the framework's by name.
+`sdlc guidance` lists them, `sdlc guidance show <name>` prints one, and `sdlc guidance <id>` prints in full the
+entries a cycle's plan switches on by its declared files. The `plan` skill reads them after the decisions, the
+rules and the code, follows an entry where nothing else has decided, and says why in a line where it departs. No
+reader is handed guidance and nothing it says blocks. The first entry is the pipeline.
+
+**Why.** A pull request carrying successors alone took a full governed solution's run, and nothing in the
+framework had told whoever shaped that pipeline what a step costs or what a records-only pull request needs. The
+framework had strong opinions about the stack (§11) and none about how to do things on it. The person's
+principle: strongly opinionated defaults, which a solution's own specification always beats. And the line between
+this and a perspective is theirs: a perspective is used to plan and to verify; guidance only guides planning, a
+gentle push the solution can overwrite at any point.
+
+**Why the framework does not own the pipeline.** Rows in the declared stack generating the pipeline file were
+weighed: it would reverse D-40, which leaves an existing pipeline the team's. The person ruled it out — the
+framework holds an opinion on how to build a pipeline, and that opinion never contradicts the solution's existing
+pipeline, its decisions or its constraints.
+
+**Rejected.** *An advisory perspective*: a perspective's promise is that it judges at verify, and one that does not
+blurs every perspective. *A stack rule*: a rule blocks, and how many jobs a pipeline has is not worth blocking a
+cycle over. *A guide for a person*: a guide is not what a planner reads, and the planner is who shapes the next
+pipeline step. *Every entry handed to every plan*: tokens spent on advice about files the plan does not touch.
+*The agent choosing entries by reading their titles*: a file listing decides it, so the binary does.
 
 ### D-194 — Every counted concern carries what it prevents and what it promotes
 

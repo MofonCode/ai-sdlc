@@ -88,6 +88,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
+| `sdlc guidance [show <name> \| <id>]` | binary | the guidance a plan is handed: every entry and what switches it on, one in full, or the ones a cycle's plan declares files for. The solution's own under `.sdlc/guidance/` win by name. Advises; never blocks |
 | `sdlc perspective show <name> --for <stage>` | binary | a perspective's method and questions for one stage; `--cover` for an author's list |
 | `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the backlog — successors and parked cycles ready, waiting or stuck, and what the page cannot see |
 | `sdlc cycles --here [--for <step>]` | binary | which cycle a skill given no id means: the one this branch carries that is ready for the step, or the list to ask from. For `remediate`, a cycle `blocked`, `escalated`, or passed with its pull request open |

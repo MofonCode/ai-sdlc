@@ -107,6 +107,7 @@ try
         "tidy" => await Workspace.Run(line, TidyCommand).ConfigureAwait(false),
         "upgrade" => await Workspace.Run(line, w => UpgradeCommand(w, line)).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
+        "guidance" => await Workspace.Run(line, w => GuidanceCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
@@ -1708,6 +1709,64 @@ static async Task<int> PerspectiveCommand(CommandLine line)
     }
 
     await Console.Out.WriteAsync(Sdlc.Core.Perspectives.ActivePerspectives.RenderStage(found.Value, stage.ToLowerInvariant(), line.HasOption("cover")))
+        .ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// The guidance a solution plans with (D-195): the list, one entry in full, or the entries a cycle's plan switches on.
+static async Task<int> GuidanceCommand(Workspace workspace, CommandLine line)
+{
+    Result<IReadOnlyList<Sdlc.Core.Guidance.GuidanceEntry>> all = await Sdlc.Core.Guidance.GuidanceLibrary
+        .All(workspace.SolutionRoot, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    if (all.IsFailed)
+    {
+        return await Report(all, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Out.WriteAsync(Sdlc.Core.Guidance.GuidanceLibrary.RenderList(all.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    if (string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase))
+    {
+        string? name = line.Arguments.Count > 1 ? line.Arguments[1] : null;
+
+        if (all.Value.FirstOrDefault(entry => string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase)) is not { } found)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Show which entry? As in 'sdlc guidance show pipeline'. There are: {string.Join(", ", all.Value.Select(entry => entry.Name))}."))
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        await Console.Out.WriteLineAsync(found.Text).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    if (!CycleId.TryParse(line.Arguments[0], out CycleId? id))
+    {
+        await Console.Error.WriteLineAsync("Which cycle? As in 'sdlc guidance 20260929_1456_32', or 'sdlc guidance' for the list.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string plan = new Cycle(id.Value, workspace.SolutionRoot).PathOf(ArtifactKind.Plan);
+
+    if (!File.Exists(plan))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{id} has no plan yet, so no declared files to match. 'sdlc guidance' lists every entry and the files that switch each on."))
+            .ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    IReadOnlyList<string> declared = DeclaredFiles.Read(await File.ReadAllTextAsync(plan).ConfigureAwait(false));
+    await Console.Out.WriteAsync(Sdlc.Core.Guidance.GuidanceLibrary.RenderFor(Sdlc.Core.Guidance.GuidanceLibrary.For(all.Value, declared)))
         .ConfigureAwait(false);
     return ExitCode.Ok;
 }

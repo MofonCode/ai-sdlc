@@ -199,6 +199,13 @@ internal static class Usage
                                      file each new one as a bug on the platform's tracker -- a lead.
                                      Not filed again while open, or once a person dismissed it.
                                      A person runs it; no pipeline does.
+            guidance                 The guidance a plan is handed: every entry, the framework's
+                                     and the solution's own under .sdlc/guidance/, which win by
+                                     name, and the files that switch each on. Advises; never
+                                     blocks (D-195).
+            guidance show <name>     One entry in full.
+            guidance <id>            The entries a cycle's plan switches on by its declared
+                                     files, in full, for the planner to read.
             perspective show <name> --for <stage> [--cover]
                                      One perspective for one stage -- intent, spec, plan, build or
                                      verify: its method, the questions a fresh reader asks, its

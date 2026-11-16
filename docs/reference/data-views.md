@@ -19,6 +19,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the parts of the code, and what each covers and carries](../README.md) | `.sdlc/areas.md` | `sdlc areas` | a person |
 | [the theme](../README.md) | `.sdlc/theme.json` | `sdlc theme` | a cycle that declares it |
 | [the perspectives a cycle gets](../mechanisms/perspectives.md) | worked out from the intent and the plan's files | `sdlc perspectives <id>`; one: `sdlc perspective show <name> --for <stage>` | — |
+| [the guidance a plan is handed](../mechanisms/guidance.md) | the framework's in the binary; the solution's own under `.sdlc/guidance/` | `sdlc guidance`; one: `sdlc guidance show <name>`; a cycle's: `sdlc guidance <id>` | the framework; the solution's own by a cycle that declares it, or a person |
 | [the coverage baseline](../guides/handling-refusals.md) | `.sdlc/coverage.json` | `sdlc evidence <id> --coverage <path>` reports against it, and against `coverage_floor` (`sdlc settings`) | the binary; a person may re-measure it |
 | **One cycle** | | | |
 | [the intent, spec, plan and verify](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/` | `sdlc status <id>` | each stage |

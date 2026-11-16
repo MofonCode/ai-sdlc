@@ -408,6 +408,7 @@ refusal with its remedy.
 | [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | **the mechanisms** — how one works and why, one page each |
 | [`docs/mechanisms/protected-files.md`](docs/mechanisms/protected-files.md) | the files only a person changes, and how the hook guards them |
 | [`docs/mechanisms/perspectives.md`](docs/mechanisms/perspectives.md) | what examines a change beyond the rules, when each perspective steers and judges, and how to read what it found |
+| [`docs/mechanisms/guidance.md`](docs/mechanisms/guidance.md) | the framework's opinion on how to do one kind of thing, handed to a plan that touches it, and how a solution overrides it |
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill, refusal and piece of data, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
