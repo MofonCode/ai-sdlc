@@ -166,6 +166,7 @@ public sealed class PinnedReleaseTests
     [TestMethod]
     [DataRow("0.37.0")]
     [DataRow("0.37.0-preview.4")]
+    [DataRow("0.37.12")]
     public void Skills_from_the_same_release_say_nothing(string binary)
     {
         using var scratch = Scratch.Create();

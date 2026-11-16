@@ -9,6 +9,23 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.49
+
+**Every merge to main that ships is a release a person approves or rejects** (D-197). The framework builds from one
+branch: a feature branch is squashed into `main`, `ci.yml` builds and tests it, and `cd.yml` waits for approval and
+publishes. There is no `development` branch and no preview. The version is `<major>.<minor>.<build>`: the line is
+declared, and the build is counted from the merges since it moved, so `0.49.0` is the first and every release after
+it the next number. The major stays 0 while the framework is alpha.
+
+**The session-start check compares the release line.** A plugin installed from the marketplace says `0.49.0`, and a
+binary from any build of 0.49 is the same release to it.
+
+**A minor** because the numbering changes what a solution pins: from here a pin names a build, and the newest build
+of a line is the one to take. No cycle blocks differently.
+
+**Moving to it.** Pin `0.49.<build>`, the newest on nuget.org, with `dotnet tool update --local
+MofonCode.Sdlc.Cli --version <it>`, then `sdlc init`, as for any release. There is no preview to pin any more.
+
 ## 0.48.0
 
 **A pull request that changes only `.sdlc/` is not built** (D-193). `sdlc admission` answers `true` whenever every

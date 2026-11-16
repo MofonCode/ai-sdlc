@@ -7574,6 +7574,56 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-197 — This repository releases from main: every merge that ships is a numbered build a person approves or rejects
+
+**Governs:** nothing in §1–18: it is how this repository builds, numbers and publishes its own releases, stated in
+`AGENTS.md` under Releasing.
+
+**Revises D-131 and D-135** where they say how the binary is published, **D-140** where it says which number a
+person moves, **and D-136 for this repository only**: a governed solution's default policy, its integration branch
+and `sdlc promotion` are unchanged.
+
+**Decision.**
+
+- **Trunk.** Feature branches are squashed into `main` by pull request. There is no `development`, no promotion
+  and no preview.
+- **Two workflows.** `ci.yml` builds and tests every pull request and every push to main, and holds no right to
+  publish. `cd.yml` starts when `ci.yml` finishes green on a push to main that changes what ships, waits for a
+  reviewer on the `nuget` environment, and, approved, pushes the package `ci.yml` tested and tags the commit.
+  Rejected, nothing is published; the change stays on main and the next release carries it.
+- **The version is `<major>.<minor>.<build>`.** The props and both manifests declare the line, `<major>.<minor>.0`.
+  The build is how many commits main has taken, first parent only, since the line last moved, so the merge that
+  moves it is `.0`. `ci.yml` stamps it into the binary and the packed manifests, and never commits it.
+- **The major stays 0 while the framework is alpha.** No prerelease label marks it: a 0 says it, and NuGet treats
+  a 0.x version as stable, so a plain `dotnet tool install` takes the newest.
+- **The session-start check compares the line.** A plugin installed from the marketplace reads the repository's
+  manifest, which says `.0`; a build apart within one line is not reported.
+
+**Why.** The person wanted fewer steps between a merged change and a version a solution can pin, and alpha is
+where the framework is: not yet hardened across several solutions and many cycles. Two branches, a hand-moved patch
+in three files and a preview per version were the ceremony of a staged release the framework does not yet have
+users for. A typed patch was also the most common thing a merge forgot. Splitting the workflows takes the
+publishing rights out of the one a pull request's code runs in.
+
+**What it costs.** A change is tried on a real cycle only after it is released, since a local build cannot open a
+pull request (D-135); at 0.x that is a release like any other. Every approved release is permanent on nuget.org.
+`cd.yml` runs as main has it, so a change to it cannot be tried before it merges. Within one line, a plugin
+installed from the marketplace and a binary a build apart are not reported, though a build may add a command.
+
+**Rejected.**
+
+- *Alpha, preview and release channels, each build climbing them.* The ladder suits a framework with users waiting
+  on stable releases; this one is alpha as a whole. Revisit when it leaves 0.x.
+- *A branch per channel, merged forward without squashing.* Each merge is a new commit, so what a channel tested is
+  not what the next one ships, and a branch shows only its tip where the tags show how far each build went.
+- *A `-alpha` label on every build.* The 0 already says it, and a prerelease label hides every version from a plain
+  install.
+- *The run number as the build.* Pull requests spend it, a renamed workflow restarts it, and it says nothing about
+  the commit; the count since the line moved is the same answer on every machine.
+- *Promotion by pushing a tag.* A tag push runs the workflow as the tagged commit has it, and a tag pushed before a
+  publish succeeds is a tag that lies.
+- *Committing the build number back.* Main takes pull requests only, and a bot's commit per release would be one.
+
 ### D-196 — A promotion always builds, and skips the tests the integration branch already ran on exactly what it merges
 
 **Governs:** §13
@@ -9471,6 +9521,9 @@ guard is kept where it does work and dropped where it did none.
 **Governs:** nothing in §1–18: it is how this repository numbers its own releases, stated in `AGENTS.md` under
 Releasing.
 
+**Revised by D-197:** the third number is the build, counted by the pipeline, and nobody moves it; the minor and
+the major are as below.
+
 **Decision.** The release is `major.minor.patch`, and every change that ships moves one of them (D-131). **The
 patch** moves for a change that leaves an existing solution's cycles behaving as they did: a fix, a new command
 or option, wording, a shipped document. **The minor** moves, and the patch returns to 0, for a change that can
@@ -9758,7 +9811,8 @@ nuget.org version can never be deleted.
   `verify-chain`, and the solution's pull-request check refuses it if somebody opens one by hand. A test run ends
   abandoned. The change is published as a preview, the integration branch is pinned to it by a pull request that
   only moves the pin (D-133), and the cycle is run again on it.
-- **One pipeline publishes.** `ci.yml` builds every pull request, publishes a preview from a push to `development`
+- **One pipeline publishes** (two workflows since D-197: `ci.yml` builds, `cd.yml` releases a merge to main a
+  person approves, and there is no preview). `ci.yml` builds every pull request, publishes a preview from a push to `development`
   that changes what ships (any branch but master until D-136) once a reviewer approves the `nuget-preview`
   environment (unreviewed through 0.36.9-preview), and a release from a merge to main (master until 0.36.9) once a reviewer approves the `nuget`
   environment. Each published version is tagged as before. A pull request's packed tool is kept as a run artifact,
@@ -10008,6 +10062,10 @@ with a release cut by a pushed tag, until D-135 made one pipeline of it:
   first answer, and it gave a pin a name that said nothing about what it held.
 
 Either way, every published binary has a git tag naming the commit it was built from.
+
+**Since D-197** this repository has no preview and no `development`: `cd.yml` publishes a merge to main that ships,
+once a person approves it, as `<major>.<minor>.<build>`, and tags it. The pin, the handoff and the packed plugin are
+unchanged.
 
 Every findings round records the `release` that wrote it, in an optional field that is hashed only when present
 (D-107), so a ledger written before this still verifies. The status panel says when a cycle's rounds were

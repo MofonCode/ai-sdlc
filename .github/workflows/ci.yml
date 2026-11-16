@@ -1,22 +1,23 @@
-# Build, test and publish the sdlc binary: one pipeline, three ways in (D-135).
+# Build and test the sdlc binary, and decide the version a release of it would be (D-197). It publishes nothing:
+# cd.yml does, from the package a push to main leaves here, once a person approves it.
 #
-#   a pull request                     -> build and test, and keep the packed tool as a run artifact
-#   a push to development -- a merged  -> the same, then <VersionPrefix>-preview to nuget.org through
-#      pull request that ships          'nuget-preview', which waits for a reviewer, tagged v<that version>
-#   a push to main -- a merge        -> the same, then <VersionPrefix> through 'nuget', which waits for a
-#                                         reviewer, tagged v<that version>
+#   a pull request    -> build and test as declared, and keep the packed tool as a run artifact
+#   a push to main    -> the same at the build's own version, when the merge changes what ships, and keep the
+#     -- a merged        packed tool for cd.yml, which asks a person whether to release it
+#     pull request
 #
-# A preview carries no counter, so each version has one. The next preview is the next patch, moved in the props
-# and both manifests together; a push that ships a change without moving it is refused. A merge to main whose
-# version is already published and that ships nothing -- a documentation merge -- publishes nothing.
+# The version is <major>.<minor>.<build>. The props declare the line, <major>.<minor>.0, and the build is how many
+# commits main has taken since that line last moved: the squash merge that moves it is build 0, the next merge 1.
+# Nobody types the third number, so nobody can forget it, and two merges can never claim one. A merge that ships
+# nothing takes a number too and publishes nothing, so the published builds have gaps, which is harmless.
 #
-# Only pushes that change what ships make a preview: the binary, the skills, the hooks and the manifests. A
-# version on nuget.org can be unlisted but never deleted, so a preview per documentation commit would be
-# permanent noise. A push to development that ships nothing runs nothing here: its pull request built it.
+# Only pushes that change what ships are built: the binary, the skills, the hooks and the manifests. A version on
+# nuget.org can be unlisted but never deleted, so a release per documentation commit would be permanent noise. A
+# push to main that ships nothing runs nothing beyond the version: its pull request built it.
 #
-# Both branches take pull requests only, with nobody bypassing (D-136): squashed into development, so one
-# merged pull request is one preview, and merged with a merge commit into main. Only development or a
-# release/* branch may open a pull request into main, which the promotion job below decides.
+# Feature branches are squashed into main by pull request and nothing else reaches it (D-197). There is no
+# integration branch and no promotion: main is the trunk, and every merge to it that ships is a release a person
+# can approve or reject.
 #
 # A build nobody published is a local build and is never pushed anywhere. The packed tool a pull request leaves
 # as an artifact was built here, with CI set, so it carries the plain version; downloaded and used through
@@ -27,91 +28,111 @@
 # adding one is wrong, because a framework judged by the constraints it is changing is a deadlock.
 # AGENTS.md states that; this comment exists so nobody closes the gap by pointing the gate at itself.
 #
-# No stored secret and no API key. The publish job trades a GitHub OIDC token for a nuget.org key that
-# nuget.org issues on the spot and expires an hour later, against a trusted publishing policy registered there.
-# The policy names this file and the environment, so a token minted by any other workflow or job does not
-# satisfy it. The fields are in AGENTS.md, under Releasing. A model is never called by a gate, here or in a
-# governed solution.
+# Read only, everywhere. A pull request's code runs in this workflow, so this workflow holds no right to publish
+# and no token that could mint one: the OIDC exchange and the tag push live in cd.yml, which runs only main's
+# code. A model is never called by a gate, here or in a governed solution.
 
 name: ci
 
 on:
   pull_request:
   push:
-    branches: [main, development]
+    branches: [main]
 
 permissions:
   contents: read
 
 # A second push to the same pull request makes the first run's answer irrelevant, so stop it rather than pay
-# for both. Never cancel a push: those runs publish, nuget.org has no rollback, and on main they are the
-# record of what the branch did.
+# for both. Never cancel a push: its package is what cd.yml releases, and on main the runs are the record of
+# what the branch did.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Whether a push changes what ships. A path filter on the trigger cannot say this, because main builds
-  # every merge and development only a shipping one -- and a merge that ships with a version already
-  # published is a mistake to refuse, which needs the answer as a value rather than as a skipped run.
-  changes:
-    name: what the push changes
-    if: github.event_name == 'push'
+  # The version, and whether a push changes what ships. A path filter on the trigger cannot say the second,
+  # because the version is wanted either way and cd.yml needs the answer as a value rather than as a skipped run.
+  version:
+    name: what the build is
     runs-on: ubuntu-latest
     outputs:
-      ships: ${{ steps.diff.outputs.ships }}
+      version: ${{ steps.decide.outputs.version }}
+      ships: ${{ steps.decide.outputs.ships }}
     steps:
+      # The whole history: the build number is counted from it.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
+      # Refused when the pieces disagree: plugin manifests that are not the line the props declare, or a third
+      # number somebody typed. A binary and a plugin that disagree about which release they are is the failure
+      # the session-start check exists to report, and it is cheaper to refuse it here -- on a pull request too,
+      # so it is found before the merge rather than at it.
+      #
       # A new branch has no previous commit, and a force push may have dropped it, so both count as shipping:
-      # the version check below then decides, which is the safe direction to be wrong in.
-      - name: Does it change what ships
-        id: diff
+      # cd.yml then refuses a version already published, which is the safe direction to be wrong in.
+      - name: Decide the version
+        id: decide
         env:
           BEFORE: ${{ github.event.before }}
         run: |
-          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            ships=true
-          elif git diff --name-only "$BEFORE" "$GITHUB_SHA" \
-              | grep -Eq '^(src/|skills/|hooks/|\.claude-plugin/|plugin\.json$|CONSTRAINTS\.md$|Directory\.Build\.props$|Directory\.Packages\.props$|global\.json$)'; then
-            ships=true
-          else
-            ships=false
-          fi
-          echo "ships=$ships" >> "$GITHUB_OUTPUT"
-          echo "Changes what ships: $ships"
-
-  # Only development or a release/* branch may open a pull request into main (D-136). A ruleset cannot say
-  # which branch a pull request comes from, so this job does, and main's ruleset requires it. Inline rather
-  # than 'sdlc promotion', because this repository is not governed by the framework it builds.
-  promotion:
-    name: promotion
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Only development or a release branch promotes into main
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          case "$HEAD_REF" in
-            development|release/?*) echo "$HEAD_REF may promote into main." ;;
-            *) echo "::error::$HEAD_REF may not open a pull request into main. Open it into development, and promote from there or from a release/* branch."; exit 1 ;;
+          prefix="$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' Directory.Build.props)"
+          for manifest in plugin.json .claude-plugin/plugin.json; do
+            declared="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$manifest" | head -n 1)"
+            if [ "$declared" != "$prefix" ]; then
+              echo "::error::$manifest says $declared and Directory.Build.props says $prefix."
+              exit 1
+            fi
+          done
+          case "$prefix" in
+            *.*.0) ;;
+            *) echo "::error::Directory.Build.props declares $prefix. It declares the line, <major>.<minor>.0: the pipeline numbers the build."; exit 1 ;;
           esac
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            version="$prefix"
+            ships=false
+          else
+            # The newest commit on main's own line that moved the version, and how many commits came after it.
+            # First parent only, so a merge commit counts once and what it brought in is not counted again.
+            line="$(git log --first-parent --diff-merges=first-parent --no-patch -1 --format=%H -G'<VersionPrefix>[0-9]' -- Directory.Build.props)"
+            [ -n "$line" ] || { echo "::error::No commit on main's line ever set VersionPrefix."; exit 1; }
+            build="$(git rev-list --count --first-parent "$line..$GITHUB_SHA")"
+            version="${prefix%.0}.$build"
+
+            if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+              ships=true
+            elif git diff --name-only "$BEFORE" "$GITHUB_SHA" \
+                | grep -Eq '^(src/|skills/|hooks/|\.claude-plugin/|plugin\.json$|CONSTRAINTS\.md$|Directory\.Build\.props$|Directory\.Packages\.props$|global\.json$)'; then
+              ships=true
+            else
+              ships=false
+            fi
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "ships=$ships" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\nships=%s\n' "$version" "$ships" > release.txt
+          echo "Building $version; changes what ships: $ships"
+
+      # What cd.yml reads to decide whether there is anything to ask a person about. A push only: a pull
+      # request's run never releases, and cd.yml listens to pushes alone besides.
+      - if: github.event_name == 'push'
+        uses: actions/upload-artifact@v6
+        with:
+          name: release
+          path: release.txt
+          if-no-files-found: error
+          retention-days: 30
 
   build:
     name: build, test and pack
-    needs: changes
+    needs: version
     if: >-
-      ${{ !cancelled() && needs.changes.result != 'failure' && (
+      ${{ !cancelled() && needs.version.result == 'success' && (
           github.event_name == 'pull_request'
-          || github.ref == 'refs/heads/main'
-          || needs.changes.outputs.ships == 'true') }}
+          || needs.version.outputs.ships == 'true') }}
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      publish: ${{ steps.version.outputs.publish }}
 
     steps:
       - uses: actions/checkout@v5
@@ -123,70 +144,23 @@ jobs:
         with:
           global-json-file: global.json
 
-      # The version is decided before anything is built, and refused when the pieces disagree: plugin manifests
-      # that are not the release the props declare. A binary and a plugin that disagree about which release they
-      # are is the failure the session-start check exists to report, and it is cheaper to refuse it here -- on a
-      # pull request too, so it is found before the merge rather than at it.
-      - name: Decide the version
-        id: version
-        env:
-          SHIPS: ${{ needs.changes.outputs.ships }}
+      # The repository's manifests say the line; the package carries both of them beside the binary, so they are
+      # stamped with the build here, in this checkout only, and never committed. The suite then holds the stamped
+      # pair to the binary exactly as it holds the declared pair on a laptop.
+      - name: Stamp the build into the plugin manifests
+        if: github.event_name == 'push'
         run: |
-          prefix="$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' Directory.Build.props)"
           for manifest in plugin.json .claude-plugin/plugin.json; do
-            declared="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$manifest" | head -n 1)"
-            if [ "$declared" != "$prefix" ]; then
-              echo "::error::$manifest says $declared and Directory.Build.props says $prefix."
-              exit 1
-            fi
+            sed -i '0,/"version": *"[^"]*"/s//"version": "${{ needs.version.outputs.version }}"/' "$manifest"
+            grep -q '"version": "${{ needs.version.outputs.version }}"' "$manifest" || { echo "::error::$manifest was not stamped."; exit 1; }
           done
-
-          # Whether nuget.org has a version, or a tag already names it. The tag is asked for too because it is
-          # immediate, and nuget.org's index takes minutes to list a fresh version.
-          taken() {
-            id="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
-            published="$(curl -fsS https://api.nuget.org/v3-flatcontainer/mofoncode.sdlc.cli/index.json | grep -c "\"$id\"" || true)"
-            tagged="$(git ls-remote --tags origin "refs/tags/v$1" | wc -l)"
-            [ "$published" != "0" ] || [ "$tagged" != "0" ]
-          }
-
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            version="$prefix"
-            publish=none
-          elif [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            version="$prefix"
-            if taken "$version"; then
-              if [ "$SHIPS" = "true" ]; then
-                echo "::error::$version is already published, and this merge changes what ships. Move the patch in Directory.Build.props and both plugin manifests together."
-                exit 1
-              fi
-              echo "$version is already published and this merge ships nothing, so nothing is published."
-              publish=none
-            else
-              publish=release
-            fi
-          else
-            # One preview per version, named like a release: a new preview is a new patch. A version already
-            # published is refused rather than skipped, so a change that forgot the bump fails where somebody
-            # looks instead of publishing nothing.
-            version="$prefix-preview"
-            if taken "$version"; then
-              echo "::error::$version is already published. A preview is one per version: move the patch in Directory.Build.props and both plugin manifests together, then push."
-              exit 1
-            fi
-            publish=preview
-          fi
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
-          echo "Building $version; publishing: $publish"
 
       # Warnings are errors here, so a build that warns is a build that failed. Note that NuGetAudit
       # runs at moderate with NuGetAuditMode all: a newly disclosed advisory in any transitive
       # dependency turns this red on a pull request that touched nothing. That is deliberate -- it is
       # how you find out -- but it will look like CI broke when it happens.
       - name: Build
-        run: dotnet build --configuration Release -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build --configuration Release -p:Version=${{ needs.version.outputs.version }}
 
       # Bare `dotnet test`, with no verbosity flags. This solution runs on Microsoft.Testing.Platform
       # (global.json pins the runner), and VSTest-style flags like `-v q` make it run ZERO tests and
@@ -219,12 +193,12 @@ jobs:
       # pass, and 468 tests agreed everything was fine. D-41 embedded the library; these steps
       # are what would have caught it, because they are the only ones run from outside the tree.
       #
-      # The package packed here is the one published: the publish job downloads it rather than building again.
+      # The package packed here is the one released: cd.yml downloads it rather than building again.
       - name: Pack the tool
         run: >
           dotnet pack src/Sdlc.Cli/Sdlc.Cli.csproj
           --configuration Release
-          -p:Version=${{ steps.version.outputs.version }}
+          -p:Version=${{ needs.version.outputs.version }}
           -o "${{ runner.temp }}/pack"
 
       - name: Install the packed tool
@@ -232,7 +206,7 @@ jobs:
           dotnet tool install MofonCode.Sdlc.Cli
           --add-source "${{ runner.temp }}/pack"
           --tool-path "${{ runner.temp }}/tool"
-          --version ${{ steps.version.outputs.version }}
+          --version ${{ needs.version.outputs.version }}
 
       # Renders the effective set, which is the command that needs the library and the one a person
       # should run as a smoke test. `help` and `version` are the two that cannot detect this.
@@ -250,17 +224,20 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           first="$("${{ runner.temp }}/tool/sdlc" version | head -n 1)"
-          [ "$first" = "sdlc ${{ steps.version.outputs.version }}" ] || { echo "::error::The packed tool says '$first'."; exit 1; }
-          find "${{ runner.temp }}/tool/.store" -path '*/plugin/.claude-plugin/plugin.json' | grep -q . || { echo "::error::The packed tool carries no plugin."; exit 1; }
+          [ "$first" = "sdlc ${{ needs.version.outputs.version }}" ] || { echo "::error::The packed tool says '$first'."; exit 1; }
+          packed="$(find "${{ runner.temp }}/tool/.store" -path '*/plugin/.claude-plugin/plugin.json' | head -n 1)"
+          [ -n "$packed" ] || { echo "::error::The packed tool carries no plugin."; exit 1; }
+          grep -q '"version": "${{ needs.version.outputs.version }}"' "$packed" || { echo "::error::The packed plugin is not ${{ needs.version.outputs.version }}."; exit 1; }
 
       # Kept on every run, a pull request's included: it is how a branch's build reaches a machine without
-      # being published -- download it, install it to a folder, and point SDLC_DEV_BUILD there (D-135).
+      # being published -- download it, install it to a folder, and point SDLC_DEV_BUILD there (D-135). A push's
+      # is what cd.yml releases, kept as long as a pending approval can wait.
       - uses: actions/upload-artifact@v6
         with:
           name: nupkg
           path: ${{ runner.temp }}/pack/*
           if-no-files-found: error
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'push' && 30 || 7 }}
 
       # The factory's agent image (factory/README.md, D-96). The suite reads the Dockerfile as text, so
       # an image that no longer builds -- a moved path, a package gone from an apt source, an installer
@@ -282,60 +259,3 @@ jobs:
             *) echo 'The image did not answer with its version.'; exit 1 ;;
           esac
 
-  publish:
-    name: publish to nuget.org
-    needs: build
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.build.outputs.publish != 'none' }}
-    runs-on: ubuntu-latest
-
-    permissions:
-      # The OIDC token traded for a nuget.org key, and the tag every published version is given. Job-level
-      # permissions replace the top-level block outright, so contents is restated.
-      id-token: write
-      contents: write
-
-    # Both carry a required reviewer, so nothing reaches nuget.org until a person approves it: a version there can
-    # be unlisted and never deleted, a preview included. The trusted publishing policies name these, one each.
-    environment:
-      name: ${{ needs.build.outputs.publish == 'preview' && 'nuget-preview' || 'nuget' }}
-      url: https://www.nuget.org/packages/MofonCode.Sdlc.Cli/${{ needs.build.outputs.version }}
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
-
-      - uses: actions/download-artifact@v7
-        with:
-          name: nupkg
-          path: ./artifacts
-
-      # Inside the gated job, so the one-hour key is minted only once a release has been approved.
-      - name: Trade the OIDC token for a short-lived nuget.org key
-        uses: NuGet/login@v1
-        id: login
-        with:
-          user: ${{ secrets.NUGET_USER }}
-
-      # --skip-duplicate, so re-running a publish that already pushed is a no-op rather than a failure.
-      - name: Push
-        run: >
-          dotnet nuget push "./artifacts/*.nupkg"
-          --source https://api.nuget.org/v3/index.json
-          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
-          --skip-duplicate
-
-      # Every published binary has a tag naming the commit it was built from, by the same name the manifest
-      # pins, so the plugin can be pinned to it (D-131). A tag pushed with the workflow's own token starts no
-      # workflow -- GitHub's rule -- and this one listens for branches only besides.
-      - name: Tag the commit
-        run: |
-          tag="v${{ needs.build.outputs.version }}"
-          if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
-            echo "$tag is already pushed: this is a re-run."
-          else
-            git tag "$tag" "$GITHUB_SHA"
-            git push origin "$tag"
-          fi

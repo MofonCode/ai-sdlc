@@ -1,13 +1,13 @@
 # Testing a local build
 
 **Running a cycle end to end on a change to the framework that nobody has published.** You are changing a
-skill, a check or a hook, and you want to watch a real cycle go through it before a preview exists. This guide
+skill, a check or a hook, and you want to watch a real cycle go through it before it is released. This guide
 is for somebody working on ai-sdlc itself; nobody using a published release needs it.
 
 **A test run stays a test run.** A build nobody published calls itself `<release>-local`, every round it writes
 records that, and no cycle a local build judged opens a pull request, in any form (D-135). Nobody else can restore
-the build, so nothing it decided can be checked again. Run the cycle, learn what you needed, abandon it, publish,
-and do the work again on the preview.
+the build, so nothing it decided can be checked again. Run the cycle, learn what you needed, abandon it, release
+it, and do the work again on the release.
 
 ## 1. Build what you want to test
 
@@ -24,7 +24,7 @@ The folder carries the plugin beside the binary — the skills, the hooks and bo
 start in step 3 runs your skills too, not only your binary.
 
 **To test a branch somebody else pushed**, take the package its pull request built. Every run of `ci.yml` keeps
-the packed tool as an artifact named `nupkg`, for seven days:
+the packed tool as an artifact named `nupkg`, for seven days on a pull request:
 
 ```pwsh
 gh run download <run id> --repo MofonCode/ai-sdlc --name nupkg --dir C:\sdlc-feed
@@ -92,13 +92,14 @@ Remove-Item Env:SDLC_DEV_BUILD
 
 ## 6. Ship it, and run the work for real
 
-1. **Publish the change.** Move the patch in `Directory.Build.props` and both plugin manifests, and open a pull
-   request from your branch of ai-sdlc into `development`. A branch's own pushes publish nothing; when the pull
-   request is squashed into `development`, `ci.yml` publishes `<release>-preview`.
+1. **Release the change.** Open a pull request from your branch of ai-sdlc into `main`, moving the minor in
+   `Directory.Build.props` and both plugin manifests if the change can make a cycle block. A branch's own pushes
+   publish nothing; when the pull request is squashed into `main`, `cd.yml` asks for approval and, approved,
+   publishes `<major>.<minor>.<build>` (D-197).
 2. **Pin the solution to it.** On the solution's integration branch:
 
    ```pwsh
-   dotnet tool update --local MofonCode.Sdlc.Cli --version <release>-preview
+   dotnet tool update --local MofonCode.Sdlc.Cli --version <release>
    ```
 
    ```pwsh
@@ -106,7 +107,7 @@ Remove-Item Env:SDLC_DEV_BUILD
    ```
 
    Commit, and open a pull request. One that only moves the pin needs no cycle (D-133).
-3. **Open the cycle again** on the preview, from its intent, and run it through to *build it*, which ends at the
+3. **Open the cycle again** on the release, from its intent, and run it through to *build it*, which ends at the
    pull request.
 
 ## Pinning a local build in a sandbox

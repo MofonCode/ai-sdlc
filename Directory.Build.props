@@ -6,12 +6,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <!-- The release version, declared once for the whole solution. It is the number
-         .claude-plugin/plugin.json carries, because the plugin and the binary are two halves
-         of one install and a reader asking "what version is this" means the pair. Without it
-         the package took the SDK default of 1.0.0 while the plugin said 0.9.0, so the two
-         halves disagreed with nobody able to see it. PluginTests asserts they still agree. -->
-    <VersionPrefix>0.48.0</VersionPrefix>
+    <!-- The release line, declared once for the whole solution: the major and the minor, with the third number 0
+         (D-197). The pipeline supplies the third number, the build: how many commits main has taken since this line
+         last moved, so the merge that moves it is build 0 and every merge after it is the next. A person moves the
+         minor here when a change can make a solution's cycle block (D-140) and never the third number, which ci.yml
+         refuses unless it is 0. A build made anywhere but the pipeline keeps 0, so a laptop and a pull request
+         build the line as declared.
+
+         It is the number .claude-plugin/plugin.json carries, because the plugin and the binary are two halves of one
+         install and a reader asking "what version is this" means the pair. Without it the package took the SDK
+         default of 1.0.0 while the plugin said 0.9.0, so the two halves disagreed with nobody able to see it.
+         PluginTests asserts they still agree, and ci.yml stamps the build into the packed copies. -->
+    <VersionPrefix>0.49.0</VersionPrefix>
 
     <!-- A pack made anywhere but the pipeline is a local build, and its version says so: 0.36.7-local (D-135).
          A solution can pin it to test a change, and no cycle it judges reaches a pull request, because the rounds
