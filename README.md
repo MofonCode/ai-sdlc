@@ -1,12 +1,11 @@
 # ai-sdlc
 
 [![release](https://img.shields.io/nuget/v/MofonCode.Sdlc.Cli?label=release)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli)
-[![preview](https://img.shields.io/nuget/vpre/MofonCode.Sdlc.Cli?label=preview&color=orange)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli#versions-body-tab)
 [![downloads](https://img.shields.io/nuget/dt/MofonCode.Sdlc.Cli)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli)
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.48.0** · .NET 10 · [changelog](CHANGELOG.md)
+**Version 0.49** · .NET 10 · [changelog](CHANGELOG.md)
 
 **ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
@@ -323,7 +322,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.48.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.49.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer

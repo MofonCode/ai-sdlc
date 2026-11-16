@@ -1,0 +1,146 @@
+# Release the sdlc binary: the package ci.yml built from a push to main, to nuget.org, once a person approves it
+# (D-197). One way in, and nothing else publishes.
+#
+#   ci.yml finishes green on a push to main  -> when that push changed what ships, wait for a reviewer on the
+#                                               'nuget' environment; approved, publish <major>.<minor>.<build>
+#                                               and tag the commit v<that version>; rejected, publish nothing
+#
+# Approval or rejection is the whole decision. A rejected build loses nothing: its change is on main, and the next
+# merge that ships carries it. Nothing here builds -- the package is the one ci.yml packed and tested, downloaded
+# from its run, so the binary a person approves is the binary that was tested.
+#
+# GitHub runs this file as it stands on main, never as a branch has it: a change to it takes effect when it merges,
+# and cannot be tried before. A tag pushed with this workflow's token starts no workflow, GitHub's rule, so the tag
+# is a record and never a trigger: it exists only once its version is on nuget.org.
+#
+# No stored secret and no API key. The publish job trades a GitHub OIDC token for a nuget.org key that nuget.org
+# issues on the spot and expires an hour later, against a trusted publishing policy registered there. The policy
+# names this file and the environment, so a token minted by any other workflow or job does not satisfy it. The
+# fields are in AGENTS.md, under Releasing.
+
+name: cd
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
+
+# One release at a time, never cancelled: a run cancelled between the push and the tag leaves a version on
+# nuget.org that no tag names. GitHub keeps one run waiting behind the running one and drops an older waiting run
+# when a newer arrives, so when two merges wait, reject the older and the newest -- which carries both -- follows.
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+jobs:
+  # Whether there is anything to ask a person about. No environment, so a merge that ships nothing asks nobody.
+  release:
+    name: what the build releases
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      version: ${{ steps.decide.outputs.version }}
+      publish: ${{ steps.decide.outputs.publish }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: release
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      # A version is published once. One already on nuget.org, or already tagged, means the build number was
+      # reused -- the props moved back, or main's history was rewritten -- and is refused rather than skipped, so it
+      # fails where somebody looks. The tag is asked for too because it is immediate, and nuget.org's index takes
+      # minutes to list a fresh version.
+      - name: Decide
+        id: decide
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          version="$(sed -n 's/^version=//p' release.txt)"
+          ships="$(sed -n 's/^ships=//p' release.txt)"
+          if [ "$ships" != "true" ]; then
+            echo "$version changes nothing that ships, so there is nothing to release."
+            publish=false
+          else
+            id="$(echo "$version" | tr '[:upper:]' '[:lower:]')"
+            published="$(curl -fsS https://api.nuget.org/v3-flatcontainer/mofoncode.sdlc.cli/index.json | grep -c "\"$id\"" || true)"
+            tagged="$(git ls-remote --tags "https://github.com/$REPOSITORY" "refs/tags/v$version" | wc -l)"
+            if [ "$published" != "0" ] || [ "$tagged" != "0" ]; then
+              echo "::error::$version is already published. A build number is never reused: see whether VersionPrefix moved back or main's history was rewritten."
+              exit 1
+            fi
+            publish=true
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: publish to nuget.org
+    needs: release
+    if: needs.release.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+
+    permissions:
+      # The package from ci.yml's run, the OIDC token traded for a nuget.org key, and the tag every published
+      # version is given.
+      actions: read
+      id-token: write
+      contents: write
+
+    # A required reviewer, so nothing reaches nuget.org until a person approves it: a version there can be unlisted
+    # and never deleted. The trusted publishing policy names this environment and this file.
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/MofonCode.Sdlc.Cli/${{ needs.release.outputs.version }}
+
+    steps:
+      # The commit ci.yml built, for the SDK pin and the tag. Not main's tip: another merge may have landed since.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: nupkg
+          path: ./artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      # Inside the gated job, so the one-hour key is minted only once a release has been approved.
+      - name: Trade the OIDC token for a short-lived nuget.org key
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # --skip-duplicate, so re-running a publish that already pushed is a no-op rather than a failure.
+      - name: Push
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --skip-duplicate
+
+      # Every published binary has a tag naming the commit it was built from, by the same name the manifest pins
+      # (D-131), written only once the push succeeded, so a tag always means a published version.
+      - name: Tag the commit
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          tag="v${{ needs.release.outputs.version }}"
+          if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
+            echo "$tag is already pushed: this is a re-run."
+          else
+            git tag "$tag" "$SHA"
+            git push origin "$tag"
+          fi

@@ -1419,10 +1419,14 @@ public sealed class PluginTests
         string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
         string version = Read(Path.Combine(".claude-plugin", "plugin.json"))["version"]!.GetValue<string>();
 
+        // The line, not the build: the pipeline numbers every build of a line, and a readme cannot (D-197). On CI the
+        // manifest read here is stamped with the build, so the line is all the two could ever share.
+        string line = version[..version.LastIndexOf('.')];
+
         StringAssert.Contains(
             readme,
-            version,
-            "The readme does not state the version in plugin.json. One of the two is stale.");
+            "**Version " + line + "**",
+            "The readme does not state the release line in plugin.json. One of the two is stale.");
     }
 
     [TestMethod]
@@ -1764,6 +1768,26 @@ public sealed class PluginTests
             "--entrypoint sdlc ai-sdlc-factory-agent version",
             "Building the image proves the layers ran, not that the binary inside answers -- and its "
             + "version line is what the factory pipeline compares.");
+    }
+
+    [TestMethod]
+    public void Only_the_release_workflow_can_publish()
+    {
+        // A pull request's code runs in ci.yml, so a right to publish there is a right any pull request could use
+        // (D-197). Both are one line in a YAML file, and moving one back is silent -- the reason the scaffold steps
+        // have a test of their own.
+        string ci = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "ci.yml"));
+        string cd = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "cd.yml"));
+
+        foreach (string right in (string[])["id-token: write", "contents: write", "NuGet/login", "dotnet nuget push"])
+        {
+            Assert.IsFalse(ci.Contains(right, StringComparison.Ordinal), $"ci.yml carries '{right}', and a pull request runs it.");
+        }
+
+        StringAssert.Contains(cd, "workflow_run:", "cd.yml releases what ci.yml built and tested, and starts from it.");
+        Assert.IsTrue(
+            Regex.IsMatch(cd, @"^\s+name: nuget\s*$", RegexOptions.Multiline),
+            "Nothing reaches nuget.org without a person approving the environment.");
     }
 
     [TestMethod]

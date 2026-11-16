@@ -13,8 +13,11 @@ namespace Sdlc.Core.Hooks;
 /// inside, because each is internally consistent; this compares them once, as the session starts.</para>
 /// <para><strong>It says so, and never refuses.</strong> A session started for something else -- reading,
 /// a question, an upgrade -- should not be blocked by the thing it may be about to fix.</para>
-/// <para><strong>The release's numbers only.</strong> A preview binary carries a label the plugin manifest
-/// does not, so <c>0.37.0-preview.4</c> and <c>0.37.0</c> are one release here.</para>
+/// <para><strong>The release's line only: its major and minor.</strong> The pipeline stamps the build into the
+/// manifests a package carries, and never into the repository's, so a plugin installed from the marketplace says
+/// <c>0.49.0</c> beside a binary that says <c>0.49.12</c> (D-197). The minor is where a change that can make a cycle
+/// block is announced (D-140), so a line apart is the mismatch worth a word; a build apart, within one line, is
+/// not. A label is dropped too, so <c>0.37.0-preview.4</c> and <c>0.37.0</c> are one release.</para>
 /// </remarks>
 public static class PluginRelease
 {
@@ -29,7 +32,7 @@ public static class PluginRelease
         string? plugin = Version(pluginRoot);
 
         if (plugin is null
-            || string.Equals(PinnedRelease.Core(plugin), PinnedRelease.Core(binary), StringComparison.OrdinalIgnoreCase))
+            || string.Equals(Line(plugin), Line(binary), StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -65,6 +68,13 @@ public static class PluginRelease
             "Every round it writes is marked local, and no cycle a local build judged can open a pull request: it is a " +
             $"test run, done again on a published release before it ships (D-135). Unset {PinnedRelease.DevBuildVariable} " +
             "to run the pinned release.";
+    }
+
+    private static string Line(string version)
+    {
+        string core = PinnedRelease.Core(version);
+        int last = core.LastIndexOf('.');
+        return last < 0 ? core : core[..last];
     }
 
     private static string? Version(string? pluginRoot)

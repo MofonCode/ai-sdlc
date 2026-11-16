@@ -59,7 +59,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
 | `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
-| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a merge into development that changes what ships, and a release from a merge to main, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
+| `.github/workflows/ci.yml`, `.github/workflows/cd.yml` | `ci.yml` builds and tests every pull request and every push to main, and deliberately does not govern this repository with itself (D-42); `cd.yml` releases a push to main that changes what ships once a reviewer approves it, tagged so the plugin can be pinned to it (D-197). See Releasing below |
 
 ### Querying `CONCEPT.md`
 
@@ -128,39 +128,43 @@ a backstop, not the inner loop.
 
 ## Releasing
 
-**A release is a merge.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
-are moved together, with the release's entry in [`CHANGELOG.md`](CHANGELOG.md), and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
-tests, packs, checks the packed tool answers with the version it will be published as, and waits for a reviewer
-on the `nuget` environment before it pushes and tags the commit `v<that version>`. A merge whose version is
-already published and that changes nothing that ships publishes nothing; one that does change what ships is
-refused.
+**Every merge to main that ships is a release, if a person approves it** (D-197). Two workflows:
+`.github/workflows/ci.yml` builds and tests every pull request and every push to main, and publishes nothing;
+`.github/workflows/cd.yml` runs when `ci.yml` finishes green on a push to main that changes what ships, and waits
+for a reviewer on the `nuget` environment. Approved, it pushes the package `ci.yml` tested and tags the commit
+`v<that version>`; rejected, nothing is published, and the next merge that ships carries the change. A merge that
+touches only documents asks nobody. A release's entry goes in [`CHANGELOG.md`](CHANGELOG.md) under its line, in
+the pull request that ships it.
 
-**Both branches take pull requests only** (D-136). Work happens on a branch of your own, squashed into
-`development` by pull request; `development` is merged into `main` with a merge commit, and only `development`
-or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing is pushed straight
-to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both, `promotion` on
-`main` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
-never counts an author's own approval, so the one bypass is the `owners` team, on pull requests only:
-a member merges their own pull request by ticking the bypass box, **and only once the checks are green**, because
-the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
+**The version is `<major>.<minor>.<build>`, and only the line is typed.** `VersionPrefix` in `Directory.Build.props`
+and the `version` in both plugin manifests say `<major>.<minor>.0`, moved together, and `ci.yml` refuses a manifest
+that disagrees or a third number that is not 0. The build is counted: how many commits main has taken since the line
+last moved, so the merge that moves it publishes `.0` and each merge after it the next number. `ci.yml` stamps it
+into the packed manifests and the binary, never into the repository. Numbers skip where a merge shipped nothing or
+a release was rejected.
 
-**A preview is a merge into `development`.** A pull request squashed into it that changes what ships publishes
-`<VersionPrefix>-preview` through the `nuget-preview` environment once a reviewer approves it, and tags the
-commit `v<that version>`. A branch's own pushes publish nothing; its pull request builds it. A nuget.org version can be unlisted and never deleted, so a push that touches only
-documents makes none. **There is one preview per version**: the next one is a new version, moved in the props
-and both manifests together, and a push that ships a change without moving it is refused.
-
-**Which number moves** (D-140). The version is `major.minor.patch`, and the pipeline accepts any move up, so this
-is the rule rather than the check:
+**Which number moves** (D-140). The pipeline moves the build. A person moves the minor, in the pull request that
+needs it:
 
 | Move | When |
 |---|---|
-| **patch** | a change that ships and leaves an existing solution's cycles behaving as they did: a fix, a new command or option, wording, a document that ships in the package |
-| **minor**, patch to 0 | a change that can make an existing solution's cycle block where it passed before, or changes what a person or a stage must write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file changed, a command removed. A planned milestone moves it too |
-| **major** | stays 0 until the framework promises compatibility between releases. Under 0, a minor is where a break is announced |
+| **build** | every merge to main; nobody types it. A change that leaves an existing solution's cycles behaving as they did -- a fix, a new command or option, wording, a document that ships in the package -- needs nothing more |
+| **minor**, line to `.0` | a change that can make an existing solution's cycle block where it passed before, or changes what a person or a stage must write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file changed, a command removed. A planned milestone moves it too |
+| **major** | stays 0 until the framework promises compatibility between releases. 0 is the signal that the framework is still in alpha, and a minor is where a break is announced |
 
-**When a branch is in doubt, take the minor.** A minor too many costs a number; a patch that changes how a cycle
+**When a branch is in doubt, take the minor.** A minor too many costs a number; a build that changes how a cycle
 blocks is a solution's team finding out from a refused round rather than from the version they pinned.
+
+**Main takes pull requests only, squashed** (D-197). Work happens on a branch of your own, squashed into `main` by
+pull request; nothing is pushed straight to it, and there is no integration branch. The ruleset is in
+**Settings > Rules**: `build, test and pack` required, squash only, and one approval from a code owner, named in
+[`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub never counts an author's own approval, so the one bypass is the
+`owners` team, on pull requests only: a member merges their own pull request by ticking the bypass box, **and only
+once the checks are green**, because the same box would merge past them. Nobody else bypasses, and nobody bypasses
+a push.
+
+**`cd.yml` runs as main has it.** GitHub starts a `workflow_run` workflow from the default branch, so a change to
+`cd.yml` takes effect when it merges and cannot be tried on a branch. Read the first run after such a merge.
 
 **A local build is never published** (D-135). `SDLC_DEV_BUILD` points every `sdlc` on the machine at a build of
 this repository, which calls itself `<VersionPrefix>-local`, and a cycle any local build judged never opens a pull
@@ -171,8 +175,8 @@ against a trusted publishing policy on nuget.org. Setting it up is a person's, o
 
 | Where | What |
 |---|---|
-| nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `ci.yml`, package `MofonCode.Sdlc.Cli` rather than `*`; environment `nuget` on one and `nuget-preview` on the other |
-| GitHub, **Settings > Environments** | `nuget` and `nuget-preview`, each with a required reviewer |
+| nuget.org, **Trusted Publishing** | one policy: owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `cd.yml`, environment `nuget`, package `MofonCode.Sdlc.Cli` rather than `*` |
+| GitHub, **Settings > Environments** | `nuget`, with a required reviewer |
 | GitHub, **Settings > Secrets** | `NUGET_USER`: the nuget.org profile name the token exchange identifies itself as |
 
 ## What the suite enforces about this repository

@@ -90,9 +90,10 @@ running a build of the gate against a library you are editing. Pointed at a file
 command refuses and says so rather than falling back — a person who named a rule set meant it.
 
 **The package and the plugin carry the same number.**
-`VersionPrefix` in `Directory.Build.props` is the one place the release version is set, and the suite
-asserts it matches `plugin.json`, so the package version and the plugin version always tell you the same
-thing. `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
+`VersionPrefix` in `Directory.Build.props` is the one place the release line is set, and the suite
+asserts it matches `plugin.json`. The pipeline numbers each build of the line and stamps that number into both
+halves of the package, so a package's binary and plugin always tell you the same thing. A plugin installed from
+the marketplace says the line alone, `0.49.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
 takes it.
 
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the
@@ -302,7 +303,7 @@ claude plugin marketplace update ai-sdlc
 ```
 
 **The binary has the same trap, and `dotnet tool update` walks into it.** A tool is cached by version
-too, and `VersionPrefix` only moves on a release — so when you are iterating locally, `update` prints
+too, and a local build carries the line `VersionPrefix` declares, which moves only with the minor — so when you are iterating locally, `update` prints
 `Tool 'mofoncode.sdlc.cli' is already installed` and leaves the old binary on your PATH. It reads like
 success. A stale `sdlc` then adopts repositories with the hook configuration of whatever build it is,
 which is the quietest way to spend an hour on a defect that was fixed before you started.
