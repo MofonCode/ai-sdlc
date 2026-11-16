@@ -19,6 +19,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the parts of the code, and what each covers and carries](../README.md) | `.sdlc/areas.md` | `sdlc areas` | a person |
 | [the theme](../README.md) | `.sdlc/theme.json` | `sdlc theme` | a cycle that declares it |
 | [the perspectives a cycle gets](../mechanisms/perspectives.md) | worked out from the intent and the plan's files | `sdlc perspectives <id>`; one: `sdlc perspective show <name> --for <stage>` | — |
+| [the guidance a plan is handed](../mechanisms/guidance.md) | the framework's in the binary; the solution's own under `.sdlc/guidance/` | `sdlc guidance`; one: `sdlc guidance show <name>`; a cycle's: `sdlc guidance <id>` | the framework; the solution's own by a cycle that declares it, or a person |
 | [the coverage baseline](../guides/handling-refusals.md) | `.sdlc/coverage.json` | `sdlc evidence <id> --coverage <path>` reports against it, and against `coverage_floor` (`sdlc settings`) | the binary; a person may re-measure it |
 | **One cycle** | | | |
 | [the intent, spec, plan and verify](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/` | `sdlc status <id>` | each stage |
@@ -40,7 +41,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the open suggestions, every cycle](../guides/running-a-cycle.md) | each cycle's `suggestions.json` | `sdlc suggestions` | the binary |
 | [what the completed cycles can still give back](../../skills/README.md#harvest) | read from every completed cycle and the ledger | `sdlc harvest`, `sdlc harvest <aspect>` | — |
 | **Harvest** | | | |
-| [the aspects each completed cycle has answered, the closed cycles, each sitting, what is watched and what was ignored](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
+| [the aspects each completed cycle has answered, the closed cycles, each sitting, what is watched and what was ignored, each concern with its reason](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
 | [a closed cycle's contents, once its folder is gone](../../skills/README.md#harvest) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |
 

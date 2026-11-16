@@ -194,6 +194,46 @@ public sealed class PromotionTests
             "A promotion has no cycle, so the chain is not asked of it.");
     }
 
+    [TestMethod]
+    [DataRow("""{"value":[{"sourceVersion":"abc123","result":"succeeded"}]}""")]
+    [DataRow("""{"workflow_runs":[{"head_sha":"ABC123","conclusion":"success"}]}""")]
+    public void A_promotion_of_a_tip_the_integration_branch_already_tested_green_skips_the_tests(string runs)
+    {
+        // D-196: the same tree, and a green run of that tip on either platform.
+        Assert.IsTrue(Promotion.AlreadyTested("tree1", "tree1", "abc123", runs));
+    }
+
+    [TestMethod]
+    [DataRow("tree1", "tree2", """{"value":[{"sourceVersion":"abc123","result":"succeeded"}]}""")]
+    [DataRow("tree1", "tree1", """{"value":[{"sourceVersion":"abc123","result":"failed"}]}""")]
+    [DataRow("tree1", "tree1", """{"value":[{"sourceVersion":"older9","result":"succeeded"}]}""")]
+    [DataRow("tree1", "tree1", """{"workflow_runs":[{"head_sha":"abc123","conclusion":"failure"}]}""")]
+    [DataRow("tree1", "tree1", "")]
+    [DataRow("tree1", "tree1", "<html>sign in</html>")]
+    [DataRow("tree1", "tree1", """{"message":"Resource not accessible by integration"}""")]
+    [DataRow("tree1", null, """{"value":[{"sourceVersion":"abc123","result":"succeeded"}]}""")]
+    public void Anything_short_of_a_green_run_of_exactly_what_is_merged_runs_the_tests(string mergeTree, string? sourceTree, string runs)
+    {
+        // A change of the default branch's own, a red or older run, or an answer the token could not get: all run everything.
+        Assert.IsFalse(Promotion.AlreadyTested(mergeTree, sourceTree, "abc123", runs));
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Both_pipelines_build_a_promotion_and_skip_only_its_tests_when_already_tested(Platform platform)
+    {
+        string[] lines = Templates.Pipeline(platform).ReplaceLineEndings("\n").Split('\n');
+        string skip = platform == Platform.GitHub ? "steps.tested.outputs.tested != 'true'" : "ne(variables.tested, 'true')";
+
+        Assert.IsTrue(lines.Any(line => line.Contains("| sdlc tested", StringComparison.Ordinal)), "The pipeline asks the binary, handing it the runs.");
+
+        int build = Array.FindIndex(lines, line => line.Contains("dotnet build", StringComparison.Ordinal));
+        int test = Array.FindIndex(lines, line => line.Contains("dotnet test", StringComparison.Ordinal));
+        Assert.IsFalse(lines.Skip(build).Take(3).Any(line => line.Contains(skip, StringComparison.Ordinal)), "A promotion always builds.");
+        Assert.IsTrue(lines.Skip(test).Take(3).Any(line => line.Contains(skip, StringComparison.Ordinal)), "Its tests are skipped once already run.");
+    }
+
     private static string MergeMethod(JsonNode ruleset) =>
         Rule(ruleset, "pull_request")["allowed_merge_methods"]!.AsArray().Single()!.GetValue<string>();
 

@@ -987,6 +987,27 @@ reader is: where the solution names areas, in full only those in the areas its s
 headline (§8.1.1, D-151). The fixtures that prove a perspective catches its planted
 defect need a model to run, so they are an evaluation outside the suite and are not built.
 
+### 6.6 Guidance
+
+**The framework is strongly opinionated, and where a solution has said nothing its opinion applies; where the
+solution has said something, the solution's word wins** (D-195). For the stack that opinion is the profile (§11).
+For how to do one kind of thing well — build a pipeline, say — it is **guidance**: a short document the binary
+carries, handed to a plan whose declared files switch it on.
+
+**A perspective is used to plan and to verify; guidance only guides planning.** Nobody judges a plan against it,
+no reader asks for it, and it never blocks. It comes last: the solution's code where it already does the thing,
+then its decisions and its rules, then guidance for what none of those decided. A plan that departs from it says
+why in a line. The gate's own steps are never guidance and no entry may weaken them.
+
+**Two levels.** The framework's entries are embedded under `Guidance/`; a solution's own live under
+`.sdlc/guidance/` and replace the framework's by name. Each names the file patterns that switch it on, so the
+binary decides which a plan gets from its `Files` section — `sdlc guidance <id>` — and every host gets the same.
+Advice that keeps proving right reaches the rules through a harvest, never by itself.
+
+**What is built.** The document format, `sdlc guidance`, `sdlc guidance show` and `sdlc guidance <id>`; the
+`plan` skill reading them; and one entry, **pipeline**: the shape the framework would give a solution's pipeline
+where the solution has not chosen one.
+
 ---
 
 ## 7. Constraints
@@ -2247,6 +2268,11 @@ pull request, from `slices/<slug>/plan`, gets the same check for every cycle it 
 failing refuses them all, its successors must be sound, and a plan needing a file only a sibling's plan
 creates is refused. Files two plans both name are reported.
 
+**A pull request that changes nothing outside `.sdlc/` is not built** (D-193). `sdlc admission` answers `true`
+for it, whatever carries it — a plan, a slicing, a harvest, successors — and the pipeline skips the build and
+the tests. The chain still judges it: the admission check, the harvest check with its records parsed, or a
+refusal for having no chain.
+
 **Every open pull request is re-checked when another merges** (D-86). On Azure DevOps that is the build
 validation policy's expiration set to *Immediately*, which re-queues on its own; it is a platform setting
 and the adoption guide lays out the cheaper ones. `development` also builds on every merge, which names the
@@ -2255,7 +2281,9 @@ merge that broke it.
 **The guarantee covers `development`** (D-88). What reaches main is still the team's to choose; how it gets
 there has a default (D-136): only `development` or a `release/*` branch may open a pull request into the
 default branch, which `sdlc promotion` decides inside the same `verify` job, and the chain is not asked of a
-promotion, which has no cycle. A release branch's own policy is the team's.
+promotion, which has no cycle. A release branch's own policy is the team's. **A promotion always builds, and
+skips the tests when the integration branch already passed on exactly what it merges** (D-196): `sdlc tested`
+reads the platform's runs the pipeline hands it, and anything else runs everything.
 
 Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
 wrapping one command.
@@ -2459,11 +2487,11 @@ they print verbatim.
 | `harvest` | the completed cycles not closed, the aspects each still needs, and the next step; a cycle passed and not merged is listed as waiting — D-190, D-191 |
 | `harvest <aspect> [--cycles <id>,<id>]` | one aspect — constraints, decisions, suggestions, stack or areas — for the completed cycles that have not answered it, ending with the proposal file a person marks; the constraints aspect carries the rules cited and argued, findings that rested on no rule, each cycle's rounds, reopens and every verdict; the decisions aspect what was stated, reopens and declined deviations; the suggestions aspect the open suggestions and the concerns ignored before. With `--cycles` those alone, the rule counts the whole completed record's — D-104, D-112, D-153, D-166, D-189, D-190, D-191 |
 | `draft harvest <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
-| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied and the suggestions declined kept. Closes nothing; refuses while the draft is still beside its file — D-152, D-153, D-191 |
+| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied, each with its reason, and the suggestions declined kept. Closes nothing; refuses while the draft is still beside its file — D-152, D-153, D-191, D-194 |
 | `harvest close` | closes every completed cycle whose five aspects are answered: records what later harvests read, and on `harvest/<date>` commits the removal of their folders with the ledger and the records placed. Pushes nothing; refuses while a draft is beside its file, while nothing can close, or off the integration branch — D-192 |
 | `harvest read --dir <directory> [--aspect <aspect>] [--cycles <id>,<id>]` | writes one prompt per completed cycle and document with findings in the aspect's sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
 | `harvest review <aspect> --dir <directory> [--proposals <file>]` | writes and starts the two readers that review an aspect's sitting: one handed the marked proposal file, the aspect's draft and the solution document, one handed the aspect's report and the proposal file — D-183 |
-| `harvest --history` | the harvest ledger: every closed cycle, every sitting with its aspect and what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in — D-152, D-153 |
+| `harvest --history` | the harvest ledger: every closed cycle, every sitting with its aspect and what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in, each with its reason — D-152, D-153, D-194 |
 | `mine`, `propose` | retired, and answered with what replaced them: `harvest`, and for `propose constraints` also `constraints --new`, for `propose theme` `theme` — D-191 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5. Retires a blocked verdict (D-161), and a passed one with `--retire-pass` when a person asked for a change (D-185) |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
@@ -2485,6 +2513,7 @@ they print verbatim.
 | `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle, and every branch of a cycle the harvest ledger there records closed — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
 | `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes, the factory's images, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
+| `guidance [show <name> \| <id>]` | the guidance a plan is handed: every entry in force, the framework's and the solution's own under `.sdlc/guidance/`, which win by name, with the files that switch each on; one entry in full; or the entries a cycle's plan switches on by its declared files, in full. Advises; never blocks (D-195) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
@@ -2497,7 +2526,8 @@ they print verbatim.
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
-| `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise; on `slices/<slug>/plan`, `true` when it carries only planning and successors. Always exits 0 (D-87, D-125) |
+| `tested <branch>` | `true` when a promotion merges exactly that branch's tip and the platform's runs, piped to standard input, list a green one of it, so a pipeline builds and skips the tests; `false` for anything else, including what it cannot read. Holds no token: the pipeline fetches the runs. Always exits 0 (D-196) |
+| `admission <branch> --base <branch>` | `true` when everything a pull request changes is under `.sdlc/`, so a pipeline skips the build and the tests; `false` when one path is outside. Always exits 0 (D-87, D-125, D-193) |
 | `promotion <source> --base <target>` | `true` when a pull request promotes the integration branch or a `release/*` branch into another branch, so a pipeline skips the chain; `false` when it targets the integration branch or a release branch; exits 1 when anything else targets another branch (D-136) |
 | `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing. `--approvals`, `--owner` and `--self-approve` set who must approve (D-136) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
@@ -7543,6 +7573,112 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-196 — A promotion always builds, and skips the tests the integration branch already ran on exactly what it merges
+
+**Governs:** §13
+
+**Extends D-136**, whose promotion check gains a second question, **and D-88**, whose guarantee at `development` it
+leans on.
+
+**Decision.** On a promotion, both generated pipelines ask the platform for this pipeline's green runs on the source
+branch and pipe the answer to `sdlc tested <source>`. It prints `true` only when the commit being built has exactly
+the source tip's tree — the default branch holds no change of its own — and a green run of that tip is listed:
+Azure DevOps' builds list or GitHub's workflow runs. Then the tests, and publishing their coverage and results, are
+skipped. The build always runs. Anything else — a tree of its own, a run red, older or still going, a token that
+cannot read the runs, an answer it cannot parse — prints `false`, and everything runs.
+
+**Why.** A promotion re-ran a governed solution's full suite on the same tree its integration branch's merge build
+had just passed: thirteen minutes that could find nothing new. The person wanted those minutes back, and the build
+kept: every promotion ends in a published artifact, and the release must be built with its own version. Rebuilding
+is the only honest way to get that version: a package built as a preview has the version compiled in, so renaming
+it a release would ship binaries that report themselves as a preview.
+
+**Why the binary decides and the pipeline fetches.** Every check lives in the binary, so the pipeline stays a thin
+wrapper and the two platforms cannot drift apart in what they accept. The binary holds no token (D-136), so it is
+handed the runs rather than fetching them, and it reads both platforms' shapes.
+
+**Rejected.** *Skipping the build too*: no artifact, and a release built with a preview's version. *Promoting the
+integration branch's artifact, re-versioned*: the version is compiled in. *Trusting the integration branch's last
+build without comparing trees*: a hotfix on the default branch would merge untested. *An opt-in*: the person made it
+the default, because the condition is exact — the same tree, already green.
+
+### D-195 — Guidance: the framework's opinion, handed to a plan, overridden by the solution
+
+**Governs:** §6.6
+
+**Decision.** A guidance entry is a Markdown document naming the file patterns that switch it on. The framework's
+are embedded in the binary; a solution's own are under `.sdlc/guidance/` and replace the framework's by name.
+`sdlc guidance` lists them, `sdlc guidance show <name>` prints one, and `sdlc guidance <id>` prints in full the
+entries a cycle's plan switches on by its declared files. The `plan` skill reads them after the decisions, the
+rules and the code, follows an entry where nothing else has decided, and says why in a line where it departs. No
+reader is handed guidance and nothing it says blocks. The first entry is the pipeline.
+
+**Why.** A pull request carrying successors alone took a full governed solution's run, and nothing in the
+framework had told whoever shaped that pipeline what a step costs or what a records-only pull request needs. The
+framework had strong opinions about the stack (§11) and none about how to do things on it. The person's
+principle: strongly opinionated defaults, which a solution's own specification always beats. And the line between
+this and a perspective is theirs: a perspective is used to plan and to verify; guidance only guides planning, a
+gentle push the solution can overwrite at any point.
+
+**Why the framework does not own the pipeline.** Rows in the declared stack generating the pipeline file were
+weighed: it would reverse D-40, which leaves an existing pipeline the team's. The person ruled it out — the
+framework holds an opinion on how to build a pipeline, and that opinion never contradicts the solution's existing
+pipeline, its decisions or its constraints.
+
+**Rejected.** *An advisory perspective*: a perspective's promise is that it judges at verify, and one that does not
+blurs every perspective. *A stack rule*: a rule blocks, and how many jobs a pipeline has is not worth blocking a
+cycle over. *A guide for a person*: a guide is not what a planner reads, and the planner is who shapes the next
+pipeline step. *Every entry handed to every plan*: tokens spent on advice about files the plan does not touch.
+*The agent choosing entries by reading their titles*: a file listing decides it, so the binary does.
+
+### D-194 — Every counted concern carries what it prevents and what it promotes
+
+**Governs:** §15
+
+**Extends D-153**, whose tally gains a reason, **and D-152**, whose ledger keeps it.
+
+**Decision.** A concern the harvest ledger counts — watched below the bar, or ignored — carries one short reason
+beside its gist and its cycles: what it prevents and what it promotes. The sitting that first records the concern
+writes it as a `Why:` line under the concern's bullet; a later sitting leaves it out to keep the reason held, or
+writes a sharper one, which replaces it. `sdlc harvest --history` and the harvest reports print it under the
+concern. A ledger written before has none, and reads.
+
+**Why.** The person asked whether the ledger kept why a suggestion was made. It kept a gist and a count. The
+reasoning lived in the cycle's folder, and once the folder is deleted it is in git at the merge commit, which
+nobody opens while weighing a concern at the bar. That moment is the one the count exists for.
+
+**Accepted.** Concerns are still matched by wording, so two wordings of one concern count apart. The person took
+that margin: each sitting's file is read before it is recorded, which is where a split is caught.
+
+**Rejected.** *A reason per suggestion*: D-153 rejected a second copy of every suggestion's outcome, which drifts;
+one reason per concern is a summary, not a copy. *Leaving it in git*: correct and unread. *A command merging two
+concerns*: waits until a real split shows up.
+
+### D-193 — A pull request that changes nothing outside `.sdlc/` is not built
+
+**Governs:** §13
+
+**Extends D-87 and D-125**, whose plan and slicing admissions become two cases of one rule.
+
+**Decision.** `sdlc admission <branch> --base <branch>` answers `true` when every path a pull request changes is
+under `.sdlc/`, whatever the branch, and the generated pipelines skip the build and the tests on it. Nothing
+else moves: `verify-chain` still judges the pull request — the admission check for a plan, the harvest check for
+records, successors and closed cycles, whose records and successors it parses — and refuses one the chain does
+not admit. One path outside `.sdlc/`, and everything runs.
+
+**Why.** A pull request carrying successors alone got a full governed solution's run: thirteen minutes, ten of
+them end-to-end tests, for files no build reads. The pipeline already skipped the build for a plan; the
+decision was the branch's shape rather than what the diff carried, so a harvest or a successor review fell
+through to the full run.
+
+**Accepted.** A solution test that reads a record is skipped on such a pull request. The integration branch
+builds and tests on every merge, which names it one step later.
+
+**Rejected.** *A second pipeline with path filters*: two required checks and a branch policy each to keep in
+step, where one pipeline with the binary deciding keeps the decision in one place. *Skipping documents too*: a
+solution's tests may read its documents, as this repository's do; `.sdlc/` is the one directory the framework
+knows no build reads. *A new pipeline step for the records' format*: the harvest check already parses them.
 
 ### D-192 — A cycle closes once every aspect is answered, and its folder leaves through a pull request
 

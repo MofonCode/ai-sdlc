@@ -116,6 +116,27 @@ public static class VerifyChain
     ];
 
     /// <summary>
+    /// Whether every path a pull request changes is under <c>.sdlc/</c>, which no build reads (D-193).
+    /// </summary>
+    /// <remarks>
+    /// <strong>What a pipeline skips the build and the tests on.</strong> A plan's paperwork, a slicing's plans, a
+    /// harvest's records and a successor are each a case of it; the chain still judges every one, so a records-only
+    /// pull request the chain does not admit fails there rather than in a build. One path outside, and everything
+    /// runs. A solution test that reads a record is the accepted cost: the integration branch's merge build runs it.
+    /// </remarks>
+    /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
+    /// <returns>True when there is at least one, and every one is.</returns>
+    public static bool RecordsOnly(IReadOnlyList<string> changed)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+
+        string sdlc = Cycle.SdlcDirectoryName + "/";
+
+        return changed.Count > 0
+            && changed.All(path => path.Replace('\\', '/').TrimStart('/').StartsWith(sdlc, StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// Whether a pull request's changes are one cycle's planning paperwork and nothing else.
     /// </summary>
     /// <remarks>

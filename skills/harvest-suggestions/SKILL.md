@@ -66,6 +66,7 @@ At the path the report names:
 ## Ignored
 
 - <the concern, in one sentence, worded as the report's ignored-before line when it is one> — <cycle>, <cycle>
+  Why: <what it prevents, and what it promotes — for a new concern; a known one keeps its reason unless this is sharper>
 
 ## For the framework
 

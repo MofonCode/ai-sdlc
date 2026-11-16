@@ -346,6 +346,7 @@ public static class HarvestReport
             foreach (Watched watched in response.Ledger.Watch)
             {
                 text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {watched.Cycles.Count} of {ProposeConstraints.Bar} cycles: {watched.Gist} ({string.Join(", ", watched.Cycles)})"));
+                HarvestRenderer.Why(text, watched, "    ");
             }
         }
     }
@@ -474,6 +475,7 @@ public static class HarvestReport
             case HarvestAspect.Constraints:
                 text.AppendLine("  ## Rules        ### [ ] add — <statement>   ### [ ] supersede LOC_02 — <statement>   ### [ ] reword LOC_01 — <statement>");
                 text.AppendLine("  ## Watch        - <a concern below the bar> — <cycle>, <cycle>");
+                text.AppendLine("                   Why: <what it prevents, and what it promotes> (a new concern; keep or sharpen a known one's)");
                 break;
             case HarvestAspect.Decisions:
                 text.AppendLine("  ## Decisions    ### [ ] add — <statement>   ### [ ] supersede DEC_02 — <statement>");
@@ -482,6 +484,7 @@ public static class HarvestReport
                 text.AppendLine("  ## Successors   ### [ ] add <slug> — <what it makes possible>, with **Succeeds:**, **Outcome:** and **Why it matters:** beneath");
                 text.AppendLine("  ## Declined     - <cycle>/<suggestion id>: <why>");
                 text.AppendLine("  ## Ignored      - <the concern, worded as it was ignored before> — <cycle>, <cycle>");
+                text.AppendLine("                   Why: <what it prevents, and what it promotes> (a new concern; keep or sharpen a known one's)");
                 break;
             case HarvestAspect.Stack:
                 text.AppendLine("  ## Stack        ### [ ] set <concern> — <choice, or none>");
@@ -541,6 +544,7 @@ public static class HarvestReport
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"  ignored before, {concern.Cycles.Count} of {ProposeConstraints.Bar} cycles: {concern.Gist} ({string.Join(", ", concern.Cycles)}){bar}"));
+            HarvestRenderer.Why(text, concern, "    ");
         }
     }
 

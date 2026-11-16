@@ -95,6 +95,11 @@ Every open suggestion of a completed cycle gets one of three answers (D-153):
 **Ignoring is counted, by concern.** One ignored in three cycles is at the bar: that sitting takes it further or
 declines it, rather than ignoring it a fourth time.
 
+**Every counted concern carries its reason.** A concern watched below the bar, or ignored, is kept with a line
+saying what it prevents and what it promotes, so when it reaches the bar you can weigh it without digging the
+deleted cycles back out of git. `sdlc harvest --history` prints it under each one. Concerns are matched by their
+wording, so check the sitting's file before it is recorded: two wordings of one concern count apart.
+
 ## Closing
 
 Once every aspect is answered for a cycle and every draft is placed or deleted, `/sdlc:close-cycle` runs

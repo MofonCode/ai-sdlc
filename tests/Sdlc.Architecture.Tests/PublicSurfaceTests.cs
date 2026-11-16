@@ -194,6 +194,10 @@ public sealed class PublicSurfaceTests
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
 
+        // Guidance: how to do one kind of thing well, handed to a plan whose declared files switch it on (D-195).
+        "Sdlc.Core.Guidance.GuidanceEntry",
+        "Sdlc.Core.Guidance.GuidanceLibrary",
+
         // Parking and the backlog: a plan needing another's unmerged code waits with its spec and plan kept (D-145).
         "Sdlc.Core.Successors.BacklogRenderer",
         "Sdlc.Core.Successors.ParkCycle",

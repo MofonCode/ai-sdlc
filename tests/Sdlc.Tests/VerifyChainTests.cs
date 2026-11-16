@@ -795,6 +795,23 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
+    public void A_pull_request_changing_only_records_skips_the_build()
+    {
+        // D-193: whatever carries it -- a plan, a harvest, successors -- nothing under .sdlc/ is built.
+        Assert.IsTrue(VerifyChain.RecordsOnly([".sdlc/successors/totals.md"]));
+        Assert.IsTrue(VerifyChain.RecordsOnly([".sdlc\\harvested.json", ".sdlc/decisions.md", "/.sdlc/cycles/20260929_1456_32/plan.md"]));
+    }
+
+    [TestMethod]
+    public void One_path_outside_the_records_runs_everything()
+    {
+        Assert.IsFalse(VerifyChain.RecordsOnly([".sdlc/successors/totals.md", "src/Orders/OrderService.cs"]));
+        Assert.IsFalse(VerifyChain.RecordsOnly([".config/dotnet-tools.json"]), "Moving the pin changes what judges the records.");
+        Assert.IsFalse(VerifyChain.RecordsOnly([".sdlcx/notes.md"]));
+        Assert.IsFalse(VerifyChain.RecordsOnly([]), "An empty diff skips nothing.");
+    }
+
+    [TestMethod]
     public async Task An_abandoned_cycle_is_admitted_as_a_record_with_no_approval_asked()
     {
         // D-146: a cycle stopped in a sandbox reaches the integration branch as the record of a choice. Nothing is
