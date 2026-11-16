@@ -348,6 +348,32 @@ public sealed class HarvestTests
     }
 
     [TestMethod]
+    public void A_concern_carries_its_reason_past_its_folders_and_a_later_sitting_may_sharpen_it()
+    {
+        // D-194: the case a person weighs at the bar is kept beside the count, not left in git.
+        (IReadOnlyList<Watched> watch, _, _, IReadOnlyList<Watched> ignored) = RecordHarvest.Read(
+            "## Watch\n\n- the log level is missing — 20261001_0900_01\n  Why: prevents a silent failure; promotes logs a person on call can read\n- no reason given — 20261001_0900_01\n\n"
+            + "## Ignored\n\n- the chart needs a keyboard path — 20261001_0900_01\n  Why: prevents a screen a keyboard cannot reach\n");
+
+        Assert.AreEqual("prevents a silent failure; promotes logs a person on call can read", watch[0].Why);
+        Assert.IsNull(watch[1].Why, "A concern without a reason still counts.");
+        Assert.AreEqual("prevents a screen a keyboard cannot reach", ignored.Single().Why);
+
+        HarvestLedger ledger = HarvestLedger.Empty
+            .With(Sitting(HarvestAspect.Decisions), watch)
+            .With(Sitting(HarvestAspect.Decisions), [new Watched("the log level is missing", ["20261002_0900_01"])]);
+        HarvestLedger read = HarvestLedger.Parse(ledger.Write(), HarvestLedger.FileName).Value;
+
+        Assert.AreEqual("prevents a silent failure; promotes logs a person on call can read", read.Watch[0].Why, "A sitting that gives no reason keeps the one held.");
+        StringAssert.Contains(HarvestRenderer.RenderHistory(read), "why: prevents a silent failure");
+
+        HarvestLedger sharpened = read.With(Sitting(HarvestAspect.Decisions), [new Watched("the log level is missing", ["20261003_0900_01"], "prevents an outage nobody can diagnose")]);
+
+        Assert.AreEqual("prevents an outage nobody can diagnose", sharpened.Watch[0].Why);
+        Assert.AreEqual(3, sharpened.Watch[0].Cycles.Count);
+    }
+
+    [TestMethod]
     public void An_ignored_concern_is_tallied_across_sittings_and_is_no_decision()
     {
         HarvestLedger ledger = HarvestLedger.Empty

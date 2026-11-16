@@ -51,7 +51,8 @@ public static class RecordHarvest
 
     /// <summary>
     /// Reads the proposal file's <c>## Watch</c>, <c>## Ignored</c> and <c>## Declined</c> sections: <c>-
-    /// &lt;concern&gt; — &lt;cycle&gt;, &lt;cycle&gt;</c> for the first two and <c>- &lt;suggestion id&gt;:
+    /// &lt;concern&gt; — &lt;cycle&gt;, &lt;cycle&gt;</c> for the first two, each optionally followed by an indented
+    /// <c>Why: &lt;what it prevents and promotes&gt;</c> line (D-194), and <c>- &lt;suggestion id&gt;:
     /// &lt;reason&gt;</c> for the last.
     /// </summary>
     /// <param name="markdown">The proposal file.</param>
@@ -100,13 +101,27 @@ public static class RecordHarvest
             : null;
     }
 
-    // A concern and the cycles it was seen in: "- <gist> — <cycle>, <cycle>".
+    // A concern and the cycles it was seen in: "- <gist> — <cycle>, <cycle>", and the "Why: ..." line under it.
     private static List<Watched> Concerns(IReadOnlyDictionary<string, IReadOnlyList<string>> sections, string name)
     {
         List<Watched> concerns = [];
 
-        foreach (string line in Bullets(sections, name))
+        foreach (string raw in sections.TryGetValue(name, out IReadOnlyList<string>? lines) ? lines : [])
         {
+            string trimmed = raw.Trim();
+
+            if (trimmed.StartsWith("Why:", StringComparison.OrdinalIgnoreCase) && concerns.Count > 0 && trimmed[4..].Trim().Length > 0)
+            {
+                concerns[^1] = concerns[^1] with { Why = trimmed[4..].Trim() };
+                continue;
+            }
+
+            if (!trimmed.StartsWith("- ", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string line = trimmed[2..].Trim();
             int dash = line.LastIndexOf(" — ", StringComparison.Ordinal);
             dash = dash < 0 ? line.LastIndexOf(" -- ", StringComparison.Ordinal) : dash;
 

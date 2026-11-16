@@ -292,6 +292,11 @@ On GitHub the equivalent is **Require branches to be up to date before merging**
 which makes a pull request's author bring it up to date and re-run the check; a **merge queue** checks each pull
 request against everything queued ahead of it. Azure DevOps has no merge queue.
 
+**A pull request that changes only `.sdlc/` is not built.** A plan, a harvest or a successor review carries
+nothing a build reads, so the pipeline skips the build and the tests and the chain judges the records alone
+(D-193). If one of your own tests reads a file under `.sdlc/`, it is skipped there too, and the integration
+branch's merge build is what runs it.
+
 **On Azure DevOps the build validation policy is not only what makes the check required — it is what runs
 it.** Azure Repos ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the
 file says so at the top. Until the policy exists, no pull request is built, tested or verified, and nothing

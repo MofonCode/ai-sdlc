@@ -23,6 +23,7 @@ public static class HarvestRenderer
         foreach (Watched ignored in response.Ignored.Where(ignored => ignored.Cycles.Count >= ProposeConstraints.Bar))
         {
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ignored in {ignored.Cycles.Count} cycles, at the bar: {ignored.Gist} -- the next sitting makes it a successor or declines it"));
+            Why(text, ignored, "    ");
         }
 
         Remaining(text, response.Open);
@@ -112,6 +113,7 @@ public static class HarvestRenderer
             foreach (Watched watched in ledger.Watch)
             {
                 text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {watched.Cycles.Count} of {ProposeConstraints.Bar} -- {watched.Gist} ({string.Join(", ", watched.Cycles)})"));
+                Why(text, watched, "    ");
             }
         }
 
@@ -123,10 +125,23 @@ public static class HarvestRenderer
             foreach (Watched concern in ignored)
             {
                 text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {concern.Cycles.Count} of {ProposeConstraints.Bar} -- {concern.Gist} ({string.Join(", ", concern.Cycles)})"));
+                Why(text, concern, "    ");
             }
         }
 
         return text.ToString();
+    }
+
+    /// <summary>Writes a concern's reason under it, when it carries one (D-194).</summary>
+    /// <param name="text">Where to write.</param>
+    /// <param name="concern">The concern.</param>
+    /// <param name="indent">The indent the line takes.</param>
+    internal static void Why(StringBuilder text, Watched concern, string indent)
+    {
+        if (!string.IsNullOrWhiteSpace(concern.Why))
+        {
+            text.AppendLine(indent + "why: " + concern.Why);
+        }
     }
 
     private static void Remaining(StringBuilder text, IReadOnlyList<HarvestReport.OpenCycle> open)

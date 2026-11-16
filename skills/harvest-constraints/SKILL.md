@@ -66,7 +66,10 @@ a build where a constraint cannot. Say which, as a better home rather than a ref
 good answer.**
 
 A concern seen in fewer than three cycles goes under `## Watch`, worded the same way each time, so its count
-survives the folders it came from.
+survives the folders it came from. **Under a new concern, write a `Why:` line**: what it prevents and what it
+promotes, in a line or two, from the findings that raised it. It is what a person weighs when the concern reaches
+the bar, after the folders are gone (D-194). Under a known one, leave it out to keep the reason held, or write a
+sharper one.
 
 ## 3. Write the proposal file
 
@@ -103,6 +106,7 @@ label and a colon, exactly as constraints.md writes them>
 ## Watch
 
 - <a concern below the bar, in one sentence> — <cycle>, <cycle>
+  Why: <what it prevents, and what it promotes>
 
 ## Cycles
 

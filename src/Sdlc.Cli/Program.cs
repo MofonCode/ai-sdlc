@@ -893,33 +893,17 @@ static async Task<int> AdmissionCommand(CommandLine line)
     if (line.Arguments.Count == 0)
     {
         await Console.Error.WriteLineAsync(
-            "Which cycle? Give its id or its branch, as in 'sdlc admission cycle/20260929_1456_32/plan --base development'.")
+            "Which pull request? Give its branch, as in 'sdlc admission cycle/20260929_1456_32/plan --base development'.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
-    // A slicing's branch is admission when it carries planning and successors only (D-125).
-    if (SlicingBranch.TryParse(line.Arguments[0], out _))
-    {
-        return await Workspace.Run(line, async workspace =>
-        {
-            IReadOnlyList<string>? carried = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
-            bool planning = carried is not null && Sdlc.Core.Chain.VerifyChain.PlanningCycles(carried) is not null;
-            await Console.Out.WriteLineAsync(planning ? "true" : "false").ConfigureAwait(false);
-            return ExitCode.Ok;
-        }).ConfigureAwait(false);
-    }
-
-    if (!CycleId.TryParse(line.Arguments[0], out CycleId? id) && !CycleId.TryParseBranch(line.Arguments[0], out id))
-    {
-        await Console.Out.WriteLineAsync("false").ConfigureAwait(false);
-        return ExitCode.Ok;
-    }
-
+    // The diff decides, never the branch (D-87): a pull request that changes nothing outside .sdlc/ has nothing to
+    // build, whatever carries it -- a plan, a slicing, a harvest, a successor (D-193). The chain still judges it.
     return await Workspace.Run(line, async workspace =>
     {
         IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
-        bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.AdmitsAsPlan(id.Value, changed);
+        bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.RecordsOnly(changed);
         await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);

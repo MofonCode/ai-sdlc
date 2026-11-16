@@ -2247,6 +2247,11 @@ pull request, from `slices/<slug>/plan`, gets the same check for every cycle it 
 failing refuses them all, its successors must be sound, and a plan needing a file only a sibling's plan
 creates is refused. Files two plans both name are reported.
 
+**A pull request that changes nothing outside `.sdlc/` is not built** (D-193). `sdlc admission` answers `true`
+for it, whatever carries it — a plan, a slicing, a harvest, successors — and the pipeline skips the build and
+the tests. The chain still judges it: the admission check, the harvest check with its records parsed, or a
+refusal for having no chain.
+
 **Every open pull request is re-checked when another merges** (D-86). On Azure DevOps that is the build
 validation policy's expiration set to *Immediately*, which re-queues on its own; it is a platform setting
 and the adoption guide lays out the cheaper ones. `development` also builds on every merge, which names the
@@ -2459,11 +2464,11 @@ they print verbatim.
 | `harvest` | the completed cycles not closed, the aspects each still needs, and the next step; a cycle passed and not merged is listed as waiting — D-190, D-191 |
 | `harvest <aspect> [--cycles <id>,<id>]` | one aspect — constraints, decisions, suggestions, stack or areas — for the completed cycles that have not answered it, ending with the proposal file a person marks; the constraints aspect carries the rules cited and argued, findings that rested on no rule, each cycle's rounds, reopens and every verdict; the decisions aspect what was stated, reopens and declined deviations; the suggestions aspect the open suggestions and the concerns ignored before. With `--cycles` those alone, the rule counts the whole completed record's — D-104, D-112, D-153, D-166, D-189, D-190, D-191 |
 | `draft harvest <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
-| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied and the suggestions declined kept. Closes nothing; refuses while the draft is still beside its file — D-152, D-153, D-191 |
+| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied, each with its reason, and the suggestions declined kept. Closes nothing; refuses while the draft is still beside its file — D-152, D-153, D-191, D-194 |
 | `harvest close` | closes every completed cycle whose five aspects are answered: records what later harvests read, and on `harvest/<date>` commits the removal of their folders with the ledger and the records placed. Pushes nothing; refuses while a draft is beside its file, while nothing can close, or off the integration branch — D-192 |
 | `harvest read --dir <directory> [--aspect <aspect>] [--cycles <id>,<id>]` | writes one prompt per completed cycle and document with findings in the aspect's sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
 | `harvest review <aspect> --dir <directory> [--proposals <file>]` | writes and starts the two readers that review an aspect's sitting: one handed the marked proposal file, the aspect's draft and the solution document, one handed the aspect's report and the proposal file — D-183 |
-| `harvest --history` | the harvest ledger: every closed cycle, every sitting with its aspect and what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in — D-152, D-153 |
+| `harvest --history` | the harvest ledger: every closed cycle, every sitting with its aspect and what it accepted and declined, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in, each with its reason — D-152, D-153, D-194 |
 | `mine`, `propose` | retired, and answered with what replaced them: `harvest`, and for `propose constraints` also `constraints --new`, for `propose theme` `theme` — D-191 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5. Retires a blocked verdict (D-161), and a passed one with `--retire-pass` when a person asked for a change (D-185) |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
@@ -2497,7 +2502,7 @@ they print verbatim.
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
-| `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise; on `slices/<slug>/plan`, `true` when it carries only planning and successors. Always exits 0 (D-87, D-125) |
+| `admission <branch> --base <branch>` | `true` when everything a pull request changes is under `.sdlc/`, so a pipeline skips the build and the tests; `false` when one path is outside. Always exits 0 (D-87, D-125, D-193) |
 | `promotion <source> --base <target>` | `true` when a pull request promotes the integration branch or a `release/*` branch into another branch, so a pipeline skips the chain; `false` when it targets the integration branch or a release branch; exits 1 when anything else targets another branch (D-136) |
 | `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing. `--approvals`, `--owner` and `--self-approve` set who must approve (D-136) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
@@ -7543,6 +7548,54 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-194 — Every counted concern carries what it prevents and what it promotes
+
+**Governs:** §15
+
+**Extends D-153**, whose tally gains a reason, **and D-152**, whose ledger keeps it.
+
+**Decision.** A concern the harvest ledger counts — watched below the bar, or ignored — carries one short reason
+beside its gist and its cycles: what it prevents and what it promotes. The sitting that first records the concern
+writes it as a `Why:` line under the concern's bullet; a later sitting leaves it out to keep the reason held, or
+writes a sharper one, which replaces it. `sdlc harvest --history` and the harvest reports print it under the
+concern. A ledger written before has none, and reads.
+
+**Why.** The person asked whether the ledger kept why a suggestion was made. It kept a gist and a count. The
+reasoning lived in the cycle's folder, and once the folder is deleted it is in git at the merge commit, which
+nobody opens while weighing a concern at the bar. That moment is the one the count exists for.
+
+**Accepted.** Concerns are still matched by wording, so two wordings of one concern count apart. The person took
+that margin: each sitting's file is read before it is recorded, which is where a split is caught.
+
+**Rejected.** *A reason per suggestion*: D-153 rejected a second copy of every suggestion's outcome, which drifts;
+one reason per concern is a summary, not a copy. *Leaving it in git*: correct and unread. *A command merging two
+concerns*: waits until a real split shows up.
+
+### D-193 — A pull request that changes nothing outside `.sdlc/` is not built
+
+**Governs:** §13
+
+**Extends D-87 and D-125**, whose plan and slicing admissions become two cases of one rule.
+
+**Decision.** `sdlc admission <branch> --base <branch>` answers `true` when every path a pull request changes is
+under `.sdlc/`, whatever the branch, and the generated pipelines skip the build and the tests on it. Nothing
+else moves: `verify-chain` still judges the pull request — the admission check for a plan, the harvest check for
+records, successors and closed cycles, whose records and successors it parses — and refuses one the chain does
+not admit. One path outside `.sdlc/`, and everything runs.
+
+**Why.** A pull request carrying successors alone got a full governed solution's run: thirteen minutes, ten of
+them end-to-end tests, for files no build reads. The pipeline already skipped the build for a plan; the
+decision was the branch's shape rather than what the diff carried, so a harvest or a successor review fell
+through to the full run.
+
+**Accepted.** A solution test that reads a record is skipped on such a pull request. The integration branch
+builds and tests on every merge, which names it one step later.
+
+**Rejected.** *A second pipeline with path filters*: two required checks and a branch policy each to keep in
+step, where one pipeline with the binary deciding keeps the decision in one place. *Skipping documents too*: a
+solution's tests may read its documents, as this repository's do; `.sdlc/` is the one directory the framework
+knows no build reads. *A new pipeline step for the records' format*: the harvest check already parses them.
 
 ### D-192 — A cycle closes once every aspect is answered, and its folder leaves through a pull request
 

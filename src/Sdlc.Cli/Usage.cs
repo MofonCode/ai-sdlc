@@ -66,12 +66,12 @@ internal static class Usage
                                      writes from the base's copy, a pipeline step by step (D-133);
                                      a dependency file may move only versions, of any size (D-134).
                                      Anything else is refused: there is no chain.
-            admission <id> --base <branch>
-                                     Print true when a pull request carries only the cycle's
-                                     planning documents, and any successors, so a pipeline may
-                                     skip the build and tests; false for anything else. On
-                                     slices/<slug>/plan, true when it carries only cycles'
-                                     planning and successors. Always exits 0.
+            admission <branch> --base <branch>
+                                     Print true when everything a pull request changes is under
+                                     .sdlc/ -- a plan, a slicing's plans, a harvest, successors --
+                                     so a pipeline may skip the build and tests; false when one
+                                     path is outside. The chain still judges it (D-193). Always
+                                     exits 0.
             promotion <source> --base <target>
                                      Print true when a pull request promotes the integration
                                      branch or a release/* branch into another branch, so a
