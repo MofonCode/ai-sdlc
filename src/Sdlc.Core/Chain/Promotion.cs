@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Sdlc.Core.Chain;
 
 /// <summary>What a pull request is, by the branch it targets, and whether it may come from where it does.</summary>
@@ -76,6 +78,56 @@ public static class Promotion
                 $"{from} may not open a pull request into {into}. Only {integration} and a {ReleasePrefix}* branch promote: anything else would put on {into} code no chain judged. Open the pull request into {integration} as a cycle (D-136).",
         };
     }
+
+    /// <summary>
+    /// Whether the branch a promotion comes from already built and tested exactly what the promotion merges (D-196).
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Two things, both decided here.</strong> The merge's tree is the source's tip tree, so the default
+    /// branch holds no change of its own; and the platform's runs on the source branch hold a green one of that tip.
+    /// Then the tests would find nothing new, and a pipeline may skip them. It still builds, so the release is built
+    /// with its own version: a package compiled as a preview cannot be renamed into a release.</para>
+    /// <para><strong>The binary reads the runs and never fetches them.</strong> It holds no token, so the pipeline asks
+    /// its platform and hands the answer over: Azure DevOps' builds list (<c>value[].sourceVersion</c>,
+    /// <c>result</c>) or GitHub's workflow runs (<c>workflow_runs[].head_sha</c>, <c>conclusion</c>). Anything it
+    /// cannot read is no, and a no runs everything.</para>
+    /// </remarks>
+    /// <param name="mergeTree">The tree of the commit the promotion's pull request builds.</param>
+    /// <param name="sourceTree">The tree of the source branch's tip.</param>
+    /// <param name="sourceCommit">The source branch's tip.</param>
+    /// <param name="runs">The platform's runs on the source branch, as its API returns them.</param>
+    /// <returns>True only when the trees match and a green run of that tip is listed.</returns>
+    public static bool AlreadyTested(string? mergeTree, string? sourceTree, string? sourceCommit, string? runs)
+    {
+        if (string.IsNullOrWhiteSpace(mergeTree) || string.IsNullOrWhiteSpace(sourceCommit) || string.IsNullOrWhiteSpace(runs)
+            || !string.Equals(mergeTree.Trim(), sourceTree?.Trim(), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(runs);
+
+            return Green(document.RootElement, "value", "sourceVersion", "result", "succeeded", sourceCommit.Trim())
+                || Green(document.RootElement, "workflow_runs", "head_sha", "conclusion", "success", sourceCommit.Trim());
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool Green(JsonElement root, string list, string commit, string outcome, string passed, string tip) =>
+        root.ValueKind == JsonValueKind.Object
+        && root.TryGetProperty(list, out JsonElement runs)
+        && runs.ValueKind == JsonValueKind.Array
+        && runs.EnumerateArray().Any(run =>
+            run.ValueKind == JsonValueKind.Object
+            && run.TryGetProperty(commit, out JsonElement sha) && sha.ValueKind == JsonValueKind.String
+            && string.Equals(sha.GetString(), tip, StringComparison.OrdinalIgnoreCase)
+            && run.TryGetProperty(outcome, out JsonElement result) && result.ValueKind == JsonValueKind.String
+            && string.Equals(result.GetString(), passed, StringComparison.OrdinalIgnoreCase));
 
     private static bool IsRelease(string branch) =>
         branch.StartsWith(ReleasePrefix, StringComparison.Ordinal) && branch.Length > ReleasePrefix.Length;

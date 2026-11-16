@@ -9,6 +9,41 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.48.0
+
+**A pull request that changes only `.sdlc/` is not built** (D-193). `sdlc admission` answers `true` whenever every
+path a pull request changes is under `.sdlc/`, whatever the branch, so a harvest or a successor review skips the
+build and the tests as a plan already did. The chain still judges each one, and the harvest check already parses
+the records and successors it carries. A pull request carrying successors alone had taken a governed solution's
+full run: thirteen minutes, ten of them one end-to-end suite.
+
+**A promotion always builds, and skips the tests the integration branch already ran** (D-196). Both generated
+pipelines ask the platform for this pipeline's green runs on the source branch and hand them to the new
+`sdlc tested`, which says `true` only when the promotion merges exactly that tip and a green run of it is listed.
+The build still runs, so the release carries its own version. Anything else runs everything.
+
+**Guidance: the framework's opinion, handed to a plan, overridden by the solution** (D-195). A guidance entry is a
+short document naming the files that switch it on. The framework's are in the binary; a solution's own under
+`.sdlc/guidance/` replace them by name. `sdlc guidance <id>` hands a plan the entries its declared files switch on,
+and the `plan` skill reads them last — after the code, the decisions and the rules — and says why in a line where
+it departs. Nothing judges a plan against guidance and it never blocks. The first entry is the pipeline.
+
+**Every concern the harvest counts keeps its reason** (D-194). A concern watched below the bar, or ignored, carries a
+`Why:` line — what it prevents and what it promotes — so the case for it survives the cycle folders it came from.
+`sdlc harvest --history` prints it.
+
+**A minor** because a stage writes more than before: a plan reads guidance and says why where it departs, and a
+harvest sitting writes a reason under each new concern. The pipeline templates gain a step.
+
+**Moving to it.** **A solution on GitHub** receives the new promotion step in the upgrade pull request that moves its
+pin, written by `sdlc init`. **A solution on Azure DevOps** whose `azure-pipelines.yml` was its own before adoption
+gets the template printed rather than written, as always: place the step named *has the integration branch already
+tested this*, and the `ne(variables.tested, 'true')` condition on its test and publishing steps. Without it,
+promotions keep running the tests and nothing else changes. The records-only skip needs no pipeline change: the
+pipeline already asks `sdlc admission`, which answers the wider question once the pin moves. For the promotion step
+to read the runs, a GitHub workflow's token needs to read actions, and an Azure DevOps build service needs to read
+builds; where it cannot, the tests run.
+
 ## 0.47.0
 
 **The framework says what it is, in one definition, everywhere it introduces itself.** The README, `CONCEPT.md`

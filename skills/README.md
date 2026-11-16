@@ -1879,7 +1879,7 @@ longest inside one, findings that rested on no rule grouped by who raised them, 
 cycles' reasons, deviations by the rule behind them, criteria that failed more than one verdict, rules over their
 word budget, and the concerns watched below the bar. Every item gets a proposal — `add`, `supersede` or `reword`,
 and **no remove** — *already recorded*, a note for the framework, or a reason under `## Not proposed`. A concern
-below the bar goes under `## Watch`.
+below the bar goes under `## Watch`, with a `Why:` line under a new one: what it prevents and what it promotes (D-194).
 
 #### Refusals
 
@@ -1999,7 +1999,7 @@ framework should hear about. Proposes and never places.
 
 Each suggestion is **taken further**, as a successor under `## Successors` with its text copied in; **declined**,
 under `## Declined` with the reason a person would give; or **ignored**, under `## Ignored` as its concern and the
-cycles it was ignored in (D-153). A concern ignored in three cycles is at the bar and is not ignored again. An
+cycles it was ignored in (D-153), with a `Why:` line under a new one (D-194). A concern ignored in three cycles is at the bar and is not ignored again. An
 accepted successor is written to `.sdlc/successors/<slug>.md`, ready once its cycle has merged.
 
 #### Refusals

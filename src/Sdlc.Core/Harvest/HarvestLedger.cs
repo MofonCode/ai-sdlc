@@ -50,7 +50,11 @@ public sealed record HarvestedCycle(
 /// </summary>
 /// <param name="Gist">The concern, in one sentence, as the sitting wrote it.</param>
 /// <param name="Cycles">The cycles it was seen in.</param>
-public sealed record Watched(string Gist, IReadOnlyList<string> Cycles);
+/// <param name="Why">
+/// What it prevents and what it promotes, in a line or two: the case a person weighs when the concern reaches the bar,
+/// kept here because the reasoning it came from leaves with the folders (D-194). Absent from ledgers written before.
+/// </param>
+public sealed record Watched(string Gist, IReadOnlyList<string> Cycles, string? Why = null);
 
 /// <summary>One sitting: the aspect it answered, the cycles it answered it for, and what the person accepted.</summary>
 /// <param name="Recorded">When it was recorded.</param>
@@ -211,7 +215,12 @@ public sealed record HarvestLedger(
 
             if (at >= 0)
             {
-                merged[at] = merged[at] with { Cycles = [.. merged[at].Cycles.Union(item.Cycles, StringComparer.Ordinal)] };
+                // A later sitting may sharpen the reason; one that gives none keeps the one already held.
+                merged[at] = merged[at] with
+                {
+                    Cycles = [.. merged[at].Cycles.Union(item.Cycles, StringComparer.Ordinal)],
+                    Why = string.IsNullOrWhiteSpace(item.Why) ? merged[at].Why : item.Why,
+                };
             }
             else
             {

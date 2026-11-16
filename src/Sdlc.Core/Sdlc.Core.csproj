@@ -45,6 +45,14 @@
                       WithCulture="false" />
   </ItemGroup>
 
+  <!-- The guidance, one document each (D-195). The resource names are the list, so giving the framework an
+       entry is adding a file. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Guidance\*.md"
+                      LogicalName="Sdlc.Core.Guidance.%(Filename).md"
+                      WithCulture="false" />
+  </ItemGroup>
+
   <!-- The readers' prompts (D-117): one template per kind of reader, so the words a reader is given are
        the same on every round and in every session rather than composed from a skill's prose. -->
   <ItemGroup>

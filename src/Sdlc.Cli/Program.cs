@@ -90,6 +90,7 @@ try
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "admission" => await AdmissionCommand(line).ConfigureAwait(false),
+        "tested" => await TestedCommand(line).ConfigureAwait(false),
         "promotion" => await PromotionCommand(line).ConfigureAwait(false),
         "branch-policy" => await Workspace.Run(line, w => BranchPolicyCommand(w, line)).ConfigureAwait(false),
         "branch" => await BranchCommand(line).ConfigureAwait(false),
@@ -107,6 +108,7 @@ try
         "tidy" => await Workspace.Run(line, TidyCommand).ConfigureAwait(false),
         "upgrade" => await Workspace.Run(line, w => UpgradeCommand(w, line)).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
+        "guidance" => await Workspace.Run(line, w => GuidanceCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
@@ -893,34 +895,52 @@ static async Task<int> AdmissionCommand(CommandLine line)
     if (line.Arguments.Count == 0)
     {
         await Console.Error.WriteLineAsync(
-            "Which cycle? Give its id or its branch, as in 'sdlc admission cycle/20260929_1456_32/plan --base development'.")
+            "Which pull request? Give its branch, as in 'sdlc admission cycle/20260929_1456_32/plan --base development'.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
-    // A slicing's branch is admission when it carries planning and successors only (D-125).
-    if (SlicingBranch.TryParse(line.Arguments[0], out _))
-    {
-        return await Workspace.Run(line, async workspace =>
-        {
-            IReadOnlyList<string>? carried = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
-            bool planning = carried is not null && Sdlc.Core.Chain.VerifyChain.PlanningCycles(carried) is not null;
-            await Console.Out.WriteLineAsync(planning ? "true" : "false").ConfigureAwait(false);
-            return ExitCode.Ok;
-        }).ConfigureAwait(false);
-    }
-
-    if (!CycleId.TryParse(line.Arguments[0], out CycleId? id) && !CycleId.TryParseBranch(line.Arguments[0], out id))
-    {
-        await Console.Out.WriteLineAsync("false").ConfigureAwait(false);
-        return ExitCode.Ok;
-    }
-
+    // The diff decides, never the branch (D-87): a pull request that changes nothing outside .sdlc/ has nothing to
+    // build, whatever carries it -- a plan, a slicing, a harvest, a successor (D-193). The chain still judges it.
     return await Workspace.Run(line, async workspace =>
     {
         IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
-        bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.AdmitsAsPlan(id.Value, changed);
+        bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.RecordsOnly(changed);
         await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+}
+
+// Whether a promotion's source branch already built and tested exactly what it merges (D-196). The pipeline pipes its
+// platform's runs on that branch to standard input; 'true' lets it skip the tests, and anything unreadable is 'false'.
+static async Task<int> TestedCommand(CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync(
+            "Tested on which branch? As in 'curl <the platform's runs on development> | sdlc tested development'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string runs = Console.IsInputRedirected ? await Console.In.ReadToEndAsync().ConfigureAwait(false) : string.Empty;
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        string source = line.Arguments[0].StartsWith("refs/heads/", StringComparison.Ordinal)
+            ? line.Arguments[0]["refs/heads/".Length..]
+            : line.Arguments[0];
+        string? Ask(string arguments) =>
+            workspace.Repository.Git(workspace.SolutionRoot, arguments) is { IsSuccess: true } answer ? answer.Value.Trim() : null;
+
+        string? tip = Ask("rev-parse origin/" + source);
+        bool tested = Promotion.AlreadyTested(
+            Ask("rev-parse HEAD^{tree}"),
+            tip is null ? null : Ask("rev-parse " + tip + "^{tree}"),
+            tip,
+            runs);
+
+        await Console.Out.WriteLineAsync(tested ? "true" : "false").ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
 }
@@ -1724,6 +1744,64 @@ static async Task<int> PerspectiveCommand(CommandLine line)
     }
 
     await Console.Out.WriteAsync(Sdlc.Core.Perspectives.ActivePerspectives.RenderStage(found.Value, stage.ToLowerInvariant(), line.HasOption("cover")))
+        .ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// The guidance a solution plans with (D-195): the list, one entry in full, or the entries a cycle's plan switches on.
+static async Task<int> GuidanceCommand(Workspace workspace, CommandLine line)
+{
+    Result<IReadOnlyList<Sdlc.Core.Guidance.GuidanceEntry>> all = await Sdlc.Core.Guidance.GuidanceLibrary
+        .All(workspace.SolutionRoot, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    if (all.IsFailed)
+    {
+        return await Report(all, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Out.WriteAsync(Sdlc.Core.Guidance.GuidanceLibrary.RenderList(all.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    if (string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase))
+    {
+        string? name = line.Arguments.Count > 1 ? line.Arguments[1] : null;
+
+        if (all.Value.FirstOrDefault(entry => string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase)) is not { } found)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Show which entry? As in 'sdlc guidance show pipeline'. There are: {string.Join(", ", all.Value.Select(entry => entry.Name))}."))
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        await Console.Out.WriteLineAsync(found.Text).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    if (!CycleId.TryParse(line.Arguments[0], out CycleId? id))
+    {
+        await Console.Error.WriteLineAsync("Which cycle? As in 'sdlc guidance 20260929_1456_32', or 'sdlc guidance' for the list.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string plan = new Cycle(id.Value, workspace.SolutionRoot).PathOf(ArtifactKind.Plan);
+
+    if (!File.Exists(plan))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{id} has no plan yet, so no declared files to match. 'sdlc guidance' lists every entry and the files that switch each on."))
+            .ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    IReadOnlyList<string> declared = DeclaredFiles.Read(await File.ReadAllTextAsync(plan).ConfigureAwait(false));
+    await Console.Out.WriteAsync(Sdlc.Core.Guidance.GuidanceLibrary.RenderFor(Sdlc.Core.Guidance.GuidanceLibrary.For(all.Value, declared)))
         .ConfigureAwait(false);
     return ExitCode.Ok;
 }

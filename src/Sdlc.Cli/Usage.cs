@@ -66,12 +66,17 @@ internal static class Usage
                                      writes from the base's copy, a pipeline step by step (D-133);
                                      a dependency file may move only versions, of any size (D-134).
                                      Anything else is refused: there is no chain.
-            admission <id> --base <branch>
-                                     Print true when a pull request carries only the cycle's
-                                     planning documents, and any successors, so a pipeline may
-                                     skip the build and tests; false for anything else. On
-                                     slices/<slug>/plan, true when it carries only cycles'
-                                     planning and successors. Always exits 0.
+            admission <branch> --base <branch>
+                                     Print true when everything a pull request changes is under
+                                     .sdlc/ -- a plan, a slicing's plans, a harvest, successors --
+                                     so a pipeline may skip the build and tests; false when one
+                                     path is outside. The chain still judges it (D-193). Always
+                                     exits 0.
+            tested <branch>          Print true when this promotion merges exactly <branch>'s tip
+                                     and the platform's runs on it, piped in, list a green one,
+                                     so a pipeline builds and skips the tests; false for anything
+                                     else, or anything it cannot read. Holds no token (D-196).
+                                     Always exits 0.
             promotion <source> --base <target>
                                      Print true when a pull request promotes the integration
                                      branch or a release/* branch into another branch, so a
@@ -199,6 +204,13 @@ internal static class Usage
                                      file each new one as a bug on the platform's tracker -- a lead.
                                      Not filed again while open, or once a person dismissed it.
                                      A person runs it; no pipeline does.
+            guidance                 The guidance a plan is handed: every entry, the framework's
+                                     and the solution's own under .sdlc/guidance/, which win by
+                                     name, and the files that switch each on. Advises; never
+                                     blocks (D-195).
+            guidance show <name>     One entry in full.
+            guidance <id>            The entries a cycle's plan switches on by its declared
+                                     files, in full, for the planner to read.
             perspective show <name> --for <stage> [--cover]
                                      One perspective for one stage -- intent, spec, plan, build or
                                      verify: its method, the questions a fresh reader asks, its

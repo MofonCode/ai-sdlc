@@ -1,6 +1,6 @@
 # The mechanisms
 
-Two pages, each explaining one mechanism of the framework: what it is, how it decides, and why it works
+Three pages, each explaining one mechanism of the framework: what it is, how it decides, and why it works
 that way. This file is the index: what each one covers, when you would read it, and what it leaves to
 another.
 
@@ -14,6 +14,7 @@ the framework names, and its row links here when there is a page.
 |---|---|---|
 | [`protected-files.md`](protected-files.md) | the seven files only a person changes and the adoption command: what is guarded, how the pre-tool hook decides, and what it deliberately does not guard | when an agent says it cannot write a file, or before you look for a way to let it |
 | [`perspectives.md`](perspectives.md) | what examines a change beyond the rules: what a perspective carries, which a cycle gets and why, when each steers and judges, and how to read what it found | when a finding carries a perspective's name, or before an interview asks what a change touches |
+| [`guidance.md`](guidance.md) | the framework's opinion on how to do one kind of thing, handed to a plan that touches it: how it differs from a perspective, why it comes last, and writing your own | when a plan cites a guidance entry, or before your solution writes one |
 
 ---
 
@@ -36,6 +37,15 @@ is settled, and how a perspective's suggestions earn it rules.
 
 What it does not cover: any perspective's method, which `sdlc perspective show` prints from the document
 the binary carries; or answering a finding, which is `../guides/handling-blockers.md`.
+
+## `guidance.md`
+
+**The framework's opinion, where your solution has none.** What guidance is and how it differs from a perspective,
+why it comes after the code, the decisions and the rules, which entries a plan is handed and how the binary
+decides it, and how a solution writes its own or replaces the framework's.
+
+What it does not cover: any entry's content, which `sdlc guidance show` prints from the document the binary
+carries; or turning advice into a rule, which is `../guides/harvesting-the-cycles.md`.
 
 ## What these are not
 
