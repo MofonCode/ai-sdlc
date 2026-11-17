@@ -20,6 +20,12 @@ it the next number. The major stays 0 while the framework is alpha.
 **The session-start check compares the release line.** A plugin installed from the marketplace says `0.49.0`, and a
 binary from any build of 0.49 is the same release to it.
 
+**A trunk is supported as a setting** (D-198). Name the default branch as the integration branch --
+`integration_branch: main` -- and `sdlc branch-policy` prints one squash policy and no promotion, where it printed
+two policies that left no way to merge. It asks the platform which branch is the default, as `sdlc doctor` already
+did; unanswered, it prints both and says which a trunk skips. The pipeline guidance says how a trunk delivers to
+dev and prod on GitHub and Azure DevOps, and that a build nobody promoted ends cancelled or skipped, never red.
+
 **A minor** because the numbering changes what a solution pins: from here a pin names a build, and the newest build
 of a line is the one to take. No cycle blocks differently.
 

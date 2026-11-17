@@ -90,6 +90,60 @@ public sealed class PromotionTests
     }
 
     [TestMethod]
+    public void A_trunk_on_GitHub_gets_one_squash_ruleset_and_no_promotion()
+    {
+        // Two rulesets on one branch, squash only and merge commits only, leave no way to merge at all.
+        using TemporaryDirectory scratch = new();
+
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(Platform.GitHub, "main", scratch.Path, defaultBranch: "main");
+
+        Assert.IsTrue(script.IsSuccess);
+        Assert.HasCount(1, script.Value.Files);
+        Assert.AreEqual("squash", MergeMethod(JsonNode.Parse(script.Value.Files[0].Text)!));
+        Assert.DoesNotContain("default-branch.json", script.Value.Text);
+        Assert.DoesNotContain("sdlc promotion", script.Value.Text);
+        StringAssert.Contains(script.Value.Text, "trunk");
+    }
+
+    [TestMethod]
+    public void A_trunk_on_Azure_DevOps_gets_one_branch_of_policies()
+    {
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(Platform.AzureDevOps, "main", Path.GetTempPath(), defaultBranch: "main");
+
+        Assert.IsTrue(script.IsSuccess);
+        StringAssert.Contains(script.Value.Text, "--branch main --blocking true --enabled true --allow-squash true --allow-no-fast-forward false");
+        Assert.DoesNotContain("<default branch> --blocking", script.Value.Text);
+        Assert.DoesNotContain("sdlc promotion", script.Value.Text);
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Two_branches_the_platform_named_print_both_policies_with_no_note(Platform platform)
+    {
+        using TemporaryDirectory scratch = new();
+
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(platform, "development", scratch.Path, defaultBranch: "main");
+
+        Assert.IsTrue(script.IsSuccess);
+        StringAssert.Contains(script.Value.Text, "sdlc promotion");
+        Assert.DoesNotContain("skip this one", script.Value.Text);
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void A_default_branch_nobody_could_ask_prints_both_and_says_which_a_trunk_skips(Platform platform)
+    {
+        using TemporaryDirectory scratch = new();
+
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(platform, "development", scratch.Path);
+
+        Assert.IsTrue(script.IsSuccess);
+        StringAssert.Contains(script.Value.Text, "If development is the repository's default branch, it is a trunk: skip this one.");
+    }
+
+    [TestMethod]
     public void A_named_owner_on_GitHub_is_a_code_owner_review_with_the_line_to_commit()
     {
         using TemporaryDirectory scratch = new();

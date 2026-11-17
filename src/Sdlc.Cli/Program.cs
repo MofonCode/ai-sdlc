@@ -1018,11 +1018,20 @@ static async Task<int> BranchPolicyCommand(Workspace workspace, CommandLine line
         return await Report(solution, ExitCode.Failed).ConfigureAwait(false);
     }
 
+    // Whether the integration branch is the default one, a trunk, is the platform's answer, read the way the doctor
+    // reads it. Unanswered, both policies are printed with a note saying which to skip.
+    string? defaultBranch = solution.Value.Platform == Platform.Local
+        ? null
+        : await new CliBranchPolicies()
+            .DefaultBranch(solution.Value.Platform, workspace.SolutionRoot, CancellationToken.None)
+            .ConfigureAwait(false);
+
     Result<BranchPolicyScript> script = BranchPolicyScript.For(
         solution.Value.Platform,
         solution.Value.IntegrationBranch,
         workspace.SolutionRoot,
-        reviews);
+        reviews,
+        defaultBranch);
 
     if (script.IsFailed)
     {
