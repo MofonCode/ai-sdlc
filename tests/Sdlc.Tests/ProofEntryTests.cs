@@ -108,6 +108,25 @@ public sealed class ProofEntryTests
     }
 
     [TestMethod]
+    public void A_proof_table_case_that_opens_with_a_backticked_name_is_not_read_as_a_test()
+    {
+        // A verified cycle's pull request was refused because the first row's Case, a file name in backticks,
+        // followed the tests with only a space between and so joined the run of names the entry opens with.
+        string plan = Plan(
+            "| Criterion | Case | Test | Asserts |",
+            "|---|---|---|---|",
+            "| 1 | `pipeline.yml` | `No_file_names_the_old_branch` | holds no `old` |",
+            "| 1 | `README.md` | `No_file_names_the_old_branch` and `Readme_names_the_trunk` | holds no `old` |");
+
+        IReadOnlyDictionary<int, string> entries = ArtifactSections.NumberedItems(plan, "Proof");
+
+        CollectionAssert.AreEqual(
+            new[] { "No_file_names_the_old_branch", "Readme_names_the_trunk" },
+            DeclaredFiles.TestsIn(entries[1]).ToArray());
+        StringAssert.Contains(entries[1], "`pipeline.yml`: holds no `old`");
+    }
+
+    [TestMethod]
     public void A_proof_table_row_naming_no_test_is_refused_even_when_its_criterion_has_another()
     {
         ArtifactValidation check = Validate(Plan(

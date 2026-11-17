@@ -138,7 +138,8 @@ public static class ArtifactSections
         // A proof written as a table (D-130): one row per case, its first cell the criterion's number. A
         // criterion's rows become one entry that opens with every test the rows name, so the chain reads
         // them as it reads a numbered entry and requires every one to have passed. A number the list already
-        // gave keeps the list's entry.
+        // gave keeps the list's entry. The tests end at " -- ", which no run of names crosses: a space alone let a
+        // Case opening with a backticked file name join the run, and the chain then wanted it to have passed.
         foreach (IGrouping<int, TableRow> criterion in TableRows(markdown, section).GroupBy(row => row.Number))
         {
             if (items.ContainsKey(criterion.Key))
@@ -149,7 +150,7 @@ public static class ArtifactSections
             string tests = string.Join(", ", criterion.Select(row => row.Test).Where(test => test.Length > 0));
             string rest = string.Join("; ", criterion.Select(row => string.Join(": ", row.Others.Where(cell => cell.Length > 0))));
 
-            items[criterion.Key] = (tests + " " + rest).Trim();
+            items[criterion.Key] = rest.Length == 0 ? tests : (tests + " -- " + rest).Trim();
         }
 
         return items;
