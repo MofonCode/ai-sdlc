@@ -25,7 +25,7 @@ public sealed class PluginHooksTests
     [TestMethod]
     public void A_repository_not_yet_adopted_is_guarded_by_the_plugin_copy()
     {
-        // Before adoption the plugin's hook is the only thing denying an agent 'sdlc init'.
+        // Before adoption the plugin's hook is the only thing guarding the files only a person writes.
         string root = Solution(settings: null);
 
         Assert.IsFalse(PluginHooks.AnsweredBySettings(root, HookHost.Claude, turnEnd: false));

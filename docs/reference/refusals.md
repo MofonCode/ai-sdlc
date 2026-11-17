@@ -108,7 +108,6 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | writing `areas.md` | `/sdlc:harvest-areas`, then `sdlc draft harvest <file>` and rename |
 | writing `solution.md` | `sdlc draft solution`, then rename |
 | writing `techstack.md` | `sdlc draft techstack`, then rename |
-| running the adoption command | run it yourself; `sdlc help` for its options |
 | writing a findings round | `sdlc round <id> <artifact> --from <file>` |
 | **Sent back at turn end — the turn-end hook** | |
 | [the recorded suite has a failure](../guides/handling-refusals.md#the-recorded-suite-has-a-failure) | fix the code, run the suite, record again. **Not the test** |
@@ -116,7 +115,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the working tree has moved since the evidence](../guides/handling-refusals.md#the-working-tree-has-moved-since-the-evidence) | build and test what is there now, and record it |
 | [when it says nothing](../guides/handling-refusals.md#when-it-says-nothing) | expected off a `cycle/` branch and before a plan; the pipeline check is the guarantee |
 
-\* **The pre-tool hook's nine denials are absolute: no mode, no flag.** Run the command the denial
+\* **The pre-tool hook's eight denials are absolute: no mode, no flag.** Run the command the denial
 names, and place what it produces yourself. A command that only *mentions* one of these files beside a
 write verb is denied too — for a commit message, use `git commit -F` with the message in a file. The pre-tool hook section of
 `../guides/handling-refusals.md` has why each is a person's.

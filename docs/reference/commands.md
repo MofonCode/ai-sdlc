@@ -16,7 +16,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc help` | binary | every command and its options. `--help` after any command prints the same |
 | `sdlc doctor` | binary | checks the install and this repository, and says how many decisions every reader is handed; names the fix for each problem, and before the first cycle names each draft to fill in and its rename. Says when adoption's files are a release behind the binary. Asks the platform, through `az` or `gh` signed in as you, whether branch policy requires the pipeline: a policy that does not is a problem, a CLI that is not signed in a warning. Exits 1 on a problem, a missing integration branch and a placeholder paragraph included. Never repairs |
 | **Once per repository** | | |
-| `sdlc init` | binary | adoption: commits what it writes, creates the integration branch, drafts the three files a person places. **Yours to run**; the hook denies it to an agent. `--integration-branch <name>` when it is not `development` |
+| `sdlc init` | binary | adoption: commits what it writes, creates the integration branch, drafts the three files a person places. The `init` skill runs it; what it drafts, you place. `--integration-branch <name>` when it is not `development` |
 | `sdlc draft solution` | binary | the solution document, to rename into place, once adoption's first draft is placed |
 | `sdlc draft solution --standard profile` | binary | move new work onto the profile's conventions |
 | `sdlc draft solution --approval none` | binary | stop requiring an approval before a build, or `required` to start again; `--coverage-floor 70%` moves the floor the same way |

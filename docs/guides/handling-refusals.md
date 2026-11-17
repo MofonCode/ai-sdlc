@@ -852,7 +852,7 @@ a new cycle. [Testing a local build](testing-a-local-build.md) is the whole loop
 
 ---
 
-## The pre-tool hook — the nine things an agent is denied
+## The pre-tool hook — the eight things an agent is denied
 
 These are denied at the tool call, by file path and by shell command alike. `../mechanisms/protected-files.md` says
 how the hook decides and what it deliberately leaves alone; this is why each one is a person's. The rules are absolute rather
@@ -868,16 +868,13 @@ running, so a rule with no exception has nowhere for a bypass to live.
 | writing `areas.md` | the areas decide which rules and decisions reach each reader in full, so an agent that could write them could move a rule out of its own judge's sight. `/sdlc:harvest-areas` proposes areas once three cycles' plans name one, and `sdlc draft harvest` writes the draft; renaming it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live. Adoption drafts it; after that `sdlc draft solution` does |
 | writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
-| running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 | writing a findings round | not a person's file but the binary's: `sdlc round` numbers it, stamps when it ran and what it judged, and refuses it out of the chain's order. A round the session wrote itself carried whatever it typed (D-101). Put the findings in a scratch file and hand it to `sdlc round` |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
 refusal message names the command to run instead — a drafter for four of these files, a harvest for the
 rule file and the decision record, and a harvest's drafter for the areas. Run it yourself, and place what it produces.
 
-**The last one matches the verb rather than parsing the line**, so even asking the adoption command for
-its own help is refused and `sdlc help` is the way to read its options. The same scan is why a refusal
-can arrive for a command that only *mentions* a protected file beside a write verb — the hook reads the
+**A refusal can arrive for a command that only *mentions* a protected file beside a write verb** — the hook reads the
 shell command, not the paths it would touch, so a commit message reading *Move techstack.md into place*
 is denied. `git commit -F` with the message in a file is the way past that, and it is the rule working
 rather than a hole.

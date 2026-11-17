@@ -17,6 +17,11 @@ publishes. There is no `development` branch and no preview. The version is `<maj
 declared, and the build is counted from the merges since it moved, so `0.49.0` is the first and every release after
 it the next number. The major stays 0 while the framework is alpha.
 
+**An agent may run adoption** (D-199). The hook no longer refuses `sdlc init`, so the `init` skill runs it rather
+than handing you the line, an agent refreshes a solution after an upgrade, and a commit message or search that
+mentions the command is no longer refused. What adoption decides it still only drafts, and you place each draft;
+the skill then commits what you placed, since the rename was the decision.
+
 **The session-start check compares the release line.** A plugin installed from the marketplace says `0.49.0`, and a
 binary from any build of 0.49 is the same release to it.
 

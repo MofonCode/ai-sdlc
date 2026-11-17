@@ -337,9 +337,8 @@ release the repository pins rather than the ones installed.
 /sdlc:init
 ```
 
-**Start with the skill.** It asks where the code will live, then hands you the adoption command to run
-yourself — a person runs that and an agent cannot, because adoption is a decision about how a team works
-and it writes the hook configuration that constrains the agent. The order matters: the file recording
+**Start with the skill.** It asks where the code will live, then runs the adoption command. Adoption is
+still your decision: what it drafts binds nothing until you rename it into place. The order matters: the file recording
 that answer is protected once it is placed, so answering afterwards costs a draft and a rename.
 
 **The command commits what it writes, creates the integration branch, `development`, and switches to

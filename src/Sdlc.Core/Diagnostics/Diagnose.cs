@@ -56,10 +56,9 @@ public sealed record Check(string Subject, CheckOutcome Outcome, string Detail, 
 /// asked. The install guide has always said so in prose and left the reader to walk it; this is the walk,
 /// in one command, which is the only part of it a tool can do.
 /// <para>
-/// <strong>It reports and never repairs.</strong> Every remedy it prints is a command a person runs --
-/// adoption especially, which the pre-tool hook denies to an agent. A doctor that fixed things would be
-/// a second path into the files adoption writes, and the one rule that keeps the hook configuration out
-/// of the hands of the thing it constrains is that there is exactly one.
+/// <strong>It reports and never repairs.</strong> Every remedy it prints is a command somebody runs. A
+/// doctor that fixed things would be a second path into the files adoption writes, and there is exactly
+/// one.
 /// </para>
 /// </remarks>
 public static class Diagnose
@@ -129,7 +128,7 @@ public static class Diagnose
                     "adoption",
                     CheckOutcome.Problem,
                     "this repository has no " + Cycle.SdlcDirectoryName + " directory, so it is not governed",
-                    "a person runs 'sdlc init' here. An agent cannot: the hook denies it"));
+                    "run 'sdlc init' here"));
 
                 return Result.Ok(new Response(checks));
             }
@@ -277,7 +276,7 @@ public static class Diagnose
                     "line endings",
                     CheckOutcome.Problem,
                     "there is no " + LineEndings.FileName + ", so a commit from another platform can show a whole file changed",
-                    "a person runs 'sdlc init', which writes it; then commit 'git add --renormalize .'");
+                    "run 'sdlc init', which writes it; then commit 'git add --renormalize .'");
         }
 
         private static Check Binary() => new(
@@ -435,7 +434,7 @@ public static class Diagnose
                 ? FrameworkStamp.Read(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false))
                 : null;
 
-            const string refresh = "a person runs 'sdlc init' here, which refreshes what the framework owns and touches nothing a person writes";
+            const string refresh = "run 'sdlc init' here, which refreshes what the framework owns and touches nothing a person writes";
 
             if (stamped is null)
             {
@@ -725,7 +724,7 @@ public static class Diagnose
                     subject,
                     CheckOutcome.Problem,
                     relative + " is missing, so nothing is denied on that host",
-                    "a person runs 'sdlc init' here, which writes it");
+                    "run 'sdlc init' here, which writes it");
             }
 
             string command = "sdlc hook --host " + host.Spelling;
@@ -736,7 +735,7 @@ public static class Diagnose
                     subject,
                     CheckOutcome.Problem,
                     relative + " exists and does not call the gate",
-                    "a person runs 'sdlc init' here, which puts the entry back");
+                    "run 'sdlc init' here, which puts the entry back");
             }
 
             return new Check(
@@ -780,7 +779,7 @@ public static class Diagnose
                     "the guarantee",
                     CheckOutcome.Problem,
                     "no pipeline here runs 'sdlc verify-chain', so nothing stops an ungoverned change merging",
-                    "a person runs 'sdlc init' here, and then makes the check required in branch policy")
+                    "run 'sdlc init' here, and then a person makes the check required in branch policy")
                 : new Check(
                     "the guarantee",
                     CheckOutcome.Sound,

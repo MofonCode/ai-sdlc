@@ -398,7 +398,7 @@ not the plugin's, and they stay readable without it.
 ## Adopting the framework
 
 Installing puts the framework on your machine. It governs nothing until a repository adopts it, which is
-`sdlc init` — a person's command, denied to an agent, and covered in `adopting-the-framework.md`.
+`sdlc init`, which the `init` skill runs, and covered in `adopting-the-framework.md`.
 
 ## Four things that catch people
 

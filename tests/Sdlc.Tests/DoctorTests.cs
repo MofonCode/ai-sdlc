@@ -37,7 +37,7 @@ public sealed class DoctorTests
 
         Assert.AreEqual(CheckOutcome.Problem, adoption.Outcome);
         StringAssert.Contains(adoption.Detail, "not governed");
-        StringAssert.Contains(adoption.Remedy!, "a person runs");
+        StringAssert.Contains(adoption.Remedy!, "run 'sdlc init' here");
 
         Assert.IsFalse(
             report.Checks.Any(check => check.Subject == "the guarantee"),
@@ -591,7 +591,7 @@ public sealed class DoctorTests
 
         Assert.AreEqual(CheckOutcome.Problem, stamp.Outcome);
         StringAssert.Contains(stamp.Detail, "0.0.1");
-        StringAssert.Contains(stamp.Remedy!, "a person runs 'sdlc init'");
+        StringAssert.Contains(stamp.Remedy!, "run 'sdlc init' here");
     }
 
     [TestMethod]
