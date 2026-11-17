@@ -8,12 +8,12 @@ allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
 
 # Adopt the framework
 
-Adopting a process is a decision about how a team works. **A person runs this, and the hook denies you
-running `sdlc init` yourself** — the command writes the hook configuration that constrains you, the
-pipeline that gates the merge, and the file saying where this code came from.
+Adopting a process is a decision about how a team works, and **the person makes it by placing what
+adoption drafts**: where this code came from, what it is built from, and its own rules. `sdlc init` writes
+none of those — it drafts them — so you run it, and the person renames each draft into place.
 
-So your part is the two halves a command cannot do: asking what matters here, and proposing the rules that
-follow from the answers.
+Your part beyond running it is the two halves a command cannot do: asking what matters here, and
+proposing the rules that follow from the answers.
 
 ## Keep a task list, if your host has one
 
@@ -21,12 +21,12 @@ If your host gives you a task list, open one before the first step, with these i
 done as it finishes. If it does not, carry on without one — nothing below depends on it.
 
 1. check what is being adopted into
-2. where the code will live, and the adoption command run by the person
+2. where the code will live, and the adoption command run
 3. the interview
 4. the solution paragraph: written in its draft, and renamed into place by the person
 5. constraints: proposed for the person to place, or none survived
 6. the declared stack: its draft cut down, and renamed into place by the person
-7. what was placed, committed by the person
+7. what was placed, committed
 8. the report
 
 **Items 4, 6 and 7 are done when `sdlc doctor` stops naming them, not when a draft is filled in.** A
@@ -52,33 +52,18 @@ permit everything while the artifacts still looked governed. Offer `git init`.
 
 **Already governed?** `.sdlc/` exists, so this will be an update: the framework refreshes what it owns and
 touches nothing a person writes. Say so, because "init" on a working solution sounds alarming and is not.
-It is what a person runs after upgrading the binary — `sdlc doctor`'s `framework files` check says when
-it is due. **On an update, the interview and the first stack are already done**: hand over the command
-in step 2, then go to *On an update: answer what the release added*, then step 6. Your task list is those
+It is what runs after upgrading the binary — `sdlc doctor`'s `framework files` check says when it is
+due. **On an update, the interview and the first stack are already done**: run the command in step 2,
+then go to *On an update: answer what the release added*, then step 6. Your task list is those
 three.
 
-## 2. Ask for the command to be run
-
-**Two things here share a name and do opposite halves of the job.** `/sdlc:init` is this skill — the
-interview, and the constraints that follow from it — and it writes nothing. `sdlc init` is the binary that
-does the scaffolding, and the hook denies it to you. **Say which one you are**, because somebody who has
-just invoked the slash command reasonably believes adoption is now under way, and invoking it again only
-loads these instructions a second time. That loop is three identical rounds before anybody notices.
-
-Hand over the line with a leading `!`:
+## 2. Run the command
 
 ```
-! sdlc init [--platform github|azure-devops|local] [--integration-branch <name>]
+sdlc init [--platform github|azure-devops|local] [--integration-branch <name>]
 ```
 
-On Claude Code the `!` prefix runs the rest of the line as the person's own command rather than as a tool
-call of yours, so the gate — which fires on your tool calls — never sees it. The reason to prefer it goes
-beyond getting past the gate: it runs in this session, so what the command prints lands in the
-conversation and you can read the mode, the origin and the file list back without asking for a paste. A
-bare line sends the person to another terminal and the output has to be copied in by hand. On a host with
-no such prefix, say to run it in a terminal at the repository root and paste what it prints.
-
-**Ask one thing before you hand over the line: where the code will live**, because the answer decides
+**Ask one thing before you run it: where the code will live**, because the answer decides
 whether a pipeline is written and there is no good default for somebody who has not said. If the
 repository has no remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline
 for a service nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
@@ -113,14 +98,13 @@ planned, approved, built and verified exactly the same way. Only the guarantee i
 doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
 pipeline, and the `pr` skill walks through creating the remote.
 
-Give the person the line, `!` and all, **and with it one sentence: the output ends with a rename for
-each draft, and those wait until the two of you have filled the drafts in.** The renames are the last
-lines it prints, so they read as the next step; one real adoption placed all three drafts unread within
-a minute, before a question was asked, and the plans that followed had to argue departures from a
-storage row and a messaging row on a solution that stores nothing. When they have run it, read what it
-printed — it says which mode ran, what the origin was decided to be, every file it touched or
-deliberately left, that it committed them, and that it created the integration branch and switched to
-it.
+Run it, read what it printed — which mode ran, what the origin was decided to be, every file it touched
+or deliberately left, that it committed them, and that it created the integration branch and switched to
+it — **and tell the person one sentence: the output ends with a rename for each draft, and those wait
+until the two of you have filled the drafts in.** The renames are the last lines it prints, so they read
+as the next step; one real adoption placed all three drafts unread within a minute, before a question
+was asked, and the plans that followed had to argue departures from a storage row and a messaging row on
+a solution that stores nothing.
 
 **If they have already renamed them, the drafts are gone but nothing is lost.** Walk the questions
 anyway against the placed files, and for each one that needs a change, `sdlc draft solution` or
@@ -371,20 +355,22 @@ to the person and ask whether to finish that one or delete it and draft again. D
 
 The draft is a byte copy and names the same list under the rename command. Add one row per answer to
 the table it belongs in — a default under `## Defaults`, a rule under `## Rules` — and nothing else.
-**You cannot place it**; show the `mv -f` line it printed and let the person rename and commit. Then
+**You cannot place it**; show the `mv -f` line it printed and let the person rename; then commit it as step 5 does. Then
 step 6, where `sdlc doctor` no longer names anything under `declared stack`.
 
 ## 5. Commit what was placed
 
 The renames leave the placed files uncommitted on the integration branch adoption switched to, and
 `sdlc new` refuses to open a cycle over uncommitted work — a cycle's branch would carry them into its
-diff as work no plan declared. **The person commits them.** A message naming a protected file is refused
-when it passes through your tool call, so hand the line over with a `!`, or let them commit however they
-usually do:
+diff as work no plan declared. **Commit them yourself once the person has renamed them** — the rename was
+the decision, and the commit only records it:
 
 ```
-! git add .sdlc && git commit -m "Place the solution, its stack and its constraints"
+git add .sdlc && git commit -m "Place the solution, its stack and its constraints"
 ```
+
+The hook reads the command's text, so a message that names a protected file — *Place solution.md* — is
+refused; keep the file names out of it, or write the message to a file and pass `git commit -F`.
 
 The drafts are ignored by git, so whatever is left of one never reaches a commit.
 

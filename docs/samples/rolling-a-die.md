@@ -168,10 +168,8 @@ what *done to a good standard* means: `CON_16`, `CON_17` and `CON_26` already pu
 one change at a time. If it asks you anything beyond these — what a reviewer would send back, what this
 will be judged on — it has gone past its own skill.
 
-The line it hands back is the adoption command with `--platform local`, and it comes with a leading
-`!`. It does not ask what the die is built from: adoption decides nothing about the stack. **Run it yourself** — the hook denies adoption to an agent, and on Claude Code
-that prefix runs the rest of the line as your own command, so what it prints lands in the conversation
-where the agent can read the file list back.
+Then it runs the adoption command with `--platform local`. It does not ask what the die is built from:
+adoption decides nothing about the stack.
 
 It picks greenfield mode, writes what governs code, and commits it to `main`. Then it creates
 `development` from that commit and switches to it — that is where you will commit what you place next,

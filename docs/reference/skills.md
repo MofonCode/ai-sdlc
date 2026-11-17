@@ -19,7 +19,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | Skill | Takes | Does | Started by |
 |---|---|---|---|
 | **Adoption** | | | |
-| [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; hands you the adoption command, and walks the drafts it leaves | a person\* |
+| [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; runs the adoption command, and walks the drafts it leaves | a person\* |
 | **The planning chain** | | | |
 | [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
 | [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | `to-plan`, or a person |
@@ -59,10 +59,9 @@ there is no slash form: ask in a sentence, and include the cycle id.
 the plugin stops one — so *started by* there is who normally decides. These two are different, because
 each does something an agent should not decide on its own behalf:
 
-- **`init` is enforced.** The skill only interviews; the adoption command it hands you is denied to an
-  agent by the pre-tool hook, so you run it yourself. Adoption writes the hook configuration that
-  constrains the agent, the pipeline that gates the merge, and the file saying where the code came from —
-  an agent that could run it would be setting up its own guardrails.
+- **`init` is placed, not enforced.** The skill runs the adoption command, but what adoption decides —
+  where the code came from, what it is built from, its own rules — it only drafts, and nothing binds until
+  you rename each draft into place (D-199).
 - **`pr` is asked, not enforced.** Started by hand, the skill asks you before the push, and no hook blocks a
   push; inside *build it* the question was asked once, when you said it (D-178). It is
   the only stage that reaches outside the repository: a pull request notifies people and lands in a

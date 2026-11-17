@@ -12,7 +12,7 @@ the framework names, and its row links here when there is a page.
 
 | Mechanism | Covers | Read it |
 |---|---|---|
-| [`protected-files.md`](protected-files.md) | the seven files only a person changes and the adoption command: what is guarded, how the pre-tool hook decides, and what it deliberately does not guard | when an agent says it cannot write a file, or before you look for a way to let it |
+| [`protected-files.md`](protected-files.md) | the seven files only a person changes: what is guarded, how the pre-tool hook decides, and what it deliberately does not guard | when an agent says it cannot write a file, or before you look for a way to let it |
 | [`perspectives.md`](perspectives.md) | what examines a change beyond the rules: what a perspective carries, which a cycle gets and why, when each steers and judges, and how to read what it found | when a finding carries a perspective's name, or before an interview asks what a change touches |
 | [`guidance.md`](guidance.md) | the framework's opinion on how to do one kind of thing, handed to a plan that touches it: how it differs from a perspective, why it comes last, and writing your own | when a plan cites a guidance entry, or before your solution writes one |
 
@@ -20,8 +20,7 @@ the framework names, and its row links here when there is a page.
 
 ## `protected-files.md`
 
-**The guard, explained once.** Which seven files only a person changes, and the adoption command beside
-them; the pre-tool hook on each host and the two rules it applies — one to file writes, one to the text
+**The guard, explained once.** Which seven files only a person changes; the pre-tool hook on each host and the two rules it applies — one to file writes, one to the text
 of a shell command; and what it deliberately does not guard, including you.
 
 What it does not cover: making a change to one of the seven, which is What your solution owns in

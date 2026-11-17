@@ -258,8 +258,8 @@ static async Task<int> AreasCommand(Workspace workspace)
     return result.Value.Areas.Any(area => area.Files == 0) ? ExitCode.Refused : ExitCode.Ok;
 }
 
-// Human-invoked and never model-invoked: adopting a process is a decision about how a team works, so
-// the hook denies an agent running this at all. What it does here is the mechanical half -- the
+// An agent may run this (D-199): what adoption decides that is a person's to decide -- the origin, the
+// stack, the rules -- it only drafts, and a person places each draft. What it does here is the mechanical half -- the
 // interview, and the proposal of this solution's own constraints, belong to the skill wrapped around it,
 // because they need language rather than a file listing.
 static async Task<int> Init(Workspace workspace, CommandLine line)
@@ -2417,9 +2417,8 @@ static async Task<int> PrintDraft(Result<DraftResult> result)
 
 // Takes an optional cycle rather than requiring one, because the question people ask is usually "what
 // has this solution accumulated" rather than "what did that cycle leave".
-// Reports on the install and never repairs it. Every remedy it prints is a command a person runs --
-// adoption especially, which the pre-tool hook denies to an agent, so a doctor that offered to fix
-// things would be a second path into the files adoption writes.
+// Reports on the install and never repairs it. Every remedy it prints is a command somebody runs, so a
+// doctor that offered to fix things would be a second path into the files adoption writes.
 //
 // Exits 1 when something is wrong, which is what `gate`, `pr-ready` and `verify-chain` do for the same
 // kind of question: a script asking "is this sound" wants an exit code and not a parse.

@@ -304,25 +304,8 @@ public static class ProtectedPaths
             return false;
         }
 
-        // Adoption is denied before the write test, because it writes through a command rather than a
-        // redirection and so would pass every indicator below.
-        if (IsAdoption(command))
-        {
-            file = new ProtectedFile(
-                "adoption of the framework itself",
-                "Adopting a process is a decision about how a team works, so 'sdlc init' is run by a "
-                + "person. It writes the hook configuration that constrains you, the pipeline that gates "
-                + "the merge, and the file saying where this code came from -- which is a historical fact "
-                + "that must never change. Ask for it to be run, and give the person the command rather "
-                + "than a description of it. Its options are in 'sdlc help', under 'Options for init' -- "
-                + "this rule matches the verb rather than parsing the line, so even 'sdlc init --help' "
-                + "is refused, and 'sdlc help' is the way to read them. It matches the words anywhere in "
-                + "the command, so a commit message, a pull-request body or a search that only mentions "
-                + "them is refused too: write that text to a file and pass the file ('git commit -F', "
-                + "'--body-file'), or search for 'init' alone.");
-
-            return true;
-        }
+        // Adoption is not judged here (D-199). Everything it writes that a person must decide is a
+        // protected file it only drafts, and the rest is the framework's own, checked at the pull request.
 
         // Judged one segment at a time -- the pieces between `;`, `&&`, `||`, `|` and newlines, outside
         // quotes -- so a read in one piece and an unrelated write in another are not added together.
@@ -370,23 +353,6 @@ public static class ProtectedPaths
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Whether a command would adopt or re-adopt the framework.
-    /// </summary>
-    /// <remarks>
-    /// Matched on the verb rather than on a full parse, and deliberately broad: a refusal on a command
-    /// that merely mentions adoption costs a person one rephrasing, and a miss costs the one rule that
-    /// keeps the hook configuration out of the hands of the thing it constrains.
-    /// </remarks>
-    private static bool IsAdoption(string command)
-    {
-        string flattened = command.Replace("\"", string.Empty, StringComparison.Ordinal);
-
-        return flattened.Contains("sdlc init", StringComparison.OrdinalIgnoreCase)
-            || flattened.Contains("sdlc.exe init", StringComparison.OrdinalIgnoreCase)
-            || flattened.Contains("Sdlc.Cli -- init", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

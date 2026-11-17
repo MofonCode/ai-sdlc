@@ -1414,8 +1414,9 @@ existing violation.
 
 ## 9. `init`
 
-Adopting a process is a decision about how a team works, so `init` is human-invoked and never
-model-invoked. Three modes (D-28):
+Adopting a process is a decision about how a team works, and a person makes it by placing what `init`
+drafts: the command itself writes nothing a person decides, so an agent may run it (D-199). Three modes
+(D-28):
 
 | Mode | When | What it does |
 |---|---|---|
@@ -2472,7 +2473,7 @@ they print verbatim.
 
 | Command | Does |
 |---|---|
-| `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
+| `init` | adopts the framework — three modes, §9. An agent may run it; a person places what it drafts (D-199) |
 | `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10), in the directory every worktree of the repository shares (D-144) |
 | `constraints [--for <artifact>] [--cycle <id>]` | renders the effective set, all tiers. How the rules reach a session. With `--cycle`, this solution's own rules outside the areas the stage touches are rendered by their headline, from the plan on; `constraints show <id>` prints one in full; `constraints --new` the empty entry at the next free `LOC_` id — D-151, D-191 |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
@@ -7576,6 +7577,31 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-199 — An agent may run adoption: what it decides, a person places
+
+**Governs:** §9
+
+**Supersedes D-28's** "human-invoked and never model-invoked".
+
+**Decision.** The pre-tool hook no longer judges `sdlc init`. An agent may run it in any mode, and the `init` skill
+runs it rather than handing a person the line, and commits what the person placed: the rename was the decision,
+and the commit only records it. What the hook guards is unchanged: the seven files only a person
+writes, a findings round and the harvest ledger.
+
+**Why.** Everything that needs guarding is already a protected file. Adoption decides three things a person must:
+the origin, the stack and the rules, and it only drafts each (D-94), so they bind when a person renames the draft.
+The rest it writes -- the hook configuration, the pipeline, `.sdlc/README.md`, the line-endings rule, the pin -- is
+the framework's own: an agent could already edit each directly, since none is a protected path, and `verify-chain`
+compares each with what this release writes at the pull request, which does not care who ran `init`. So the rule
+guarded nothing those two did not, and it cost: every upgrade ended in `doctor` sending a person to type a command
+the agent had named, and its text match refused commit messages, pull-request bodies and searches that only
+mentioned the command.
+
+**Rejected.** *Allowing it only once `solution.md` is placed*: the case it kept -- an agent adopting a repository
+nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
+reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
+directory, to guard a commit a person still reviews.
 
 ### D-198 — A trunk is a setting: the integration branch may be the default branch
 

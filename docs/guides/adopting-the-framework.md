@@ -24,15 +24,12 @@ everything while the documents still looked governed.
 ```
 
 **Two things share the name and do opposite halves of the job.** `/sdlc:init` is the skill: it asks
-what the command needs told, interviews you about what matters here, and writes nothing. `sdlc init` is
-the binary, which does the writing — and **you run it, because an agent cannot.** Adoption is a decision
-about how a team works, so the pre-tool hook denies the command to an agent by its text rather than by
-file path, and asking your agent to run it produces a refusal rather than a repository.
+what the command needs told, runs it, and interviews you about what matters here. `sdlc init` is the
+binary, which does the writing. **Adoption is still your decision, made where it binds**: the command
+drafts the three files that say what this solution is, and nothing is in force until you rename each
+draft into place (D-199).
 
-The skill asks the one thing the command cannot guess — where the code will live — and then hands you the
-line to run, `!` and all. On Claude Code that prefix runs the rest of the line as your own command rather
-than as a tool call of the agent's, so the gate never sees it, and what it prints lands in the
-conversation where the agent can read the mode and the file list back without you pasting them.
+The skill asks the one thing the command cannot guess — where the code will live — and then runs it.
 
 **The order is load-bearing, not politeness.** The command writes what it is told into the draft of
 `solution.md`, and once that is placed it is protected, so an answer given after the fact costs a draft
@@ -224,7 +221,8 @@ git add .sdlc
 git commit -m "Place the solution, its stack and its constraints"
 ```
 
-**Commit them before the first cycle.** The intent skill plans in a sandbox, a worktree that starts from the
+**Commit them before the first cycle** — yourself, or ask your agent: the renames were the decision, and the
+commit only records them. The intent skill plans in a sandbox, a worktree that starts from the
 integration branch as committed, so a placed file left uncommitted is one the sandbox — and every cycle in it —
 cannot see. You are on the integration branch adoption created, which is where these belong.
 

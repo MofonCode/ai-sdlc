@@ -39,9 +39,9 @@ table of its stage, who starts it, and what it reads and writes, then carries th
 order, so two skills can be compared at a glance. Remarks is where the reasoning lives.
 
 **"Who starts it" is not "who runs it".** Every one of these is executed by an agent — that is what a
-skill is. What differs is who decides it should happen, and two of them are a person's decision. Only
-one of those is enforced: `init` writes the hook configuration that constrains the agent, so the hook
-denies an agent the command. The other is requested: `pr` is the only stage that reaches outside the
+skill is. What differs is who decides it should happen, and two of them are a person's decision. Neither
+is enforced by the hook. `init` needs none: what adoption decides it only drafts, and nothing binds until
+a person places each draft (D-199). `pr` is requested: it is the only stage that reaches outside the
 repository, so a push needs a person's word — *build it*, which the plan's hand-back says ends in a pull
 request (D-178), or the question `pr` asks when started by hand — but no hook blocks a push, and what stops an
 unready cycle from merging is the pull-request check.
@@ -137,7 +137,7 @@ hands over the command.
 |---|---|
 | Kind | single — one job, and it starts no other skill |
 | Stage | adoption, once per repository — and again later to refresh what the framework owns, or to add a platform once a remote exists |
-| Started by | a person. **The hook denies an agent the `sdlc init` command** |
+| Started by | a person: adopting is a team's decision. The skill runs `sdlc init` itself, and the person places what it drafts |
 | Reads | the repository: whether it is a git repository, whether `.sdlc/` already exists, and whether it holds code |
 | Writes | nothing itself — see Output |
 

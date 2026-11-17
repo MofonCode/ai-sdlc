@@ -10,7 +10,8 @@ one of them is a task, and it lives in What your solution owns in
 
 ## What is guarded
 
-**Seven files, and one command.**
+**Seven files.** The adoption command is not among them: what it decides it only drafts, and the rest it
+writes is the framework's own, checked at the pull request (D-199).
 
 | Guarded | Where | What it holds |
 |---|---|---|
@@ -21,7 +22,6 @@ one of them is a task, and it lives in What your solution owns in
 | `areas.md` | `.sdlc/` | the parts of this solution's code and the files each covers, which decide which rules and decisions reach a reader in full |
 | `approval.md` | `.sdlc/cycles/<id>/` | the gate decisions on one cycle's three planning documents |
 | `abandoned.md` | `.sdlc/cycles/<id>/` | why one cycle stopped |
-| the adoption command | — | it writes the hook configuration that does the guarding |
 
 **Each one is a decision, and a decision means something only if no tool could have made it.** Most of
 them are also something a cycle is judged against — the constraints, the declared stack, the recorded
@@ -44,7 +44,7 @@ never gets to make the call.
 | The agent is about to | Denied when |
 |---|---|
 | write or edit a file | the path has a `.sdlc` segment anywhere in it, and its last segment is one of the seven names — or it is a findings ledger, `findings/<artifact>.json`, which only `sdlc round` writes (D-101, D-107), or a round file from before the ledger, `findings/<artifact>.r<n>.json`. Absolute, relative, either separator |
-| run a shell command | the command names the adoption verb; or a **redirect points at** one of the seven files; or one piece of the command — between `;`, `&&`, `\|\|`, `\|` and newlines, outside quotes — runs a **write verb** (a move, a copy, a delete, an in-place edit) **and names one of the seven as a whole name** |
+| run a shell command | a **redirect points at** one of the seven files; or one piece of the command — between `;`, `&&`, `\|\|`, `\|` and newlines, outside quotes — runs a **write verb** (a move, a copy, a delete, an in-place edit) **and names one of the seven as a whole name** |
 
 **The shell rule reads the text of the command, not the paths it would touch.** It does not parse the
 line or require `.sdlc` to appear, because a command can change directory first. That makes it broad on

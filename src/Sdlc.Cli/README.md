@@ -14,7 +14,7 @@ program can decide, called from the agent's hooks and from CI.
 ```
 dotnet tool install --global MofonCode.Sdlc.Cli
 sdlc constraints        # the rules in force. Also the smoke test: it needs the install to have worked
-sdlc init               # adopt the framework into a repository. A person runs this
+sdlc init               # adopt the framework into a repository
 sdlc doctor             # check this installation and this repository
 ```
 

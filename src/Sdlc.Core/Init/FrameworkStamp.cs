@@ -36,7 +36,7 @@ public static class FrameworkStamp
     /// <returns>The line, with what to do when it disagrees with the binary.</returns>
     public static string Line(string version) => string.Create(
         CultureInfo.InvariantCulture,
-        $"Written by `sdlc {version}`. After upgrading the binary, a person runs `sdlc init` here to refresh what the framework owns, and `sdlc doctor` says when that is due.");
+        $"Written by `sdlc {version}`. After upgrading the binary, run `sdlc init` here to refresh what the framework owns, and `sdlc doctor` says when that is due.");
 
     /// <summary>The release a README says wrote it.</summary>
     /// <param name="readme">The README's text.</param>

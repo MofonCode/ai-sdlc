@@ -354,39 +354,27 @@ public sealed class HookTests
         }
 
         ToolCall shell = Read(
-            """{ "tool_name": "Bash", "tool_input": { "command": "sdlc init" } }""",
+            """{ "tool_name": "Bash", "tool_input": { "command": "echo x > .sdlc/approval.md" } }""",
             HookHost.Claude);
 
         StringAssert.StartsWith(HookPolicy.Decide(shell).Reason, ProtectedPaths.Preface);
     }
 
     [TestMethod]
-    public void The_adoption_refusal_says_where_the_options_actually_are()
+    [DataRow("sdlc init")]
+    [DataRow("sdlc init --platform local")]
+    [DataRow("git commit -m \"Run sdlc init after the upgrade\"")]
+    public void Adoption_is_an_agents_to_run(string command)
     {
-        // The rule matches the verb rather than parsing the line, so `sdlc init --help` is refused
-        // too -- which cost a real session two rounds: an agent tried to read the flags so it could
-        // hand a person an accurate command, met a refusal that looked like a fault, and the person
-        // went looking for a broken install. The flags are in `sdlc help` and the refusal now says
-        // so. Narrowing the rule to permit `--help` was the other option and is worse: "allow when
-        // --help appears" lets `sdlc init --help && sdlc init` through, and a conditional in a hook
-        // rule is where a bypass lives.
+        // D-199. Everything adoption writes that a person must decide -- the origin, the stack, the
+        // rules -- it only drafts, and a person places each draft. The rest is the framework's own and
+        // is checked at the pull request, so refusing the command guarded nothing and cost a person a
+        // command the agent had already named, and every commit message that mentioned it.
         ToolCall call = Read(
-            """{ "tool_name": "Bash", "tool_input": { "command": "sdlc init --help" } }""",
+            JsonSerializer.Serialize(new { tool_name = "Bash", tool_input = new { command } }),
             HookHost.Claude);
 
-        HookVerdict verdict = HookPolicy.Decide(call);
-
-        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
-        StringAssert.Contains(verdict.Reason, "sdlc help");
-        StringAssert.Contains(
-            verdict.Reason,
-            "Options for init",
-            "Naming the command without naming the section leaves a reader scanning the whole of it.");
-
-        StringAssert.Contains(
-            Sdlc.Cli.Usage.Text,
-            "Options for init",
-            "The refusal points at a heading in the usage text, so the heading has to be there.");
+        Assert.AreEqual(HookDecision.Allow, HookPolicy.Decide(call).Decision);
     }
 
     [TestMethod]
