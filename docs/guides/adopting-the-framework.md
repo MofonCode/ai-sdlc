@@ -259,8 +259,13 @@ administrator. It applies nothing itself.
 | **Approvals** | none required, unless you ask | the same |
 | **Bypass** | nobody | nobody |
 
-On GitHub that is two rulesets, written as JSON under `.sdlc/reports/branch-policy/`. On Azure DevOps it is a
-merge strategy policy and a build validation policy on each branch, and one screen the CLI cannot set:
+**A trunk is one branch.** When the integration branch you chose is the repository's default branch --
+`--integration-branch main` at adoption -- the command asks the platform, sees one branch, and prints the
+integration branch's policy alone: squash, the pipeline required, and no promotion, because every pull request
+into it is judged by the chain (D-198). If it cannot ask the platform, it prints both and says which a trunk skips.
+
+On GitHub that is two rulesets, written as JSON under `.sdlc/reports/branch-policy/`, or one on a trunk. On Azure
+DevOps it is a merge strategy policy and a build validation policy on each branch, and one screen the CLI cannot set:
 in **Project settings > Repositories > Security**, no group may hold **Bypass policies when completing pull
 requests** or **Bypass policies when pushing**.
 

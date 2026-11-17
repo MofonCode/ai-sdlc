@@ -2285,6 +2285,9 @@ promotion, which has no cycle. A release branch's own policy is the team's. **A 
 skips the tests when the integration branch already passed on exactly what it merges** (D-196): `sdlc tested`
 reads the platform's runs the pipeline hands it, and anything else runs everything.
 
+**A trunk is a setting** (D-198). Where the integration branch is the default branch, there is one branch, one
+policy and no promotion: every pull request into it is judged by the chain, and the guarantee covers what ships.
+
 Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
 wrapping one command.
 
@@ -7573,6 +7576,35 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-198 — A trunk is a setting: the integration branch may be the default branch
+
+**Governs:** §13
+
+**Extends D-136**, whose default is two branches, **and D-195**, whose pipeline entry gains how a build reaches dev
+and prod.
+
+**Decision.** A solution whose `integration_branch` is the repository's default branch is a trunk, and is supported
+as it stands. `sdlc branch-policy` asks the platform which branch is the default, the way `sdlc doctor` already does,
+and on a trunk prints the integration branch's policy alone -- squash, the pipeline required -- with no promotion,
+since every pull request into it is judged by the chain. When the platform cannot be asked it prints both policies
+and says which a trunk skips. Nothing else changes: `init` does not create a branch that exists, `sdlc promotion`
+never calls a pull request into the integration branch a promotion, and `doctor` already reads one branch. The
+`pipeline` guidance says how a delivering branch reaches dev and prod: one pipeline of build, dev and prod stages,
+prod behind an approval, the newest build replacing the one waiting, the approval's timeout left to the platform,
+and reject kept for a build that must never ship, so a build nobody promoted ends cancelled or skipped, never red.
+
+**Why.** The person moved this repository to a trunk (D-197) and wanted the same open to a governed solution as a
+configuration rather than a habit. Read against the code, the setting already worked everywhere but one place:
+`branch-policy` printed a squash-only and a merge-only policy for the same branch, which on GitHub leaves no merge
+method at all. The delivery shape was the person's: a build that does not reach prod should not read as a failure.
+
+**Rejected.** *A `trunk:` key in the solution document*: whether the integration branch is the default is a fact the
+platform holds, and a second key could disagree with it. *Recognising a trunk by the name `main` or `master`*: the
+default branch can be called anything, and doctor already asks. *An approval timeout in the guidance*: neither
+platform can switch it off -- Azure DevOps defaults to 30 days, GitHub fails a job after 30 -- and a number the team
+did not choose is one more thing to keep current. *Two pipelines as the default*: a second pipeline and picking the
+build by hand, worth it only where somebody else owns prod, which the guidance names as the alternative.
 
 ### D-197 — This repository releases from main: every merge that ships is a numbered build a person approves or rejects
 

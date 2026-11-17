@@ -87,7 +87,9 @@ internal static class Usage
                                      this solution's platform: pull requests only, nobody
                                      bypassing, the pipeline required, squash into the
                                      integration branch and merge commits into the default
-                                     branch. Applies nothing; run them as an administrator.
+                                     branch. When the integration branch is the default
+                                     branch, a trunk, one squash policy and no promotion.
+                                     Applies nothing; run them as an administrator.
                                      --approvals <n> asks every pull request for n approvals;
                                      --owner <who>[,<who>] names who must give one, as a
                                      CODEOWNERS line on GitHub and a required reviewer on
