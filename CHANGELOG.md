@@ -26,6 +26,11 @@ two policies that left no way to merge. It asks the platform which branch is the
 did; unanswered, it prints both and says which a trunk skips. The pipeline guidance says how a trunk delivers to
 dev and prod on GitHub and Azure DevOps, and that a build nobody promoted ends cancelled or skipped, never red.
 
+**A proof table's Case is not read as a test.** A criterion's first row whose Case opened with a name in backticks
+-- a file, `pipeline.yml` -- joined the run of test names the entry opens with, and `verify-chain` refused a
+verified cycle because no test of that name had passed. The chain now reads only the Test column as names, so a
+plan that met this needs no reopen: run `verify-chain` again on a build that has the fix.
+
 **A minor** because the numbering changes what a solution pins: from here a pin names a build, and the newest build
 of a line is the one to take. No cycle blocks differently.
 
