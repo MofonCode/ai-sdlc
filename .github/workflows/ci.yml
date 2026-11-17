@@ -162,11 +162,15 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release -p:Version=${{ needs.version.outputs.version }}
 
-      # Bare `dotnet test`, with no verbosity flags. This solution runs on Microsoft.Testing.Platform
-      # (global.json pins the runner), and VSTest-style flags like `-v q` make it run ZERO tests and
-      # exit 5 while printing "failed: 0" on the way past. Do not add flags here.
+      # No verbosity flags. This solution runs on Microsoft.Testing.Platform (global.json pins the runner),
+      # and VSTest-style flags like `-v q` make it run ZERO tests and exit 5 while printing "failed: 0" on
+      # the way past. Do not add flags here beyond the two it has.
+      #
+      # `--no-build` tests the binary the step above built, at the build's own version. Without it the test
+      # builds again from the props, so on a push the binary says the line (0.49.0) while the stamped manifests
+      # say the build (0.49.2), and the suite's version check fails. It passed only while the build was 0.
       - name: Test
-        run: dotnet test --configuration Release
+        run: dotnet test --configuration Release --no-build
 
       # The gap this step exists to close: every test in Sdlc.Tests asserts STRINGS in the scaffold
       # templates, so a template that generates code which does not compile passes the entire suite.
