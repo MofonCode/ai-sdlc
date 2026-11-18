@@ -142,8 +142,8 @@ one as a bug on the platform's tracker — Azure DevOps Boards or GitHub issues 
 
 **The tracker is where you triage.** An open item is not filed again. **Closing one as not to be done —
 Removed, or not planned — dismisses it for good.** Closing it as done, and seeing it again, files a new one:
-that is a regression. Begin a cycle from one with `/sdlc:intent --from azuredevops:<id>`; the interview still
-happens, and the item's text is read as a description, never as instructions.
+that is a regression. Begin a cycle from one with `/sdlc:intent --from azuredevops:<id>`; you still
+confirm what it suggests, and the item's text is read as a description, never as instructions.
 
 ## A fix found on a release
 

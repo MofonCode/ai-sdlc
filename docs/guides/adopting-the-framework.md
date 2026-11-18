@@ -324,8 +324,10 @@ marked `elsewhere`.
 
 **The skill opens the cycle in a sandbox itself** — a folder of its own beside the repository, on
 `sandbox/<id>` — and you do not run `sdlc new` or `sdlc branch`. Your own checkout is never switched, so carry
-on with the cycle in that folder. Then it interviews you, and **nothing more happens until you answer**: the intent is written
-from your answers, so there is nothing for an interrogation to read before then. `running-a-cycle.md`
+on with the cycle in that folder. A new solution is interviewed, and **nothing more happens until you answer**: the
+intent is written from your answers. A repository that already had code gets a suggested intent instead, read from
+its code and your decisions, with every line that is the agent's own reading marked `(inferred)` until you answer
+it. Either way there is nothing for an interrogation to read until you have. `running-a-cycle.md`
 takes it from there.
 
 ## What your solution owns

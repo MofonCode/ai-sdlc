@@ -5,7 +5,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.49** · .NET 10 · [changelog](CHANGELOG.md)
+**Version 0.50** · .NET 10 · [changelog](CHANGELOG.md)
 
 **ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
@@ -31,8 +31,8 @@ it, most important first.
 A choice settled in one conversation is gone by the next; a different thread, or a different model, argues it
 again from nothing, or quietly takes the alternative somebody already weighed and rejected. **`decisions.md`
 keeps those choices in the repository**: what the solution chose, and what it chose *instead of*, written by a
-person and versioned with the code. Every stage of every cycle works from it. The intent interview reads it
-before asking anything, so it does not re-ask what is settled, and every reader is handed it — the intent's, the
+person and versioned with the code. Every stage of every cycle works from it. The intent stage reads it
+before suggesting or asking anything, so it does not re-ask what is settled, and every reader is handed it — the intent's, the
 spec's, the plan's, and the one that reads the finished code at verify.
 
 ### 2. Rules the agent cannot bend
@@ -56,7 +56,7 @@ When something contradicts a decision or a rule, it is brought up — to whoever
   and the agent changes the code on the same pull request. And the agent cannot edit what it is judged by: seven
   files — the approval, the rules, the decisions and the rest — are written only by a person, and every agent
   write to them is denied at the tool call.
-- **The person.** Ask for something a decision set aside and the interview says so, in a sentence, and asks
+- **The person.** Ask for something a decision set aside and the intent stage says so, in a sentence, and asks
   whether to keep the decision or depart from it. The approval is yours, recorded against a hash of the exact
   text, and void the moment that text changes. A team may run without approvals, and then every report says
   that no person approved.
@@ -202,7 +202,7 @@ cycles and which only fixtures.
 
 | Feature | The problem | What it does |
 |---|---|---|
-| **Intent interview** | The agent starts coding from one sentence, and the assumptions it filled in never surface | `/sdlc:intent` interviews a person into *why* the change exists. Choices already made are recorded with the person's name on them, and anything nobody can answer yet goes under `## Open` rather than being guessed |
+| **Intent** | The agent starts coding from one sentence, and the assumptions it filled in never surface | `/sdlc:intent` suggests *why* the change exists from the solution's decisions, rules and code, marks every line that is its own reading, and asks the person about those alone — or interviews them in full with `--interview`. Choices already made are recorded with the person's name on them, and anything nobody can answer yet goes under `## Open` rather than being guessed |
 | **Slicing** | A large piece of work becomes one sprawling pull request nobody can review | Before any cycle opens, `intent` proposes cutting the work into pieces that can each be built and merged on their own. A piece that needs another's code waits as a *successor* and reports itself ready when that code merges |
 | **Spec with cases** | *Done* is vague, so edge cases get argued at review — after the code exists | Every criterion can fail, and lists the cases it covers. The list closes the criterion: a listed case left unmet blocks, and a case nobody listed can only be a suggestion later |
 | **Plan with proofs** | Tests pass and prove nothing about what was asked | The plan names the test that proves each criterion and says what files it will touch. Where it rests on how a platform behaves, a throwaway *probe* makes that behaviour happen first, and the plan quotes what it showed |
@@ -322,7 +322,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.49.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.50.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -371,8 +371,8 @@ which is why the commit is a step and not a tidy-up.
 ```
 
 The skill opens the cycle in a **sandbox** — a folder of its own beside your clone, on `sandbox/<id>` — and
-never switches your own checkout; carry on in a session opened there. It interviews you into the intent and
-waits for your answers, because the intent is written from them. Then *take it to plan* — `/sdlc:to-plan` —
+never switches your own checkout; carry on in a session opened there. It suggests the intent, marks what it
+inferred, and asks you about those lines; the intent is done when you have answered them. Then *take it to plan* — `/sdlc:to-plan` —
 writes the spec and the plan, and you approve all three. Then *build it* — `/sdlc:build` — takes the plan out of
 the sandbox, builds, verifies and fixes it in a process of its own, and opens the pull request with its report.
 Merging it accepts the change.
@@ -477,6 +477,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **The decisions through every stage, and departures** | the suite | a cycle judged this way: how often the change's reader blocks, and whether it adds rounds |
 | **Deviations and choices** | the suite | a recorded deviation or choice: how often a build bends where it used to stop, and how often a stalled remediation's one deviation gets it to a pass |
 | **The five-step cycle: build it through to the pull request** | the suite | a cycle run this way: `sdlc build` starting the build in its own process with its tools named, the readers started by `sdlc round run`, the report, and a change asked for at the pull request |
+| **A suggested intent** | the suite: the schema refuses a line still marked `(inferred)` | a real intent suggested and confirmed: how many questions it takes, and whether a carried premise gets caught |
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |

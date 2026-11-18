@@ -9,6 +9,22 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.50
+
+**An intent is suggested and confirmed, and the interview is on request** (D-200). `/sdlc:intent` reads the
+solution's decisions, rules, declared stack and the code your request touches, writes `intent.md` straight away and
+prints it, with every line that is its own reading marked `(inferred)` — a premise carried from a lead you never
+said included. It asks in one message about those lines, a departure from a recorded decision, and the
+perspectives it added, and edits the file as you answer. `--interview` asks one question at a time as before; a new
+solution is always interviewed, and the skill offers the interview when a request is too thin to read a direction
+from.
+
+**An intent that still marks a line `(inferred)` is a shape problem**: its panel names it, `to-plan` stops that
+cycle, and `verify-chain` refuses it at the pull request.
+
+**A minor** because what the intent stage asks of a person changes, and an intent can now be refused for a mark
+left in it. No intent written before this release carries one.
+
 ## 0.49
 
 **Every merge to main that ships is a release a person approves or rejects** (D-197). The framework builds from one

@@ -203,16 +203,24 @@ findings (§5.4).
 
 ### 3.1 Every change to what the solution does runs the full chain
 
-`intent` interviews the user and establishes whether this is a new solution, a feature addition, a
+`intent` suggests the intent from the record, or interviews the user, and establishes whether this is a new solution, a feature addition, a
 feature change, or a bug fix. **Intent, spec and plan are all required, always.** The classification
 informs how each artifact is written — a bug fix's spec derives its criteria from a reproduction
 rather than a desired outcome — and never skips one.
 
-**The type is settled before the interview's first question, because it decides the questions** (D-95).
+**The type is settled before anything is written, because it decides what the intent must say** (D-95).
 A person may name it — `--type bug`, `add` or `change` — and a lead may carry it; a new solution has no
-flag and is detected, as a scaffolded solution with no cycle yet approved. The interview then asks one
-question at a time, by type, each with example answers, and *not sure* is an answer with a place to go.
-The intent's sections are the same for every type: the questions vary, the contract downstream does not.
+flag and is detected, as a scaffolded solution with no cycle yet approved.
+
+**The intent is suggested from the record and confirmed, and the interview is on request** (D-200). The skill
+reads the decisions, the constraints, the declared stack and the code the request touches, writes `intent.md`
+at once, and marks every line that is its own reading `(inferred)` — a premise carried from a lead the person
+never said included. It asks, in one turn, about each mark, a departure from a decision, a bounding word and the
+perspectives, and nothing a file answers or no answer would change; it edits the file as the person answers, and
+the schema refuses an intent that still carries a mark. `--interview` asks one question at a time, by type, each
+with example answers, and a new solution — or a request too thin to read a direction from — is interviewed. On
+either path *not sure* is an answer with a place to go. The intent's sections are the same for every type and
+both paths: the questions vary, the contract downstream does not.
 
 **Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125). **The
 pieces are planned together, in one sandbox** (D-144), and what is approved leaves it by `sdlc admit`: an
@@ -923,7 +931,8 @@ finding has exactly three exits:
 every time the artifact is read, and it is what a reviewer's eye lands on at the gate. The rule is
 not "never assume" — it is **never assume silently.**
 
-**What cannot be assumed into existence.** An intent is written by interviewing a person. An
+**What cannot be assumed into existence.** An intent is confirmed by a person: suggested from the record
+with every inferred line marked and asked, or written by interviewing them (D-200). An
 unmeasured figure may be recorded as an assumption or raised as a question; it may not be reworded
 into something vaguer that passes, because rewording is the one move that removes the problem from
 the page while leaving the belief in it.
@@ -6998,6 +7007,9 @@ it carries verified the release's code, not `development`'s.
 
 **Governs:** §3.4, §15
 
+**Amended by D-200.** A lead seeds a suggested intent rather than an interview; the person still confirms it,
+and a premise in the lead they never said is asked about. What stands is that no lead stands in for the person.
+
 **Superseded in part by D-143.** Operate is no longer a scheduled run: the factory builds and nothing more, and
 `sdlc operate` is a command a person runs. What stands: a lead is a reference to a tracker item, and Operate files
 work items rather than an artifact of its own.
@@ -7293,6 +7305,10 @@ the skill. What to do with the files is the person's; the refusal decides nothin
 ### D-95 — The intent interview settles the type first and asks by type, one question at a time, with examples
 
 **Governs:** §3.1
+
+**Amended by D-200.** The interview described here is the path for `--interview`, a new solution and a request
+too thin to read a direction from; the default suggests the intent and asks what it inferred. The type still comes
+first, and parts 3 and 4 hold on both paths.
 
 **Decision.** Four parts.
 
@@ -7603,6 +7619,53 @@ nobody agreed to govern -- produces drafts on a local branch, which bind nothing
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
 
+### D-200 — An intent is suggested from the record and confirmed line by line; the interview is on request
+
+**Governs:** §3.1, §6.4
+
+**Decision.** Four parts.
+
+1. **The default suggests.** `intent` reads the decisions, the constraints, `solution.md`, the declared stack, the
+   code the request touches, the theme where it touches a page, and the other cycles open in the sandbox — not
+   the history of completed ones — and writes `intent.md` at once. It is a living document: edited as the person
+   answers, never started again, shown in full once and as changes after.
+2. **Every guess is marked.** A line that is the agent's reading rather than the person's words or the record's
+   ends `(inferred)`. A premise inside a lead — a cost, a harm, a cause, who is affected — is inferred unless this
+   person said it. The mark comes off when the person confirms or corrects the line, or says *go*, which adopts every
+   reading left as written; one answered *not sure* is recorded as unconfirmed, never as what they want. Fixed decisions are never suggested.
+3. **One turn of questions, and only those that change the work.** Each mark, a departure from a recorded
+   decision, a bounding word, and the perspectives — asked only when nothing on disk answers it and different
+   plausible answers would change the outcomes or the scope.
+4. **The interview is on request.** `--interview` runs D-95's interview; a new solution always gets it; and the
+   skill offers it, rather than a thin draft, when the request is too thin to read a direction from.
+
+**The schema refuses an intent that still carries a mark.** Whether a line was inferred is a judgement; that a
+mark is still there is not, so it is a shape problem on the panel, `to-plan` stops that cycle, and the chain
+refuses it at the pull request.
+
+**Why.** One solution's recent interviews: the questions that earned their place each checked something specific
+— a successor's premise that its data subscription was paid per call when it was flat-rate, a departure from a
+recorded hosting decision, how changes land on the trunk. The type tables mostly drew answers that changed
+nothing — *promotion is extra work*, *nothing else I know of*, *more preference than something not working*,
+*only me, as developer*, *today there is no issue* — because they were asked in full where the lead or the record
+already answered them. A session before the wave had asked eight questions and the interview began again. Six
+recent intents took one or two reader rounds, so a shorter conversation is not an unchecked one. And the record
+says much of where a person is heading: a suggestion built on it is worth more than a blank question.
+
+**Rejected.**
+
+- *Keeping the full interview as the default.* The evidence above: ceremony whose answers changed nothing, spent
+  on the one person whose attention the framework most needs.
+- *A suggestion with no marks.* A suggestion built on the record is more convincing than a question, so it
+  anchors harder; a premise carried inside one reaches the spec as fact. This is the risk D-95 refused drafting
+  for, and the marks are what answer it.
+- *The marks only in chat.* The file would look settled before it was, and nothing mechanical could tell.
+- *Keeping the draft in chat until confirmed.* A file the person can open, that survives a lost session, and that
+  is edited rather than regenerated is worth more than the cleanliness of writing once.
+- *Reading completed cycles for direction.* What they settled that still binds is in the decisions and the
+  constraints; an old intent's reasoning is mostly stale.
+- *`--interrogate` as the flag.* A person is interviewed; an artifact is interrogated. The word is the
+  `interrogate` skill's and the readers' loop that `to-plan` runs on this same intent.
 ### D-198 — A trunk is a setting: the integration branch may be the default branch
 
 **Governs:** §13

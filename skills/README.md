@@ -262,20 +262,20 @@ before it has such a round.
 
 ### `intent`
 
-Interviews a person into the intent, the first artifact of a cycle, and opens the cycle — first proposing how to slice the work into atomic cycles when it is more than one piece.
+Suggests the intent, the first artifact of a cycle, from the solution's record and code, and asks a person only what it inferred — or interviews them in full when asked — and opens the cycle, first proposing how to slice the work into atomic cycles when it is more than one piece.
 
 | | |
 |---|---|
 | Kind | single — one job, and it starts no other skill |
 | Stage | the planning chain, first. It opens the cycle |
 | Started by | a person: somebody wants to start new work, reports a problem, or has an idea to turn into something the process can carry |
-| Reads | the constraints in force and the conversation |
+| Reads | the constraints in force, the decisions, `solution.md`, the declared stack, the code the request touches, the theme when it touches a page, and the conversation |
 | Writes | `.sdlc/cycles/<id>/intent.md`; for a slicing, one cycle per piece that needs nothing unmerged and `.sdlc/successors/<slug>.md` for each that does |
 
 #### Syntax
 
 ```
-/sdlc:intent [--type bug|add|change] [--from <lead>]
+/sdlc:intent [--type bug|add|change] [--from <lead>] [--interview]
 /sdlc:intent --reslice <cycle id>...
 ```
 
@@ -283,8 +283,9 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 
 | Parameter | Description |
 |---|---|
-| `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — so the interview asks that kind's questions. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
-| `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, `successor:<slug>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it. A lead or a description is what a slicing is proposed from; a ready successor is started rather than sliced again |
+| `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — which decides what the intent must say and which questions are worth asking. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
+| `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, `successor:<slug>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the suggestion and never stands in for the person's confirmation: a premise in it the person never said is asked about. A lead or a description is what a slicing is proposed from; a ready successor is started rather than sliced again |
+| `--interview` | interview in full, one question at a time with example answers, rather than suggesting the intent and asking what was inferred (D-200). A new solution is always interviewed, and the skill offers the interview itself when a request is too thin to read a direction from |
 | `--reslice <cycle id>...` | slice again intents already written — one to split it, several to join or re-cut them — while none has a spec (D-141). The first id keeps its cycle and becomes the first piece; each further piece opens as a cycle or waits as a successor; a cycle emptied by the cut is removed if it was never pushed, or recommended for abandonment if it holds something worth keeping. The person accepts the cut, as for any slicing |
 
 #### Output
@@ -304,6 +305,7 @@ stack and the spec.
 | `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
 | `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:to-plan <id>` with what should change, which carries it down instead |
 | `--reslice` names a cycle approved, abandoned or missing | refuses on that cycle, saying which | — |
+| a line is still marked `(inferred)` | the panel shows a shape problem, `to-plan` stops that cycle, and the chain refuses it at the pull request (D-200) | answer it: confirm it, correct it, or let it be recorded as unconfirmed |
 
 #### Example
 
@@ -311,19 +313,29 @@ stack and the spec.
 /sdlc:intent
 ```
 
-Expect a cycle id and the sandbox it opened, then one question — *what is this cycle for?*, or
-for a new solution *what should someone be able to do first?* — with example answers under it, and then
-one question at a time, each depending on your last answer. *Not sure* is always an answer, and the skill
-says where it records it. Nothing is written until the interview is done, because the intent is written
-from the answers. Then several interrogation rounds
-without your involvement. It ends on the intent's status panel, whose last line is the next command.
+Expect a cycle id and the sandbox it opened, then the intent it suggests, printed in full and already in
+`intent.md`, with each line it inferred marked `(inferred)`, and one message of numbered questions: each
+inferred line as its reading, a decision the work would depart from, and the perspectives it added. Answer
+the ones you disagree with and say *go* for the rest; it edits the file with each answer and shows only what
+changed. *Not sure* is always an answer, and records that reading as unconfirmed rather than as what you want. It ends, once no mark is left, on the intent's
+status panel, whose last line is the next command.
+
+```
+/sdlc:intent --interview
+```
+
+Expect one question — *what is this cycle for?*, or for a new solution *what should someone be able to do
+first?* — with example answers under it, and then one question at a time, each depending on your last answer.
+Nothing is written until the interview is done, because the intent is written from the answers.
 
 #### Remarks
 
 An intent says *why* the work exists, and most requests arrive shaped as a solution ("add a cache")
 rather than a problem ("the dashboard takes fourteen seconds and people stop opening it"). The person
-knows what they want; they do not yet know what is underspecified about it. So this is the only artifact
-written by interview, and the skill's job is to elicit rather than to draft. A decision already taken is
+knows what they want; they do not yet know what is underspecified about it. The record already says much of
+where they are heading, so the skill suggests the intent from it and asks only where the suggestion is its own
+reading (D-200): every guess is marked, because a suggestion built on the record is more convincing than a
+question, and a premise carried inside one reaches the spec as fact unless somebody asks. A decision already taken is
 kept rather than discarded — recorded under `Fixed decisions` with who decided it and when — so the
 intent stays a problem statement while the plan can still honour the decision.
 
@@ -333,24 +345,32 @@ What it runs, in order:
    the person's paragraph leaves off; then, given a lead or a description, the most atomic slicing it can
    find — pieces that each build, verify and merge against the integration branch alone, side by side
    where possible, chained only where one needs another's code — asked once: accept it, merge pieces, or
-   keep the work whole. Each accepted piece that needs nothing unmerged is opened below and interviewed in
-   turn; each that does is written as a successor (D-125)
+   keep the work whole. Each accepted piece that needs nothing unmerged is opened below and its intent
+   suggested in turn; each that does is written as a successor (D-125)
 2. `sdlc new`, which allocates the cycle id and claims it — that claim *is* the collision check — then
    `sdlc branch <id> plan` and the `git switch` it prints, so the working copy is on `cycle/<id>/plan`. The
    person runs neither
 3. settles the type first — from `--type`, from a lead, or by detecting a new solution: a scaffolded
-   solution with no cycle yet approved — because the type decides the questions
-4. interviews one question at a time, each with example answers tailored to the solution, pointing
+   solution with no cycle yet approved — because the type decides what the intent must say
+4. chooses the path: the interview for `--interview`, a new solution, or a request too thin to read a
+   direction from, offering it rather than imposing it in the last case; otherwise the suggestion
+5. **suggesting**: reads the declared stack, the code the request touches, the theme for a page, and the other
+   cycles open in the sandbox; writes `intent.md` at once with each inferred line marked `(inferred)` —
+   including a premise from a lead the person never said; prints it once; asks in one message about each
+   inferred line, a departure from a decision, a bounding word and the perspectives, and nothing a file
+   answers or no answer would change; then edits the file with each answer, showing only what changed, until
+   no mark is left
+6. **interviewing**: one question at a time, each with example answers tailored to the solution, pointing
    different ways and carrying no figure: an opening, a short set for the type — a bug's reproduction, a
    feature's person and job, a change's dependants, a new solution's first use — then what must keep
    working, what is already decided, which areas it touches, and which of the active perspectives'
    concerns this piece needs — that last from a file under `.sdlc/reports/`, each concern explained for
    this change with a suggested answer, answered in free text and read back. An answer shaped as a
    solution is asked what its absence causes
-5. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
+7. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
    means small in scope or plain in appearance
-6. writes the intent, reading it once for every claim stated as fact before anybody judges it
-7. shows `sdlc status <id> --stage intent --brief` verbatim and stops
+8. writes the intent, reading it once for every claim stated as fact before anybody judges it
+9. shows `sdlc status <id> --stage intent --brief` verbatim and stops
 
 **It writes the intent and stops** (D-186, D-188). Checking it is `to-plan`'s, which runs the intent's loop
 before it writes anything below it. That hand-back is the human-in-the-loop point, and a skill that continued
@@ -656,12 +676,12 @@ one question about suggestions, and the backlog still to come. It stops at the a
 /sdlc:next
 ```
 
-Expect one line per item it will take, a short interview for each successor, a long run with no questions, then
+Expect one line per item it will take, each successor's suggested intent and its few questions, a long run with no questions, then
 one line per item, the plan panels, one question, and the waves still to come.
 
 #### Remarks
 
-**It is local, and the factory never runs it.** An intent is an interview and a plan is read before it is approved;
+**It is local, and the factory never runs it.** An intent is confirmed by its person and a plan is read before it is approved;
 the factory builds what a person approved and nothing more (D-143). Run after each wave merges, it carries a sliced
 piece of work to completion one wave at a time.
 

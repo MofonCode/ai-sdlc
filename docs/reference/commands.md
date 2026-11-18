@@ -27,7 +27,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc constraints show <id>` | binary | one rule in full, in force or superseded |
 | `sdlc areas` | binary | each area: the files it covers, the entries carrying it, and names nobody defined. Exits 1 when an area covers no file |
 | `sdlc new` | binary | allocates the id, claims it across every worktree, and makes the directory; in a sandbox, the cycle opens beside the others. `/sdlc:intent` runs it for you |
-| `/sdlc:intent` | agent | interviews you into `intent.md` |
+| `/sdlc:intent` | agent | suggests `intent.md` and asks what it inferred, or interviews you with `--interview` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
 | `/sdlc:refine <id> <artifact>` | agent | applies those findings to the document |
 | `/sdlc:to-plan [<id>]` | agent | takes an intent to a plan — checks the intent, then spec, then plan, each with its loop — and drafts the approval. The step a person takes after an intent |

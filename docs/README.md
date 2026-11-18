@@ -121,7 +121,7 @@ One governed change, from why it exists to a pull request.
 
 | | What it answers | Reads |
 |---|---|---|
-| **intent** | *why* the work exists. The only artifact written by interview | a person |
+| **intent** | *why* the work exists. Suggested from the record and confirmed by a person, line by line where the agent inferred it, or written by interview on request | a person |
 | **spec** | *what* must be true, as criteria that can each fail | `intent.md` and nothing else |
 | **plan** | *how*, and *what proves each criterion* | the spec and the codebase |
 | **verify** | whether the build met the spec | the recorded evidence, never the tests or the source |
@@ -131,7 +131,8 @@ One governed change, from why it exists to a pull request.
 | | What it is |
 |---|---|
 | **frontmatter** | the keys above the document: `cycle`, and one body key per kind |
-| **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome. Settled before the interview's first question, because it decides the questions: from `/sdlc:intent --type bug\|add\|change`, from a lead, or — a new solution, which has no flag — detected in a scaffolded solution with no cycle yet approved (D-95) |
+| **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome. Settled before anything is written, because it decides what the intent must say: from `/sdlc:intent --type bug\|add\|change`, from a lead, or — a new solution, which has no flag — detected in a scaffolded solution with no cycle yet approved (D-95) |
+| **`(inferred)`** (intent) | the mark on a line of a suggested intent that is the agent's reading rather than the person's words or the record's. It comes off when the person confirms or corrects the line, or says *go* for the rest; one answered *not sure* is recorded as unconfirmed. The schema refuses an intent that still carries one (D-200) |
 | **`tier`** (plan) | blast radius, most to least reversible: `local`, `contract`, `data` |
 | **`outcome`** (verify) | `pass`, `blocked`, `escalated` |
 | **the `## Open` region** | where a question nobody can answer yet is recorded. **Required even when empty**, so "nothing is open" can be told from "the author forgot" |
@@ -330,7 +331,7 @@ never decides a gate.
 | Skill | In one line |
 |---|---|
 | `init` | interviews the team about what matters here and proposes the first `LOC_` rules. Does not adopt — it hands over the command |
-| `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
+| `intent` | proposes how to slice the work into atomic cycles, opens them, and suggests the intent of each from the record and the code, asking only what it inferred — or interviews in full on request |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
 | `to-plan` | a playbook: takes an intent to a plan — one cycle or every one — checking the intent, then spec then plan, running the loop on each, picking up where each stopped, and hands back once with the approvals drafted. Given what should change, it runs `steer` first |
