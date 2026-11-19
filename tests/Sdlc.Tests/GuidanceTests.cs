@@ -23,6 +23,12 @@ public sealed class GuidanceTests
         Assert.IsTrue(pipeline.Matches("azure-pipelines.yml"));
         Assert.IsTrue(pipeline.Matches(".github\\workflows\\sdlc-verify.yml"));
         Assert.IsFalse(pipeline.Matches("src/Orders/OrderService.cs"));
+
+        // D-201: how an agent's image is kept current, switched on by the factory and the image's own directory.
+        GuidanceEntry image = all.Value.Single(entry => entry.Name == "agent-image");
+        Assert.IsTrue(image.Matches(".github/workflows/sdlc-factory.yml"));
+        Assert.IsTrue(image.Matches("agent-image/Dockerfile"));
+        Assert.IsFalse(image.Matches("src/Orders/Dockerfile"), "An application's own image is not the agent's.");
     }
 
     [TestMethod]

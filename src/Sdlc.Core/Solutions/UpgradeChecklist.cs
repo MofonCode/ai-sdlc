@@ -51,6 +51,7 @@ public static class UpgradeChecklist
     /// <param name="Pinned">The release the solution pins on this branch, or null when it pins none.</param>
     /// <param name="Integration">The branch the upgrade lands on.</param>
     /// <param name="Factory">The factory pipeline this solution carries, or null when it has no factory.</param>
+    /// <param name="Pipeline">The upgrade pipeline this solution carries, or null when it has none yet (D-201).</param>
     /// <param name="Cycles">The open cycle branches pinning an older release than the target.</param>
     public sealed record Response(
         string Target,
@@ -58,6 +59,7 @@ public static class UpgradeChecklist
         string? Pinned,
         string Integration,
         string? Factory,
+        string? Pipeline,
         IReadOnlyList<Behind> Cycles)
     {
         /// <summary>Whether this machine runs an older release than the target, so it moves first.</summary>
@@ -118,7 +120,12 @@ public static class UpgradeChecklist
                 .FirstOrDefault(path => File.Exists(Path.Combine(root, path)))
                 ?.Replace('\\', '/');
 
-            return Result.Ok(new Response(target, request.Machine, pinned, integration, factory, Cycles(root, integration, target)));
+            string? pipeline = new[] { Platform.GitHub, Platform.AzureDevOps }
+                .Select(UpgradePipeline.PathOf)
+                .FirstOrDefault(path => File.Exists(Path.Combine(root, path)))
+                ?.Replace('\\', '/');
+
+            return Result.Ok(new Response(target, request.Machine, pinned, integration, factory, pipeline, Cycles(root, integration, target)));
         }
 
         // A cycle keeps the release its branch pins until that branch takes the upgrade (D-131), so each open one

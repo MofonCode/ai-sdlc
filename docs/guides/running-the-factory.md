@@ -68,10 +68,10 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
 sdlc-factory.yml`, `az pipelines run --name <its name>` — with `cycle` set to build one alone. There is no
 schedule: starting it is the decision to spend, made each time by the person who can see what is queued.
 
-**On the factory's agent image, upgrading is a rebuild.** A new release reaches the agent when you build
-the image again from it and `sudo systemctl restart sdlc-factory-agent`. Until then the run finds the
-older release, installs the one the pipeline was written for, and needs a feed to do it.
-[`../../factory/README.md`](../../factory/README.md) has the commands.
+**A new release needs no rebuild of the agent** (D-201). The run finds the release the image carries, and when the
+branch pins another it installs that one from nuget.org. The image's copy only saves that install. Rebuild it to
+move what the image itself carries — Claude Code, browsers, packages — as [`../../factory/README.md`](../../factory/README.md)
+says, and `sdlc guidance show agent-image` is how the framework would keep it current.
 
 **One run at a time, six hours at most.** Remediation has no pass limit (D-66), so the job's timeout is the
 spend ceiling.

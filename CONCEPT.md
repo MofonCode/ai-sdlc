@@ -247,8 +247,8 @@ wants a class of branch to merge anyway says so in branch policy by not requirin
 which is a decision somebody can read; deleting the step is a different decision that reads as
 nothing. **A cycle is for a decision, so two changes need no chain** (D-133, D-134). Moving to another release: a pull
 request carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
-is checked by writing those files again and comparing. `sdlc upgrade` prints everything that moves with it, in
-order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
+is checked by writing those files again and comparing. A run of the solution's upgrade pipeline opens it (D-201), and
+`sdlc upgrade` prints everything that moves with it, in order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
 change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
 checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
 both. **Nor does a harvest** (D-152, D-192): a pull request carrying only the records a person placed from a sitting, the
@@ -1014,8 +1014,8 @@ binary decides which a plan gets from its `Files` section — `sdlc guidance <id
 Advice that keeps proving right reaches the rules through a harvest, never by itself.
 
 **What is built.** The document format, `sdlc guidance`, `sdlc guidance show` and `sdlc guidance <id>`; the
-`plan` skill reading them; and one entry, **pipeline**: the shape the framework would give a solution's pipeline
-where the solution has not chosen one.
+`plan` skill reading them; and two entries: **pipeline**, the shape the framework would give a solution's pipeline
+where the solution has not chosen one, and **agent-image**, how a self-hosted agent's image is kept current (D-201).
 
 ---
 
@@ -1469,7 +1469,8 @@ build can start failing on untouched code is the declared scope of one approved 
 side effect of adoption or of whichever build ran next.
 
 **What update may touch is decided by whose name is on the file — D-40.** It rewrites what the
-framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json` and `.github/workflows/sdlc-verify.yml`.
+framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` and the upgrade
+pipeline, `.github/workflows/sdlc-upgrade.yml` or `azure-pipelines.upgrade.yml` (D-201).
 In a file the host and the team also own it owns its own entries and nothing else,
 so `.claude/settings.json` is merged — the two hook entries are added or refreshed and every other key,
 including a team's permissions and their own hooks, is kept — and so is the local tool manifest,
@@ -2409,6 +2410,7 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `status` | single | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | single | renders the effective constraint set, all tiers |
 | `suggestions` | single | lists accumulated non-blocking findings |
+| `upgrade` | single | moves this machine's binary and installed plugin to a release and checks they agree; changes no repository — D-201 |
 
 **Six of them keep a task list where the host has one.** `init`, `intent`, `spec` and `plan` each list their own
 steps and nothing past the hand-back; `build` and `to-plan` list one line per cycle. `implement` keeps none: it
@@ -2460,6 +2462,7 @@ mechanical rather than promised.
 | `harvest` and its five aspect skills | a completed cycle not closed, still needing the aspect — merged after a passing verify, or abandoned, merged or not: one none of which merged is brought in from its own branch, untracked (D-190) | nothing; a cycle in flight or not merged is waiting, and the overview says so; recording refuses while the aspect's draft is beside its file | nothing that binds: the report, drafts for a person to rename, and with `record` the harvest ledger (D-191) |
 | `close-cycle` | every aspect answered for a cycle, every draft placed or refused, the integration branch checked out | any of those missing — `sdlc harvest close` names what (D-192) | the harvest ledger, a `harvest/<date>` commit removing the closed folders, a push and a pull request |
 | `theme` | nothing | nothing; an unreadable theme is reported | nothing; it prints |
+| `upgrade` | nothing; a release, or the newest on nuget.org | `SDLC_DEV_BUILD` is set; asked to move a solution, which its upgrade pipeline does | this machine's global tool and installed plugin; nothing in any repository |
 
 **Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row
 saying `nothing` are not the same claim, and the first is what lets a skill quietly check the wrong
@@ -2524,7 +2527,7 @@ they print verbatim.
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
 | `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
 | `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle, and every branch of a cycle the harvest ledger there records closed — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
-| `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes, the factory's images, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170) |
+| `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes -- a run of its upgrade pipeline when it has one -- the factory, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170, D-201) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `guidance [show <name> \| <id>]` | the guidance a plan is handed: every entry in force, the framework's and the solution's own under `.sdlc/guidance/`, which win by name, with the files that switch each on; one entry in full; or the entries a cycle's plan switches on by its declared files, in full. Advises; never blocks (D-195) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
@@ -3995,7 +3998,7 @@ and prints them.
 
 | | Adoption's claim | How |
 |---|---|---|
-| `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` | the whole file | rewritten on every run |
+| `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml`, the upgrade pipeline | the whole file | rewritten on every run |
 | `.claude/settings.json` | two hook entries | merged; every other key and sibling hook kept |
 | `azure-pipelines.yml`, `AGENTS.md` | nothing, once one exists | printed for a person to place |
 | `.gitattributes` | nothing, once one exists | kept if it normalises line endings, otherwise the one line printed |
@@ -7618,6 +7621,55 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-201 — A solution takes a release by a run of its upgrade pipeline; a machine by the `upgrade` skill
+
+**Governs:** §6.6, §9
+
+**Amends D-170**, which rejected running the steps, and leaves D-131 as it is: a cycle keeps the release its branch
+pins.
+
+**Decision.** Three parts, one per thing that moves.
+
+1. **The repository moves by a pipeline a person starts.** Adoption writes an upgrade pipeline on GitHub and Azure
+   DevOps, framework-named and rewritten like the pull-request check. A run takes a release — the one named, or the
+   newest on nuget.org — moves the pin, runs adoption and `sdlc factory` as that release, stages only the paths an
+   upgrade may carry, and opens the pull request into the integration branch, which the check reads as an upgrade
+   (D-133). It is commands only, with no agent, and **never on a schedule**: a release is taken on purpose. No local
+   command starts it. `sdlc upgrade` names it when the solution has one, and prints the steps by hand when not.
+2. **This machine moves by the `upgrade` skill**: the global binary and the installed plugin, to one release, checked
+   to agree. A skill rather than a command because a running binary cannot replace itself on Windows, and the plugin
+   is installed by the host's own commands. It changes no repository.
+3. **An agent needs no rebuild for a release.** Every run the generated pipelines start restores the release its
+   branch pins, so the `sdlc` in an agent's image is a cache. What lives in the image is the solution's to move, and
+   the **agent-image** guidance says how: the definition in the repository, a pipeline job for an agent it can
+   reach, and for an agent that runs the jobs, a request file a watcher on the host acts on, a status file a later
+   job checks, and a log per day that keeps two days.
+
+**No credential is written into a repository.** The upgrade pipeline's token comes from the platform's secret store
+— a GitHub App's, on GitHub, because a pull request opened with `GITHUB_TOKEN` starts no workflow.
+
+**Why.** Every move to a new release rediscovered the procedure. One governed solution's moves touched the pin,
+adoption, the global tool, the plugin, two agent images and a machine reached over ssh, and the order that mattered —
+the agent's image never ahead of the merged pin — lived in nobody's repository. D-170 printed the steps; a person
+still ran six of them by hand, in a session that had to learn them again. The steps that touch the repository are all
+the binary's, so a pipeline can run them and leave only the review to a person. The steps on the agent were never
+needed for a release at all once the package was on nuget.org.
+
+**Rejected.**
+
+- *A schedule that opens the upgrade's pull request when a release appears.* Taking a release is a decision, as
+  starting the factory is (D-143); a pull request nobody asked for is one to close.
+- *A watcher on the agent that polls for the newest release.* It moves the agent out of step with the repository,
+  which is the failure the order above existed to prevent.
+- *Moving open cycles with the pin.* A cycle's plan was approved under its release's rules, its worktree may hold
+  work nobody pushed, and a pipeline can only reach pushed branches. Whoever works a cycle moves it, or leaves it.
+- *Dependabot or Renovate for the pin.* Either moves the manifest without running adoption, so the upgrade check
+  refuses the pull request it opens.
+- *One skill for the machine, the solution and the agents.* Three jobs with three places they run; a skill that did
+  them all would be the playbook-and-stage mix D-186 split.
+- *A template for the agent's rebuild now.* One solution's agent is the evidence; the guidance comes first, and a
+  template once a second solution's agent says what is common.
 
 ### D-200 — An intent is suggested from the record and confirmed line by line; the interview is on request
 

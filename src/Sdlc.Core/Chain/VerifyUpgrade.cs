@@ -51,6 +51,8 @@ public static class VerifyUpgrade
     private static readonly string _gitHubFactory = FactoryPipeline.PathOf(Platform.GitHub).Replace('\\', '/');
     private static readonly string _azureFactory = FactoryPipeline.PathOf(Platform.AzureDevOps).Replace('\\', '/');
     private static readonly string[] _pipelines = [_gitHubPipeline, _azurePipeline, _gitHubFactory, _azureFactory];
+    private static readonly string _gitHubUpgrade = UpgradePipeline.PathOf(Platform.GitHub).Replace('\\', '/');
+    private static readonly string _azureUpgrade = UpgradePipeline.PathOf(Platform.AzureDevOps).Replace('\\', '/');
 
     /// <summary>Every path an upgrade may change, relative to the root.</summary>
     /// <remarks>
@@ -67,6 +69,8 @@ public static class VerifyUpgrade
         NewCycle.IgnorePath,
         .. SupportedHosts.All.Select(host => host.ConfigPath),
         .. _pipelines,
+        _gitHubUpgrade,
+        _azureUpgrade,
         TechStackPath,
     ];
 
@@ -178,7 +182,7 @@ public static class VerifyUpgrade
 
                 bool pipeline = _pipelines.Contains(path, StringComparer.Ordinal);
 
-                if (pipeline && document is null && unreadable is null)
+                if ((pipeline || path == _gitHubUpgrade || path == _azureUpgrade) && document is null && unreadable is null)
                 {
                     Result<SolutionDocument> read = await SolutionDocument.ReadFile(solution.Path, cancellationToken).ConfigureAwait(false);
                     document = read.IsSuccess ? read.Value : null;
@@ -296,6 +300,23 @@ public static class VerifyUpgrade
             return factory
                 ? FactoryPipeline.Text(platform, document.IntegrationBranch)
                 : Templates.Pipeline(platform, document.IntegrationBranch);
+        }
+
+        // The upgrade pipeline is the framework's whole, with no team steps beside it, so it is compared exactly.
+        if (path == _gitHubUpgrade || path == _azureUpgrade)
+        {
+            Platform platform = path == _gitHubUpgrade ? Platform.GitHub : Platform.AzureDevOps;
+
+            if (document is null)
+            {
+                return Result.Fail(unreadable ?? "the solution document does not read, so which pipeline it takes is unknown.");
+            }
+
+            return document.Platform != platform
+                ? Result.Fail(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"the solution document records '{document.Platform}', and the framework writes no pipeline here for it."))
+                : UpgradePipeline.Text(platform, document.IntegrationBranch);
         }
 
         SupportedHost? host = SupportedHosts.All.FirstOrDefault(candidate => candidate.ConfigPath == path);

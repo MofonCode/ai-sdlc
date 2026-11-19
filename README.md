@@ -324,7 +324,7 @@ sdlc constraints
 It should print the nineteen global constraints in force and say it read them from
 `global  embedded in sdlc 0.50.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
-tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
+tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (28)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
 is simply not loaded and every cycle will still appear to work.
 
@@ -412,11 +412,11 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill, refusal and piece of data, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-seven skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-eight skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/reference/data-views.md`](docs/reference/data-views.md) | **data views** — every piece of data, where it lives, and the command that shows it |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the twenty-seven skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-eight skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
@@ -485,6 +485,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Amending a plan after admission** | the suite | an amended plan through a real pull request |
 | **The rebuilt patch** | a real git repository in the suite | a pull-request check rebuilding one |
 | **The upgrade check** | a refused real upgrade, replayed and passing in a copy of the repository | a real upgrade pull request passing it |
+| **The upgrade pipeline** | the suite: both templates parse, stage only what the upgrade check accepts, and are what adoption writes | a run on either platform, and its pull request passing the upgrade check (D-201) |
 | **Dependency moves without a cycle** | the suite, and a real security fix checked locally | one merged that way |
 | **A test run on a local build** | the suite | a whole test run through `SDLC_DEV_BUILD` |
 | **Running without approvals** | the suite | a real cycle. Under it nothing local anchors a findings ledger; git history and the pull request are what remain (`CONCEPT.md` D-137) |

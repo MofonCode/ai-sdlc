@@ -39,7 +39,16 @@ public static class UpgradeRenderer
         output.AppendLine(Indent + "Another host: docs/guides/installing-the-plugin.md, The plugin.");
         output.AppendLine();
 
-        if (upgrade.PinMoves)
+        if (upgrade.PinMoves && upgrade.Pipeline is { } run)
+        {
+            // The pipeline is the way an upgrade lands once a release has written it (D-201): a run, not a session.
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{++step}. This solution {(upgrade.Pinned is { } from ? "pins " + from : "pins no release")}. Run its upgrade pipeline, {run}, with release {upgrade.Target}."));
+            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Indent}It moves the pin, runs adoption and opens the pull request into {upgrade.Integration}; review and merge it."));
+            output.AppendLine(Indent + "If 'sdlc stack' then lists rows under Not mentioned, '/sdlc:init' walks each one.");
+        }
+        else if (upgrade.PinMoves)
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -55,6 +64,7 @@ public static class UpgradeRenderer
                 ]);
             output.AppendLine(Indent + "Commit what they changed and open the pull request. If 'sdlc stack' lists rows");
             output.AppendLine(Indent + "under Not mentioned, '/sdlc:init' walks each one; that pull request may answer them.");
+            output.AppendLine(Indent + "Adoption writes the upgrade pipeline as well, so the next release is a run of it.");
         }
         else
         {
@@ -64,8 +74,8 @@ public static class UpgradeRenderer
         if (upgrade.Factory is not null)
         {
             output.AppendLine();
-            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{++step}. The factory runs its own copy. Once the upgrade is on {upgrade.Integration}, build its agent image from {upgrade.Target},"));
-            output.AppendLine(Indent + "then every image built FROM it, and restart the service: docs/guides/setting-up-the-factory.md.");
+            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{++step}. The factory's agent needs nothing: every run installs the release {upgrade.Integration} pins. Rebuild its"));
+            output.AppendLine(Indent + "image only to move what the image itself carries: 'sdlc guidance show agent-image'.");
         }
 
         output.AppendLine();

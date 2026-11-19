@@ -1286,10 +1286,10 @@ public sealed class PluginTests
 
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
-        Assert.AreEqual(27, skills, "The readme says twenty-seven skills.");
+        Assert.AreEqual(28, skills, "The readme says twenty-eight skills.");
         Assert.AreEqual(19, constraints, "The readme says nineteen global constraints.");
 
-        StringAssert.Contains(readme, "twenty-seven skills");
+        StringAssert.Contains(readme, "twenty-eight skills");
         StringAssert.Contains(readme, "nineteen global constraints");
     }
 
@@ -1301,10 +1301,10 @@ public sealed class PluginTests
         // root readme, from the same sources.
         string package = File.ReadAllText(Path.Combine(Root, "src", "Sdlc.Cli", "README.md"));
 
-        Assert.AreEqual(27, Skills().Count(), "The package readme says twenty-seven skills.");
+        Assert.AreEqual(28, Skills().Count(), "The package readme says twenty-eight skills.");
         Assert.AreEqual(7, ProtectedPaths.Names.Count, "The package readme says seven files are a person's alone.");
 
-        StringAssert.Contains(package, "twenty-seven skills");
+        StringAssert.Contains(package, "twenty-eight skills");
         StringAssert.Contains(package, "Seven files are a person's alone");
     }
 

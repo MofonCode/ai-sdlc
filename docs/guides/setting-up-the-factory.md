@@ -53,7 +53,7 @@ installs whatever is missing**, so there are three ways to do this step:
 |---|---|---|---|
 | What you do | build the image from this repository on a Linux host with Docker, and run it as a service, below | install `sdlc` and Claude Code on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
 | Each run | a fresh container that installs nothing | installs nothing, so it starts faster | installs both |
-| When you upgrade | build the image again from the release, then every image built `FROM` it, and restart the service — [the factory's index, Upgrading](../../factory/README.md#sdlc-factory-agentservice) | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
+| When you upgrade | nothing: each run installs the release its branch pins from nuget.org. Rebuild the image to refresh what it carries — [the factory's index, Upgrading](../../factory/README.md#sdlc-factory-agentservice) | nothing: the run installs the release its branch pins | nothing |
 | Good for | a self-hosted factory: no feed needed, and the binary and plugin always from one release | an agent you already maintain | no machine of your own, if the job's time limit allows six hours |
 
 ### With the factory's agent image

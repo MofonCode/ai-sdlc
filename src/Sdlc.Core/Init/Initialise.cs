@@ -433,6 +433,17 @@ public static class Initialise
                     cancellationToken).ConfigureAwait(false);
             }
 
+            // The upgrade pipeline, framework-named on both platforms and so the framework's to rewrite. Taking a
+            // release is a run a person starts, which moves the pin and opens the pull request (D-201).
+            if (wantedPlatform != Platform.Local)
+            {
+                await Owned(
+                    UpgradePipeline.PathOf(wantedPlatform),
+                    UpgradePipeline.Text(wantedPlatform, integration),
+                    actions,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             // The release this solution's cycles run on. The global binary hands every command to the one
             // pinned here, and a cycle's branch carries the manifest it was cut with (D-131). Run through that
             // handoff, init is the pinned release, so this restates the pin; with no manifest yet it pins the
@@ -502,6 +513,7 @@ public static class Initialise
                 && !normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
                 && !SupportedHosts.All.Any(host => string.Equals(host.ConfigPath, normalised, StringComparison.OrdinalIgnoreCase))
                 && !string.Equals(PipelinePath(Platform.GitHub).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase)
+                && !new[] { Platform.GitHub, Platform.AzureDevOps }.Any(platform => string.Equals(UpgradePipeline.PathOf(platform).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase))
                 && !string.Equals(PinnedRelease.ManifestPath, normalised, StringComparison.OrdinalIgnoreCase);
         }
 

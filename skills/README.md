@@ -1,4 +1,4 @@
-# The twenty-seven skills
+# The twenty-eight skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -46,7 +46,7 @@ repository, so a push needs a person's word — *build it*, which the plan's han
 request (D-178), or the question `pr` asks when started by hand — but no hook blocks a push, and what stops an
 unready cycle from merging is the pull-request check.
 
-**All twenty-seven are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+**All twenty-eight are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the seven protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
@@ -116,6 +116,7 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`harvest-stack`](#harvest-stack) | single | — |
 | [`harvest-areas`](#harvest-areas) | single | — |
 | [`close-cycle`](#close-cycle) | single | — |
+| [`upgrade`](#upgrade) | single | — |
 
 The suite holds that every skill on disk is in this table with a kind; that a playbook runs at least one skill;
 that what a playbook's text says it runs and its row here name the same skills, in both directions; that a single
@@ -2209,6 +2210,66 @@ branch for deletion once the pull request merges (D-190).
 #### See also
 
 - [`harvest`](#harvest), [`pr`](#pr)
+
+---
+
+## This machine
+
+### `upgrade`
+
+Moves this machine's sdlc to a release — the binary and the installed plugin, together — and checks the two agree.
+It changes no repository: a solution's pin moves by a run of its upgrade pipeline, which a person starts on the
+platform (D-201).
+
+| | |
+|---|---|
+| Kind | single — one job, and it starts no other skill |
+| Stage | any, outside a cycle |
+| Started by | a person who asks to update their local ai-sdlc, or a session that says the plugin and the binary disagree |
+| Reads | `sdlc version`, `claude plugin details` |
+| Writes | nothing in any repository; this machine's global tool and installed plugin |
+
+#### Syntax
+
+```
+/sdlc:upgrade [<release>]
+```
+
+#### Parameters
+
+| Parameter | Meaning |
+|---|---|
+| `<release>` | the release to move to. Without one, the newest on nuget.org |
+
+#### Output
+
+What this machine ran and now runs, both halves, and that the skills this session loaded stay the old ones until
+a new session starts. In a governed solution it hands back to `sdlc upgrade`, which lists what moves there.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| `SDLC_DEV_BUILD` is set | stops: this machine runs a local build, and the global tool is not what answers | [testing a local build](../docs/guides/testing-a-local-build.md) is how to leave one |
+| asked to move a solution | does not: a solution moves by its upgrade pipeline | run the pipeline on the platform; `sdlc upgrade` there says what applies |
+
+#### Example
+
+```
+/sdlc:upgrade 0.50.3
+```
+
+#### Remarks
+
+**A skill, not a command, because a running binary cannot replace itself** on Windows, and the plugin is installed
+by the host's own commands. `sdlc upgrade` prints the steps; this runs them and checks they took.
+
+**This machine only, so it stays one job.** Moving a solution is a pull request with a review, which the upgrade
+pipeline opens. No local command starts that pipeline: taking a release is done on the platform, on purpose.
+
+#### See also
+
+- [`init`](#init), [`status`](#status)
 
 ---
 

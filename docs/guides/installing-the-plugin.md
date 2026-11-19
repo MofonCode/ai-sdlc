@@ -10,13 +10,13 @@ louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | twenty-seven skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
+| the plugin | twenty-eight skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
 [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
 Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
-twenty-seven skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
+twenty-eight skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 Claude Code runs both copies, so the plugin's steps aside wherever the repository's `.claude/settings.json`
@@ -255,7 +255,7 @@ claude plugin details sdlc@ai-sdlc
 
 **The two should report the same version.** They are fetched separately, so they can drift — and a skill
 calling a verb an older binary does not have is what that drift eventually produces. Expect
-`Skills (21)` and `Hooks (3) SessionStart, PreToolUse, Stop`. **If `PreToolUse` or `Stop` is missing, treat
+`Skills (28)` and `Hooks (3) SessionStart, PreToolUse, Stop`. **If `PreToolUse` or `Stop` is missing, treat
 it as a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied,
 and every cycle will still appear to work.
 
@@ -282,6 +282,10 @@ That says which source you are on, which is the first thing to check when a chan
 showing up.
 
 ## Update
+
+**On a released binary, `/sdlc:upgrade` does this section for you** (D-201): it moves the global tool and the
+installed plugin to one release — the one you name, or the newest on nuget.org — and checks the two agree. It
+changes no repository. What follows is what it runs, and the local-build case it does not cover.
 
 A directory-marketplace install **caches by version**, and `claude plugin update` does nothing when the
 version has not moved. So a refresh is a full reinstall, in this order:
@@ -328,16 +332,30 @@ reinstall took, look at the file's timestamp or run a command only the newer bui
 ### Then each governed repository
 
 **Start with `sdlc upgrade` in the solution.** It prints every step below that applies there, in order, with the
-release each piece is on now: this machine's tool, the plugin, the pin and adoption on a branch, the factory's
-images when the solution has a factory, and the open cycles still pinning an older release. It runs nothing, and
-it is answered by this machine's release rather than the one the solution pins (D-170). The rest of this section
-is why each step is there.
+release each piece is on now: this machine's tool, the plugin, the pin and adoption, the factory when the solution
+has one, and the open cycles still pinning an older release. It runs nothing, and it is answered by this machine's
+release rather than the one the solution pins (D-170). The rest of this section is why each step is there.
+
+**A solution moves by a run of its upgrade pipeline** (D-201). Adoption writes it beside the pull-request check —
+`.github/workflows/sdlc-upgrade.yml` on GitHub, `azure-pipelines.upgrade.yml` on Azure DevOps — and a person starts
+it on the platform, naming a release or leaving it empty for the newest. It moves the pin, runs adoption and
+`sdlc factory` as that release, commits only what an upgrade may carry on `upgrade/sdlc-<release>`, and opens the
+pull request into the integration branch. You review and merge. It never runs on a schedule, and nothing on your
+machine starts it. Set up once:
+
+| Platform | What it needs |
+|---|---|
+| GitHub | a GitHub App installed on the repository that may write contents and pull requests: its id as the variable `SDLC_UPGRADE_APP_ID`, its private key as the secret `SDLC_UPGRADE_APP_KEY`. Not `GITHUB_TOKEN`: a pull request opened with it starts no workflow, so the check would never run |
+| Azure DevOps | a pipeline from the file, and the build service allowed to contribute, create branches and contribute to pull requests |
+
+**The first move to a release that writes the pipeline is by hand**, since the solution has none yet; every move
+after it is a run.
 
 **Reinstalling updates this machine and no repository on it.** Every governed solution still pins the
-release it pinned, and has the hook configuration, the pipeline and the `.sdlc/README.md` that release wrote.
-In each one, on the integration branch, a person moves the pin and then runs adoption again. Adoption picks
-update mode by itself, refreshes only what the framework owns, and touches none of the seven files only a person
-writes:
+release it pinned, and has the hook configuration, the pipelines and the `.sdlc/README.md` that release wrote.
+Without the upgrade pipeline, a person moves the pin on a branch from the integration branch and then runs
+adoption again. Adoption picks update mode by itself, refreshes only what the framework owns, and touches none of
+the seven files only a person writes:
 
 ```pwsh
 dotnet tool update --local MofonCode.Sdlc.Cli --version <release>
@@ -351,7 +369,8 @@ sdlc init
 sdlc doctor
 ```
 
-Commit what both change together. A cycle already open keeps its own pin until its branch takes that commit.
+Commit what both change together. A cycle already open keeps its own pin until its branch takes that commit:
+whoever works it moves it, or leaves it on the release it opened on.
 
 **An upgrade needs no cycle** (D-133). Do it on a branch of any name and open a pull request into the
 integration branch. The pull-request check sees a change carrying only the pin, what adoption and
