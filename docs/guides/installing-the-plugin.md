@@ -339,7 +339,7 @@ release rather than the one the solution pins (D-170). The rest of this section 
 **A solution moves by a run of its upgrade pipeline** (D-201). Adoption writes it beside the pull-request check —
 `.github/workflows/sdlc-upgrade.yml` on GitHub, `azure-pipelines.upgrade.yml` on Azure DevOps — and a person starts
 it on the platform, naming a release or leaving it empty for the newest. It moves the pin, runs adoption and
-`sdlc factory` as that release, commits only what an upgrade may carry on `upgrade/sdlc-<release>`, and opens the
+`sdlc factory --keep` as that release, commits only what an upgrade may carry on `upgrade/sdlc-<release>`, and opens the
 pull request into the integration branch. You review and merge. It never runs on a schedule, and nothing on your
 machine starts it. Set up once:
 
@@ -378,7 +378,9 @@ integration branch. The pull-request check sees a change carrying only the pin, 
 chain: it runs as the release the branch pins and compares each framework file with what that release
 writes. The blocks a release adds to `.sdlc/cycles/.gitignore`, which the next `sdlc new` would append,
 may ride along too. A pipeline is compared step by step, so the steps a solution added beside the framework's ride
-through unchanged; `sdlc factory` drops them, so put them back before committing. The
+through unchanged. `sdlc factory --keep` leaves a factory pipeline that still carries every step the release writes
+as it is, with your pool and steps; when it has to rewrite it, it names your pool, and you put it and your steps back
+before committing. The
 same pull request may answer the rows the release asks about in `techstack.md` — added rows only, each one
 `sdlc stack` lists under *Not mentioned*. Anything else in it, one source file or one changed answer, and
 it is refused as a change with no chain; `handling-refusals.md` has the five upgrade refusals.

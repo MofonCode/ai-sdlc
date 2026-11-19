@@ -28,7 +28,10 @@ on the platform, naming a release or leaving it empty for the newest. It moves t
 `sdlc factory` as that release, and opens the pull request the upgrade check accepts. It never runs on a schedule.
 On GitHub it needs a GitHub App's id and key (`SDLC_UPGRADE_APP_ID`, `SDLC_UPGRADE_APP_KEY`), because a pull request
 opened with `GITHUB_TOKEN` starts no workflow. `/sdlc:upgrade` moves this machine's binary and installed plugin to one
-release and checks they agree. `sdlc upgrade` points to the pipeline where a solution has one.
+release and checks they agree. `sdlc upgrade` points to the pipeline where a solution has one. **From 0.50.1** the
+pipeline runs `sdlc factory --keep`, which leaves a factory pipeline as the team has it, its own pool and steps
+included, while it still carries every step the release writes; one that does not is rewritten, the team's pool is
+named, and the pull request says to put back what the team added. Before it, every run rewrote the file and dropped them.
 
 **A release no longer asks for an agent to be rebuilt.** Every run already installs the release its branch pins, so
 the image's copy is a cache. The new **agent-image** guidance says how a solution keeps its own agent's image

@@ -28,7 +28,8 @@ public sealed class UpgradePipelineTests
 
         Assert.IsTrue(pin > 0 && init > pin, "Adoption runs as the release the manifest now pins.");
         Assert.IsTrue(commit > init, "What adoption wrote is what is committed.");
-        StringAssert.Contains(pipeline, "sdlc factory", "The factory's pipeline moves with the release when there is one.");
+        StringAssert.Contains(pipeline, "sdlc factory --keep", "The factory's pipeline moves with the release when it must, and keeps the team's pool and steps when it need not.");
+        StringAssert.Contains(pipeline, "$factory_note", "A rewrite is said in the pull request, so what the team added is put back before it merges.");
         StringAssert.Contains(pipeline, "never run", "D-32: a pipeline nobody has run says so.");
         StringAssert.Contains(pipeline, "upgrade/sdlc-$release");
     }

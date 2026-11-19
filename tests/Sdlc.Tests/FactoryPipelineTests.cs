@@ -256,6 +256,40 @@ public sealed class FactoryPipelineTests
     }
 
     [TestMethod]
+    public async Task With_keep_a_teams_factory_that_carries_every_step_of_the_release_is_left_as_it_is()
+    {
+        // D-201: the upgrade pipeline runs it this way, so a team's own pool and steps survive a release that did not
+        // change the framework's steps, and a rewrite that has to drop them says whose pool it was.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            "---\norigin: adopted\nplatform: azure-devops\nintegration_branch: integration\n---\n");
+        string path = Path.Combine(workspace.Root, "azure-pipelines.factory.yml");
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "integration");
+        int first = template.IndexOf("            - script: |", StringComparison.Ordinal);
+        string team = (template[..first] + "            - task: NuGetAuthenticate@1" + Environment.NewLine + Environment.NewLine + template[first..])
+            .Replace("vmImage: ubuntu-latest", "name: Team-Pool", StringComparison.Ordinal);
+        Assert.AreNotEqual(template, team);
+        CycleWorkspace.WriteRaw(path, team);
+        using var gate = Gate.For(workspace.Root);
+
+        WriteFactoryPipeline.Response kept = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+
+        Assert.IsTrue(kept.Kept);
+        Assert.AreEqual(team, await File.ReadAllTextAsync(path), "Kept means untouched.");
+        StringAssert.StartsWith(WriteFactoryPipeline.Render(kept), "Kept azure-pipelines.factory.yml");
+
+        // A framework step missing: the file no longer carries the release, so it is rewritten and the pool named.
+        CycleWorkspace.WriteRaw(path, team.Replace("git switch integration", "git switch elsewhere", StringComparison.Ordinal));
+
+        WriteFactoryPipeline.Response rewritten = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+
+        Assert.IsFalse(rewritten.Kept);
+        Assert.AreEqual(template, await File.ReadAllTextAsync(path));
+        StringAssert.Contains(WriteFactoryPipeline.Render(rewritten), "Team-Pool");
+    }
+
+    [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
     public void Both_pipelines_select_an_sdk_whether_or_not_global_json_exists(Platform platform)

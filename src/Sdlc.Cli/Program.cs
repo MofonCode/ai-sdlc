@@ -95,7 +95,7 @@ try
         "branch-policy" => await Workspace.Run(line, w => BranchPolicyCommand(w, line)).ConfigureAwait(false),
         "branch" => await BranchCommand(line).ConfigureAwait(false),
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
-        "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
+        "factory" => await Workspace.Run(line, w => FactoryCommand(w, line)).ConfigureAwait(false),
         "lead" => await LeadCommand(line).ConfigureAwait(false),
         "successors" => await Workspace.Run(line, SuccessorsCommand).ConfigureAwait(false),
         "successor" => await SuccessorCommand(line).ConfigureAwait(false),
@@ -1119,11 +1119,12 @@ static async Task<int> BranchCommand(CommandLine line)
 }
 
 // The factory's pipeline, for the platform solution.md records. Its own command rather than part of
-// adoption, because a build agent is a choice a team makes after running cycles by hand (D-84).
-static async Task<int> FactoryCommand(Workspace workspace)
+// adoption, because a build agent is a choice a team makes after running cycles by hand (D-84). --keep leaves a
+// file that already carries this release's steps as the team has it, which is how the upgrade pipeline runs it (D-201).
+static async Task<int> FactoryCommand(Workspace workspace, CommandLine line)
 {
     Result<WriteFactoryPipeline.Response> result = await workspace
-        .Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command())
+        .Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(line.HasOption("keep")))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
