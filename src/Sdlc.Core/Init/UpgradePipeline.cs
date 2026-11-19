@@ -189,8 +189,14 @@ public static class UpgradePipeline
         yield return indent + $"dotnet tool uninstall --global {PinnedRelease.PackageId} >/dev/null 2>&1 || true";
         yield return indent + $"dotnet tool install --global {PinnedRelease.PackageId} --version \"$release\"";
         yield return indent + "sdlc init";
-        yield return indent + "# The factory's pipeline is rewritten whole. A step the team added to it shows in the diff, to put back.";
-        yield return indent + $"if [ -f {Slashed(FactoryPipeline.PathOf(Platform.GitHub))} ] || [ -f {Slashed(FactoryPipeline.PathOf(Platform.AzureDevOps))} ]; then sdlc factory; fi";
+        yield return indent + "# The factory's pipeline is kept while it carries every step this release writes, with the team's pool and steps";
+        yield return indent + "# beside them. Only one that does not is rewritten, and the pull request says what to put back.";
+        yield return indent + "factory_note=\"\"";
+        yield return indent + $"if [ -f {Slashed(FactoryPipeline.PathOf(Platform.GitHub))} ] || [ -f {Slashed(FactoryPipeline.PathOf(Platform.AzureDevOps))} ]; then";
+        yield return indent + "  factory=\"$(sdlc factory --keep)\"";
+        yield return indent + "  echo \"$factory\"";
+        yield return indent + "  case \"$factory\" in Kept*) ;; *) factory_note=\" sdlc $release rewrote the factory's pipeline: put back any pool or step of the team's own from the diff before merging.\" ;; esac";
+        yield return indent + "fi";
     }
 
     /// <summary>
@@ -205,7 +211,7 @@ public static class UpgradePipeline
     {
         yield return indent + "branch=\"upgrade/sdlc-$release\"";
         yield return indent + "title=\"Move to sdlc $release\"";
-        yield return indent + "body=\"Moves this solution from sdlc $pinned to $release: the pin, and what adoption and 'sdlc factory' wrote as $release. The pull-request check reads it as an upgrade. What the release asks of a solution: https://github.com/MofonCode/ai-sdlc/blob/main/CHANGELOG.md. A factory pipeline is rewritten whole, so put back any step the team added before merging. Open cycles keep the release their branch pins.\"";
+        yield return indent + "body=\"Moves this solution from sdlc $pinned to $release: the pin, and what adoption and 'sdlc factory' wrote as $release. The pull-request check reads it as an upgrade. What the release asks of a solution: https://github.com/MofonCode/ai-sdlc/blob/main/CHANGELOG.md.$factory_note Open cycles keep the release their branch pins.\"";
         yield return indent + "git switch -c \"$branch\"";
         yield return indent + "for path in " + string.Join(' ', VerifyUpgrade.Paths) + "; do if [ -e \"$path\" ]; then git add -- \"$path\"; fi; done";
         yield return indent + "if left=\"$(git status --porcelain --untracked-files=all | grep -v '^[AM] ')\"; then echo \"Left out, because an upgrade may not carry it:\"; echo \"$left\"; fi";

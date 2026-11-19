@@ -7633,7 +7633,7 @@ pins.
 
 1. **The repository moves by a pipeline a person starts.** Adoption writes an upgrade pipeline on GitHub and Azure
    DevOps, framework-named and rewritten like the pull-request check. A run takes a release — the one named, or the
-   newest on nuget.org — moves the pin, runs adoption and `sdlc factory` as that release, stages only the paths an
+   newest on nuget.org — moves the pin, runs adoption and `sdlc factory --keep` as that release, stages only the paths an
    upgrade may carry, and opens the pull request into the integration branch, which the check reads as an upgrade
    (D-133). It is commands only, with no agent, and **never on a schedule**: a release is taken on purpose. No local
    command starts it. `sdlc upgrade` names it when the solution has one, and prints the steps by hand when not.
@@ -7670,6 +7670,10 @@ needed for a release at all once the package was on nuget.org.
   them all would be the playbook-and-stage mix D-186 split.
 - *A template for the agent's rebuild now.* One solution's agent is the evidence; the guidance comes first, and a
   template once a second solution's agent says what is common.
+- *Rewriting the factory's pipeline on every run* (0.50.0). The upgrade check lets a team's own steps through, but
+  does not require them, so a run that dropped a team's own pool, its feed sign-in and its own steps opened a pull
+  request the check passed and that broke the factory once merged. A governed solution's factory carried all three.
+  `--keep` asks the check's own question of the file as its own base and rewrites only when it fails.
 
 ### D-200 — An intent is suggested from the record and confirmed line by line; the interview is on request
 

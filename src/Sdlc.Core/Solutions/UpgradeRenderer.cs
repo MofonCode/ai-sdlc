@@ -59,7 +59,7 @@ public static class UpgradeRenderer
                     $"git switch -c upgrade/sdlc-{upgrade.Target} {upgrade.Integration}",
                     $"dotnet tool update --local {PinnedRelease.PackageId} --version {upgrade.Target}",
                     "sdlc init",
-                    .. upgrade.Factory is { } pipeline ? [$"sdlc factory          (then put back any step you added to {pipeline})"] : Array.Empty<string>(),
+                    .. upgrade.Factory is { } pipeline ? [$"sdlc factory --keep   (if it rewrites {pipeline}, put back any step you added)"] : Array.Empty<string>(),
                     "sdlc doctor",
                 ]);
             output.AppendLine(Indent + "Commit what they changed and open the pull request. If 'sdlc stack' lists rows");

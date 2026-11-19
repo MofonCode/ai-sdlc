@@ -132,7 +132,9 @@ internal static class Usage
                                      cycle, or the one named as its input -- one run at a time,
                                      six hours at most, proving the hooks refuse before it builds,
                                      and publishing the sitrep. It never merges. Refuses on a
-                                     local solution.
+                                     local solution. --keep leaves a file that already carries
+                                     every step this release writes as it is, the team's pool and
+                                     steps with it; the upgrade pipeline runs it that way.
             lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
                                      suggestion:<cycle>/<finding>, a ready successor:<slug>, or a
