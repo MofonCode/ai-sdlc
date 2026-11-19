@@ -555,6 +555,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Init.ScaffoldSolution+Command",
         "Sdlc.Core.Init.ScaffoldSolution+Response",
         "Sdlc.Core.Init.Templates",
+        "Sdlc.Core.Init.UpgradePipeline",
         "Sdlc.Core.PullRequests.PullRequest",
         "Sdlc.Core.PullRequests.PullRequest+PullRequestRefusal",
         "Sdlc.Core.PullRequests.PullRequest+Query",

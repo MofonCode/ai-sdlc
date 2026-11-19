@@ -333,6 +333,29 @@ public sealed class ArtifactSchemaTests
     }
 
     [TestMethod]
+    public void An_intent_still_marking_a_line_inferred_is_refused_and_one_with_every_mark_answered_is_not()
+    {
+        // D-200. A suggested intent marks each line the agent inferred, and the mark comes off when the person
+        // confirms it. One left behind is the agent's reading about to be judged as if the person had said it.
+        string suggested = Intent().Replace(
+            "## Wanted outcomes\n\nSomething said here.",
+            "## Wanted outcomes\n\n- Real traders keep their charts while a flood is refused. (inferred)\n- The services recover by themselves once it stops. (Inferred)",
+            StringComparison.Ordinal);
+
+        ArtifactValidation refused = Validate(ArtifactKind.Intent, suggested);
+
+        Assert.AreEqual(1, refused.Violations.Count, Describe(refused));
+        StringAssert.Contains(refused.Violations[0].Problem, "2 lines");
+        StringAssert.Contains(refused.Violations[0].Problem, "Fixed decisions");
+
+        string confirmed = suggested.Replace(" (inferred)", string.Empty, StringComparison.OrdinalIgnoreCase);
+
+        ArtifactValidation accepted = Validate(ArtifactKind.Intent, confirmed);
+
+        Assert.IsTrue(accepted.IsValid, Describe(accepted));
+    }
+
+    [TestMethod]
     public void A_cases_list_holds_a_case_per_bullet_and_a_criterion_with_one_case_needs_none()
     {
         // D-132. The list closes a criterion, and the plan's table gives each case a row, so a list must be

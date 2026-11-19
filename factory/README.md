@@ -110,7 +110,9 @@ Docker socket and adds the socket's group to the container, so the `agent` user 
 do anything the host's Docker can. Run it on a machine that exists for this, such as a build VM, and **not
 on a person's own computer**, and never under a person's own account (D-96).
 
-**Upgrading** is building the image again from the new release and restarting the service. The image is
+**Upgrading needs no rebuild for a new release** (D-201): every run installs the release its branch pins when the
+image carries another, so the image's `sdlc` is a cache. Rebuild to refresh that cache, or to move what the image
+itself carries — `sdlc guidance show agent-image` is the framework's opinion on how. The image is
 built where it runs, and there is no registry until a second machine needs one. **Every image built on
 this one is rebuilt too**: a solution whose tests need more than this image carries — browsers, say —
 builds its own `FROM ai-sdlc-factory-agent` and points the unit at that, and Docker copied the old base

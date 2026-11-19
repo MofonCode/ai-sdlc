@@ -76,6 +76,7 @@ What lands, committed:
 | `AGENTS.md` | how to work in this repository, written for an agent. Created if absent, printed for merging if you already had one |
 | `.gitattributes` | `* text=auto`: every text file stored with LF and checked out with your platform's endings, so a commit from another machine never shows a whole file changed. Created if absent; if yours lacks the line, it is printed for you to add |
 | `.github/workflows/sdlc-verify.yml` | the chain check. **The only guarantee** — and written only where a platform was recorded. `--platform local` writes no pipeline at all |
+| `.github/workflows/sdlc-upgrade.yml` | the upgrade: a run a person starts that moves the solution to another release and opens its pull request (D-201). On Azure DevOps, `azure-pipelines.upgrade.yml`. Rewritten on every run, and written only where a platform was recorded |
 
 What lands beside it, **not committed**, for you to fill in and rename:
 
@@ -324,8 +325,10 @@ marked `elsewhere`.
 
 **The skill opens the cycle in a sandbox itself** — a folder of its own beside the repository, on
 `sandbox/<id>` — and you do not run `sdlc new` or `sdlc branch`. Your own checkout is never switched, so carry
-on with the cycle in that folder. Then it interviews you, and **nothing more happens until you answer**: the intent is written
-from your answers, so there is nothing for an interrogation to read before then. `running-a-cycle.md`
+on with the cycle in that folder. A new solution is interviewed, and **nothing more happens until you answer**: the
+intent is written from your answers. A repository that already had code gets a suggested intent instead, read from
+its code and your decisions, with every line that is the agent's own reading marked `(inferred)` until you answer
+it. Either way there is nothing for an interrogation to read until you have. `running-a-cycle.md`
 takes it from there.
 
 ## What your solution owns

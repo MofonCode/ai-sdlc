@@ -252,7 +252,8 @@ to slice, so it opens one cycle. **The skill opens the cycle in a sandbox** — 
 the repository, on `sandbox/<id>` — and says the id and the folder in one line. Run neither `sdlc new` nor
 `sdlc branch` yourself, and carry on with the cycle in that folder; your own checkout is never switched.
 
-**Then it waits for your answers.** The intent is written from them, so until you reply there is no
+**A new solution is interviewed rather than suggested**: there is no direction yet for the skill to read, so it
+asks. **Then it waits for your answers.** The intent is written from them, so until you reply there is no
 intent, and an interrogation asked for now finds nothing to read. It asks **one question at a time**,
 each with a few example answers under it, and skips what your solution paragraph already answered — so
 expect its wording to differ from this table and some rows to be skipped:

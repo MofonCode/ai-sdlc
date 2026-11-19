@@ -33,9 +33,8 @@ stack file marks `true`; `declaring-the-stack.md` has why.
 ## 1. Begin an intent
 
 Say what you want — something new, something broken, or something that should work differently — or
-`/sdlc:intent`. **If you already know which, say so** (*it's a bug*, or `--type bug`, `add` or `change`) and the
-interview asks that kind's questions from the start. If you don't, it works it out from your first answer and
-checks with you in one line.
+`/sdlc:intent`. **If you already know which, say so** (*it's a bug*, or `--type bug`, `add` or `change`). If you
+don't, it works it out from what you asked and checks with you in one line.
 
 **Work bigger than one cycle is sliced first** (D-125). Before any cycle opens, the skill proposes the most
 atomic slicing it can find: pieces that can each be built, verified and merged against the integration branch
@@ -44,15 +43,23 @@ that needs another's code is written as a **successor** — a file, not a cycle 
 merge. **Once an intent is written you can still cut it** (D-141): while none has a spec,
 `/sdlc:intent --reslice <id>...` proposes a new slicing and applies it once you accept.
 
-**Then it interviews you, one question at a time**, each with a few example answers, the next depending on
-what you said. **_Not sure_ is always an answer.** A request shaped as a solution is turned back into a
-problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you have
-already decided something, say so — it is recorded under `Fixed decisions` with your name on it rather than
-argued with. The skill reads what the solution already decided first, so it does not ask what is settled; if
-you ask for something a recorded decision set aside, it says so, and asks whether to keep the decision or
-depart from it.
+**Then it suggests the intent** (D-200). It reads what the solution already decided, its constraints, its
+declared stack and the code your request touches, writes `intent.md` straight away, and prints it. **Every line
+that is its own reading ends `(inferred)`** — who has the problem, why now, what must keep working — and so does
+a premise carried from a lead that you never said. Under it comes one message of numbered questions: each
+inferred line as its reading (*"I've read this as preparing for deployment, not fixing harm seen today. Right?"*),
+anything that would depart from a recorded decision, and the perspectives it added. Answer some or all, correct
+a line in your own words, or say *go*. It edits the file as you answer and shows only what changed; *go* takes the rest as written. **_Not
+sure_ is always an answer**, and records that reading as unconfirmed rather than as what you want. It is done when no mark is left — `to-plan` will not take an intent that still carries one.
 
-**The last question is the perspectives' concerns** — keyboard use, who may see it, who hears when it fails.
+**Want to be asked instead?** `/sdlc:intent --interview` interviews you one question at a time, each with a few
+example answers, the next depending on what you said. A new solution is always interviewed, and the skill offers
+the interview itself when your request is too thin to read a direction from. Either way, a request shaped as a
+solution is turned back into a problem: "add a cache" becomes "the dashboard takes fourteen seconds and people
+stop opening it". If you have already decided something, say so — it is recorded under `Fixed decisions` with
+your name on it rather than argued with; the skill never suggests one for you.
+
+**The perspectives' concerns** — keyboard use, who may see it, who hears when it fails — are asked last.
 Answer in your own words: *"anyone may use it, no sign-in; keyboard yes, and the result read out"*. A good
 answer names a person and an outcome, or says plainly that it is not needed and why — *"make it secure"*
 gives the spec nothing to test. It reads your answer back before writing it. What a perspective is, and
@@ -253,7 +260,7 @@ the rules cited in three or more distinct cycles. It proposes and never places; 
 `.sdlc/constraints.md` is a person's job.
 
 **When merges make the next wave ready** — successors, and plans parked behind what merged — `/sdlc:next`
-takes all of it: it starts each ready successor with a short interview, takes back each parked cycle, plans
+takes all of it: it starts each ready successor with a suggested intent and its few questions, takes back each parked cycle, plans
 them in one sandbox, and stops at the approvals (D-147). `sdlc backlog` lists what is waiting.
 
 **With several cycles approved**, *build it* with no id — `/sdlc:build` — builds, verifies and remediates them

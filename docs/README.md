@@ -13,7 +13,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 | [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
 | [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
-| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty-seven |
+| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty-eight |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -30,7 +30,7 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 
 | | What it is | Where |
 |---|---|---|
-| **the plugin** | the twenty-seven skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
+| **the plugin** | the twenty-eight skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
 | **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc`, from nuget.org |
 | **the pinned release** | the release of the binary a solution runs, named in its local tool manifest. The global `sdlc` hands every command on to it, and a cycle's branch carries the pin it was cut with, so a cycle runs on the release it opened on (D-131) | `.config/dotnet-tools.json`, written by adoption |
 | **a local build** / a test run | a build of the binary nobody published. Its release ends in `-local`: a build run through `SDLC_DEV_BUILD`, which every `sdlc` started from that terminal hands to instead of the pin, says so when it runs, and a pack made outside a pipeline is stamped so. A cycle any of whose rounds one wrote is a **test run**, and never opens a pull request (D-135) | `SDLC_DEV_BUILD`; [Testing a local build](guides/testing-a-local-build.md) |
@@ -121,7 +121,7 @@ One governed change, from why it exists to a pull request.
 
 | | What it answers | Reads |
 |---|---|---|
-| **intent** | *why* the work exists. The only artifact written by interview | a person |
+| **intent** | *why* the work exists. Suggested from the record and confirmed by a person, line by line where the agent inferred it, or written by interview on request | a person |
 | **spec** | *what* must be true, as criteria that can each fail | `intent.md` and nothing else |
 | **plan** | *how*, and *what proves each criterion* | the spec and the codebase |
 | **verify** | whether the build met the spec | the recorded evidence, never the tests or the source |
@@ -131,7 +131,8 @@ One governed change, from why it exists to a pull request.
 | | What it is |
 |---|---|
 | **frontmatter** | the keys above the document: `cycle`, and one body key per kind |
-| **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome. Settled before the interview's first question, because it decides the questions: from `/sdlc:intent --type bug\|add\|change`, from a lead, or — a new solution, which has no flag — detected in a scaffolded solution with no cycle yet approved (D-95) |
+| **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome. Settled before anything is written, because it decides what the intent must say: from `/sdlc:intent --type bug\|add\|change`, from a lead, or — a new solution, which has no flag — detected in a scaffolded solution with no cycle yet approved (D-95) |
+| **`(inferred)`** (intent) | the mark on a line of a suggested intent that is the agent's reading rather than the person's words or the record's. It comes off when the person confirms or corrects the line, or says *go* for the rest; one answered *not sure* is recorded as unconfirmed. The schema refuses an intent that still carries one (D-200) |
 | **`tier`** (plan) | blast radius, most to least reversible: `local`, `contract`, `data` |
 | **`outcome`** (verify) | `pass`, `blocked`, `escalated` |
 | **the `## Open` region** | where a question nobody can answer yet is recorded. **Required even when empty**, so "nothing is open" can be told from "the author forgot" |
@@ -323,14 +324,14 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 ## 10. The skills
 
-**Twenty-seven skills, and the split that matters: a command is deterministic and the binary owns it; a
+**Twenty-eight skills, and the split that matters: a command is deterministic and the binary owns it; a
 skill needs language and an agent runs it.** The binary never writes a planning document and a skill
 never decides a gate.
 
 | Skill | In one line |
 |---|---|
 | `init` | interviews the team about what matters here and proposes the first `LOC_` rules. Does not adopt — it hands over the command |
-| `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
+| `intent` | proposes how to slice the work into atomic cycles, opens them, and suggests the intent of each from the record and the code, asking only what it inferred — or interviews in full on request |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
 | `to-plan` | a playbook: takes an intent to a plan — one cycle or every one — checking the intent, then spec then plan, running the loop on each, picking up where each stopped, and hands back once with the approvals drafted. Given what should change, it runs `steer` first |
@@ -356,6 +357,7 @@ never decides a gate.
 | `status` | shows where a cycle has got to, and the next command |
 | `suggestions` | lists the open non-blocking findings a solution has accumulated, each concern once, and with `--all` whether each was accepted, declined or answered |
 | `theme` | shows the roles the solution's surfaces use and their values, or a skeleton of roles to fill; never a value |
+| `upgrade` | moves this machine's binary and installed plugin to a release and checks they agree. A solution moves by its upgrade pipeline, never from here |
 
 **For what each one refuses, who starts it, and what it reads and writes, go to
 [`../skills/README.md`](../skills/README.md);** [`reference/skills.md`](reference/skills.md) adds what

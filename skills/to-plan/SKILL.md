@@ -64,6 +64,7 @@ again:
 
 | Where it stopped | What to do |
 |---|---|
+| the intent still marks a line `(inferred)` — its panel names it under `Shape` | **stop this cycle**: a reading nobody confirmed is a question only the person can answer (D-200). Say which lines, and that answering them is the `intent` skill's |
 | the intent is not clean — no round yet, a blocker open, or a round that judged an older version | **the loop** on the intent |
 | no spec | **`spec`** writes it, then **the loop** on it |
 | a spec that is not clean | **the loop** on the spec |

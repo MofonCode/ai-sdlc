@@ -48,9 +48,21 @@ public sealed class UpgradeChecklistTests
         StringAssert.Contains(printed, "git switch -c upgrade/sdlc-0.46.0 development");
         StringAssert.Contains(printed, "dotnet tool update --local MofonCode.Sdlc.Cli --version 0.46.0");
         StringAssert.Contains(printed, "sdlc factory");
-        StringAssert.Contains(printed, "build its agent image from 0.46.0");
+        StringAssert.Contains(printed, "The factory's agent needs nothing: every run installs the release development pins");
         CollectionAssert.AreEqual(new[] { $"cycle/{Open}/build" }, upgrade.Cycles.Select(cycle => cycle.Branch).ToArray(), "A cycle whose work is on development is tidy's.");
         StringAssert.Contains(printed, $"cycle/{Open}/build  pins 0.44.0");
+    }
+
+    [TestMethod]
+    public async Task A_solution_with_an_upgrade_pipeline_is_sent_to_run_it_rather_than_given_the_commands()
+    {
+        // D-201: once a release has written the pipeline, an upgrade is a run of it, started on the platform.
+        UpgradeChecklist.Response upgrade = await Ask(new FakeRepository(), pinned: "0.45.0", target: null, machine: "0.46.0", pipeline: true);
+        string printed = UpgradeRenderer.Render(upgrade);
+
+        Assert.AreEqual(".github/workflows/sdlc-upgrade.yml", upgrade.Pipeline);
+        StringAssert.Contains(printed, "Run its upgrade pipeline, .github/workflows/sdlc-upgrade.yml, with release 0.46.0.");
+        Assert.IsFalse(printed.Contains("dotnet tool update --local", StringComparison.Ordinal), "The pipeline moves the pin.");
     }
 
     [TestMethod]
@@ -83,15 +95,15 @@ public sealed class UpgradeChecklistTests
     public void Releases_compare_by_number_and_a_preview_comes_before_its_release(string release, string than, bool older) =>
         Assert.AreEqual(older, UpgradeChecklist.IsOlder(release, than));
 
-    private static async Task<UpgradeChecklist.Response> Ask(FakeRepository git, string pinned, string? target, string machine, bool factory = false)
+    private static async Task<UpgradeChecklist.Response> Ask(FakeRepository git, string pinned, string? target, string machine, bool factory = false, bool pipeline = false)
     {
-        Result<UpgradeChecklist.Response> result = await Send(git, pinned, target, machine, factory);
+        Result<UpgradeChecklist.Response> result = await Send(git, pinned, target, machine, factory, pipeline);
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
         return result.Value;
     }
 
-    private static async Task<Result<UpgradeChecklist.Response>> Send(FakeRepository git, string pinned, string? target, string machine, bool factory = false)
+    private static async Task<Result<UpgradeChecklist.Response>> Send(FakeRepository git, string pinned, string? target, string machine, bool factory = false, bool pipeline = false)
     {
         using var workspace = CycleWorkspace.Create(Merged);
         CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, ".config", "dotnet-tools.json"), PinnedRelease.Pin(null, pinned).Value);
@@ -99,6 +111,11 @@ public sealed class UpgradeChecklistTests
         if (factory)
         {
             CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, ".github", "workflows", "sdlc-factory.yml"), "name: factory\n");
+        }
+
+        if (pipeline)
+        {
+            CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, ".github", "workflows", "sdlc-upgrade.yml"), "name: upgrade\n");
         }
 
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));

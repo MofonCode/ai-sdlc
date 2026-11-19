@@ -9,6 +9,38 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.50
+
+**An intent is suggested and confirmed, and the interview is on request** (D-200). `/sdlc:intent` reads the
+solution's decisions, rules, declared stack and the code your request touches, writes `intent.md` straight away and
+prints it, with every line that is its own reading marked `(inferred)` — a premise carried from a lead you never
+said included. It asks in one message about those lines, a departure from a recorded decision, and the
+perspectives it added, and edits the file as you answer. `--interview` asks one question at a time as before; a new
+solution is always interviewed, and the skill offers the interview when a request is too thin to read a direction
+from.
+
+**An intent that still marks a line `(inferred)` is a shape problem**: its panel names it, `to-plan` stops that
+cycle, and `verify-chain` refuses it at the pull request.
+
+**A solution takes a release by running its upgrade pipeline, and a machine by `/sdlc:upgrade`** (D-201). Adoption
+now writes `.github/workflows/sdlc-upgrade.yml`, or `azure-pipelines.upgrade.yml` on Azure DevOps. A person starts it
+on the platform, naming a release or leaving it empty for the newest. It moves the pin, runs adoption and
+`sdlc factory` as that release, and opens the pull request the upgrade check accepts. It never runs on a schedule.
+On GitHub it needs a GitHub App's id and key (`SDLC_UPGRADE_APP_ID`, `SDLC_UPGRADE_APP_KEY`), because a pull request
+opened with `GITHUB_TOKEN` starts no workflow. `/sdlc:upgrade` moves this machine's binary and installed plugin to one
+release and checks they agree. `sdlc upgrade` points to the pipeline where a solution has one.
+
+**A release no longer asks for an agent to be rebuilt.** Every run already installs the release its branch pins, so
+the image's copy is a cache. The new **agent-image** guidance says how a solution keeps its own agent's image
+current: the definition in the repository, and a rebuild a pipeline asks for and checks. Open cycles stay on the
+release they opened on.
+
+**What moving to 0.50 asks of a solution.** The move to 0.50 itself is by hand, as before, and it writes the
+upgrade pipeline. Set up its token once, as the installing guide's Update section says. Every move after that is a run.
+
+**A minor** because what the intent stage asks of a person changes, and an intent can now be refused for a mark
+left in it. No intent written before this release carries one.
+
 ## 0.49
 
 **Every merge to main that ships is a release a person approves or rejects** (D-197). The framework builds from one

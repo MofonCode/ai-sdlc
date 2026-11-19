@@ -27,7 +27,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc constraints show <id>` | binary | one rule in full, in force or superseded |
 | `sdlc areas` | binary | each area: the files it covers, the entries carrying it, and names nobody defined. Exits 1 when an area covers no file |
 | `sdlc new` | binary | allocates the id, claims it across every worktree, and makes the directory; in a sandbox, the cycle opens beside the others. `/sdlc:intent` runs it for you |
-| `/sdlc:intent` | agent | interviews you into `intent.md` |
+| `/sdlc:intent` | agent | suggests `intent.md` and asks what it inferred, or interviews you with `--interview` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
 | `/sdlc:refine <id> <artifact>` | agent | applies those findings to the document |
 | `/sdlc:to-plan [<id>]` | agent | takes an intent to a plan — checks the intent, then spec, then plan, each with its loop — and drafts the approval. The step a person takes after an intent |
@@ -85,7 +85,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc admit` | binary | in a sandbox, the git command that takes its approved cycles and the successors it wrote onto an admission branch beside it; what is not approved stays. `sdlc build` and `/sdlc:pr --plan` run it |
 | `sdlc discard` | binary | in a sandbox, what throwing it away would lose; prints the removal once nothing worth recording is left unrecorded |
 | `sdlc tidy` | binary | the worktrees and local branches whose work has reached the integration branch, or whose cycle a harvest there has closed, and the commands that remove them, for you to run. Deletes nothing |
-| `sdlc upgrade [<release>]` | binary | everything that moves to take a release, in order, with what each is on now: this machine's tool, the plugin, the solution's pin and what `sdlc init` writes, the factory's images, and the open cycles still pinning an older release. Answered by this machine's release, never the pinned one. Runs nothing (D-170) |
+| `sdlc upgrade [<release>]` | binary | everything that moves to take a release, in order, with what each is on now: this machine's tool, the plugin, the solution's pin and what `sdlc init` writes -- a run of its upgrade pipeline when it has one -- the factory, and the open cycles still pinning an older release. Answered by this machine's release, never the pinned one. Runs nothing (D-170, D-201) |
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |

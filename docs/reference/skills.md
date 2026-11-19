@@ -21,7 +21,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | **Adoption** | | | |
 | [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; runs the adoption command, and walks the drafts it leaves | a person\* |
 | **The planning chain** | | | |
-| [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
+| [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] [--interview] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and suggests why the work exists from the record and the code, asking you only what it inferred — or interviews you with `--interview` — from a lead if given one, a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
 | [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | `to-plan`, or a person |
 | [`plan`](../../skills/README.md#plan) | `[<cycle id>]` | decides how, and what will prove each criterion | `to-plan`, or a person |
 | [`to-plan`](../../skills/README.md#to-plan) | `[<cycle id>] [<finding id>...] ["what to change"]` | takes an intent to a plan — one cycle, or every one this branch carries — picking up where each stopped, and hands back once with the approvals drafted; given what should change, runs `steer` first and checks again | a person |
@@ -54,6 +54,8 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`harvest-stack`](../../skills/README.md#harvest-stack) | `[--cycles <id>,<id>]` | proposes the declared stack's rows for what it never mentions | `harvest` |
 | [`harvest-areas`](../../skills/README.md#harvest-areas) | `[--cycles <id>,<id>]` | proposes the areas to add, rename, merge, remove, re-glob or tag | `harvest` |
 | [`close-cycle`](../../skills/README.md#close-cycle) | `` | once every aspect is answered, commits the closed cycles' removal on a branch of its own and opens its pull request | `harvest`, or a person |
+| **This machine** | | | |
+| [`upgrade`](../../skills/README.md#upgrade) | `[<release>]` | moves this machine's binary and installed plugin to a release and checks they agree; a solution moves by its upgrade pipeline | a person |
 
 \* **A person must start these two.** Every other skill may be started by an agent as well — nothing in
 the plugin stops one — so *started by* there is who normally decides. These two are different, because

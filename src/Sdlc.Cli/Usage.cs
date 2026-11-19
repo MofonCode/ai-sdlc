@@ -162,9 +162,10 @@ internal static class Usage
                                      Deletes nothing, and leaves remote branches alone.
             upgrade [<release>]      Everything that moves to take a release, in order, with what
                                      each is on now: this machine's tool, the plugin, this
-                                     solution's pin and what 'sdlc init' writes, the factory's
-                                     images when it has one, and the open cycles still pinning an
-                                     older release. Without a release, the one this machine runs.
+                                     solution's pin and what 'sdlc init' writes -- a run of its
+                                     upgrade pipeline when it has one -- the factory when it has
+                                     one, and the open cycles still pinning an older release.
+                                     Without a release, the one this machine runs.
                                      Always answered by this machine's release, never the pinned
                                      one. Runs nothing.
             park <id>                Compare a cycle's plan with every plan not yet built. A file

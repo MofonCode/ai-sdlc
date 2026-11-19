@@ -8,15 +8,16 @@ allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 
 # Pull the next wave
 
-**A playbook** (D-186): `intent` interviews each ready successor, and `to-plan` checks and plans every cycle the
-wave holds, its loop and its parking check included.
+**A playbook** (D-186): `intent` suggests each ready successor's intent and asks what it inferred, and `to-plan`
+checks and plans every cycle the wave holds, its loop and its parking check included.
 
 Work that was sliced, or whose plans turned out to need each other, comes ready in waves: a successor once what
 it succeeds has merged, a parked cycle once what it waits on has. This takes **every item ready now** and carries
 it as far as a person's approval, in one run, and says what the next wave waits on (D-147).
 
-It takes no id. It runs locally, with the person: an intent is an interview, and a plan is read before it is
-approved. **The factory never runs this** — it builds what a person approved and nothing more (D-143).
+It takes no id. It runs locally, with the person: an intent is confirmed by the person it belongs to, and a plan
+is read before it is approved. **The factory never runs this** — it builds what a person approved and nothing more
+(D-143).
 
 ## 1. What is ready
 
@@ -37,11 +38,12 @@ they can see which. If they name only some, take those.
 Every item in this wave is planned together, in one sandbox (D-144): the first successor opens it as the `intent`
 skill's §1 says, and every other opens inside it.
 
-## 3. Successors: interview each from where the slicing left it
+## 3. Successors: suggest each from where the slicing left it
 
 For each ready successor, run **`intent`** with `--from successor:<slug>`: it fetches the outcome and
-why the slicing left, starts the successor in this sandbox, and interviews the person against the code that
-merged. Most of each interview is short. Do not stop at its hand-back, since the run hands back once, in §6; the
+why the slicing left, starts the successor in this sandbox, suggests its intent against the code that merged, and asks
+the person only what it inferred — the why above all, since the slicing wrote it before that code existed. Most
+of each is short. Do not stop at its hand-back, since the run hands back once, in §6; the
 intent is checked in §5, where `to-plan` runs its loop.
 
 ## 4. Parked cycles: take each back and read it again

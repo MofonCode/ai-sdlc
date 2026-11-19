@@ -25,7 +25,7 @@ sdlc doctor             # check this installation and this repository
 | | |
 |---|---|
 | this package | the `sdlc` command: what every host hook and pipeline step calls |
-| the plugin | the twenty-seven skills that write and judge the documents, which need language |
+| the plugin | the twenty-eight skills that write and judge the documents, which need language |
 
 Install only this and you get a working gate and no stages — `sdlc help` lists what the binary does on
 its own, and every stage name typed at it answers with the invocation to use instead of "unknown

@@ -2,7 +2,7 @@
 
 What examines a change beyond the rules, when each examination runs, and how to read what it found. Read
 it when a findings round carries ids like `security.F_02`, when a build's commit says
-`Noticed: [operability] …`, or before an intent interview asks what the change touches.
+`Noticed: [operability] …`, or before an intent asks what the change touches.
 
 **A perspective is a way of looking, not a checklist.** Security follows every input to where it is used;
 operability asks whether the person on call at 3 a.m. could tell from the logs what failed and for whom.
@@ -51,7 +51,8 @@ the binary does not carry as *not written yet: nothing to run* — a gap in what
 **Three sources, in the order a cycle meets them.**
 
 1. **Always on** — security, operability, maintainability. Nothing turns these off.
-2. **Named by the intent.** The interview's last question is *what does this touch, beyond the basics?* —
+2. **Named by the intent.** A suggested intent reads what the change touches from the code and names the
+   perspectives it added among its questions; the interview asks *what does this touch, beyond the basics?* —
    *a page people use*, *stored data*, *a public API*. The answer becomes the intent's `perspectives` key,
    which **only adds**. It sits inside the approval's hash, so the person approving sees how much scrutiny
    the cycle asked for.
@@ -70,7 +71,7 @@ sdlc perspectives <id>
 
 | Stage | What a perspective does |
 |---|---|
-| `intent` | **asks.** The interview's last question is the active perspectives' list for the intent, in this solution's terms, written to a file with a suggested answer for each and answered in free text — a picker would cut a long list to fit. What the person picks becomes an outcome in their words; what they do not pick is not written |
+| `intent` | **asks.** Last among a suggested intent's questions, or the interview's last question, is the active perspectives' list for the intent, in this solution's terms, written to a file with a suggested answer for each and answered in free text — a picker would cut a long list to fit. What the person picks becomes an outcome in their words; what they do not pick is not written |
 | `spec` | **steers, and never widens.** A list item the intent asks for shapes its criterion — the keyboard path through an interaction the intent asked for, the hostile input to a field it asked for. An item it does not ask for gets no criterion and is named in `Out of scope`, so the approval shows the gap |
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |

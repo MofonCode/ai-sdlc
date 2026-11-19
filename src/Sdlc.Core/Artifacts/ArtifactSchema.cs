@@ -185,6 +185,7 @@ public static partial class ArtifactSchema
         if (newerRules)
         {
             CheckTakenIn(kind, markdown, violations);
+            CheckInferred(kind, markdown, violations);
             CheckAssumptions(kind, markdown, violations);
             CheckCases(kind, markdown, violations);
         }
@@ -253,6 +254,48 @@ public static partial class ArtifactSchema
                         $"outcome {index + 1} is a suggestion taken in as an outcome of its own. A suggestion may only sharpen an outcome the intent already wants: write it as a sub-bullet beneath that outcome, or make it a successor if it adds or widens one (D-128).")));
             }
         }
+    }
+
+    /// <summary>The mark a suggested intent carries on a line the agent inferred and the person has not confirmed.</summary>
+    public const string InferredMark = "(inferred)";
+
+    /// <summary>
+    /// Refuses an intent that still carries a line the agent inferred and nobody confirmed.
+    /// </summary>
+    /// <remarks>
+    /// An intent is suggested from the record and confirmed (D-200): the skill writes the draft with every line
+    /// it inferred marked, and the mark comes off when the person confirms or corrects it. A mark left behind is
+    /// the agent's reading of where the person is heading, about to be judged, specified and approved as if
+    /// they had said it -- the way a carried premise reaches a spec as fact. Confirmed, it is theirs; not
+    /// confirmed, it is an assumption, and goes to <c>Fixed decisions</c> marked unconfirmed or to
+    /// <c>## Open</c>. Whether a line was inferred is a judgement; that a mark is still there is not.
+    /// </remarks>
+    /// <param name="kind">Which artifact this is.</param>
+    /// <param name="markdown">The file's contents.</param>
+    /// <param name="violations">The list to add to.</param>
+    private static void CheckInferred(
+        ArtifactKind kind,
+        string markdown,
+        List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Intent)
+        {
+            return;
+        }
+
+        string[] lines = markdown.ReplaceLineEndings("\n").Split('\n');
+        int marked = lines.Count(line => line.Contains(InferredMark, StringComparison.OrdinalIgnoreCase));
+
+        if (marked == 0)
+        {
+            return;
+        }
+
+        violations.Add(new SchemaViolation(
+            "the document",
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"still marks {marked} {(marked == 1 ? "line" : "lines")} {InferredMark}: the agent's reading, never confirmed. Ask the person, then drop the mark, or record it as unconfirmed under Fixed decisions or as a question under Open (D-200).")));
     }
 
     /// <summary>The plan section naming the platform behaviour its shape rests on, and what a probe showed.</summary>

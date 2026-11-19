@@ -203,16 +203,24 @@ findings (§5.4).
 
 ### 3.1 Every change to what the solution does runs the full chain
 
-`intent` interviews the user and establishes whether this is a new solution, a feature addition, a
+`intent` suggests the intent from the record, or interviews the user, and establishes whether this is a new solution, a feature addition, a
 feature change, or a bug fix. **Intent, spec and plan are all required, always.** The classification
 informs how each artifact is written — a bug fix's spec derives its criteria from a reproduction
 rather than a desired outcome — and never skips one.
 
-**The type is settled before the interview's first question, because it decides the questions** (D-95).
+**The type is settled before anything is written, because it decides what the intent must say** (D-95).
 A person may name it — `--type bug`, `add` or `change` — and a lead may carry it; a new solution has no
-flag and is detected, as a scaffolded solution with no cycle yet approved. The interview then asks one
-question at a time, by type, each with example answers, and *not sure* is an answer with a place to go.
-The intent's sections are the same for every type: the questions vary, the contract downstream does not.
+flag and is detected, as a scaffolded solution with no cycle yet approved.
+
+**The intent is suggested from the record and confirmed, and the interview is on request** (D-200). The skill
+reads the decisions, the constraints, the declared stack and the code the request touches, writes `intent.md`
+at once, and marks every line that is its own reading `(inferred)` — a premise carried from a lead the person
+never said included. It asks, in one turn, about each mark, a departure from a decision, a bounding word and the
+perspectives, and nothing a file answers or no answer would change; it edits the file as the person answers, and
+the schema refuses an intent that still carries a mark. `--interview` asks one question at a time, by type, each
+with example answers, and a new solution — or a request too thin to read a direction from — is interviewed. On
+either path *not sure* is an answer with a place to go. The intent's sections are the same for every type and
+both paths: the questions vary, the contract downstream does not.
 
 **Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125). **The
 pieces are planned together, in one sandbox** (D-144), and what is approved leaves it by `sdlc admit`: an
@@ -239,8 +247,8 @@ wants a class of branch to merge anyway says so in branch policy by not requirin
 which is a decision somebody can read; deleting the step is a different decision that reads as
 nothing. **A cycle is for a decision, so two changes need no chain** (D-133, D-134). Moving to another release: a pull
 request carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
-is checked by writing those files again and comparing. `sdlc upgrade` prints everything that moves with it, in
-order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
+is checked by writing those files again and comparing. A run of the solution's upgrade pipeline opens it (D-201), and
+`sdlc upgrade` prints everything that moves with it, in order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
 change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
 checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
 both. **Nor does a harvest** (D-152, D-192): a pull request carrying only the records a person placed from a sitting, the
@@ -923,7 +931,8 @@ finding has exactly three exits:
 every time the artifact is read, and it is what a reviewer's eye lands on at the gate. The rule is
 not "never assume" — it is **never assume silently.**
 
-**What cannot be assumed into existence.** An intent is written by interviewing a person. An
+**What cannot be assumed into existence.** An intent is confirmed by a person: suggested from the record
+with every inferred line marked and asked, or written by interviewing them (D-200). An
 unmeasured figure may be recorded as an assumption or raised as a question; it may not be reworded
 into something vaguer that passes, because rewording is the one move that removes the problem from
 the page while leaving the belief in it.
@@ -1005,8 +1014,8 @@ binary decides which a plan gets from its `Files` section — `sdlc guidance <id
 Advice that keeps proving right reaches the rules through a harvest, never by itself.
 
 **What is built.** The document format, `sdlc guidance`, `sdlc guidance show` and `sdlc guidance <id>`; the
-`plan` skill reading them; and one entry, **pipeline**: the shape the framework would give a solution's pipeline
-where the solution has not chosen one.
+`plan` skill reading them; and two entries: **pipeline**, the shape the framework would give a solution's pipeline
+where the solution has not chosen one, and **agent-image**, how a self-hosted agent's image is kept current (D-201).
 
 ---
 
@@ -1460,7 +1469,8 @@ build can start failing on untouched code is the declared scope of one approved 
 side effect of adoption or of whichever build ran next.
 
 **What update may touch is decided by whose name is on the file — D-40.** It rewrites what the
-framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json` and `.github/workflows/sdlc-verify.yml`.
+framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` and the upgrade
+pipeline, `.github/workflows/sdlc-upgrade.yml` or `azure-pipelines.upgrade.yml` (D-201).
 In a file the host and the team also own it owns its own entries and nothing else,
 so `.claude/settings.json` is merged — the two hook entries are added or refreshed and every other key,
 including a team's permissions and their own hooks, is kept — and so is the local tool manifest,
@@ -2400,6 +2410,7 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `status` | single | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | single | renders the effective constraint set, all tiers |
 | `suggestions` | single | lists accumulated non-blocking findings |
+| `upgrade` | single | moves this machine's binary and installed plugin to a release and checks they agree; changes no repository — D-201 |
 
 **Six of them keep a task list where the host has one.** `init`, `intent`, `spec` and `plan` each list their own
 steps and nothing past the hand-back; `build` and `to-plan` list one line per cycle. `implement` keeps none: it
@@ -2451,6 +2462,7 @@ mechanical rather than promised.
 | `harvest` and its five aspect skills | a completed cycle not closed, still needing the aspect — merged after a passing verify, or abandoned, merged or not: one none of which merged is brought in from its own branch, untracked (D-190) | nothing; a cycle in flight or not merged is waiting, and the overview says so; recording refuses while the aspect's draft is beside its file | nothing that binds: the report, drafts for a person to rename, and with `record` the harvest ledger (D-191) |
 | `close-cycle` | every aspect answered for a cycle, every draft placed or refused, the integration branch checked out | any of those missing — `sdlc harvest close` names what (D-192) | the harvest ledger, a `harvest/<date>` commit removing the closed folders, a push and a pull request |
 | `theme` | nothing | nothing; an unreadable theme is reported | nothing; it prints |
+| `upgrade` | nothing; a release, or the newest on nuget.org | `SDLC_DEV_BUILD` is set; asked to move a solution, which its upgrade pipeline does | this machine's global tool and installed plugin; nothing in any repository |
 
 **Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row
 saying `nothing` are not the same claim, and the first is what lets a skill quietly check the wrong
@@ -2515,7 +2527,7 @@ they print verbatim.
 | `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
 | `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
 | `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle, and every branch of a cycle the harvest ledger there records closed — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
-| `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes, the factory's images, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170) |
+| `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes -- a run of its upgrade pipeline when it has one -- the factory, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170, D-201) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `guidance [show <name> \| <id>]` | the guidance a plan is handed: every entry in force, the framework's and the solution's own under `.sdlc/guidance/`, which win by name, with the files that switch each on; one entry in full; or the entries a cycle's plan switches on by its declared files, in full. Advises; never blocks (D-195) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
@@ -3986,7 +3998,7 @@ and prints them.
 
 | | Adoption's claim | How |
 |---|---|---|
-| `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` | the whole file | rewritten on every run |
+| `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml`, the upgrade pipeline | the whole file | rewritten on every run |
 | `.claude/settings.json` | two hook entries | merged; every other key and sibling hook kept |
 | `azure-pipelines.yml`, `AGENTS.md` | nothing, once one exists | printed for a person to place |
 | `.gitattributes` | nothing, once one exists | kept if it normalises line endings, otherwise the one line printed |
@@ -6998,6 +7010,9 @@ it carries verified the release's code, not `development`'s.
 
 **Governs:** §3.4, §15
 
+**Amended by D-200.** A lead seeds a suggested intent rather than an interview; the person still confirms it,
+and a premise in the lead they never said is asked about. What stands is that no lead stands in for the person.
+
 **Superseded in part by D-143.** Operate is no longer a scheduled run: the factory builds and nothing more, and
 `sdlc operate` is a command a person runs. What stands: a lead is a reference to a tracker item, and Operate files
 work items rather than an artifact of its own.
@@ -7293,6 +7308,10 @@ the skill. What to do with the files is the person's; the refusal decides nothin
 ### D-95 — The intent interview settles the type first and asks by type, one question at a time, with examples
 
 **Governs:** §3.1
+
+**Amended by D-200.** The interview described here is the path for `--interview`, a new solution and a request
+too thin to read a direction from; the default suggests the intent and asks what it inferred. The type still comes
+first, and parts 3 and 4 hold on both paths.
 
 **Decision.** Four parts.
 
@@ -7603,6 +7622,102 @@ nobody agreed to govern -- produces drafts on a local branch, which bind nothing
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
 
+### D-201 — A solution takes a release by a run of its upgrade pipeline; a machine by the `upgrade` skill
+
+**Governs:** §6.6, §9
+
+**Amends D-170**, which rejected running the steps, and leaves D-131 as it is: a cycle keeps the release its branch
+pins.
+
+**Decision.** Three parts, one per thing that moves.
+
+1. **The repository moves by a pipeline a person starts.** Adoption writes an upgrade pipeline on GitHub and Azure
+   DevOps, framework-named and rewritten like the pull-request check. A run takes a release — the one named, or the
+   newest on nuget.org — moves the pin, runs adoption and `sdlc factory` as that release, stages only the paths an
+   upgrade may carry, and opens the pull request into the integration branch, which the check reads as an upgrade
+   (D-133). It is commands only, with no agent, and **never on a schedule**: a release is taken on purpose. No local
+   command starts it. `sdlc upgrade` names it when the solution has one, and prints the steps by hand when not.
+2. **This machine moves by the `upgrade` skill**: the global binary and the installed plugin, to one release, checked
+   to agree. A skill rather than a command because a running binary cannot replace itself on Windows, and the plugin
+   is installed by the host's own commands. It changes no repository.
+3. **An agent needs no rebuild for a release.** Every run the generated pipelines start restores the release its
+   branch pins, so the `sdlc` in an agent's image is a cache. What lives in the image is the solution's to move, and
+   the **agent-image** guidance says how: the definition in the repository, a pipeline job for an agent it can
+   reach, and for an agent that runs the jobs, a request file a watcher on the host acts on, a status file a later
+   job checks, and a log per day that keeps two days.
+
+**No credential is written into a repository.** The upgrade pipeline's token comes from the platform's secret store
+— a GitHub App's, on GitHub, because a pull request opened with `GITHUB_TOKEN` starts no workflow.
+
+**Why.** Every move to a new release rediscovered the procedure. One governed solution's moves touched the pin,
+adoption, the global tool, the plugin, two agent images and a machine reached over ssh, and the order that mattered —
+the agent's image never ahead of the merged pin — lived in nobody's repository. D-170 printed the steps; a person
+still ran six of them by hand, in a session that had to learn them again. The steps that touch the repository are all
+the binary's, so a pipeline can run them and leave only the review to a person. The steps on the agent were never
+needed for a release at all once the package was on nuget.org.
+
+**Rejected.**
+
+- *A schedule that opens the upgrade's pull request when a release appears.* Taking a release is a decision, as
+  starting the factory is (D-143); a pull request nobody asked for is one to close.
+- *A watcher on the agent that polls for the newest release.* It moves the agent out of step with the repository,
+  which is the failure the order above existed to prevent.
+- *Moving open cycles with the pin.* A cycle's plan was approved under its release's rules, its worktree may hold
+  work nobody pushed, and a pipeline can only reach pushed branches. Whoever works a cycle moves it, or leaves it.
+- *Dependabot or Renovate for the pin.* Either moves the manifest without running adoption, so the upgrade check
+  refuses the pull request it opens.
+- *One skill for the machine, the solution and the agents.* Three jobs with three places they run; a skill that did
+  them all would be the playbook-and-stage mix D-186 split.
+- *A template for the agent's rebuild now.* One solution's agent is the evidence; the guidance comes first, and a
+  template once a second solution's agent says what is common.
+
+### D-200 — An intent is suggested from the record and confirmed line by line; the interview is on request
+
+**Governs:** §3.1, §6.4
+
+**Decision.** Four parts.
+
+1. **The default suggests.** `intent` reads the decisions, the constraints, `solution.md`, the declared stack, the
+   code the request touches, the theme where it touches a page, and the other cycles open in the sandbox — not
+   the history of completed ones — and writes `intent.md` at once. It is a living document: edited as the person
+   answers, never started again, shown in full once and as changes after.
+2. **Every guess is marked.** A line that is the agent's reading rather than the person's words or the record's
+   ends `(inferred)`. A premise inside a lead — a cost, a harm, a cause, who is affected — is inferred unless this
+   person said it. The mark comes off when the person confirms or corrects the line, or says *go*, which adopts every
+   reading left as written; one answered *not sure* is recorded as unconfirmed, never as what they want. Fixed decisions are never suggested.
+3. **One turn of questions, and only those that change the work.** Each mark, a departure from a recorded
+   decision, a bounding word, and the perspectives — asked only when nothing on disk answers it and different
+   plausible answers would change the outcomes or the scope.
+4. **The interview is on request.** `--interview` runs D-95's interview; a new solution always gets it; and the
+   skill offers it, rather than a thin draft, when the request is too thin to read a direction from.
+
+**The schema refuses an intent that still carries a mark.** Whether a line was inferred is a judgement; that a
+mark is still there is not, so it is a shape problem on the panel, `to-plan` stops that cycle, and the chain
+refuses it at the pull request.
+
+**Why.** One solution's recent interviews: the questions that earned their place each checked something specific
+— a successor's premise that its data subscription was paid per call when it was flat-rate, a departure from a
+recorded hosting decision, how changes land on the trunk. The type tables mostly drew answers that changed
+nothing — *promotion is extra work*, *nothing else I know of*, *more preference than something not working*,
+*only me, as developer*, *today there is no issue* — because they were asked in full where the lead or the record
+already answered them. A session before the wave had asked eight questions and the interview began again. Six
+recent intents took one or two reader rounds, so a shorter conversation is not an unchecked one. And the record
+says much of where a person is heading: a suggestion built on it is worth more than a blank question.
+
+**Rejected.**
+
+- *Keeping the full interview as the default.* The evidence above: ceremony whose answers changed nothing, spent
+  on the one person whose attention the framework most needs.
+- *A suggestion with no marks.* A suggestion built on the record is more convincing than a question, so it
+  anchors harder; a premise carried inside one reaches the spec as fact. This is the risk D-95 refused drafting
+  for, and the marks are what answer it.
+- *The marks only in chat.* The file would look settled before it was, and nothing mechanical could tell.
+- *Keeping the draft in chat until confirmed.* A file the person can open, that survives a lost session, and that
+  is edited rather than regenerated is worth more than the cleanliness of writing once.
+- *Reading completed cycles for direction.* What they settled that still binds is in the decisions and the
+  constraints; an old intent's reasoning is mostly stale.
+- *`--interrogate` as the flag.* A person is interviewed; an artifact is interrogated. The word is the
+  `interrogate` skill's and the readers' loop that `to-plan` runs on this same intent.
 ### D-198 — A trunk is a setting: the integration branch may be the default branch
 
 **Governs:** §13
