@@ -9,6 +9,18 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.51
+
+**The upgrade pipeline runs on the agent the platform names** (D-201). On Azure DevOps it runs on the pool the
+pipeline variable `SDLC_AGENT_POOL` names: a pool of your own, or `Azure Pipelines` for a Microsoft-hosted agent. An
+organization with no Microsoft-hosted parallel job could not run it before. On GitHub, the repository variable
+`SDLC_RUNNER` names a label of your own runners, and unset it takes a GitHub-hosted runner as before.
+
+**What moving to it asks of a solution on Azure DevOps:** set `SDLC_AGENT_POOL` on the upgrade pipeline before its
+next run, and for a pool of your own, let the pipeline use it once, under the pool's Security > Pipeline
+permissions. Unset, a run fails with *Could not find a pool with name $(SDLC_AGENT_POOL)* and changes nothing. A
+solution taking 0.51 by a run of its 0.50 pipeline sets it before the run after.
+
 ## 0.50
 
 **An intent is suggested and confirmed, and the interview is on request** (D-200). `/sdlc:intent` reads the

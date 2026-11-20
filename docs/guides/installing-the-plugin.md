@@ -93,7 +93,7 @@ command refuses and says so rather than falling back — a person who named a ru
 `VersionPrefix` in `Directory.Build.props` is the one place the release line is set, and the suite
 asserts it matches `plugin.json`. The pipeline numbers each build of the line and stamps that number into both
 halves of the package, so a package's binary and plugin always tell you the same thing. A plugin installed from
-the marketplace says the line alone, `0.50.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
+the marketplace says the line alone, `0.51.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
 takes it.
 
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the
@@ -345,8 +345,12 @@ machine starts it. Set up once:
 
 | Platform | What it needs |
 |---|---|
-| GitHub | a GitHub App installed on the repository that may write contents and pull requests: its id as the variable `SDLC_UPGRADE_APP_ID`, its private key as the secret `SDLC_UPGRADE_APP_KEY`. Not `GITHUB_TOKEN`: a pull request opened with it starts no workflow, so the check would never run |
-| Azure DevOps | a pipeline from the file, and the build service allowed to contribute, create branches and contribute to pull requests |
+| GitHub | a GitHub App installed on the repository that may write contents and pull requests: its id as the variable `SDLC_UPGRADE_APP_ID`, its private key as the secret `SDLC_UPGRADE_APP_KEY`. Not `GITHUB_TOKEN`: a pull request opened with it starts no workflow, so the check would never run. To run on runners of your own, the variable `SDLC_RUNNER` names their label; unset, a GitHub-hosted runner |
+| Azure DevOps | a pipeline from the file; the variable `SDLC_AGENT_POOL` on it, naming the agent pool it runs on, or `Azure Pipelines` for a Microsoft-hosted agent; for a pool of your own, the pipeline allowed to use it, under the pool's Security > Pipeline permissions; and the build service allowed to contribute, create branches and contribute to pull requests. Unset, a run fails with *Could not find a pool with name $(SDLC_AGENT_POOL)* |
+
+**The agent is named on the platform, never in the file** (D-201): the upgrade check compares the file with what
+the release writes exactly, and every run rewrites it, so a pool typed into it would be refused at the pull request
+and lost on the next run.
 
 **The first move to a release that writes the pipeline is by hand**, since the solution has none yet; every move
 after it is a run.

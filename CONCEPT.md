@@ -7649,6 +7649,13 @@ pins.
 **No credential is written into a repository.** The upgrade pipeline's token comes from the platform's secret store
 — a GitHub App's, on GitHub, because a pull request opened with `GITHUB_TOKEN` starts no workflow.
 
+**The agent is named on the platform, never in the file** (0.51). On Azure DevOps the job's pool is the pipeline
+variable `SDLC_AGENT_POOL`, resolved when the run is queued, beside a `vmImage` that only a Microsoft-hosted pool
+reads; on GitHub, `runs-on` takes the repository variable `SDLC_RUNNER`, or a GitHub-hosted runner when it is unset.
+Azure DevOps has no fallback: a template expression, the one form that could default, cannot see a variable set on
+the pipeline, so an unset variable fails the run by naming it. One governed solution's organization had no
+Microsoft-hosted parallel job, so the pipeline as first written could not run there at all.
+
 **Why.** Every move to a new release rediscovered the procedure. One governed solution's moves touched the pin,
 adoption, the global tool, the plugin, two agent images and a machine reached over ssh, and the order that mattered —
 the agent's image never ahead of the merged pin — lived in nobody's repository. D-170 printed the steps; a person
@@ -7674,6 +7681,12 @@ needed for a release at all once the package was on nuget.org.
   does not require them, so a run that dropped a team's own pool, its feed sign-in and its own steps opened a pull
   request the check passed and that broke the factory once merged. A governed solution's factory carried all three.
   `--keep` asks the check's own question of the file as its own base and rewrites only when it fails.
+- *The pool typed into the file* (0.50). The check compares the file exactly and every run rewrites it, so the
+  edit is refused at the pull request and lost on the next run.
+- *The pool as a key in `solution.md`.* It works, but puts a team's infrastructure in a governed file and a step at
+  adoption; the platform already holds the pool, its permissions and its agents.
+- *A queue-time parameter, or a variable group.* A parameter is typed on every run, by hand, into a pipeline that
+  opens pull requests; a group has to be named in the file, and a template cannot know a team's group.
 
 ### D-200 — An intent is suggested from the record and confirmed line by line; the interview is on request
 
