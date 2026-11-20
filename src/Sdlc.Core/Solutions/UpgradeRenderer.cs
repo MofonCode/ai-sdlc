@@ -47,6 +47,12 @@ public static class UpgradeRenderer
                 $"{++step}. This solution {(upgrade.Pinned is { } from ? "pins " + from : "pins no release")}. Run its upgrade pipeline, {run}, with release {upgrade.Target}."));
             output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Indent}It moves the pin, runs adoption and opens the pull request into {upgrade.Integration}; review and merge it."));
             output.AppendLine(Indent + "If 'sdlc stack' then lists rows under Not mentioned, '/sdlc:init' walks each one.");
+
+            if (run.EndsWith("azure-pipelines.upgrade.yml", StringComparison.Ordinal))
+            {
+                output.AppendLine(Indent + "It runs on the pool its variable SDLC_AGENT_POOL names: set it on the pipeline first, to your pool");
+                output.AppendLine(Indent + "or to 'Azure Pipelines' for a Microsoft-hosted agent.");
+            }
         }
         else if (upgrade.PinMoves)
         {

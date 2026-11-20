@@ -89,6 +89,18 @@ public sealed class UpgradePipelineTests
     }
 
     [TestMethod]
+    public void The_agent_is_named_by_a_platform_variable_never_in_the_file()
+    {
+        // D-201, 0.51: an organization with no Microsoft-hosted job runs it on its own pool, which the file cannot hold.
+        string azure = UpgradePipeline.Text(Platform.AzureDevOps, "development");
+        string gitHub = UpgradePipeline.Text(Platform.GitHub, "development");
+
+        StringAssert.Contains(azure, "name: $(SDLC_AGENT_POOL)", "Macro syntax: a template expression cannot see a variable set on the pipeline.");
+        StringAssert.Contains(azure, "vmImage: ubuntu-latest", "Read only when the variable names a Microsoft-hosted pool.");
+        StringAssert.Contains(gitHub, "runs-on: ${{ vars.SDLC_RUNNER || 'ubuntu-latest' }}");
+    }
+
+    [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
     public void A_template_changed_by_hand_is_not_an_upgrade(Platform platform)

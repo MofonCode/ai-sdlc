@@ -18,6 +18,10 @@ namespace Sdlc.Core.Init;
 /// image is the solution's, and the <c>agent-image</c> guidance says how to move it.</para>
 /// <para><strong>It stages only what an upgrade may carry</strong>, the paths <see cref="VerifyUpgrade"/> reads as
 /// one, so the pull request it opens is one the check accepts or names the file it refuses.</para>
+/// <para><strong>The agent is the platform's to name</strong>: <c>SDLC_AGENT_POOL</c> on Azure DevOps, resolved when the
+/// run is queued, and <c>SDLC_RUNNER</c> on GitHub, a hosted runner when unset. The file is compared exactly and
+/// rewritten every run, so it can hold no team's pool. Azure DevOps cannot default the variable: a template expression
+/// does not see one set on the pipeline, and a run without it fails naming it.</para>
 /// <para><strong>Neither template has run against a real server</strong>, and each says so at the top (D-32).</para>
 /// </remarks>
 public static class UpgradePipeline
@@ -56,6 +60,8 @@ public static class UpgradePipeline
                 "#     SDLC_UPGRADE_APP_KEY  a secret, its private key",
                 "#   Not GITHUB_TOKEN: a pull request opened with it starts no workflow, so the pull-request",
                 "#   check would never run on it.",
+                "#   SDLC_RUNNER, a variable, only to run on runners of your own: the label 'runs-on' takes.",
+                "#     Unset, the run takes a GitHub-hosted runner.",
                 "name: upgrade",
                 string.Empty,
                 "# Started by a person, never on a schedule (D-201).",
@@ -73,7 +79,7 @@ public static class UpgradePipeline
                 string.Empty,
                 "jobs:",
                 "  upgrade:",
-                "    runs-on: ubuntu-latest",
+                "    runs-on: ${{ vars.SDLC_RUNNER || 'ubuntu-latest' }}",
                 "    timeout-minutes: 30",
                 "    steps:",
                 "      - id: token",
@@ -120,6 +126,11 @@ public static class UpgradePipeline
                 "#   - Pipelines > New pipeline > this file.",
                 "#   - The project's build service may contribute, create branches and contribute to pull",
                 "#     requests on this repository (Project settings > Repositories > Security).",
+                "#   - SDLC_AGENT_POOL, a variable on this pipeline: the agent pool it runs on, or 'Azure Pipelines'",
+                "#     for a Microsoft-hosted agent. A pool of your own also lets this pipeline use it, once, under",
+                "#     the pool's Security > Pipeline permissions. Unset, the run fails: 'Could not find a pool with",
+                "#     name $(SDLC_AGENT_POOL)'. A variable rather than this file, because the upgrade check compares",
+                "#     the file exactly, and every run rewrites it.",
                 "# Started by a person, never on a schedule (D-201).",
                 "trigger: none",
                 "pr: none",
@@ -133,7 +144,9 @@ public static class UpgradePipeline
                 "jobs:",
                 "  - job: upgrade",
                 "    timeoutInMinutes: 30",
+                "    # The pool's name is resolved when the run is queued; vmImage is read only by a Microsoft-hosted pool.",
                 "    pool:",
+                "      name: $(SDLC_AGENT_POOL)",
                 "      vmImage: ubuntu-latest",
                 "    steps:",
                 "      - checkout: self",
