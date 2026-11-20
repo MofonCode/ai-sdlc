@@ -170,6 +170,7 @@ this part for you**: it may edit a draft, but placing one is yours.
 | `approval` | `required`, `none`; `required` when absent | whether a person approves each cycle's intent, spec and plan before it is built. Leave it `required` to start; `running-a-cycle.md`, under *Running without approvals*, says what `none` keeps and what it gives up. Change it later with `sdlc draft solution --approval none` |
 | `coverage_floor` | a whole percentage; `80%` when absent | the whole-codebase coverage at or above which a cycle need not hold the coverage baseline; under it, the codebase may not fall. An adopted codebase starting low is kept from falling while it climbs; one already high is not refused for drifting a point. `handling-refusals.md` says when to lower it, and `sdlc draft solution --coverage-floor 70%` how |
 | `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
+| `build_tools` | bare command names, comma-separated; absent for most | the commands a build's own process may run beyond the ones every build is given -- `sdlc`, `git`, `dotnet`, `gh`, `az` -- such as `pwsh, docker` for an evidence script that runs in a container. The process is headless, so a command it is not allowed is refused with nobody to ask. Optional, and written only when set (D-202) |
 
 Once it is placed
 , `sdlc settings` shows each key, whether it was written or defaulted, and how to change it.

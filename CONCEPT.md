@@ -1390,7 +1390,7 @@ and an update's report name it, while writing nothing. That is how a release rea
 
 ### 8.3 `solution.md`
 
-Seven keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
+Eight keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
 solution adopted before that may still carry the line, and nothing reads it (D-81). `sdlc settings` shows
 every key's value, whether it was declared or defaulted, and how to change it (D-138).
 
@@ -1403,6 +1403,7 @@ every key's value, whether it was declared or defaulted, and how to change it (D
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
 | `approval` | the gate, which under `none` asks for no ledger and keeps every other check; `verify-chain`, the status panel and the sitrep, which say no person approved. `required` or `none`; absent, and a document that cannot be read, read as `required` (D-137) |
 | `coverage_floor` | `verify-chain` and `evidence`: at or above it the whole codebase need not hold its coverage baseline, and the baseline follows the rate; under it the codebase may not fall. A whole percentage; absent reads as 80%, and a document that cannot be read as no floor at all (D-157) |
+| `build_tools` | `sdlc build`, which allows the build's own process each command it names, as that command and nothing wider, beyond the ones every build is given. Bare command names, comma-separated; optional and written only when set, and a document that cannot be read starts no build (D-202) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -1548,6 +1549,11 @@ binary opened it; run by the factory, from a fresh checkout of the integration b
    `cycle/<id>/build-unattended` branch. None waits for another or is rebased onto another (D-86).
 3. With `--pr`, every cycle that reached an outcome gets a pull request — a draft when it did not pass —
    and the run ends with the sitrep.
+
+**The build's own process is allowed what it runs, and nothing else** (D-202). It is headless, so a tool it is
+not allowed is refused with nobody to ask. `sdlc build` names the skills the playbook reaches, `sdlc`, `git`,
+`dotnet`, `gh`, `az` and the file tools, and then each command the solution's `build_tools` names (§8.3). Its
+permission checks stay on: a command outside the list is a refusal the report names, never a reason to switch them off.
 
 **The graph is computed by the binary, not derived by the skill.** It is a set intersection over a file
 table, so the binary does it the same way every time — and a graph a session worked out by reading plans
@@ -2590,8 +2596,8 @@ rides into it.
 
 ```
 .sdlc/
-  solution.md               seven keys -- origin, standard, platform, integration_branch,
-                            telemetry, approval, coverage_floor -- and a paragraph. Drafted by
+  solution.md               eight keys -- origin, standard, platform, integration_branch,
+                            telemetry, approval, coverage_floor, build_tools -- and a paragraph. Drafted by
                             init, placed by a person
   .gitignore                the drafts beside the files a person places
   techstack.md              what this solution is built from
@@ -7621,6 +7627,50 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-202 — The build's own process is allowed the skills its playbook runs, and the commands `build_tools` names
+
+**Governs:** §8.3, §10.1
+
+**Amends D-183 and D-187**, whose list of the build process's tools left out the skills its playbook runs.
+
+**Decision.** `sdlc build` starts its process allowed three sets of tools, and nothing more.
+
+1. **The skills the build playbook reaches**, itself or through `remediate`: `implement`, `verify`, `remediate`,
+   `pr` and `resolve-conflict`. The suite holds that list to the skills table, transitively, so a skill a playbook
+   starts running cannot be left off it.
+2. **What every build needs**: `sdlc`, `git`, `dotnet`, `gh`, `az`, and the file tools.
+3. **Each command `build_tools` names**, a key in `solution.md` holding bare command names: `build_tools: pwsh,
+   docker`. Each is allowed as `Bash(<name> *)`, so a name with a space, a wildcard or a path is refused when the
+   document is read, and a document that cannot be read starts no build.
+
+The build playbook says what a headless process needs said: one plain command per shell call, no variable or brace
+expansion, files through the file tools, and bash rather than PowerShell on Windows. A command a solution's own build
+needs that is not on the list stops the cycle as not finished, naming the command.
+
+**Why.** The list was written for the steps a build took before it was a playbook (D-183). When the playbook began
+running other skills (D-187), the list was not moved with it, and the test held the arguments to the list rather
+than the list to the playbook. One governed solution's build was refused `implement` twice and ended without a
+report. It went through only once a person allowed the skills, PowerShell and Docker in their user-level settings,
+which then applied to every project on the machine. The solution's evidence ran its suite in a Linux container,
+through a script: a command the framework could not have known to allow. A rule in the checkout's own personal
+settings never reached the build either, because the build works in a fresh worktree.
+
+**Rejected.**
+
+- *Starting the process with its permission checks off.* D-183 rejected it for the build, and nothing here changes
+  why: a headless agent with every tool allowed is the one place nothing would stop a write to a protected file
+  but the hook.
+- *The solution's committed host settings as the place for extra tools.* That works on one host only, and every
+  skill behaves the same on every host.
+- *Running the solution's suite in the factory image from `sdlc evidence`.* That would remove the reason one
+  solution wrote its own evidence script, but it makes the binary own a container runtime on a person's machine,
+  for one solution's need. If a second solution writes the same script, that is the evidence for it.
+- *Adoption writing an allow rule for `sdlc` into the host's shared settings.* D-40 has adoption own its hook
+  entries in that file and nothing else. A person who wants their own session to run `sdlc build` without asking
+  allows it in their own settings; the refusals guide says how.
+- *Retrying the PowerShell tool.* In a headless process on Windows, a PowerShell call the list does not name fails
+  its permission check with *the command line is too long*. That fault is the host's, and bash does the same work.
 
 ### D-201 — A solution takes a release by a run of its upgrade pipeline; a machine by the `upgrade` skill
 

@@ -23,14 +23,24 @@ namespace Sdlc.Core.Cycles;
 /// </remarks>
 public static class BuildRun
 {
-    /// <summary>The tools the build's own process may use, and nothing else.</summary>
+    /// <summary>The skills the build playbook runs, itself or through <c>remediate</c>, each of which its process must be allowed.</summary>
     /// <remarks>
-    /// <c>sdlc</c> for every judgement and every process the chain starts; <c>git</c> for the branch; <c>dotnet</c> for
-    /// the solution's build and tests; <c>gh</c> and <c>az</c> to open the pull request; and the edit tools. A skill
-    /// that needed more would be a skill running a process the binary should own.
+    /// The process is headless, so a skill it is not allowed is refused with nobody to ask, and the build ends at its
+    /// first step with no report -- which is what every build did while this list was missing (D-202). The suite holds
+    /// it to the skills table, so a skill added to either playbook cannot be left off.
+    /// </remarks>
+    public static IReadOnlyList<string> Skills { get; } = ["implement", "verify", "remediate", "pr", "resolve-conflict"];
+
+    /// <summary>The tools every build's own process may use.</summary>
+    /// <remarks>
+    /// The skills the playbook runs; <c>sdlc</c> for every judgement and every process the chain starts; <c>git</c> for
+    /// the branch; <c>dotnet</c> for the solution's build and tests; <c>gh</c> and <c>az</c> to open the pull request;
+    /// and the edit tools. A command a solution's own build needs beyond these -- an evidence script's shell, a
+    /// container -- is the person's to name in <c>build_tools</c>, never a list this release guesses (D-202).
     /// </remarks>
     public static IReadOnlyList<string> AllowedTools { get; } =
     [
+        .. Skills.Select(skill => "Skill(sdlc:" + skill + ")"),
         "Bash(sdlc *)",
         "Bash(git *)",
         "Bash(dotnet *)",
@@ -42,6 +52,16 @@ public static class BuildRun
         "Glob",
         "Grep",
     ];
+
+    /// <summary>The tools a build's own process may use: every build's, then the solution's own commands.</summary>
+    /// <param name="buildTools">The commands <c>build_tools</c> names, each a bare command name.</param>
+    /// <returns>The list, with each extra command allowed as <c>Bash(&lt;name&gt; *)</c> and none twice.</returns>
+    public static IReadOnlyList<string> AllowedToolsWith(IReadOnlyList<string> buildTools)
+    {
+        ArgumentNullException.ThrowIfNull(buildTools);
+
+        return [.. AllowedTools.Concat(buildTools.Select(tool => "Bash(" + tool + " *)")).Distinct(StringComparer.Ordinal)];
+    }
 
     /// <summary>Registers this operation's handlers.</summary>
     /// <param name="services">The collection to add to.</param>
@@ -78,12 +98,13 @@ public static class BuildRun
     /// <summary>The arguments the build's own process starts with, after the word <c>claude</c>.</summary>
     /// <param name="id">The cycle, or none for every queued cycle.</param>
     /// <param name="pluginDirectory">This release's skills, so the process runs the release the solution pins.</param>
+    /// <param name="buildTools">The commands the solution's <c>build_tools</c> names, or none.</param>
     /// <returns>The arguments, one each; the named tools last, because the option takes every word after it.</returns>
-    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory)
+    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory, IReadOnlyList<string>? buildTools = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pluginDirectory);
 
-        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id), "--allowedTools", .. AllowedTools];
+        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id), "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
     }
 
     /// <summary>
@@ -273,9 +294,25 @@ public static class BuildRun
                 return Result.Fail<AgentExit>(string.Create(CultureInfo.InvariantCulture, $"There is no worktree at {request.Worktree}."));
             }
 
+            // The worktree's own solution document, because that is the commit the build works from. One that cannot be
+            // read stops the launch: a build started without the commands the person named would be refused at the
+            // step that needs them, with nobody there to ask.
+            Result<SolutionDocument> solution = await SolutionDocument.ReadFile(request.Worktree, cancellationToken).ConfigureAwait(false);
+
+            if (solution.IsFailed)
+            {
+                return solution.ToResult<AgentExit>();
+            }
+
             // Its output is passed straight through, so the person sees the build's own hand-back as it ends.
             return Result.Ok(await agents.Run(
-                new AgentLaunch(request.Worktree, ArgumentsFor(request.Id, request.PluginDirectory), Input: null, Output: null, Reader: false, Timeout: null),
+                new AgentLaunch(
+                    request.Worktree,
+                    ArgumentsFor(request.Id, request.PluginDirectory, solution.Value.ExtraBuildTools),
+                    Input: null,
+                    Output: null,
+                    Reader: false,
+                    Timeout: null),
                 cancellationToken).ConfigureAwait(false));
         }
     }

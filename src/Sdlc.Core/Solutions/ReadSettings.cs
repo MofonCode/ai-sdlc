@@ -193,9 +193,15 @@ public static class ReadSettings
                 document.Telemetry ?? "(none)",
                 document.Telemetry is null ? SettingSource.NotDeclared : SettingSource.Declared,
                 "sdlc draft solution"));
+            settings.Add(new Setting(
+                SettingGroup.Solution,
+                "build_tools",
+                document.ExtraBuildTools.Count == 0 ? "(none)" : string.Join(", ", document.ExtraBuildTools),
+                document.ExtraBuildTools.Count == 0 ? SettingSource.NotDeclared : SettingSource.Declared,
+                "sdlc draft solution"));
         }
 
-        private static readonly string[] _keys = ["approval", "coverage_floor", "origin", "standard", "platform", "integration_branch", "telemetry"];
+        private static readonly string[] _keys = ["approval", "coverage_floor", "origin", "standard", "platform", "integration_branch", "telemetry", "build_tools"];
 
     }
 }

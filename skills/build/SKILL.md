@@ -123,6 +123,24 @@ timeout.
 
 **It builds; it never merges.** A person reviews and merges each pull request (D-84, D-86).
 
+## Nobody approves a tool call here
+
+`sdlc build` starts this process with its tools named: the skills this playbook runs, `sdlc`, `git`, `dotnet`, `gh`,
+`az`, the file tools, and each command the solution's `build_tools` names (D-202). Anything else is refused, and
+**a refusal is final**: there is nobody to approve it, so a retry is refused the same way. Write every command so
+its permission check can read it before it runs:
+
+- **one plain command per shell call** — no `;`, `&&` or pipe into a command the list does not name, such as
+  `| tail -3`;
+- **no variable and no brace expansion** — `$NAME`, `{a,b}.cs` — since neither can be checked before it runs;
+- **files through the file tools** — read, search and list with them, never `cat`, `sed`, `head` or `printenv`;
+- **bash rather than PowerShell on Windows**, where a PowerShell call the list does not name fails its check with
+  *the command line is too long*.
+
+A step the solution's own build needs that the list does not allow — an evidence script's shell, a container —
+is not yours to route around. Stop that cycle as not finished, say which command was refused, and say that a
+person adds it to `build_tools` in `.sdlc/solution.md`.
+
 ## 1. Find the work
 
 ```
