@@ -161,6 +161,11 @@ public static class Diagnose
                 checks.Add(factory);
             }
 
+            if (platform == Platform.AzureDevOps && await Retired(cancellationToken).ConfigureAwait(false) is { } retired)
+            {
+                checks.Add(retired);
+            }
+
             if (pipeline.Outcome == CheckOutcome.Sound && PipelineFile() is { } file)
             {
                 string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false);
@@ -253,6 +258,40 @@ public static class Diagnose
                     : "run 'sdlc factory', which writes this release's pipeline over it and its own pool over yours ("
                         + string.Join(", ", pools)
                         + "); put your pool and any step of your own back from 'git diff', and commit it");
+        }
+
+        /// <summary>
+        /// Whether a pipeline an older release wrote at the root of an Azure DevOps solution is still there (D-203).
+        /// </summary>
+        /// <remarks>
+        /// A problem, because the upgrade pipeline an older release wrote commits only the paths it knew, so a release
+        /// taken through it leaves these where they were and the next one finds them again. 'sdlc init' run by hand
+        /// moves them. Nothing when none is left.
+        /// </remarks>
+        private async Task<Check?> Retired(CancellationToken cancellationToken)
+        {
+            List<string> left = [];
+
+            foreach ((string retired, string current) in Initialise.RetiredPipelines)
+            {
+                string path = Path.Combine(solution.Path, retired);
+
+                if (File.Exists(path)
+                    && (retired != Initialise.RetiredPipelines[0].Retired
+                        || Initialise.WroteRootPipeline(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false))))
+                {
+                    left.Add(retired + " (now " + current + ")");
+                }
+            }
+
+            return left.Count == 0
+                ? null
+                : new Check(
+                    "the pipelines' place",
+                    CheckOutcome.Problem,
+                    string.Join(", ", left) + ": this release keeps the framework's Azure DevOps pipelines in "
+                        + Initialise.AzureDevOpsDirectory + "/",
+                    "on a branch, run 'sdlc init', which moves them, and merge it by pull request; then point each pipeline in Azure DevOps at its new path");
         }
 
         private async Task<Check> LineEndingsCheck(CancellationToken cancellationToken)
@@ -793,6 +832,9 @@ public static class Diagnose
             [
                 .. Directory.Exists(Path.Combine(solution.Path, ".github", "workflows"))
                     ? Directory.EnumerateFiles(Path.Combine(solution.Path, ".github", "workflows"))
+                    : [],
+                .. Directory.Exists(Path.Combine(solution.Path, Initialise.AzureDevOpsDirectory))
+                    ? Directory.EnumerateFiles(Path.Combine(solution.Path, Initialise.AzureDevOpsDirectory), "*.yml")
                     : [],
                 .. File.Exists(Path.Combine(solution.Path, "azure-pipelines.yml"))
                     ? [Path.Combine(solution.Path, "azure-pipelines.yml")]

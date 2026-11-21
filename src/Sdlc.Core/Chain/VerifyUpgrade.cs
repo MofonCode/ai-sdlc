@@ -71,6 +71,7 @@ public static class VerifyUpgrade
         .. _pipelines,
         _gitHubUpgrade,
         _azureUpgrade,
+        .. Initialise.RetiredPipelines.Select(pair => pair.Retired),
         TechStackPath,
     ];
 
@@ -172,6 +173,17 @@ public static class VerifyUpgrade
                     continue;
                 }
 
+                if (Initialise.RetiredPipelines.FirstOrDefault(pair => pair.Retired == path) is { Retired: not null } retired)
+                {
+                    checks.Add(Moved(
+                        retired.Retired,
+                        retired.Current,
+                        Base(request, retired.Retired),
+                        await Head(retired.Retired, cancellationToken).ConfigureAwait(false),
+                        await Head(retired.Current, cancellationToken).ConfigureAwait(false)));
+                    continue;
+                }
+
                 if (path == TechStackPath)
                 {
                     checks.Add(Answered(
@@ -189,7 +201,9 @@ public static class VerifyUpgrade
                     unreadable = read.IsSuccess ? null : string.Join(" ", read.Errors.Select(error => error.Message));
                 }
 
-                string? existing = Base(request, path);
+                // A pipeline an older release wrote at the root is compared from there, since that is the copy it moved (D-203).
+                string? existing = Base(request, path)
+                    ?? (Initialise.RetiredPathOf(path) is { } before ? Base(request, before) : null);
                 Result<string> expected = Expected(path, existing, document, unreadable);
                 string? head = await Head(path, cancellationToken).ConfigureAwait(false);
 
@@ -336,6 +350,45 @@ public static class VerifyUpgrade
                 ConfigOwnership.Section => HookSettings.MergeSection(existing, contents, host.EventsKey),
                 _ => contents,
             };
+    }
+
+    /// <summary>Whether a pipeline an older release wrote at the root has moved to where this release keeps it (D-203).</summary>
+    /// <remarks>
+    /// The move is the one deletion an upgrade carries. The root <c>azure-pipelines.yml</c> moves only when adoption wrote
+    /// it: one that is a team's own CI is not the framework's to take away. What arrives at the new path is judged there,
+    /// against the base's root copy.
+    /// </remarks>
+    /// <param name="retired">The root path.</param>
+    /// <param name="current">Where it lives now.</param>
+    /// <param name="existing">The base's root copy, or null when it had none.</param>
+    /// <param name="head">The branch's root copy, or null when the branch deleted it.</param>
+    /// <param name="moved">The branch's copy at the new path, or null when there is none.</param>
+    /// <returns>The check.</returns>
+    public static VerifyChain.ChainCheck Moved(string retired, string current, string? existing, string? head, string? moved)
+    {
+        ArgumentNullException.ThrowIfNull(retired);
+        ArgumentNullException.ThrowIfNull(current);
+
+        string name = retired + " moved to " + current;
+
+        if (existing is null)
+        {
+            return new VerifyChain.ChainCheck(name, false, "the base had no copy, and this release writes nothing at the root.");
+        }
+
+        if (head is not null)
+        {
+            return new VerifyChain.ChainCheck(name, false, "the branch changes it where it is, and this release writes nothing at the root.");
+        }
+
+        if (retired == Initialise.RetiredPipelines[0].Retired && !Initialise.WroteRootPipeline(existing))
+        {
+            return new VerifyChain.ChainCheck(name, false, "the branch deletes it, and it is the team's own CI rather than the pipeline adoption wrote.");
+        }
+
+        return moved is null
+            ? new VerifyChain.ChainCheck(name, false, "the branch deletes it and nothing arrives at " + current + ".")
+            : new VerifyChain.ChainCheck(name, true, "the framework's pipeline, judged where it now lives.");
     }
 
     /// <summary>Whether a framework file is exactly what this release's adoption writes.</summary>

@@ -1,6 +1,6 @@
 ---
 name: agent-image
-files: "sdlc-factory.yml, azure-pipelines.factory.yml, agent-image/"
+files: "sdlc-factory.yml, agent-image/"
 ---
 
 # Keeping an agent's image current

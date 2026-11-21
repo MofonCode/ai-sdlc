@@ -1471,16 +1471,17 @@ side effect of adoption or of whichever build ran next.
 
 **What update may touch is decided by whose name is on the file — D-40.** It rewrites what the
 framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` and the upgrade
-pipeline, `.github/workflows/sdlc-upgrade.yml` or `azure-pipelines.upgrade.yml` (D-201).
+pipeline, `.github/workflows/sdlc-upgrade.yml` or `.azuredevops/sdlc-upgrade.yml` (D-201, D-203).
 In a file the host and the team also own it owns its own entries and nothing else,
 so `.claude/settings.json` is merged — the two hook entries are added or refreshed and every other key,
 including a team's permissions and their own hooks, is kept — and so is the local tool manifest,
 `.config/dotnet-tools.json`, where adoption writes and owns only the `sdlc` entry, the release the solution
 pins (D-131). **The plugin's own hooks step aside for the ones adoption wrote** (D-172): given
 `--source plugin`, `sdlc hook` answers with silence where the solution's settings file runs the same hook, so
-each check speaks once. And where the path belongs to the platform
-it writes only into an empty space: an existing `azure-pipelines.yml` is a repository's own CI, so the
-step is printed for a person to place rather than written over.
+each check speaks once. Every pipeline it writes is framework-named, on Azure DevOps in `.azuredevops/`, so a
+repository's own `azure-pipelines.yml` is never in the line of fire; the Azure DevOps chain check is written once
+and kept while it carries the release's steps, and printed when it lacks one, because a team's own steps sit
+beside them (D-203).
 
 **Update stamps what it wrote, and is run after every upgrade** (D-93). `.sdlc/README.md` carries the
 release that last wrote the framework's files, and `doctor` compares it with the binary — older or
@@ -3995,6 +3996,9 @@ fails open.
 
 **Amended by D-172.** The plugin's hooks step aside where the settings file adoption wrote runs the same one.
 
+**Amended by D-203.** Azure DevOps has the escape after all: its pipelines are framework-named in `.azuredevops/`,
+and a team's own `azure-pipelines.yml` is left alone.
+
 **Superseded in part by D-81.** Adoption no longer names a `pull-request.yml` an earlier adoption left
 behind. Everything else stands.
 
@@ -4005,8 +4009,9 @@ and prints them.
 | | Adoption's claim | How |
 |---|---|---|
 | `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml`, the upgrade pipeline | the whole file | rewritten on every run |
+| `.azuredevops/sdlc-verify.yml` | the whole file | written once, kept while it carries the release's steps, otherwise printed (D-203) |
 | `.claude/settings.json` | two hook entries | merged; every other key and sibling hook kept |
-| `azure-pipelines.yml`, `AGENTS.md` | nothing, once one exists | printed for a person to place |
+| `AGENTS.md` | nothing, once one exists | printed for a person to place |
 | `.gitattributes` | nothing, once one exists | kept if it normalises line endings, otherwise the one line printed |
 | `.sdlc/solution.md`, the stack files | nothing, once one exists | created, then never touched |
 
@@ -7627,6 +7632,48 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-203 — The framework's Azure DevOps pipelines live in `.azuredevops/`, named as on GitHub
+
+**Governs:** §9
+
+**Amends D-40**, whose Azure DevOps row rested on `azure-pipelines.yml` being the path that platform looks for.
+
+**Decision.** On Azure DevOps adoption writes the chain check to `.azuredevops/sdlc-verify.yml`, the upgrade
+pipeline to `.azuredevops/sdlc-upgrade.yml`, and `sdlc factory` the factory's to `.azuredevops/sdlc-factory.yml`:
+the names they have on GitHub, in the one folder Azure DevOps already reads for a repository. Nothing is a setting.
+
+- **The chain check is written once and kept while it carries the release's steps**, judged as the upgrade check
+  judges a pipeline: every step the release writes, in order, with the team's own beside them. One missing a step
+  is printed for a person to bring up to date, as before, because a rewrite would drop the team's steps.
+- **What an older release wrote at the root moves, unchanged**, the first time adoption or `sdlc factory` runs:
+  `azure-pipelines.factory.yml` and `azure-pipelines.upgrade.yml` always, being framework-named, and
+  `azure-pipelines.yml` only when adoption wrote it, which it tells by the note every release's template opens with
+  and the chain step. A team's own CI there stays. The report names each move and says to point its pipeline in
+  Azure DevOps at the new path; until then that pipeline fails to start.
+- **The upgrade check accepts the move**: a root file deleted, its copy at the new path, and that copy judged
+  against the base's root copy. A team's own `azure-pipelines.yml` deleted is refused.
+- **`sdlc doctor` names a framework pipeline still at the root**, because an older release's upgrade pipeline
+  commits only the paths it knew: a release taken through it leaves them there, and `sdlc init` run by hand moves
+  them.
+
+**Why.** Three framework files at the root of every Azure DevOps solution, beside the team's own. And the premise
+D-40 printed the chain check on was wrong: an Azure DevOps pipeline runs from whatever path its definition names,
+and `azure-pipelines.yml` is only the name it suggests. So a solution that already had CI got the chain check
+printed rather than written, and was not governed until a person merged it into their own file by hand.
+
+**Rejected.**
+
+- *A setting naming the folder, defaulting to the root.* Every reader of the paths would resolve it first — adoption,
+  the upgrade check, doctor, the upgrade checklist, the guidance — for a choice no solution needs. What was wanted
+  was the files out of the root.
+- *Keeping both places supported for a while.* The move breaks each pipeline definition until it is pointed at the
+  new path, once, and the report says which. Two places for each file would be read by every reader for as long as
+  any solution had not moved.
+- *`.pipelines/` or `eng/pipelines/`.* Habits of some repositories, not the platform's; `.azuredevops/` pairs with
+  `.github/`.
+- *Rewriting the chain check on every run, as on GitHub.* On Azure DevOps a team's own steps already live in it, and
+  an upgrade run unattended would drop them with the check passing.
 
 ### D-202 — The build's own process is allowed the skills its playbook runs, and the commands `build_tools` names
 

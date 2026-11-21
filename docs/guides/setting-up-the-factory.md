@@ -127,11 +127,11 @@ git switch -c add-factory-pipeline development
 sdlc factory
 ```
 
-It writes `azure-pipelines.factory.yml` — or `.github/workflows/sdlc-factory.yml` on GitHub — and prints
+It writes `.azuredevops/sdlc-factory.yml` — or `.github/workflows/sdlc-factory.yml` on GitHub — and prints
 what step 6 sets up. Commit it, push the branch, and open its pull request into `development`:
 
 ```pwsh
-git add azure-pipelines.factory.yml
+git add .azuredevops/sdlc-factory.yml
 git commit -m "Add the factory's pipeline"
 git push -u origin add-factory-pipeline
 ```
@@ -156,7 +156,7 @@ code the factory wrote reaches `development` read by nobody but whoever clicks m
 Four things, once.
 
 **a. Create the pipeline.** **Pipelines > New pipeline > Azure Repos Git >** your repository **> Existing
-Azure Pipelines YAML file >** branch `development`, path `/azure-pipelines.factory.yml` **> Save** (not
+Azure Pipelines YAML file >** branch `development`, path `/.azuredevops/sdlc-factory.yml` **> Save** (not
 Run — it needs its secret first).
 
 **b. Add the credential.** On the new pipeline: **Edit > Variables > New variable.** Name it

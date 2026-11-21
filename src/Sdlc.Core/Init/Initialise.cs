@@ -2,8 +2,10 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Reports;
@@ -33,24 +35,67 @@ public static class Initialise
 
     /// <summary>Where a platform's pull-request pipeline goes.</summary>
     /// <remarks>
-    /// The GitHub path is framework-named on purpose. It was <c>pull-request.yml</c>, which is a
+    /// Framework-named on both platforms, on purpose. The GitHub one was <c>pull-request.yml</c>, which is a
     /// name a repository plausibly already uses, and adoption rewrote whatever was there -- so a
     /// team's own pull-request workflow was replaced and committed, announced as "updated". A
     /// framework-named file makes owning it honest, and takes the collision away rather than
-    /// handling it. Azure DevOps has no equivalent escape, because <c>azure-pipelines.yml</c> is
-    /// the path that platform looks for, so that one is printed on a collision instead. D-40.
+    /// handling it (D-40). Azure DevOps runs a pipeline from whatever path its definition names, so its
+    /// three files sit in <c>.azuredevops/</c> under the same names as GitHub's, and a team's own
+    /// <c>azure-pipelines.yml</c> is never in the line of fire either (D-203).
     /// </remarks>
     /// <param name="platform">Which platform.</param>
     /// <returns>The path, relative to the solution root.</returns>
     public static string PipelinePath(Platform platform) => platform switch
     {
         Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-verify.yml"),
-        Platform.AzureDevOps => "azure-pipelines.yml",
+        Platform.AzureDevOps => Path.Combine(AzureDevOpsDirectory, "sdlc-verify.yml"),
 
         // Local has no pipeline and so has no path. Asking for one is a caller that has not read the
         // platform, and returning a plausible path would have it write a file nothing runs.
         _ => throw new ArgumentOutOfRangeException(nameof(platform)),
     };
+
+    /// <summary>The directory the framework's Azure DevOps pipelines live in.</summary>
+    public const string AzureDevOpsDirectory = ".azuredevops";
+
+    /// <summary>
+    /// Where releases before 0.53 wrote the framework's Azure DevOps pipelines, each with where it lives now (D-203).
+    /// </summary>
+    /// <remarks>
+    /// Adoption moves each one it finds, and the upgrade check accepts the move. The two named for the factory and the
+    /// upgrade are the framework's by their names; <c>azure-pipelines.yml</c> is the framework's only when
+    /// <see cref="WroteRootPipeline"/> says so, because it is the name a team's own CI takes too.
+    /// </remarks>
+    public static IReadOnlyList<(string Retired, string Current)> RetiredPipelines { get; } =
+    [
+        ("azure-pipelines.yml", PipelinePath(Platform.AzureDevOps).Replace('\\', '/')),
+        ("azure-pipelines.factory.yml", FactoryPipeline.PathOf(Platform.AzureDevOps).Replace('\\', '/')),
+        ("azure-pipelines.upgrade.yml", UpgradePipeline.PathOf(Platform.AzureDevOps).Replace('\\', '/')),
+    ];
+
+    /// <summary>Where an Azure DevOps pipeline lived before 0.53, or null when it has always lived where it does.</summary>
+    /// <param name="current">The path it lives at now, with either separator.</param>
+    /// <returns>The retired path, with forward slashes, or null.</returns>
+    public static string? RetiredPathOf(string current)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        string slashed = current.Replace('\\', '/');
+
+        return RetiredPipelines.FirstOrDefault(pair => pair.Current == slashed).Retired;
+    }
+
+    /// <summary>
+    /// Whether a root <c>azure-pipelines.yml</c> is the one adoption wrote rather than a team's own CI: it opens
+    /// with the note every release's template opens with, and it runs the chain.
+    /// </summary>
+    /// <param name="text">The file.</param>
+    /// <returns>True when adoption wrote it.</returns>
+    public static bool WroteRootPipeline(string? text) =>
+        text is not null
+        && text.TrimStart().StartsWith(RootPipelineNote, StringComparison.Ordinal)
+        && text.Contains("sdlc verify-chain", StringComparison.Ordinal);
+
+    private const string RootPipelineNote = "# NOTE: this pipeline has never run against a real Azure DevOps server.";
 
     /// <summary>How adoption is running.</summary>
     public enum InitMode
@@ -93,6 +138,9 @@ public static class Initialise
 
         /// <summary>Nothing was written; the contents were printed for a person to place.</summary>
         Printed,
+
+        /// <summary>The framework's own file, moved to where this release keeps it; the why names where (D-203).</summary>
+        Moved,
 
         /// <summary>
         /// A draft was written beside a file only a person writes, for them to fill in and rename. Never
@@ -400,11 +448,19 @@ public static class Initialise
                 }
             }
 
+            // What an older release wrote at the root of an Azure DevOps solution moves into .azuredevops/ first, as
+            // it was, so what follows reads it where it now lives (D-203).
+            if (wantedPlatform == Platform.AzureDevOps)
+            {
+                await MoveRetired(actions, cancellationToken).ConfigureAwait(false);
+            }
+
             // The pipeline is the one non-bypassable layer, so adoption has to write it -- but only a
-            // framework-named file is the framework's to rewrite. `sdlc-verify.yml` is owned.
-            // `azure-pipelines.yml` is the name Azure DevOps looks for, so an existing one is this
-            // repository's own CI: it is printed for a person to place rather than replaced, and init
-            // says the guarantee is not installed until they do. D-40.
+            // framework-named file is the framework's to rewrite. `sdlc-verify.yml` is owned on GitHub.
+            // On Azure DevOps it is written once and kept while it carries this release's steps, because a
+            // team adds steps of its own there -- a feed sign-in, a browser install -- that a rewrite would
+            // drop; one that lacks a step this release writes is printed for a person to bring up to date.
+            // D-40, D-203.
             // Local writes none, and that is the choice rather than an omission. A pipeline for a service
             // this repository has no remote on would be a file that looks like a gate and is reachable by
             // nothing -- which is the exact failure D-32 names about an unrun pipeline. What replaces it
@@ -428,7 +484,7 @@ public static class Initialise
                 await Introduced(
                     PipelinePath(wantedPlatform),
                     Templates.Pipeline(wantedPlatform, integration),
-                    "one already exists, and it is this repository's own CI rather than the framework's to replace. Nothing verifies a chain until this step runs in a pipeline",
+                    "it lacks a step this release writes, and steps of the team's own may sit beside them, so it is not rewritten. Bring this release's steps into it; the pull-request check refuses an upgrade until they are there",
                     actions,
                     printed,
                     cancellationToken).ConfigureAwait(false);
@@ -513,7 +569,7 @@ public static class Initialise
             return !furniture.Contains(name, StringComparer.OrdinalIgnoreCase)
                 && !normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
                 && !SupportedHosts.All.Any(host => string.Equals(host.ConfigPath, normalised, StringComparison.OrdinalIgnoreCase))
-                && !string.Equals(PipelinePath(Platform.GitHub).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase)
+                && !new[] { Platform.GitHub, Platform.AzureDevOps }.Any(platform => string.Equals(PipelinePath(platform).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase))
                 && !new[] { Platform.GitHub, Platform.AzureDevOps }.Any(platform => string.Equals(UpgradePipeline.PathOf(platform).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase))
                 && !string.Equals(PinnedRelease.ManifestPath, normalised, StringComparison.OrdinalIgnoreCase);
         }
@@ -764,6 +820,16 @@ public static class Initialise
 
             if (File.Exists(path))
             {
+                string existing = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+                // The file as its own base, as 'sdlc factory --keep' reads the factory's: every step that is not the
+                // release's is the team's, so it holds exactly when none of the release's is missing or out of order.
+                if (VerifyUpgrade.Shaped(relative.Replace('\\', '/'), contents, existing, existing).Passed)
+                {
+                    actions.Add(new InitAction(relative, InitChange.Kept, "already carries every step this release writes"));
+                    return;
+                }
+
                 printed[relative] = contents;
                 actions.Add(new InitAction(relative, InitChange.Printed, why));
                 return;
@@ -771,6 +837,43 @@ public static class Initialise
 
             await Write(path, contents, cancellationToken).ConfigureAwait(false);
             actions.Add(new InitAction(relative, InitChange.Created));
+        }
+
+        /// <summary>
+        /// Moves each framework pipeline an older release wrote at the root into <c>.azuredevops/</c>, unchanged (D-203).
+        /// </summary>
+        /// <remarks>
+        /// Moved rather than rewritten, so a team's own steps and pool travel with it, and what writes the file next
+        /// judges it where it now lives. A root <c>azure-pipelines.yml</c> that is the team's own CI stays where it is.
+        /// Each pipeline definition in Azure DevOps still names the old path, so the report says to point it at the new
+        /// one: until then it fails to start, which is loud, rather than running something stale.
+        /// </remarks>
+        private async Task MoveRetired(List<InitAction> actions, CancellationToken cancellationToken)
+        {
+            foreach ((string retired, string current) in RetiredPipelines)
+            {
+                string from = Path.Combine(solution.Path, retired);
+                string to = Path.Combine(solution.Path, Path.Combine([.. current.Split('/')]));
+
+                if (!File.Exists(from) || File.Exists(to))
+                {
+                    continue;
+                }
+
+                string text = await File.ReadAllTextAsync(from, cancellationToken).ConfigureAwait(false);
+
+                if (retired == RetiredPipelines[0].Retired && !WroteRootPipeline(text))
+                {
+                    continue;
+                }
+
+                await Write(to, text, cancellationToken).ConfigureAwait(false);
+                File.Delete(from);
+                actions.Add(new InitAction(
+                    retired,
+                    InitChange.Moved,
+                    "to " + current + ". Point its pipeline in Azure DevOps at the new path: Edit > ... > Settings > YAML file path"));
+            }
         }
 
         /// <summary>

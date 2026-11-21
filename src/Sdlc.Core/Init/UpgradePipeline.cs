@@ -32,7 +32,7 @@ public static class UpgradePipeline
     public static string PathOf(Platform platform) => platform switch
     {
         Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-upgrade.yml"),
-        Platform.AzureDevOps => "azure-pipelines.upgrade.yml",
+        Platform.AzureDevOps => Path.Combine(Initialise.AzureDevOpsDirectory, "sdlc-upgrade.yml"),
         _ => throw new ArgumentOutOfRangeException(nameof(platform), "A local solution has nowhere to run a pipeline."),
     };
 
@@ -217,7 +217,8 @@ public static class UpgradePipeline
     /// request's branch, title and body.
     /// </summary>
     /// <remarks>
-    /// A run asked again for the same release pushes over its own branch, so an open pull request takes the
+    /// A path the release moved is staged as gone, so the move lands whole (D-203). A run asked again for the same
+    /// release pushes over its own branch, so an open pull request takes the
     /// refreshed files rather than a second one opening beside it.
     /// </remarks>
     private static IEnumerable<string> Commit(string indent)
@@ -226,8 +227,8 @@ public static class UpgradePipeline
         yield return indent + "title=\"Move to sdlc $release\"";
         yield return indent + "body=\"Moves this solution from sdlc $pinned to $release: the pin, and what adoption and 'sdlc factory' wrote as $release. The pull-request check reads it as an upgrade. What the release asks of a solution: https://github.com/MofonCode/ai-sdlc/blob/main/CHANGELOG.md.$factory_note Open cycles keep the release their branch pins.\"";
         yield return indent + "git switch -c \"$branch\"";
-        yield return indent + "for path in " + string.Join(' ', VerifyUpgrade.Paths) + "; do if [ -e \"$path\" ]; then git add -- \"$path\"; fi; done";
-        yield return indent + "if left=\"$(git status --porcelain --untracked-files=all | grep -v '^[AM] ')\"; then echo \"Left out, because an upgrade may not carry it:\"; echo \"$left\"; fi";
+        yield return indent + "for path in " + string.Join(' ', VerifyUpgrade.Paths) + "; do if [ -e \"$path\" ] || git ls-files --error-unmatch -- \"$path\" >/dev/null 2>&1; then git add -- \"$path\"; fi; done";
+        yield return indent + "if left=\"$(git status --porcelain --untracked-files=all | grep -v '^[AMD] ')\"; then echo \"Left out, because an upgrade may not carry it:\"; echo \"$left\"; fi";
         yield return indent + "if git diff --cached --quiet; then echo \"sdlc $release writes nothing new here.\"; exit 0; fi";
         yield return indent + "git commit -m \"$title\"";
         yield return indent + "git push --force origin \"$branch\"";

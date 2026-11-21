@@ -170,6 +170,7 @@ public static class InitRenderer
         Initialise.InitChange.Updated => "updated",
         Initialise.InitChange.Kept => "kept",
         Initialise.InitChange.Printed => "printed",
+        Initialise.InitChange.Moved => "moved",
         Initialise.InitChange.Drafted => "drafted",
         _ => "touched",
     };

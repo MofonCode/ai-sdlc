@@ -138,6 +138,28 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
+    public async Task A_framework_pipeline_left_at_the_root_is_a_problem_and_a_teams_own_ci_is_not()
+    {
+        // D-203: an upgrade taken through an older release's pipeline commits only the paths it knew, so the move
+        // waits for 'sdlc init' run by hand, and doctor is what says so.
+        using var solution = Scratch.Create();
+        await Adopt(solution, Platform.AzureDevOps);
+
+        Assert.IsFalse((await Diagnosis(solution)).Checks.Any(check => check.Subject == "the pipelines' place"));
+
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, "azure-pipelines.yml"), "trigger: [main]\nsteps:\n  - script: echo their own CI\n");
+        Assert.IsFalse((await Diagnosis(solution)).Checks.Any(check => check.Subject == "the pipelines' place"), "The team's own CI.");
+
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, "azure-pipelines.upgrade.yml"), "an older release's upgrade\n");
+        Check left = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "the pipelines' place");
+
+        Assert.AreEqual(CheckOutcome.Problem, left.Outcome);
+        StringAssert.Contains(left.Detail, "azure-pipelines.upgrade.yml (now .azuredevops/sdlc-upgrade.yml)");
+        Assert.IsFalse(left.Detail.Contains("azure-pipelines.yml", StringComparison.Ordinal));
+        StringAssert.Contains(left.Remedy!, "sdlc init");
+    }
+
+    [TestMethod]
     public async Task A_scheduled_factory_on_its_own_pool_is_told_the_rewrite_replaces_that_pool()
     {
         // A real solution: its factory runs on agents carrying the browsers, and 'sdlc factory' writes a hosted pool.

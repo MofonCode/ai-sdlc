@@ -37,7 +37,7 @@ sdlc guidance show pipeline    # one entry in full
 sdlc guidance <id>             # the entries this cycle's plan switches on, in full
 ```
 
-An entry names file patterns — `azure-pipelines`, `.github/workflows/` — and a plan that declares a matching file
+An entry names file patterns — `.azuredevops/`, `.github/workflows/` — and a plan that declares a matching file
 is handed it. The binary decides it from the plan's `Files` section, so every host gets the same entries.
 
 ## Writing your own

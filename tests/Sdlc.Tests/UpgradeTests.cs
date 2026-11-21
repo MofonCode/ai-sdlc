@@ -127,9 +127,44 @@ public sealed class UpgradeTests
     }
 
     [TestMethod]
+    public async Task An_upgrade_that_moves_the_azure_pipelines_out_of_the_root_holds()
+    {
+        // D-203: what an older release wrote at the root, the upgrade moves into .azuredevops/, and the check
+        // judges each where it lands against the base's root copy.
+        using var solution = Adopted.Create(TestContext, Platform.AzureDevOps);
+
+        foreach ((string retired, string current) in Initialise.RetiredPipelines.Where(pair => pair.Retired != "azure-pipelines.factory.yml"))
+        {
+            File.Move(Path.Combine(solution.Root, current), Path.Combine(solution.Root, retired));
+        }
+
+        FakeRepository git = solution.AsOlderRelease();
+        IReadOnlyList<string> changed = solution.Upgrade();
+
+        CollectionAssert.IsSubsetOf(new[] { "azure-pipelines.yml", "azure-pipelines.upgrade.yml", ".azuredevops/sdlc-verify.yml", ".azuredevops/sdlc-upgrade.yml" }, changed.ToList());
+
+        VerifyUpgrade.Response verdict = await Check(solution, git, changed);
+
+        Assert.IsTrue(verdict.Holds, VerifyUpgrade.Render(verdict));
+    }
+
+    [TestMethod]
+    public void Only_the_frameworks_own_root_pipeline_may_be_moved_away()
+    {
+        string ours = Templates.Pipeline(Platform.AzureDevOps);
+        const string Theirs = "trigger: [main]\nsteps:\n  - script: sdlc verify-chain\n";
+
+        Assert.IsTrue(VerifyUpgrade.Moved("azure-pipelines.yml", ".azuredevops/sdlc-verify.yml", ours, null, ours).Passed);
+        Assert.IsFalse(VerifyUpgrade.Moved("azure-pipelines.yml", ".azuredevops/sdlc-verify.yml", Theirs, null, ours).Passed, "The team's own CI.");
+        Assert.IsFalse(VerifyUpgrade.Moved("azure-pipelines.yml", ".azuredevops/sdlc-verify.yml", ours, ours + "# edited\n", ours).Passed, "Changed where it is.");
+        Assert.IsFalse(VerifyUpgrade.Moved("azure-pipelines.upgrade.yml", ".azuredevops/sdlc-upgrade.yml", "old\n", null, null).Passed, "Deleted with nothing arriving.");
+        Assert.IsTrue(VerifyUpgrade.Moved("azure-pipelines.upgrade.yml", ".azuredevops/sdlc-upgrade.yml", "old\n", null, "new\n").Passed);
+    }
+
+    [TestMethod]
     public void The_factorys_pipeline_is_one_an_upgrade_may_change()
     {
-        Assert.IsTrue(VerifyUpgrade.Carries([".config/dotnet-tools.json", "azure-pipelines.factory.yml"]));
+        Assert.IsTrue(VerifyUpgrade.Carries([".config/dotnet-tools.json", ".azuredevops/sdlc-factory.yml"]));
         Assert.IsTrue(VerifyUpgrade.Carries([".github/workflows/sdlc-factory.yml"]));
     }
 

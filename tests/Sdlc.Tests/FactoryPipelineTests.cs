@@ -249,7 +249,7 @@ public sealed class FactoryPipelineTests
             .Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command());
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
-        Assert.AreEqual("azure-pipelines.factory.yml", result.Value.Path);
+        Assert.AreEqual(".azuredevops/sdlc-factory.yml", result.Value.Path);
         StringAssert.Contains(
             await File.ReadAllTextAsync(Path.Combine(workspace.Root, result.Value.Path)),
             "git switch integration");
@@ -264,7 +264,7 @@ public sealed class FactoryPipelineTests
         CycleWorkspace.WriteRaw(
             SolutionDocument.PathIn(workspace.Root),
             "---\norigin: adopted\nplatform: azure-devops\nintegration_branch: integration\n---\n");
-        string path = Path.Combine(workspace.Root, "azure-pipelines.factory.yml");
+        string path = Path.Combine(workspace.Root, ".azuredevops", "sdlc-factory.yml");
         string template = FactoryPipeline.Text(Platform.AzureDevOps, "integration");
         int first = template.IndexOf("            - script: |", StringComparison.Ordinal);
         string team = (template[..first] + "            - task: NuGetAuthenticate@1" + Environment.NewLine + Environment.NewLine + template[first..])
@@ -277,7 +277,7 @@ public sealed class FactoryPipelineTests
 
         Assert.IsTrue(kept.Kept);
         Assert.AreEqual(team, await File.ReadAllTextAsync(path), "Kept means untouched.");
-        StringAssert.StartsWith(WriteFactoryPipeline.Render(kept), "Kept azure-pipelines.factory.yml");
+        StringAssert.StartsWith(WriteFactoryPipeline.Render(kept), "Kept .azuredevops/sdlc-factory.yml");
 
         // A framework step missing: the file no longer carries the release, so it is rewritten and the pool named.
         CycleWorkspace.WriteRaw(path, team.Replace("git switch integration", "git switch elsewhere", StringComparison.Ordinal));
@@ -287,6 +287,28 @@ public sealed class FactoryPipelineTests
         Assert.IsFalse(rewritten.Kept);
         Assert.AreEqual(template, await File.ReadAllTextAsync(path));
         StringAssert.Contains(WriteFactoryPipeline.Render(rewritten), "Team-Pool");
+    }
+
+    [TestMethod]
+    public async Task A_factory_an_older_release_wrote_at_the_root_moves_into_the_azuredevops_folder_as_it_was()
+    {
+        // D-203: the team's pool and steps travel with it, and it is judged where it now lives.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            "---\norigin: adopted\nplatform: azure-devops\nintegration_branch: integration\n---\n");
+        string root = Path.Combine(workspace.Root, "azure-pipelines.factory.yml");
+        string team = FactoryPipeline.Text(Platform.AzureDevOps, "integration").Replace("vmImage: ubuntu-latest", "name: Team-Pool", StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(root, team);
+        using var gate = Gate.For(workspace.Root);
+
+        WriteFactoryPipeline.Response moved = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+
+        Assert.IsFalse(File.Exists(root));
+        Assert.AreEqual("azure-pipelines.factory.yml", moved.MovedFrom);
+        Assert.IsTrue(moved.Kept);
+        Assert.AreEqual(team, await File.ReadAllTextAsync(Path.Combine(workspace.Root, ".azuredevops", "sdlc-factory.yml")));
+        StringAssert.Contains(WriteFactoryPipeline.Render(moved), "point the factory's pipeline in Azure DevOps at the new path");
     }
 
     [TestMethod]
