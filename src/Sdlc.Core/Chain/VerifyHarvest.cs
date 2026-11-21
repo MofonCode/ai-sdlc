@@ -34,6 +34,7 @@ public static class VerifyHarvest
         Cycle.SdlcDirectoryName + "/" + Cycle.TechStackFileName,
         Cycle.SdlcDirectoryName + "/" + AreaParser.FileName,
         Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName,
+        Cycle.SdlcDirectoryName + "/" + FrameworkHarvest.FileName,
     };
 
     /// <summary>Registers this operation's handler.</summary>

@@ -400,8 +400,16 @@ internal static class Usage
                                      .sdlc/harvested.json that the cycles the file's '## Cycles'
                                      names have answered it, with the concerns under '## Watch' and
                                      '## Ignored' tallied and the suggestions under '## Declined'
-                                     kept. Closes nothing. Refuses while the draft is still beside
-                                     its file.
+                                     kept, and each note under '## For the framework' kept in
+                                     .sdlc/framework-harvest.json. Closes nothing. Refuses while the
+                                     draft is still beside its file, and when a note names no
+                                     surface of the framework or no Kind.
+            harvest framework [--out <file>]
+                                     What of the harvests may be handed to the framework: every
+                                     note for the framework without its evidence, and each closed
+                                     cycle's release, rounds, verdicts, what each reader raised and
+                                     what it cost, without its id, files or commits. --out writes it
+                                     as JSON. Sends nothing.
             harvest close            Close every completed cycle whose five aspects have all been
                                      answered: record what later harvests need, and on a new
                                      harvest/<date> branch commit the removal of their folders with

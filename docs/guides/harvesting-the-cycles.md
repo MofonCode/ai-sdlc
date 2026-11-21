@@ -59,7 +59,7 @@ ledger remembers which aspects each cycle has answered.
 4. You rename the draft over its file, or delete it. The rename is yours, because these are files only a person
    writes.
 5. The skill runs `sdlc harvest record <aspect> <file>`, which records in `.sdlc/harvested.json` that the cycles in
-   the file's `## Cycles` have answered that aspect. Recording closes nothing.
+   the file's `## Cycles` have answered that aspect, and keeps its notes for the framework. Recording closes nothing.
 
 Every proposal arrives with its evidence beneath it on `>` lines. Refuse one on that evidence as freely as you accept
 one. **There is no remove** for a rule or a decision: one out of force is superseded and keeps its place.
@@ -100,6 +100,22 @@ saying what it prevents and what it promotes, so when it reaches the bar you can
 deleted cycles back out of git. `sdlc harvest --history` prints it under each one. Concerns are matched by their
 wording, so check the sitting's file before it is recorded: two wordings of one concern count apart.
 
+## What a harvest finds about the framework
+
+**A sitting has two outputs** (D-204). What it finds about your solution goes into your records. What it finds about
+the framework — a rule or a reader that cost more than it caught, a rule any solution would need, a step that did
+something wrong — goes under `## For the framework`, because nothing you place here could change it.
+
+Each note is written for somebody who has never seen your solution: its heading names the part of the framework it is
+about and what fell short, a `Kind:` line says `cost`, `missing` or `defect`, and the evidence — your cycles, finding
+ids and rounds — goes beneath it on `>` lines. `sdlc harvest record` keeps the notes in `.sdlc/framework-harvest.json`
+with the release each one's cycles ran on, so a cost the framework has since fixed reads as history.
+
+`sdlc harvest framework` prints everything that could leave your solution: each note **without** its evidence, and
+each closed cycle's release, rounds, verdicts, what each reader raised and what it cost, **without** its id, files,
+commits or your own rules. Read it, and if you choose to, write it with `--out <file>` and hand that file to the
+framework's maintainers. Nothing sends it for you.
+
 ## Closing
 
 Once every aspect is answered for a cycle and every draft is placed or deleted, `/sdlc:close-cycle` runs
@@ -109,7 +125,8 @@ opens the pull request. **You merge it**; nothing reaches the integration branch
 harvest when it carries only the records, the ledger, successors and the removed folders.
 
 **Nothing is lost when a folder goes.** It is in git at the merge commit the ledger names, and what later harvests
-need — the rules it cited, the files it touched, the areas its plan proposed — is kept in the ledger.
+need — the rules it cited, the files it touched, the areas its plan proposed, the releases it ran on, what each
+reader raised and what each document cost — is kept in the ledger.
 `sdlc harvest --history` shows it. A cycle read from its own branch is at that branch's last commit instead, and the
 folder brought into your working tree is deleted again. Once the pull request merges, `sdlc tidy` lists that branch
 for deletion; until then it keeps it, so nothing is deleted before it is harvested.
@@ -122,6 +139,7 @@ for deletion; until then it keeps it, so nothing is deleted before it is harvest
 | `sdlc draft harvest` refuses an entry over its word budget | a title takes at most fifteen words and a clause sixty: shorten it and draft again |
 | `sdlc draft harvest` refuses an entry naming an area nobody defines | add the area in the same file, or take the tag off |
 | `sdlc harvest record` refuses while the aspect's draft is beside its file | rename it into place or delete it, then record |
+| `sdlc harvest record` refuses a note for the framework | give its heading a surface — `CON_06`, `stage:verify`, `perspective:security` — and a `Kind:` line beneath it |
 | `sdlc harvest close` refuses while a cycle still needs an aspect | run that aspect's skill first; the refusal names it |
 | `sdlc harvest close` refuses anywhere but the integration branch | switch to it, where the cycles merged and the drafts were placed |
 

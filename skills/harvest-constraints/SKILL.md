@@ -48,9 +48,21 @@ budget gets **one** answer:
 
 - a proposal, by the heading it will have in the file
 - *already recorded*, naming the entry — `LOC_02`
-- *a note for the framework* — a framework rule's cost, which no local rule can change
+- *a note for the framework* — `cost`: a framework rule, reader or step costing more here than it caught, which no
+  local rule can change; `missing`: a rule any solution would need, not this one alone; `defect`: something the
+  framework did wrong
 - *no proposal, because* — a real reason: a one-off, a mistake the rule caught correctly, something an analyzer
   decides
+
+**A rule nothing about this solution shapes is the framework's too.** When a proposal's `Forbids` would read the same
+in any solution — a check that cannot fail, a test pinned to wording nobody fixed — propose it here if the person
+wants it now, and write it under `## For the framework` as `missing` as well.
+
+**A note is written for somebody who has never seen this solution** (D-204). Its heading names the part of the
+framework — a rule's id, `perspective:security`, `stage:verify`, `command:evidence`, `evidence` — and what fell
+short, with no product, provider, file or person of the solution's in it. The cycles, finding ids and rounds go
+beneath it under `>`, which stays here: `sdlc harvest framework` prints everything above that line and nothing
+below it. `sdlc harvest record` refuses a note with no surface or no `Kind:`.
 
 **An argued rule is usually settled by a decision, not a rule.** Answer here only whether the rule itself needs
 changing; `harvest-decisions` reads what the plan finally did about it.
@@ -96,8 +108,11 @@ label and a colon, exactly as constraints.md writes them>
 
 ## For the framework
 
-### <the framework rule> — <what it cost here, in one line>
-> <the cycles, finding ids and rounds behind it>
+### <surface> — <what fell short, worded for somebody who has never seen this solution>
+Kind: <cost | missing | defect>
+Cycles: <cycle>, <cycle>
+Measure: <the numbers: cycles, findings, rounds, tokens>
+> <the cycles, finding ids and rounds behind it -- kept here, never sent>
 
 ## Not proposed
 

@@ -307,6 +307,15 @@ resolves every other reference to the slug, and the file is deleted on the new c
 successor whose work exists because the framework fell short may carry `framework:` and one line saying what;
 a harvest lists it to be carried to ai-sdlc, and nothing about it blocks (D-173).
 
+**A harvest has two outputs: the solution's records, and notes for the framework** (D-204). What a sitting finds
+about the framework — a rule, reader or step that cost more than it caught, a rule any solution would need, or a
+defect — goes under `## For the framework`, worded for somebody who has never seen the solution, headed by the
+surface it is about, with a kind, and with its evidence beneath. `harvest record` keeps each note in
+`.sdlc/framework-harvest.json` with the releases its cycles ran on, and `harvest close` keeps each closed cycle's
+releases, reader yield and cost in the ledger. `harvest framework` prints what of both may leave the solution —
+the notes without their evidence, the cycles' numbers without their ids, files, commits or the solution's own rules
+— and writes it to a file on request. It sends nothing: handing it over is the person's choice.
+
 **A parked cycle is the other thing the backlog holds** (D-145): planned, its spec and plan kept, waiting on
 another cycle's code. `sdlc backlog` shows the successors and the parked together, in the waves they come ready
 in, and `/sdlc:next` plans whatever the last merges made ready (D-147).
@@ -2510,7 +2519,8 @@ they print verbatim.
 | `harvest` | the completed cycles not closed, the aspects each still needs, and the next step; a cycle passed and not merged is listed as waiting — D-190, D-191 |
 | `harvest <aspect> [--cycles <id>,<id>]` | one aspect — constraints, decisions, suggestions, stack or areas — for the completed cycles that have not answered it, ending with the proposal file a person marks; the constraints aspect carries the rules cited and argued, findings that rested on no rule, each cycle's rounds, reopens and every verdict; the decisions aspect what was stated, reopens and declined deviations; the suggestions aspect the open suggestions and the concerns ignored before. With `--cycles` those alone, the rule counts the whole completed record's — D-104, D-112, D-153, D-166, D-189, D-190, D-191 |
 | `draft harvest <file>` | drafts of the four record files from the proposals marked accepted — the rules, the decisions, the stack and the areas — each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing, a new entry is past its word budget, or an entry names an area nobody defines; and the accepted successors, written to `.sdlc/successors/` — D-104, D-149, D-150, D-152 |
-| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied, each with its reason, and the suggestions declined kept. Closes nothing; refuses while the draft is still beside its file — D-152, D-153, D-191, D-194 |
+| `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied, each with its reason, and the suggestions declined kept, and each note for the framework kept in `.sdlc/framework-harvest.json`. Closes nothing; refuses while the draft is still beside its file, or a note names no surface or no kind — D-152, D-153, D-191, D-194, D-204 |
+| `harvest framework [--out <file>]` | what of the harvests may be handed to the framework: the notes without their evidence, and each closed cycle's releases, rounds, verdicts, reader yield and cost without its id, files or commits; `--out` writes it as JSON. Sends nothing — D-204 |
 | `harvest close` | closes every completed cycle whose five aspects are answered: records what later harvests read, and on `harvest/<date>` commits the removal of their folders with the ledger and the records placed. Pushes nothing; refuses while a draft is beside its file, while nothing can close, or off the integration branch — D-192 |
 | `harvest read --dir <directory> [--aspect <aspect>] [--cycles <id>,<id>]` | writes one prompt per completed cycle and document with findings in the aspect's sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
 | `harvest review <aspect> --dir <directory> [--proposals <file>]` | writes and starts the two readers that review an aspect's sitting: one handed the marked proposal file, the aspect's draft and the solution document, one handed the aspect's report and the proposal file — D-183 |
@@ -2608,6 +2618,8 @@ rides into it.
                             reader is handed in full only what its change reaches (D-150)
   harvested.json            the harvest ledger: which aspects each completed cycle has answered,
                             every sitting, every closed cycle, the concerns ignored (D-152, D-192)
+  framework-harvest.json    the notes for the framework every sitting wrote, with the evidence
+                            that stays here (D-204)
   coverage.json             the codebase's coverage baseline, held under coverage_floor (D-157)
   theme.json              the roles its surfaces use and the values that fill them (D-71)
   README.md                 terminology, flow and commands
@@ -7632,6 +7644,50 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-204 — A harvest keeps what it found about the framework, and prints what of it may leave the solution
+
+**Governs:** §3.4, §15, §15.2
+
+**Extends D-173**, whose framework gaps reached `## For the framework` and stopped there.
+
+**Decision.** A harvest sitting has two outputs. Each note under `## For the framework` is one `### <surface> —
+<statement>` heading — the surface a framework rule's id, `evidence`, or a kind and a name such as
+`perspective:security` or `stage:verify` — with a `Kind:` of `cost`, `missing` or `defect`, optional `Cycles:` and
+`Measure:` lines, and its evidence beneath on `>` lines. The statement is worded for somebody who has never seen the
+solution. `sdlc harvest record` keeps each note in `.sdlc/framework-harvest.json`, written only by the binary and
+denied to agents as the ledger is, with the releases its cycles' rounds recorded, and refuses the whole sitting when
+a note has no surface or no kind. `sdlc harvest close` keeps three more things per closed cycle in the ledger: the
+releases its rounds recorded, what each reader raised on each document — raised, ever blocking, cited, withdrawn —
+and each document's weighted tokens. `sdlc harvest framework` prints what of both may leave the solution, and
+`--out` writes it as JSON: the notes without their evidence, and the closed cycles' numbers without their ids, files,
+commits, areas or the solution's own rules. It sends nothing. `harvest-constraints` gains the `missing` kind, for a
+rule nothing about this solution shapes: proposed locally if the person wants it now, and noted for the framework
+too. The report prints the release each cycle ran on.
+
+**Why.** Reviewing one governed solution's first constraints sitting found its framework notes heading for nowhere:
+the proposal file is in `.sdlc/reports/`, which git ignores; `harvest record` kept Watch, Ignored and Declined but not
+`## For the framework`; and close deletes the cycles the evidence came from. Of its five accepted rules, three would
+read the same in any solution — a check that cannot fail, a test pinned to wording nobody fixed — and the skill's
+only framework answer was a rule's cost, so they became local rules. Its cycles ran on six releases and the oldest
+recorded none, so a note about a loop since redesigned could not be told from one still live. And what a reader
+raised and what a round cost lived only in the folders close deletes.
+
+**Rejected.**
+
+- *The notes in `harvested.json`.* It carries merge commits, file paths and the solution's own wording. What may be
+  handed over has to be a thing a person can read whole and agree to, and a different audience on a different
+  lifecycle is a different file.
+- *Sending it.* An endpoint means accounts, abuse, storage and a privacy statement, for one adopting solution.
+  Deferred until a second team adopts; the export's shape needs no change for it, because the release that wrote it
+  says how to read it, so it carries no format version (D-160).
+- *A free-text surface.* Notes from several solutions are read together by what they are about; a surface no reading
+  can group is a note nobody aggregates.
+- *Checking that a statement names nothing of the solution's.* No list of a solution's names exists to check against.
+  The skill says how to word it, and the person reads every line before anything leaves.
+- *A harvest of the framework run from this repository.* The framework does not run cycles on itself (D-42), and
+  what it would read are solution files it cannot see. It reads the exports solutions hand over, with a tool that
+  is not shipped.
 
 ### D-203 — The framework's Azure DevOps pipelines live in `.azuredevops/`, named as on GitHub
 

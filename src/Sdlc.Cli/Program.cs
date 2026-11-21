@@ -2065,6 +2065,35 @@ static async Task<int> HarvestCommand(CommandLine line)
         }).ConfigureAwait(false);
     }
 
+    // What of the harvests may be handed to the framework, and nothing sent (D-204).
+    if (sub == "framework")
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        rest.TryOption("out", out string? output);
+
+        return await Workspace.Run(rest, async workspace =>
+        {
+            Result<FrameworkExport> export = await workspace
+                .Send<ExportFramework.Query, FrameworkExport>(new ExportFramework.Query())
+                .ConfigureAwait(false);
+
+            if (export.IsFailed)
+            {
+                return await Report(export, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            string? written = output is null ? null : Path.GetFullPath(output);
+
+            if (written is not null)
+            {
+                await File.WriteAllTextAsync(written, export.Value.Write()).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(ExportFramework.Render(export.Value, written)).ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
     // A harvest's readers, written and started by the binary as every reader is (D-183).
     if (sub is "read" or "review")
     {
@@ -2149,7 +2178,7 @@ static async Task<int> HarvestCommand(CommandLine line)
     {
         if (!HarvestAspects.TryParse(sub, out HarvestAspect parsedAspect))
         {
-            await Console.Error.WriteLineAsync($"'{line.Arguments[0]}' is not something to harvest. One of {HarvestAspects.Listed}; or record, close, read, review, --history.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"'{line.Arguments[0]}' is not something to harvest. One of {HarvestAspects.Listed}; or record, close, framework, read, review, --history.").ConfigureAwait(false);
             return ExitCode.Usage;
         }
 

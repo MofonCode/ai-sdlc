@@ -72,13 +72,17 @@ public static class HarvestReport
     /// <param name="Verdicts">Every verdict its verify reached, oldest first.</param>
     /// <param name="Usage">What its readers cost, when its rounds recorded it (D-121).</param>
     /// <param name="Deviations">Every deviation its build recorded, with where each stands and the rules behind it.</param>
+    /// <param name="Releases">The releases its rounds recorded, oldest first (D-204).</param>
+    /// <param name="Readers">What each reader raised on each document (D-204).</param>
     public sealed record CycleRecord(
         CycleId Cycle,
         IReadOnlyDictionary<ArtifactKind, int> Rounds,
         IReadOnlyList<Reopen> Reopens,
         IReadOnlyList<Verdict> Verdicts,
         UsageLedger? Usage = null,
-        IReadOnlyList<DeviationRecord>? Deviations = null);
+        IReadOnlyList<DeviationRecord>? Deviations = null,
+        IReadOnlyList<string>? Releases = null,
+        IReadOnlyList<ReaderYield>? Readers = null);
 
     /// <summary>One deviation a cycle recorded, as a harvest tallies it.</summary>
     /// <param name="Id">Its id.</param>
@@ -495,7 +499,10 @@ public static class HarvestReport
                 break;
         }
 
-        text.AppendLine("  ## For the framework   ### <the framework rule> — <what it cost here>");
+        text.AppendLine("  ## For the framework   ### <surface> — <what fell short, worded for somebody who has never seen this solution>");
+        text.AppendLine("                  Kind: cost | missing | defect     Cycles: <cycle>, <cycle>     Measure: <cycles, findings, rounds>");
+        text.AppendLine("                  > <the evidence: cycles, finding ids, rounds -- kept here, never sent>");
+        text.AppendLine("                  surface: " + FrameworkHarvest.Surfaces);
         text.AppendLine("  ## Not proposed - <the item> — <already recorded as ... | no proposal, because ...>");
         text.AppendLine("  ## Cycles       copied as written: the answers are recorded for these cycles and no others");
 
@@ -623,13 +630,16 @@ public static class HarvestReport
         }
 
         text.AppendLine();
-        text.AppendLine("Cycles   rounds per document, and criteria that failed more than one verdict");
+        text.AppendLine("Cycles   the release each ran on, rounds per document, and criteria that failed more than one verdict");
 
         foreach (CycleRecord cycle in record)
         {
+            // Which release judged it: a cost a later release fixed is history, not a note for the framework (D-204).
+            string ran = cycle.Releases is { Count: > 0 } releases ? " (" + string.Join(", ", releases) + ")" : " (no release recorded)";
+
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {cycle.Cycle}: {(cycle.Rounds.Count == 0 ? "no rounds" : string.Join(", ", cycle.Rounds.OrderBy(entry => entry.Key).Select(entry => string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(entry.Key)} {entry.Value}"))))}; {Count(cycle.Verdicts.Count, "verdict")}"));
+                $"  {cycle.Cycle}{ran}: {(cycle.Rounds.Count == 0 ? "no rounds" : string.Join(", ", cycle.Rounds.OrderBy(entry => entry.Key).Select(entry => string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(entry.Key)} {entry.Value}"))))}; {Count(cycle.Verdicts.Count, "verdict")}"));
 
             // What it cost beside what it took, per cycle and per document (D-121).
             if (cycle.Usage?.Summarise(null) is { } spent)
@@ -880,6 +890,8 @@ public static class HarvestReport
         private async Task<CycleRecord> Recorded(Cycle cycle, CancellationToken cancellationToken)
         {
             Dictionary<ArtifactKind, int> rounds = [];
+            List<(DateTimeOffset At, string Release)> releases = [];
+            List<ReaderYield> readers = [];
 
             foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
             {
@@ -890,6 +902,11 @@ public static class HarvestReport
                 if (history.IsSuccess && history.Value.Count > 0)
                 {
                     rounds[kind] = history.Value.Count;
+                    // The release a round records (D-131); framework_version was a format's version, not a release.
+                    releases.AddRange(history.Value
+                        .Where(round => round.Release is not null)
+                        .Select(round => (round.InterrogatedAt ?? DateTimeOffset.MinValue, round.Release!)));
+                    readers.AddRange(Yields(Cycle.NameOf(kind), history.Value));
                 }
             }
 
@@ -917,8 +934,31 @@ public static class HarvestReport
                     state.Deviation.Id,
                     state.Deviation.Kind,
                     state.Standing,
-                    DeviationsFile.RulesOf(state.Deviation)))]);
+                    DeviationsFile.RulesOf(state.Deviation)))],
+                [.. releases.OrderBy(entry => entry.At).Select(entry => entry.Release).Distinct(StringComparer.Ordinal)],
+                readers);
         }
+
+        /// <summary>
+        /// What each reader raised on one document: a ledger mentions a finding each time it moves, so each is counted
+        /// once, by its last mention, as the rule counts are.
+        /// </summary>
+        private static IEnumerable<ReaderYield> Yields(string document, IReadOnlyList<FindingsRound> rounds) =>
+            rounds
+                .SelectMany(round => round.Findings.Select(finding => (round.Round, Finding: finding)))
+                .GroupBy(mention => mention.Finding.Id, StringComparer.Ordinal)
+                .Select(mentions => (
+                    Last: mentions.MaxBy(mention => mention.Round).Finding,
+                    Blocking: mentions.Any(mention => mention.Finding.Severity == Severity.Blocking)))
+                .GroupBy(entry => entry.Last.Perspective ?? "rules", StringComparer.Ordinal)
+                .OrderBy(reader => reader.Key, StringComparer.Ordinal)
+                .Select(reader => new ReaderYield(
+                    reader.Key,
+                    document,
+                    reader.Count(),
+                    reader.Count(entry => entry.Blocking),
+                    reader.Count(entry => entry.Last.Cites?.Id is not null),
+                    reader.Count(entry => entry.Last.Disposition == Disposition.Withdrawn)));
 
         /// <summary>
         /// Every verdict the cycle's verify reached, from whichever branch holds the most of them.

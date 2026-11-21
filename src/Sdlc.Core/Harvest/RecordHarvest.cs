@@ -42,12 +42,14 @@ public static class RecordHarvest
     /// <param name="Watched">How many concerns the ledger now watches.</param>
     /// <param name="Ignored">The concerns the ledger has seen ignored, and how many cycles each was ignored in.</param>
     /// <param name="Open">Every completed cycle not closed yet, with the aspects it still needs.</param>
+    /// <param name="FrameworkNotes">How many notes for the framework the sitting added to its file (D-204).</param>
     public sealed record Response(
         HarvestAspect Aspect,
         IReadOnlyList<CycleId> Recorded,
         int Watched,
         IReadOnlyList<Watched> Ignored,
-        IReadOnlyList<HarvestReport.OpenCycle> Open);
+        IReadOnlyList<HarvestReport.OpenCycle> Open,
+        int FrameworkNotes = 0);
 
     /// <summary>
     /// Reads the proposal file's <c>## Watch</c>, <c>## Ignored</c> and <c>## Declined</c> sections: <c>-
@@ -183,20 +185,50 @@ public static class RecordHarvest
             }
 
             (IReadOnlyList<Watched> watch, IReadOnlyList<HarvestDecline> declined, IReadOnlyList<string> accepted, IReadOnlyList<Watched> ignored) = Read(proposal);
+            DateTimeOffset now = clock.GetUtcNow();
+            List<string> sitting = [.. report.Value.Sitting.Select(cycle => cycle.ToString())];
+
+            // The framework's share, kept apart from the solution's: the report it was written from is gitignored and
+            // the cycles behind it go at close, so without this it is lost (D-204). Read before anything is written,
+            // so a note that does not read refuses the whole sitting rather than half of it.
+            Result<IReadOnlyList<FrameworkNote>> notes = FrameworkHarvest.ReadNotes(
+                proposal,
+                request.Aspect,
+                now,
+                sitting,
+                report.Value.Record.ToDictionary(record => record.Cycle.ToString(), record => record.Releases ?? [], StringComparer.Ordinal));
+
+            if (notes.IsFailed)
+            {
+                return notes.ToResult<Response>();
+            }
+
+            Result<FrameworkHarvest> framework = await FrameworkHarvest.Read(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            if (framework.IsFailed)
+            {
+                return framework.ToResult<Response>();
+            }
 
             HarvestLedger written = ledger.Value.With(
-                new HarvestSitting(clock.GetUtcNow(), request.Aspect, [.. report.Value.Sitting.Select(cycle => cycle.ToString())], accepted, declined),
+                new HarvestSitting(now, request.Aspect, sitting, accepted, declined),
                 watch,
                 ignored);
 
             await File.WriteAllTextAsync(HarvestLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
+
+            if (notes.Value.Count > 0)
+            {
+                await File.WriteAllTextAsync(FrameworkHarvest.PathIn(solution.Path), framework.Value.Adding(notes.Value).Write(), cancellationToken).ConfigureAwait(false);
+            }
 
             return Result.Ok(new Response(
                 request.Aspect,
                 report.Value.Sitting,
                 written.Watch.Count,
                 written.Ignored ?? [],
-                [.. report.Value.Open.Select(open => open with { Missing = written.Missing(open.Cycle.ToString()) })]));
+                [.. report.Value.Open.Select(open => open with { Missing = written.Missing(open.Cycle.ToString()) })],
+                notes.Value.Count));
         }
     }
 }

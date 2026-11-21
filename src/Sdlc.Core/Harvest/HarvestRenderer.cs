@@ -26,6 +26,13 @@ public static class HarvestRenderer
             Why(text, ignored, "    ");
         }
 
+        if (response.FrameworkNotes > 0)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {response.FrameworkNotes} note{(response.FrameworkNotes == 1 ? string.Empty : "s")} for the framework kept in .sdlc/{FrameworkHarvest.FileName} -- 'sdlc harvest framework' shows what of them may be sent"));
+        }
+
         Remaining(text, response.Open);
         return text.ToString();
     }

@@ -9,6 +9,21 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.54
+
+**A harvest keeps what it found about the framework** (D-204). Notes under `## For the framework` were written into a
+report git ignores and lost at close. `sdlc harvest record` now keeps them in `.sdlc/framework-harvest.json`, each
+headed by the part of the framework it is about, with a kind — `cost`, `missing` or `defect` — the releases its
+cycles ran on, and its evidence, which stays in the solution. `sdlc harvest close` keeps each closed cycle's
+releases, what each reader raised, and what each document cost. `sdlc harvest framework` prints what of both could
+be handed to the framework's maintainers, without the evidence, cycle ids, files, commits or the solution's own
+rules, and `--out` writes it as a file. It sends nothing. The constraints report prints the release each cycle ran
+on, and `harvest-constraints` notes a rule any solution would need as `missing` as well as proposing it locally.
+
+**What moving to it asks of a solution:** a proposal file written by an older release whose `## For the framework`
+headings carry no surface or no `Kind:` line is refused at `sdlc harvest record`. Record it before moving, or give
+each heading a surface — `stage:verify`, `perspective:security`, `CON_06` — and a `Kind:` line, then record.
+
 ## 0.53
 
 **The framework's Azure DevOps pipelines move into `.azuredevops/`** (D-203), named as on GitHub:

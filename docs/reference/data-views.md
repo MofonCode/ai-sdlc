@@ -42,6 +42,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [what the completed cycles can still give back](../../skills/README.md#harvest) | read from every completed cycle and the ledger | `sdlc harvest`, `sdlc harvest <aspect>` | — |
 | **Harvest** | | | |
 | [the aspects each completed cycle has answered, the closed cycles, each sitting, what is watched and what was ignored, each concern with its reason](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
+| [the notes for the framework every sitting wrote, with the evidence that stays here](../guides/harvesting-the-cycles.md) | `.sdlc/framework-harvest.json` | `sdlc harvest framework`, which prints them without their evidence | the binary, through `sdlc harvest record` |
 | [a closed cycle's contents, once its folder is gone](../../skills/README.md#harvest) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |
 

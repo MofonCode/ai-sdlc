@@ -93,7 +93,7 @@ command refuses and says so rather than falling back — a person who named a ru
 `VersionPrefix` in `Directory.Build.props` is the one place the release line is set, and the suite
 asserts it matches `plugin.json`. The pipeline numbers each build of the line and stamps that number into both
 halves of the package, so a package's binary and plugin always tell you the same thing. A plugin installed from
-the marketplace says the line alone, `0.53.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
+the marketplace says the line alone, `0.54.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
 takes it.
 
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the

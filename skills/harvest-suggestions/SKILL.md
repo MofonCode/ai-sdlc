@@ -40,8 +40,11 @@ decline is not a decision either**: it stays in the sitting and never reaches `d
 concerns, write the gist **exactly as written there**, so the tally gains this cycle. **A concern at the bar —
 ignored in three cycles — is not ignored again**: make it a successor or decline it.
 
-Each successor the report lists under *Gaps in the framework* goes under `## For the framework`, by its slug and its
-`framework:` line (D-173).
+Each successor the report lists under *Gaps in the framework* goes under `## For the framework` (D-173), as a note
+written for somebody who has never seen this solution (D-204): its heading names the part of the framework — a rule's
+id, `stage:verify`, `command:evidence`, `evidence` — and what fell short, rewording its `framework:` line wherever
+that names the solution's own product, files or people; a `Kind:` line says `cost`, `missing` or `defect`; its slug
+goes beneath under `>`, which stays here. `sdlc harvest record` refuses a note with no surface or no `Kind:`.
 
 ## 3. Write the proposal file
 
@@ -70,7 +73,9 @@ At the path the report names:
 
 ## For the framework
 
-### <slug> — <its framework: line>
+### <surface> — <what fell short, worded for somebody who has never seen this solution>
+Kind: <cost | missing | defect>
+> <slug>: <its framework: line, as written>
 
 ## Cycles
 
