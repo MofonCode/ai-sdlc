@@ -226,7 +226,7 @@ cycles and which only fixtures.
 | **Constraints** | A rule written into a prompt is forgotten next session, and the agent bends it when it is inconvenient | Rules have ids and four clauses, including what each one **forbids**. Three tiers — global, the stack's, and the solution's own — are resolved and rendered fresh into every reading, never copied into a document where they go stale |
 | **Decisions charter** | Each new session re-argues choices made weeks ago, unless somebody remembers to prompt it | `decisions.md` records what the solution chose and what it chose *instead of*. Every stage reads it without anybody asking, and every reader is handed it — the intent's, the spec's, the plan's, and the one that reads the code at verify. A cycle may depart from a decision, but not silently: it declares the departure where it arises, and the person is shown it at the approval, in `sdlc status` and in the pull request |
 | **Stack definition** | The agent picks frameworks and packages ad hoc, and every cycle drifts a little | `techstack.md` declares what the solution is built from, which stack rules hold it, and which build settings it takes. What is in the file is exactly what binds, and a plan is read against it |
-| **Harvest** | The same mistake recurs across cycles, and nobody turns it into a rule | `/sdlc:harvest` reads each merged or abandoned cycle for the rule a solution keeps reaching for, the choices it settled and the suggestions nobody answered, one aspect at a time, argues each as an entry a person may adopt, and closes the cycle once nothing is left |
+| **Harvest** | The same mistake recurs across cycles, and nobody turns it into a rule | `/sdlc:harvest` reads each merged or abandoned cycle for the rule a solution keeps reaching for, the choices it settled and the suggestions nobody answered, one aspect at a time, argues each as an entry a person may adopt, and closes the cycle once nothing is left. What it finds about the framework rather than the solution is kept apart, and `sdlc harvest framework` prints what of it a person may hand back |
 
 ### Approving and building it
 
@@ -481,7 +481,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |
-| **Harvesting, areas and closing** | the suite, and one solution's history for reading a cycle's record (as mining) | a harvest one aspect at a time, a closed cycle or a harvest ledger in any solution |
+| **Harvesting, areas and closing** | the suite, and one solution's history for reading a cycle's record (as mining) | a harvest one aspect at a time, a closed cycle or a harvest ledger in any solution; the notes for the framework and their export, and any export read across solutions |
 | **Amending a plan after admission** | the suite | an amended plan through a real pull request |
 | **The rebuilt patch** | a real git repository in the suite | a pull-request check rebuilding one |
 | **The upgrade check** | a refused real upgrade, replayed and passing in a copy of the repository | a real upgrade pull request passing it |

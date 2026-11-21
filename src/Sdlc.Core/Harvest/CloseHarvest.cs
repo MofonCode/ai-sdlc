@@ -197,7 +197,31 @@ public static class CloseHarvest
                     .Select(line => new HarvestedArea(line.Name!, line.Files))],
                 how?.Rounds.ToDictionary(round => Cycle.NameOf(round.Key), round => round.Value, StringComparer.Ordinal) ?? [],
                 how?.Reopens.Count ?? 0,
-                [.. how?.Verdicts.Select(verdict => verdict.Outcome ?? "unreadable") ?? []]);
+                [.. how?.Verdicts.Select(verdict => verdict.Outcome ?? "unreadable") ?? []],
+                how?.Releases is { Count: > 0 } releases ? releases : null,
+                how?.Readers is { Count: > 0 } readers ? readers : null,
+                Spent(how));
+        }
+
+        // What each document's rounds cost, from the usage record the folder takes with it (D-121, D-204).
+        private static Dictionary<string, double>? Spent(HarvestReport.CycleRecord? how)
+        {
+            if (how?.Usage is not { } usage)
+            {
+                return null;
+            }
+
+            Dictionary<string, double> spent = new(StringComparer.Ordinal);
+
+            foreach (ArtifactKind kind in how.Rounds.Keys.Order())
+            {
+                if (usage.Summarise(Cycle.NameOf(kind)) is { } document)
+                {
+                    spent[Cycle.NameOf(kind)] = Math.Round(document.Weighted);
+                }
+            }
+
+            return spent.Count > 0 ? spent : null;
         }
     }
 }

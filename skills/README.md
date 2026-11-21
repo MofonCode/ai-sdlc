@@ -1879,7 +1879,7 @@ evidence. Proposes and never places.
 | Stage | none — the first aspect `harvest` runs |
 | Started by | `harvest`, or a person who asks what keeps going wrong across cycles |
 | Reads | `sdlc harvest constraints`, and the fresh readers `sdlc harvest read` starts, one per cycle and document with findings |
-| Writes | its proposal file under `.sdlc/reports/`. The draft by `sdlc draft harvest`, the ledger by `sdlc harvest record`; **never** `constraints.md` |
+| Writes | its proposal file under `.sdlc/reports/`. The draft by `sdlc draft harvest`, the ledger and the notes for the framework by `sdlc harvest record`; **never** `constraints.md` |
 
 #### Syntax
 
@@ -1901,12 +1901,16 @@ cycles' reasons, deviations by the rule behind them, criteria that failed more t
 word budget, and the concerns watched below the bar. Every item gets a proposal — `add`, `supersede` or `reword`,
 and **no remove** — *already recorded*, a note for the framework, or a reason under `## Not proposed`. A concern
 below the bar goes under `## Watch`, with a `Why:` line under a new one: what it prevents and what it promotes (D-194).
+A note for the framework is `cost`, `missing` — a rule any solution would need, proposed here too if the person wants
+it now — or `defect`, headed by the surface it is about and worded for somebody who has never seen the solution, with
+its evidence beneath on `>` lines, which never leave it (D-204).
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
 | `constraints.draft.md` still beside its file at `sdlc harvest record` | records nothing | rename it into place or delete it, then record |
+| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
 
 #### Example
 
@@ -1942,7 +1946,7 @@ places.
 | Stage | none — the second aspect `harvest` runs |
 | Started by | `harvest`, or a person who wants to record a decision a cycle settled |
 | Reads | `sdlc harvest decisions`: the passages each completed cycle stated, its reopens, its declined deviations, the rules it argued, and the standing decisions |
-| Writes | its proposal file under `.sdlc/reports/`. The draft by `sdlc draft harvest`, the ledger by `sdlc harvest record`; **never** `decisions.md` |
+| Writes | its proposal file under `.sdlc/reports/`. The draft by `sdlc draft harvest`, the ledger and the notes for the framework by `sdlc harvest record`; **never** `decisions.md` |
 
 #### Syntax
 
@@ -1971,6 +1975,7 @@ proposal is a `DEC_` entry with `Decided`, `Because`, `Instead of` and `From`.
 | Condition | Result | What to do |
 |---|---|---|
 | `decisions.draft.md` still beside its file at `sdlc harvest record` | records nothing | rename it into place or delete it, then record |
+| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
 
 #### Example
 
@@ -2002,7 +2007,7 @@ framework should hear about. Proposes and never places.
 | Stage | none — the third aspect `harvest` runs |
 | Started by | `harvest`, or a person who asks to turn what readers noticed into new work |
 | Reads | `sdlc harvest suggestions`: each open suggestion as `<cycle>/<id>`, the concerns ignored before, and every successor marked `framework:` |
-| Writes | its proposal file under `.sdlc/reports/`. The successors by `sdlc draft harvest`, the ledger by `sdlc harvest record` |
+| Writes | its proposal file under `.sdlc/reports/`. The successors by `sdlc draft harvest`, the ledger and the notes for the framework by `sdlc harvest record` |
 
 #### Syntax
 
@@ -2021,11 +2026,15 @@ framework should hear about. Proposes and never places.
 Each suggestion is **taken further**, as a successor under `## Successors` with its text copied in; **declined**,
 under `## Declined` with the reason a person would give; or **ignored**, under `## Ignored` as its concern and the
 cycles it was ignored in (D-153), with a `Why:` line under a new one (D-194). A concern ignored in three cycles is at the bar and is not ignored again. An
-accepted successor is written to `.sdlc/successors/<slug>.md`, ready once its cycle has merged.
+accepted successor is written to `.sdlc/successors/<slug>.md`, ready once its cycle has merged. A successor marked
+`framework:` becomes a note under `## For the framework`, headed by the surface it is about, with its slug beneath
+(D-204).
 
 #### Refusals
 
-None of its own: it writes no protected file.
+| Condition | Result | What to do |
+|---|---|---|
+| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
 
 #### Example
 
@@ -2179,7 +2188,8 @@ None.
 #### Output
 
 `sdlc harvest close` records each closed cycle in `.sdlc/harvested.json` — its merge commit and what later harvests
-read from it — and on a new `harvest/<date>` branch commits the removal of their folders with the ledger and the
+read from it, the releases it ran on, what each reader raised and what each document cost — and on a new
+`harvest/<date>` branch commits the removal of their folders with the ledger, the notes for the framework and the
 records the person placed. The skill pushes that branch and opens its pull request into the integration branch.
 **The check admits it as a harvest**: it carries only the records, the ledger, successors and the removed folders.
 

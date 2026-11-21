@@ -160,6 +160,7 @@ public static class SdlcServices
         services.AddReadAreasRequestHandler();
         services.AddRecordHarvestRequestHandler();
         services.AddCloseHarvestRequestHandler();
+        services.AddExportFrameworkRequestHandler();
         services.AddGatherAbandonedRequestHandler();
         services.AddVerifyHarvestRequestHandler();
 

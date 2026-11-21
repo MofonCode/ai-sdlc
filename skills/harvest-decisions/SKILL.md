@@ -55,6 +55,13 @@ architecture test — two artifacts of one choice, the decision saying why. Say 
 Every item gets a proposal, *already recorded* naming the entry, *a note for the framework*, or *no proposal,
 because* with a real reason — *a local choice, said in one cycle only* is one.
 
+**A note for the framework is written for somebody who has never seen this solution** (D-204): a choice every cycle
+had to make again because the framework left it open, or a step that cost more than it gave. Its heading names the
+part of the framework — a rule's id, `stage:plan`, `document:intent`, `command:draft` — and what fell short, with
+no product, provider, file or person of the solution's in it; a `Kind:` line says `cost`, `missing` or `defect`.
+The evidence goes beneath under `>`, which stays here. `sdlc harvest record` refuses a note with no surface or no
+`Kind:`.
+
 **`Instead of` is the load-bearing clause**: an entry whose alternatives were never real records something nobody
 chose. **`Because` cannot be recovered later**: if the passage does not say why, ask the person rather than invent
 one. **A declined suggestion is a decline, not a decision** — it belongs to `harvest-suggestions`.
@@ -84,8 +91,11 @@ Mark each proposal you accept by changing [ ] to [x], and edit its wording as yo
 
 ## For the framework
 
-### <the framework rule> — <what it cost here, in one line>
-> <the evidence>
+### <surface> — <what fell short, worded for somebody who has never seen this solution>
+Kind: <cost | missing | defect>
+Cycles: <cycle>, <cycle>
+Measure: <the numbers: cycles, findings, rounds, tokens>
+> <the cycles, finding ids and rounds behind it -- kept here, never sent>
 
 ## Not proposed
 

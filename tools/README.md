@@ -1,19 +1,21 @@
 # The tools
 
-Three things that support changing the framework and are not part of it. **None ships.** The two
+Four things that support changing the framework and are not part of it. **None ships.** The three
 projects are `IsPackable=false`, the script is not installed anywhere, and nothing a governed solution
 runs reaches any of them.
 
 Two exist for the same reason: **a claim this repository's own suite cannot check.** The tests assert
 strings and types, so they cannot tell whether a generated solution compiles or whether a skill obeyed
 its output cap. Each turns one of those into something somebody can run. The third measures what the
-framework costs to run, from the one place that holds it all — the host's own transcripts.
+framework costs to run, from the one place that holds it all — the host's own transcripts. The fourth reads
+what solutions' harvests found about the framework, from the exports they chose to hand over.
 
 | Tool | What it checks | Run it |
 |---|---|---|
 | [`Sdlc.ScaffoldHarness/`](Sdlc.ScaffoldHarness/) | that the scaffold templates generate a solution which builds and tests clean | after changing any template — and CI runs it on every pull request |
 | [`Measure-SkillOutput.ps1`](Measure-SkillOutput.ps1) | how much prose each skill actually wrote when it handed back, against the cap it states | after a trial cycle, against the trial repository |
 | [`Sdlc.UsageReport/`](Sdlc.UsageReport/) | what Claude Code's sessions cost, per day, per role and per session, conversation included | before and after a release that changes what readers run, against a solution's transcripts |
+| [`Sdlc.FrameworkHarvest/`](Sdlc.FrameworkHarvest/) | what solutions' harvests found about the framework: the notes by the part of the framework they are about, and the closed cycles' rounds, verdicts, reader yield and cost by release | when exports arrive, and before deciding what the next release changes |
 
 ---
 
@@ -98,6 +100,26 @@ compare; a plan's limits may weight these a little differently, and the proporti
 It reads one host's transcript format, which is why it is a tool and not the binary (D-46). **If a future
 version moves the fields, it counts fewer calls rather than wrong ones** — a line it cannot read is
 skipped.
+
+## `Sdlc.FrameworkHarvest/`
+
+**Reads the exports solutions handed the framework, together.** A console project named `framework-harvest`,
+read-only, referencing `Sdlc.Core` so the export it reads is the one `sdlc harvest framework --out <file>` writes.
+
+```pwsh
+dotnet run --project tools/Sdlc.FrameworkHarvest -- <export.json | directory>... [--out <file>]
+```
+
+**The gap it closes: what a solution's harvest found about the framework had no way back to it** (D-204). Notes
+were written into a report git ignores and lost at close, and the one reading of a solution's record for the
+framework was done by hand, before its cycles were closed. A solution's export outlives its cycles, and carries no
+evidence, cycle id, file or commit of the solution's, so it can be kept beside this repository rather than in it.
+
+It prints Markdown in three parts: **the notes by surface**, the one most exports raised first, every statement
+under it as written — whether two statements are one problem is a reader's question, so it never merges them;
+**the cycles by the release they last ran on**, so a cost that falls away after a release reads as that release's
+fix; and **each reader across every cycle**, how much it raised and how much of it blocked, cited a rule or was
+withdrawn. Keep exports, and its output, outside the repository: **no solution is named here**.
 
 ## See also
 

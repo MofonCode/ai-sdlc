@@ -257,6 +257,7 @@ public sealed class HarvestTests
     [TestMethod]
     [DataRow(".sdlc/decisions.md", true)]
     [DataRow(".sdlc/harvested.json", true)]
+    [DataRow(".sdlc/framework-harvest.json", true)]
     [DataRow(".sdlc/areas.md", true)]
     [DataRow(".sdlc/successors/import-trades.md", true)]
     [DataRow(".sdlc/cycles/20261001_0900_01/plan.md", true)]

@@ -32,6 +32,12 @@ public sealed record HarvestDecline(string Id, string Reason);
 /// <param name="Rounds">How many rounds each document took.</param>
 /// <param name="Reopens">How many times a person took its approval back.</param>
 /// <param name="Verdicts">Every outcome its verify reached, oldest first.</param>
+/// <param name="Releases">
+/// The releases its rounds recorded, oldest first (D-204): what a later reading needs to tell a cost the framework has
+/// since fixed from one it still has. Absent from ledgers written before, and from a cycle whose rounds recorded none.
+/// </param>
+/// <param name="Readers">What each reader raised on each document, so a reader's yield survives the folder (D-204).</param>
+/// <param name="Spent">Weighted tokens per document, from its usage record, when its rounds recorded one (D-204).</param>
 public sealed record HarvestedCycle(
     string Cycle,
     string? Merge,
@@ -43,7 +49,19 @@ public sealed record HarvestedCycle(
     IReadOnlyList<HarvestedArea> Areas,
     IReadOnlyDictionary<string, int> Rounds,
     int Reopens,
-    IReadOnlyList<string> Verdicts);
+    IReadOnlyList<string> Verdicts,
+    IReadOnlyList<string>? Releases = null,
+    IReadOnlyList<ReaderYield>? Readers = null,
+    IReadOnlyDictionary<string, double>? Spent = null);
+
+/// <summary>What one reader raised on one document of a cycle, each finding counted once whatever rounds it stood.</summary>
+/// <param name="Reader">The perspective that raised it, or <c>rules</c>.</param>
+/// <param name="Document">The document: intent, spec, plan or verify.</param>
+/// <param name="Raised">Every finding it raised.</param>
+/// <param name="Blocking">Those that were ever blocking.</param>
+/// <param name="Cited">Those that cited a rule.</param>
+/// <param name="Withdrawn">Those a later reader took back.</param>
+public sealed record ReaderYield(string Reader, string Document, int Raised, int Blocking, int Cited, int Withdrawn);
 
 /// <summary>
 /// A concern seen in fewer cycles than the bar, carried so its count survives the folders it came from.

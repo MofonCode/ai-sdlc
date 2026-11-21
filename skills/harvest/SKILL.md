@@ -66,4 +66,6 @@ closed cycles' removal on a branch of its own, and opens the pull request a pers
 ## Hand back
 
 One short message: what was placed, what was declined or ignored, which cycles closed and the pull request's link,
-and which cycles stay open with what they still need.
+and which cycles stay open with what they still need. When a sitting kept notes for the framework, say how many, and
+that `sdlc harvest framework` prints what of them could be handed to the framework's maintainers — the person's
+choice, never sent for them (D-204).

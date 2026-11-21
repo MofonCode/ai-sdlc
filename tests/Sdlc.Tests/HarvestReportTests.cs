@@ -141,7 +141,7 @@ public sealed class HarvestReportTests
 
         string report = await Render(workspace, new FakeRepository(), HarvestAspect.Constraints);
 
-        StringAssert.Contains(report, workspace.Cycle.Id + ": intent 1, spec 2;");
+        StringAssert.Contains(report, workspace.Cycle.Id + " (no release recorded): intent 1, spec 2;");
     }
 
     [TestMethod]

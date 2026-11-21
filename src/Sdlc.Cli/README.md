@@ -64,6 +64,7 @@ the code is bad; it is that nobody can tell**, and the next session cannot eithe
    approved and hash-matched — whichever agent wrote it.
 7. **A record that learns from itself.** A harvest reads merged and abandoned cycles for the rule the findings keep reaching
    for and the choices the cycles settled, one aspect at a time, and proposes each for a person to adopt. It never places one.
+   What it finds about the framework is kept apart, for a person to hand back if they choose.
 8. **An audit trail you can read months later.** The pull-request body is the cycle; each document's findings
    are a ledger chained by hash; the approval records a hash of what it approved.
 

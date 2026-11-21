@@ -185,9 +185,7 @@ public static class ProtectedPaths
             && string.Equals(segments[^2], "findings", StringComparison.OrdinalIgnoreCase)
             && (IsRoundFileName(segments[^1]) || IsLedgerFileName(segments[^1]))
                 ? Round
-                : string.Equals(segments[^1], Harvest.HarvestLedger.FileName, StringComparison.OrdinalIgnoreCase)
-                    ? Harvested
-                    : Describe(segments[^1]);
+                : BinaryLedger(segments[^1]) ?? Describe(segments[^1]);
 
         return file is not null;
     }
@@ -221,6 +219,27 @@ public static class ProtectedPaths
         "It is written by the binary once a person has placed what a harvest sitting decided, and it says which "
         + "aspects each cycle has answered and which cycles are closed. Run 'sdlc harvest record <aspect> <file>' "
         + "with the proposal file the person marked, or 'sdlc harvest close'.");
+
+    /// <summary>
+    /// The framework's notes: written by the binary from a sitting's <c>## For the framework</c>, denied to an agent like
+    /// the harvest ledger (D-204).
+    /// </summary>
+    /// <remarks>
+    /// What may leave the solution is printed from it, so a note an agent typed in here would be sent as one a person's
+    /// sitting answered.
+    /// </remarks>
+    public static ProtectedFile FrameworkNotes { get; } = new(
+        "the framework's notes",
+        "It is written by the binary from the '## For the framework' section of a proposal file a person marked. "
+        + "Write the note there and run 'sdlc harvest record <aspect> <file>'.");
+
+    // The files only the binary writes outside a cycle's findings: the harvest ledger and the framework's notes.
+    private static ProtectedFile? BinaryLedger(string name) =>
+        string.Equals(name, Harvest.HarvestLedger.FileName, StringComparison.OrdinalIgnoreCase)
+            ? Harvested
+            : string.Equals(name, Harvest.FrameworkHarvest.FileName, StringComparison.OrdinalIgnoreCase)
+                ? FrameworkNotes
+                : null;
 
     /// <summary>
     /// Whether a file name is a findings ledger's: <c>&lt;artifact&gt;.json</c> (D-107).
@@ -318,7 +337,7 @@ public static class ProtectedPaths
             foreach (string target in RedirectTargets(segment))
             {
                 string name = target.Replace('\\', '/').Split('/')[^1];
-                if ((IsFindingsPath(target) ? Round : string.Equals(name, Harvest.HarvestLedger.FileName, StringComparison.OrdinalIgnoreCase) ? Harvested : Describe(name)) is { } redirected)
+                if ((IsFindingsPath(target) ? Round : BinaryLedger(name) ?? Describe(name)) is { } redirected)
                 {
                     file = redirected;
                     return true;
@@ -345,10 +364,13 @@ public static class ProtectedPaths
                 return true;
             }
 
-            if (NamesWhole(segment, Harvest.HarvestLedger.FileName))
+            foreach (string ledger in (string[])[Harvest.HarvestLedger.FileName, Harvest.FrameworkHarvest.FileName])
             {
-                file = Harvested;
-                return true;
+                if (NamesWhole(segment, ledger))
+                {
+                    file = BinaryLedger(ledger);
+                    return true;
+                }
             }
         }
 

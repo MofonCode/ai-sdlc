@@ -608,6 +608,17 @@ already. An aspect is answered once per cycle.
 **Next:** `sdlc harvest` shows which aspects each completed cycle still needs. Copy `## Cycles` from the aspect's
 report as written.
 
+### a note for the framework that does not read
+
+`sdlc harvest record <aspect>` is refused when a heading under `## For the framework` names no surface of the
+framework — a rule's id such as `CON_06`, `evidence`, or a kind and a name such as `perspective:security` or
+`stage:verify` — says nothing after it, or has no `Kind:` line of `cost`, `missing` or `defect` beneath it (D-204).
+Nothing is recorded, so the sitting is never half answered. The notes are what a solution may hand the framework,
+and one that cannot be grouped by what it is about cannot be read across solutions.
+
+**Next:** fix each heading the refusal names — `### stage:verify — <what fell short>` and a `Kind:` line under it
+— and record again.
+
 ### an aspect is still unanswered
 
 `sdlc harvest close` is refused while no completed cycle has had every aspect answered. It names each cycle and the

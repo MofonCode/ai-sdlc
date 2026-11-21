@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>framework-harvest</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Not packable and not shipped. It reads what solutions handed the framework, which is the framework's
+       maintainers' business and no solution's (D-204). It references Sdlc.Core so the export it reads is the
+       one 'sdlc harvest framework' writes, not a second description of it. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sdlc.Core\Sdlc.Core.csproj" />
+  </ItemGroup>
+
+</Project>
