@@ -17,7 +17,7 @@
          install and a reader asking "what version is this" means the pair. Without it the package took the SDK
          default of 1.0.0 while the plugin said 0.9.0, so the two halves disagreed with nobody able to see it.
          PluginTests asserts they still agree, and ci.yml stamps the build into the packed copies. -->
-    <VersionPrefix>0.53.0</VersionPrefix>
+    <VersionPrefix>0.54.0</VersionPrefix>
 
     <!-- A pack made anywhere but the pipeline is a local build, and its version says so: 0.36.7-local (D-135).
          A solution can pin it to test a change, and no cycle it judges reaches a pull request, because the rounds
