@@ -227,7 +227,7 @@ public sealed record BranchPolicyScript(string Text, IReadOnlyList<(string Path,
 
     private static Result<BranchPolicyScript> AzureDevOps(string integration, BranchReviews reviews, Shape shape)
     {
-        string pipeline = Initialise.PipelinePath(Platform.AzureDevOps);
+        string pipeline = Initialise.PipelinePath(Platform.AzureDevOps).Replace('\\', '/');
 
         StringBuilder text = new();
         text.AppendLine("Branch policy for Azure DevOps (D-136). Run each command once, signed in to 'az' as a project administrator,");

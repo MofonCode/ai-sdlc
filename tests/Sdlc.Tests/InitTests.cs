@@ -369,12 +369,10 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task An_existing_azure_pipeline_is_printed_rather_than_replaced()
+    public async Task A_teams_own_azure_pipeline_is_left_alone_and_the_frameworks_is_written_beside_it()
     {
-        // `azure-pipelines.yml` is the path Azure DevOps looks for, so an existing one is a repository's
-        // own CI. Replacing it would destroy it -- and because init commits what it writes, the
-        // destruction would be committed. Printing it says the guarantee is not installed yet, which is
-        // a thing a person can act on.
+        // D-203: the framework's pipeline is framework-named in .azuredevops/, so a repository's own
+        // azure-pipelines.yml is never in the line of fire, and the guarantee is installed regardless.
         using var solution = Scratch.Create();
         string path = Path.Combine(solution.Root, "azure-pipelines.yml");
         const string Theirs = "trigger: [main]\nsteps:\n  - script: echo twelve months of CI\n";
@@ -385,12 +383,61 @@ public sealed class InitTests
             tracked: ["src/App/Program.cs"],
             platform: Platform.AzureDevOps);
 
+        Assert.AreEqual(Theirs, await File.ReadAllTextAsync(path));
+        Assert.IsFalse(report.Actions.Any(action => action.Path == "azure-pipelines.yml"));
+        Assert.AreEqual(
+            Initialise.InitChange.Created,
+            report.Actions.Single(action => action.Path.Replace('\\', '/') == ".azuredevops/sdlc-verify.yml").Change);
+        StringAssert.Contains(await File.ReadAllTextAsync(Path.Combine(solution.Root, ".azuredevops", "sdlc-verify.yml")), "sdlc verify-chain");
+    }
+
+    [TestMethod]
+    public async Task The_pipelines_an_older_release_wrote_at_the_root_move_into_the_azuredevops_folder_unchanged()
+    {
+        // D-203: moved rather than rewritten, so a team's own steps travel with each.
+        using var solution = Scratch.Create();
+        string verify = Templates.Pipeline(Platform.AzureDevOps).Replace("steps:", "steps:\n  - script: echo the team's own", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, "azure-pipelines.yml"), verify);
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, "azure-pipelines.factory.yml"), "the factory as the team keeps it\n");
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, "azure-pipelines.upgrade.yml"), "an older release's upgrade\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"], platform: Platform.AzureDevOps);
+
+        foreach ((string retired, string current) in Initialise.RetiredPipelines)
+        {
+            Assert.IsFalse(File.Exists(Path.Combine(solution.Root, retired)), retired);
+            Assert.IsTrue(File.Exists(Path.Combine(solution.Root, current)), current);
+
+            Initialise.InitAction action = report.Actions.Single(action => action.Path == retired);
+            Assert.AreEqual(Initialise.InitChange.Moved, action.Change);
+            StringAssert.Contains(action.Why!, current);
+        }
+
+        Assert.AreEqual(verify, await File.ReadAllTextAsync(Path.Combine(solution.Root, ".azuredevops", "sdlc-verify.yml")), "Moved as it was, the team's step with it.");
+        Assert.AreEqual("the factory as the team keeps it\n", await File.ReadAllTextAsync(Path.Combine(solution.Root, ".azuredevops", "sdlc-factory.yml")));
+        Assert.AreEqual(UpgradePipeline.Text(Platform.AzureDevOps, SolutionDocument.DefaultIntegrationBranch), await File.ReadAllTextAsync(Path.Combine(solution.Root, ".azuredevops", "sdlc-upgrade.yml")), "The upgrade pipeline is the framework's whole, so it is rewritten where it lands.");
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            report.Actions.Single(action => action.Path.Replace('\\', '/') == ".azuredevops/sdlc-verify.yml").Change,
+            "It carries every step this release writes, beside the team's own.");
+    }
+
+    [TestMethod]
+    public async Task An_azure_pipeline_missing_a_step_of_the_release_is_printed_rather_than_rewritten()
+    {
+        // A team's own steps sit beside the framework's, so a rewrite would drop them.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".azuredevops", "sdlc-verify.yml");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        string stale = Templates.Pipeline(Platform.AzureDevOps).Replace("sdlc verify-chain", "sdlc verify-chain --old", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(path, stale);
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"], platform: Platform.AzureDevOps);
+
+        Assert.AreEqual(stale, await File.ReadAllTextAsync(path));
         Assert.AreEqual(
             Initialise.InitChange.Printed,
-            report.Actions.Single(action => action.Path == "azure-pipelines.yml").Change);
-
-        Assert.AreEqual(Theirs, await File.ReadAllTextAsync(path));
-        StringAssert.Contains(report.Printed["azure-pipelines.yml"], "sdlc verify-chain");
+            report.Actions.Single(action => action.Path.Replace('\\', '/') == ".azuredevops/sdlc-verify.yml").Change);
     }
 
     [TestMethod]
@@ -768,7 +815,7 @@ public sealed class InitTests
 
     [TestMethod]
     [DataRow(Platform.GitHub, ".github/workflows/sdlc-verify.yml")]
-    [DataRow(Platform.AzureDevOps, "azure-pipelines.yml")]
+    [DataRow(Platform.AzureDevOps, ".azuredevops/sdlc-verify.yml")]
     public async Task Each_platform_gets_its_own_pipeline(Platform platform, string expected)
     {
         using var solution = Scratch.Create();
@@ -1486,7 +1533,7 @@ public sealed class InitTests
             "A pipeline for a service this repository has no remote on is a file that looks like a gate "
             + "and is reachable by nothing.");
 
-        Assert.IsFalse(File.Exists(Path.Combine(solution.Root, "azure-pipelines.yml")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(solution.Root, ".azuredevops")));
 
         Result<SolutionDocument> document = await SolutionDocument
             .ReadFileOrDraft(solution.Root, CancellationToken.None);

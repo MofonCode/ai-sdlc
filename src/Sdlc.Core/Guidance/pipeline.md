@@ -1,6 +1,6 @@
 ---
 name: pipeline
-files: "azure-pipelines, .github/workflows/, .gitlab-ci"
+files: "azure-pipelines, .azuredevops/, .github/workflows/, .gitlab-ci"
 ---
 
 # Building the pipeline

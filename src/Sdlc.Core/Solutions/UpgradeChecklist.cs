@@ -115,13 +115,16 @@ public static class UpgradeChecklist
                 : null);
             string integration = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
 
+            // An Azure DevOps solution on a release before 0.53 still has them at the root, and that is the pipeline it runs.
             string? factory = new[] { Platform.GitHub, Platform.AzureDevOps }
                 .Select(FactoryPipeline.PathOf)
+                .Append(Initialise.RetiredPipelines[1].Retired)
                 .FirstOrDefault(path => File.Exists(Path.Combine(root, path)))
                 ?.Replace('\\', '/');
 
             string? pipeline = new[] { Platform.GitHub, Platform.AzureDevOps }
                 .Select(UpgradePipeline.PathOf)
+                .Append(Initialise.RetiredPipelines[2].Retired)
                 .FirstOrDefault(path => File.Exists(Path.Combine(root, path)))
                 ?.Replace('\\', '/');
 

@@ -26,7 +26,7 @@ public static class FactoryPipeline
     public static string PathOf(Platform platform) => platform switch
     {
         Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-factory.yml"),
-        Platform.AzureDevOps => "azure-pipelines.factory.yml",
+        Platform.AzureDevOps => Path.Combine(Initialise.AzureDevOpsDirectory, "sdlc-factory.yml"),
         _ => throw new ArgumentOutOfRangeException(nameof(platform), "A local solution has nowhere to run a factory."),
     };
 

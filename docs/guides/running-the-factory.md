@@ -49,7 +49,7 @@ time limit has built what starts the most moving, then oldest first.
 sdlc factory
 ```
 
-It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` for the platform
+It writes `.azuredevops/sdlc-factory.yml` or `.github/workflows/sdlc-factory.yml` for the platform
 `solution.md` records, and refuses on a local solution. What the run does:
 
 1. checks out `development` and installs the pinned `sdlc`, Claude Code and the plugin — or uses them,

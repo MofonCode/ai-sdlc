@@ -75,8 +75,8 @@ What lands, committed:
 | `.agents/hooks.json` | the tool-call moment in Antigravity's shape, in its `sdlc` section. Its turn end is deliberately not governed — `installing-the-plugin.md` has why |
 | `AGENTS.md` | how to work in this repository, written for an agent. Created if absent, printed for merging if you already had one |
 | `.gitattributes` | `* text=auto`: every text file stored with LF and checked out with your platform's endings, so a commit from another machine never shows a whole file changed. Created if absent; if yours lacks the line, it is printed for you to add |
-| `.github/workflows/sdlc-verify.yml` | the chain check. **The only guarantee** — and written only where a platform was recorded. `--platform local` writes no pipeline at all |
-| `.github/workflows/sdlc-upgrade.yml` | the upgrade: a run a person starts that moves the solution to another release and opens its pull request (D-201). On Azure DevOps, `azure-pipelines.upgrade.yml`. Rewritten on every run, and written only where a platform was recorded |
+| `.github/workflows/sdlc-verify.yml` | the chain check. **The only guarantee** — and written only where a platform was recorded. On Azure DevOps, `.azuredevops/sdlc-verify.yml`. `--platform local` writes no pipeline at all |
+| `.github/workflows/sdlc-upgrade.yml` | the upgrade: a run a person starts that moves the solution to another release and opens its pull request (D-201). On Azure DevOps, `.azuredevops/sdlc-upgrade.yml`. Rewritten on every run, and written only where a platform was recorded |
 
 What lands beside it, **not committed**, for you to fill in and rename:
 
@@ -97,10 +97,11 @@ Adoption rewrites a file only where the framework's own name is in the path, so 
 `sdlc`-named files above are refreshed on every run. `.claude/settings.json` is shared with you and with
 the host: `init` adds or updates its two hook entries and keeps every other key, including your
 permissions and your own hooks. If that file is not valid JSON — a comment, a trailing comma — nothing
-is written to it and the entries are printed for you to place. On Azure DevOps the pipeline is
-`azure-pipelines.yml`, which is the path that platform looks for rather than a name the framework owns,
-so an existing one is printed rather than replaced. Nothing verifies a chain until it is in a pipeline
-that runs, and `init` says so.
+is written to it and the entries are printed for you to place. On Azure DevOps the framework's
+pipelines live in `.azuredevops/`, named as on GitHub, so your own `azure-pipelines.yml` is never touched
+(D-203). The chain check there is written once and kept while it carries every step the release writes,
+because your own steps may sit beside them; one missing a step is printed for you to bring up to date.
+Nothing verifies a chain until it is in a pipeline that runs, and `init` says so.
 
 **Where there was code first, adding the line-endings rule shows files as changed** that were committed
 with CRLF endings. Commit `git add --renormalize .` once, on its own, so the change that follows does not

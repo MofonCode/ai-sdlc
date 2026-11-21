@@ -45,7 +45,8 @@ public static class WriteFactoryPipeline
     /// <param name="Platform">The platform it was written for.</param>
     /// <param name="Kept">Whether the file was left as it is, because it already carries this release's steps.</param>
     /// <param name="Lost">Each pool of the team's own the rewrite replaced; empty when there was none.</param>
-    public sealed record Response(string Path, bool Rewritten, Platform Platform, bool Kept = false, IReadOnlyList<string>? Lost = null);
+    /// <param name="MovedFrom">Where an older release had written it, when it was moved from there first (D-203).</param>
+    public sealed record Response(string Path, bool Rewritten, Platform Platform, bool Kept = false, IReadOnlyList<string>? Lost = null, string? MovedFrom = null);
 
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, Response>
     {
@@ -72,13 +73,25 @@ public static class WriteFactoryPipeline
             string path = System.IO.Path.Combine(solution.Path, relative);
             string slashed = relative.Replace('\\', '/');
             string template = FactoryPipeline.Text(document.Platform, document.IntegrationBranch);
+            string? moved = null;
             string? existing = File.Exists(path) ? await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false) : null;
+
+            // Where an older release wrote it, at the root, it moves first, as it was: the file is still the team's (D-203).
+            if (existing is null && Initialise.RetiredPathOf(slashed) is { } retired && File.Exists(System.IO.Path.Combine(solution.Path, retired)))
+            {
+                string from = System.IO.Path.Combine(solution.Path, retired);
+                existing = await File.ReadAllTextAsync(from, cancellationToken).ConfigureAwait(false);
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? solution.Path);
+                await File.WriteAllTextAsync(path, existing, cancellationToken).ConfigureAwait(false);
+                File.Delete(from);
+                moved = retired;
+            }
 
             // The file as its own base: every step that is not the release's is the team's, carried unchanged, so it
             // passes exactly when no step this release writes is missing, changed or out of order.
             if (request.Keep && existing is not null && VerifyUpgrade.Shaped(slashed, template, existing, existing).Passed)
             {
-                return Result.Ok(new Response(slashed, false, document.Platform, Kept: true));
+                return Result.Ok(new Response(slashed, false, document.Platform, Kept: true, MovedFrom: moved));
             }
 
             IReadOnlyList<string> lost = existing is null ? [] : VerifyUpgrade.OwnPools(template, existing);
@@ -86,7 +99,7 @@ public static class WriteFactoryPipeline
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? solution.Path);
             await File.WriteAllTextAsync(path, template, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new Response(slashed, existing is not null, document.Platform, Lost: lost));
+            return Result.Ok(new Response(slashed, existing is not null, document.Platform, Lost: lost, MovedFrom: moved));
         }
     }
 
@@ -97,9 +110,13 @@ public static class WriteFactoryPipeline
     {
         ArgumentNullException.ThrowIfNull(written);
 
+        string moved = written.MovedFrom is { } from
+            ? $"Moved {from} to {written.Path}, where this release keeps it: point the factory's pipeline in Azure DevOps at the new path.\n"
+            : string.Empty;
+
         if (written.Kept)
         {
-            return $"Kept {written.Path} as it is: it already carries every step this release writes, beside the team's own.\n";
+            return $"Kept {written.Path} as it is: it already carries every step this release writes, beside the team's own.\n{moved}";
         }
 
         string lost = written.Lost is { Count: > 0 } pools
@@ -113,7 +130,7 @@ public static class WriteFactoryPipeline
         return string.Create(
             CultureInfo.InvariantCulture,
             $"""
-            {(written.Rewritten ? "Rewrote" : "Wrote")} {written.Path}: the factory, run when a person starts it, one run at a time, six hours at most.
+            {moved}{(written.Rewritten ? "Rewrote" : "Wrote")} {written.Path}: the factory, run when a person starts it, one run at a time, six hours at most.
             {setup}
             {lost}It has never run. Commit it, run it once by hand against one throwaway approved cycle, and watch it.
             docs/guides/setting-up-the-factory.md walks every step.

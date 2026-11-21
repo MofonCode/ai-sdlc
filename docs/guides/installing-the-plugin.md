@@ -93,7 +93,7 @@ command refuses and says so rather than falling back — a person who named a ru
 `VersionPrefix` in `Directory.Build.props` is the one place the release line is set, and the suite
 asserts it matches `plugin.json`. The pipeline numbers each build of the line and stamps that number into both
 halves of the package, so a package's binary and plugin always tell you the same thing. A plugin installed from
-the marketplace says the line alone, `0.52.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
+the marketplace says the line alone, `0.53.0`, and the session-start check compares the line (D-197). `sdlc version` prints both. If a reinstall has to pin one, `dotnet tool install --version`
 takes it.
 
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the
@@ -337,7 +337,7 @@ has one, and the open cycles still pinning an older release. It runs nothing, an
 release rather than the one the solution pins (D-170). The rest of this section is why each step is there.
 
 **A solution moves by a run of its upgrade pipeline** (D-201). Adoption writes it beside the pull-request check —
-`.github/workflows/sdlc-upgrade.yml` on GitHub, `azure-pipelines.upgrade.yml` on Azure DevOps — and a person starts
+`.github/workflows/sdlc-upgrade.yml` on GitHub, `.azuredevops/sdlc-upgrade.yml` on Azure DevOps — and a person starts
 it on the platform, naming a release or leaving it empty for the newest. It moves the pin, runs adoption and
 `sdlc factory --keep` as that release, commits only what an upgrade may carry on `upgrade/sdlc-<release>`, and opens the
 pull request into the integration branch. You review and merge. It never runs on a schedule, and nothing on your

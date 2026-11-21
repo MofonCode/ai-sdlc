@@ -9,6 +9,19 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.53
+
+**The framework's Azure DevOps pipelines move into `.azuredevops/`** (D-203), named as on GitHub:
+`sdlc-verify.yml`, `sdlc-upgrade.yml` and `sdlc-factory.yml`. A team's own `azure-pipelines.yml` is no longer in the
+way, so a solution that already had CI gets the chain check written rather than printed. The chain check is kept
+while it carries the release's steps, with the team's own beside them.
+
+**What moving to it asks of a solution on Azure DevOps:** take this release by hand, not through the upgrade
+pipeline, because the one an older release wrote commits only the paths it knew. On a branch, `sdlc init` moves
+each framework pipeline from the root unchanged, your own steps with it; merge that by pull request. Then point each
+pipeline in Azure DevOps at its new path — **Edit > ... > Settings > YAML file path** — and the build validation
+policies follow. `sdlc doctor` says so while any is left at the root. On GitHub, nothing.
+
 ## 0.52
 
 **A build's own process can run its own steps** (D-202). `sdlc build` started its process without the skills its

@@ -1030,7 +1030,7 @@ does not wait for it is a directory that appears enforced and is not — which i
 pretended.
 
 **On Azure DevOps it is worse: without the policy the check does not run at all.** Azure Repos ignores a
-`pr:` trigger in YAML, so `azure-pipelines.yml` runs on a pull request only when a build validation
+`pr:` trigger in YAML, so `.azuredevops/sdlc-verify.yml` runs on a pull request only when a build validation
 policy names it — Repos > Branches > the default branch > Branch policies > Build validation. Until then
 every pull request merges with nothing built, tested or verified, and nothing says so. `sdlc doctor`
 asks the platform, on both, and reports a problem while the check is not required. Signed out of `az` or
