@@ -118,8 +118,10 @@ internal static class Usage
                                      placed in the sandbox if it is uncommitted, admits the plan
                                      when it is only in a sandbox, opens the build's worktree beside
                                      the repository, starts the build's own process there running
-                                     /sdlc:build <id> --unattended -- headless, its tools named,
-                                     never with permission checks off, never marked as a reader --
+                                     /sdlc:build <id> --unattended -- headless, its tools named
+                                     (the skills it runs, sdlc, git, dotnet, gh, az, and each
+                                     command solution.md's build_tools names; D-202), never with
+                                     permission checks off, never marked as a reader --
                                      waits, and prints the report. Exits 0 on a pass, 1 on blocked
                                      or escalated. With no id, every queued cycle in one process
                                      started from here, each in a worktree of its own; a plan only

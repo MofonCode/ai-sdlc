@@ -6,6 +6,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Harvest;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
 
@@ -124,9 +125,59 @@ public sealed class AgentProcessTests
     }
 
     [TestMethod]
+    public void The_builds_process_may_run_every_skill_its_playbooks_run()
+    {
+        // D-202: a headless process refused a skill ends at its first step with nobody to ask.
+        foreach (string skill in BuildRun.Skills)
+        {
+            CollectionAssert.Contains(BuildRun.AllowedTools.ToList(), "Skill(sdlc:" + skill + ")");
+        }
+    }
+
+    [TestMethod]
+    public void The_solutions_build_tools_are_allowed_after_every_builds_own_and_none_twice()
+    {
+        IReadOnlyList<string> arguments = BuildRun.ArgumentsFor(Cycle(), "/plugin", ["pwsh", "docker", "git"]);
+        List<string> tools = [.. arguments.Skip(arguments.ToList().IndexOf("--allowedTools") + 1)];
+
+        CollectionAssert.AreEqual(BuildRun.AllowedTools.ToList(), tools.Take(BuildRun.AllowedTools.Count).ToList());
+        CollectionAssert.AreEqual(new[] { "Bash(pwsh *)", "Bash(docker *)" }, tools.Skip(BuildRun.AllowedTools.Count).ToList());
+    }
+
+    [TestMethod]
+    public async Task The_build_is_launched_with_the_build_tools_its_worktree_declares()
+    {
+        using TempDirectory worktree = new();
+        CycleWorkspace.WriteRaw(SolutionDocument.PathIn(worktree.Root), "---\norigin: adopted\nbuild_tools: pwsh, docker\n---\n\n# a solution\n");
+        FakeAgentProcess agents = new();
+
+        using var gate = Gate.For(worktree.Root, services => services.AddSingleton<IAgentProcess>(agents));
+        Result<AgentExit> exit = await gate.Send<BuildRun.Launch, AgentExit>(new BuildRun.Launch(Cycle(), worktree.Root, "/plugin"));
+
+        Assert.IsTrue(exit.IsSuccess, string.Join("; ", exit.Errors.Select(error => error.Message)));
+        CollectionAssert.Contains(agents.Launches.Single().Arguments.ToList(), "Bash(docker *)");
+    }
+
+    [TestMethod]
+    public async Task A_build_whose_solution_cannot_be_read_is_never_started()
+    {
+        using TempDirectory worktree = new();
+        CycleWorkspace.WriteRaw(SolutionDocument.PathIn(worktree.Root), "---\norigin: adopted\nbuild_tools: docker *\n---\n");
+        FakeAgentProcess agents = new();
+
+        using var gate = Gate.For(worktree.Root, services => services.AddSingleton<IAgentProcess>(agents));
+        Result<AgentExit> exit = await gate.Send<BuildRun.Launch, AgentExit>(new BuildRun.Launch(Cycle(), worktree.Root, "/plugin"));
+
+        Assert.IsTrue(exit.IsFailed);
+        StringAssert.Contains(exit.Errors.Single().Message, "build_tools names 'docker *'");
+        Assert.AreEqual(0, agents.Launches.Count);
+    }
+
+    [TestMethod]
     public async Task The_build_is_launched_in_its_worktree_unmarked_with_nothing_to_read()
     {
         using TempDirectory worktree = new();
+        CycleWorkspace.WriteRaw(SolutionDocument.PathIn(worktree.Root), "---\norigin: adopted\n---\n\n# a solution\n");
         FakeAgentProcess agents = new();
 
         using var gate = Gate.For(worktree.Root, services => services.AddSingleton<IAgentProcess>(agents));

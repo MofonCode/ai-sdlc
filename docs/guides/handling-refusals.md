@@ -339,6 +339,38 @@ approve again. If it is not, there is nothing for scaffold to do here: build wit
 
 ---
 
+## `sdlc build` — the two ways its own process is refused
+
+`sdlc build <id>` starts the build in a process of its own, in a worktree beside the repository. That process is
+headless: it asks nobody anything, so whatever it is not allowed is refused and stays refused.
+
+### a solution document the build cannot read
+
+The worktree's `.sdlc/solution.md` would not read, so the build was never started. Its own message says which key,
+and the usual one is `build_tools` naming something that is not a bare command: `docker *`, a path, two words.
+Each name is allowed as `Bash(<name> *)`, so a name with a space or a wildcard in it would allow more than the
+command you meant.
+
+**Next:** `sdlc draft solution`, correct the line to bare names separated by commas — `build_tools: pwsh, docker`
+— rename the draft into place, commit it, and build again.
+
+### a tool the build's process was not given
+
+The build stopped as not finished, and its report names a command that was refused. The process is allowed the
+skills its playbook runs, `sdlc`, `git`, `dotnet`, `gh`, `az`, the file tools, and each command `build_tools`
+names (D-202) — **and nothing from a checkout's personal settings**. The worktree is a fresh checkout, so a rule
+you added to `.claude/settings.local.json` in your own checkout never reaches it, and in a headless process there
+is no prompt to approve it either.
+
+**Next:** when the refused command is one the solution's own build needs — an evidence script's shell, a
+container — add it to `build_tools` with `sdlc draft solution` and a rename, commit it, and build again. When it
+is a command a skill should not have needed, such as a pipe into `tail`, build again: the playbook writes its
+commands one at a time, and a refusal of one is not a missing tool. A refusal of `sdlc build` itself, **in your
+own session**, is your host's permission check rather than the framework: allow `Bash(sdlc *)` in your host's
+settings, as you would any command you want an agent to run without asking.
+
+---
+
 ## Amending an admitted plan — the two ways it is refused
 
 Once a cycle's plan is on the integration branch, the team and the factory read it there. A reopen after

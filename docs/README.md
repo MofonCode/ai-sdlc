@@ -76,6 +76,7 @@ A solution is one governed repository. Everything below lives in it.
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it — or from the default branch while it does not exist |
 | `coverage_floor` | a whole percentage; `80%` when absent | the whole-codebase coverage at or above which a cycle need not hold the baseline. Under it, the codebase may not fall (D-157). A person lowers it to answer a fall no test can close, such as a change in how coverage is measured |
 | `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
+| `build_tools` | bare command names, comma-separated; absent for most | the commands a build's own process may run beyond its own, each allowed as that command and nothing wider (D-202). Optional, and written only when set |
 
 **There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one, and nothing reads it: the rules come from the declared stack alone.
 

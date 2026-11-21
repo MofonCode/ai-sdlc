@@ -9,6 +9,23 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.52
+
+**A build's own process can run its own steps** (D-202). `sdlc build` started its process without the skills its
+playbook runs, so on a machine whose own settings did not already allow them, every build was refused `implement`
+and ended without a report. The process is now allowed `implement`, `verify`, `remediate`, `pr` and
+`resolve-conflict`, and the suite holds that list to the skills table.
+
+**A solution names the commands its build needs beyond the framework's own**, in a new optional key in
+`solution.md`: `build_tools: pwsh, docker`. Each bare command name is allowed to the build's process, and nothing
+wider. The build playbook now says how a headless process writes its commands so a permission check can read them,
+and the refusals guide has an entry for a tool the build's process was not given.
+
+**What moving to it asks of a solution:** nothing, unless its build runs a command beyond `sdlc`, `git`, `dotnet`,
+`gh` and `az` — an evidence script's shell, a container. Then add it with `sdlc draft solution` and a rename. A
+person who allowed the sdlc skills, PowerShell or Docker in their user-level settings to get a build through can
+take those rules back out.
+
 ## 0.51
 
 **The upgrade pipeline runs on the agent the platform names** (D-201). On Azure DevOps it runs on the pool the

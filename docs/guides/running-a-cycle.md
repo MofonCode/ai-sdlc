@@ -180,7 +180,10 @@ rest:
    your session every turn after it would pay for that; a builder that did not sit through the planning also
    works only from what was written down. It is the factory's own path for this one cycle, started by the binary
    with its tools named and permission checks left on, and it asks you nothing: saying *build it* was the
-   decision. Your session stays where it was, and the skill reports when the process ends.
+   decision. Your session stays where it was, and the skill reports when the process ends. Because it asks
+   nothing, it runs only what it was allowed. If your build needs a command beyond `sdlc`, `git`, `dotnet`, `gh`
+   and `az`, such as an evidence script's shell or a container, name it in `build_tools` in `solution.md`. A rule
+   in your own checkout's personal settings never reaches the build's worktree.
 3. **It implements the plan, and only the plan.** Something worth fixing that the plan did not describe is left
    alone and noted in the commit, because creep is what reaches review dressed as approved work. On a new
    solution's first cycle, the skeleton the plan declared arrives first. It checks the suite actually ran rather

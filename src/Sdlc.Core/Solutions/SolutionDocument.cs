@@ -101,6 +101,10 @@ public enum ApprovalRequirement
 /// The whole-codebase line rate at or above which the codebase need not hold its baseline, as a fraction
 /// (D-157). Absent reads as <see cref="DefaultCoverageFloor"/>. Below it, the codebase may not fall at all.
 /// </param>
+/// <param name="BuildTools">
+/// The commands the build's own process may run beyond the ones every build is given, as bare command names
+/// (D-202). Absent reads as none, which is what every build had before the key existed.
+/// </param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
     SolutionStandard Standard,
@@ -108,8 +112,12 @@ public sealed record SolutionDocument(
     string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch,
     string? Telemetry = null,
     ApprovalRequirement Approval = ApprovalRequirement.Required,
-    double CoverageFloor = SolutionDocument.DefaultCoverageFloor)
+    double CoverageFloor = SolutionDocument.DefaultCoverageFloor,
+    IReadOnlyList<string>? BuildTools = null)
 {
+    /// <summary>The commands the build's own process may run beyond its own, never null.</summary>
+    public IReadOnlyList<string> ExtraBuildTools => BuildTools ?? [];
+
     /// <summary>The integration branch a solution has when it names none. D-83.</summary>
     public const string DefaultIntegrationBranch = "development";
 
@@ -160,6 +168,7 @@ public sealed record SolutionDocument(
     /// may want to change, and a key it cannot see is one it does not know it has.
     /// </param>
     /// <param name="coverageFloor">The coverage floor. Always written, for the reason the approval is.</param>
+    /// <param name="buildTools">The build's extra commands, or null or empty to leave the key out, as telemetry is.</param>
     /// <returns>One line per key, without the fences.</returns>
     public static string[] Keys(
         SolutionOrigin origin,
@@ -168,7 +177,8 @@ public sealed record SolutionDocument(
         string integrationBranch = DefaultIntegrationBranch,
         string? telemetry = null,
         ApprovalRequirement approval = ApprovalRequirement.Required,
-        double coverageFloor = DefaultCoverageFloor) =>
+        double coverageFloor = DefaultCoverageFloor,
+        IReadOnlyList<string>? buildTools = null) =>
     [
         "origin: " + NameOf(origin),
         "standard: " + NameOf(standard),
@@ -177,6 +187,7 @@ public sealed record SolutionDocument(
         "approval: " + NameOf(approval),
         "coverage_floor: " + FloorName(coverageFloor),
         .. telemetry is null ? Array.Empty<string>() : ["telemetry: " + telemetry],
+        .. buildTools is null or { Count: 0 } ? Array.Empty<string>() : ["build_tools: " + string.Join(", ", buildTools)],
     ];
 
     /// <summary>
@@ -273,6 +284,23 @@ public sealed record SolutionDocument(
                 $"{source}: coverage_floor is '{shape?.CoverageFloor}'. Expected a whole percentage from 0 to 100, such as 80%.")));
         }
 
+        // Absent is none. Each name is a bare command, because the binary allows `Bash(<name> *)` for it: a space, a
+        // wildcard or a path would allow something other than the command the person named.
+        List<string> tools = [];
+        foreach (string tool in (shape?.BuildTools ?? string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!IsCommandName(tool))
+            {
+                errors.Add(new Error(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: build_tools names '{tool}'. Expected bare command names separated by commas, such as pwsh, docker.")));
+            }
+            else if (!tools.Contains(tool, StringComparer.Ordinal))
+            {
+                tools.Add(tool);
+            }
+        }
+
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
             : Result.Ok(new SolutionDocument(
@@ -282,8 +310,17 @@ public sealed record SolutionDocument(
                 integration,
                 string.IsNullOrWhiteSpace(shape?.Telemetry) ? null : shape.Telemetry.Trim(),
                 approval,
-                floor));
+                floor,
+                tools.Count == 0 ? null : tools));
     }
+
+    /// <summary>Whether a build tool's name is a bare command: letters, digits, dots, hyphens and underscores.</summary>
+    /// <param name="name">The name as written.</param>
+    /// <returns>True when the binary may allow <c>Bash(&lt;name&gt; *)</c> for it.</returns>
+    public static bool IsCommandName(string name) =>
+        !string.IsNullOrEmpty(name)
+        && char.IsAsciiLetterOrDigit(name[0])
+        && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_');
 
     /// <summary>
     /// Reads the solution document of a solution on disk.
@@ -648,6 +685,8 @@ public sealed record SolutionDocument(
         public string? Approval { get; set; }
 
         public string? CoverageFloor { get; set; }
+
+        public string? BuildTools { get; set; }
     }
 
 }

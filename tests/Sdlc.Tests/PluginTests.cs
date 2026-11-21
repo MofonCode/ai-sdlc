@@ -771,6 +771,30 @@ public sealed class PluginTests
         }
     }
 
+    [TestMethod]
+    public void The_builds_process_is_allowed_every_skill_the_build_playbook_reaches()
+    {
+        // D-202. `sdlc build` names the skills its headless process may run, and one left off is refused with nobody
+        // to ask. Read from the kinds table, transitively, so a skill a playbook starts running is one this list
+        // must carry -- and one it stops running is one the list must drop.
+        var edges = Kinds().ToDictionary(entry => entry.Key, entry => RunsCell(entry.Value.Runs).ToArray(), StringComparer.Ordinal);
+        HashSet<string> reached = new(StringComparer.Ordinal);
+        Stack<string> pending = new(["build"]);
+
+        while (pending.TryPop(out string? at))
+        {
+            foreach (string next in edges.GetValueOrDefault(at, []))
+            {
+                if (reached.Add(next))
+                {
+                    pending.Push(next);
+                }
+            }
+        }
+
+        CollectionAssert.AreEquivalent(reached.ToList(), Sdlc.Core.Cycles.BuildRun.Skills.ToList());
+    }
+
     // The skills a Runs cell names; none for a single skill's dash.
     private static IEnumerable<string> RunsCell(string runs) =>
         System.Text.RegularExpressions.Regex.Matches(runs, "`(?<name>[a-z-]+)`").Select(match => match.Groups["name"].Value);

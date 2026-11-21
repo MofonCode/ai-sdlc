@@ -177,7 +177,8 @@ public static class WriteSolutionDraft
                         document.IntegrationBranch,
                         document.Telemetry,
                         request.Approval ?? document.Approval,
-                        request.CoverageFloor ?? document.CoverageFloor),
+                        request.CoverageFloor ?? document.CoverageFloor,
+                        document.BuildTools),
 
                     "---",
                     string.Empty,

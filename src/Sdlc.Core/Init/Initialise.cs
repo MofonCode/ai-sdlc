@@ -347,7 +347,8 @@ public static class Initialise
                         integration,
                         recorded?.Telemetry,
                         recorded?.Approval ?? ApprovalRequirement.Required,
-                        recorded?.CoverageFloor ?? SolutionDocument.DefaultCoverageFloor))
+                        recorded?.CoverageFloor ?? SolutionDocument.DefaultCoverageFloor,
+                        recorded?.BuildTools))
 
                     + Environment.NewLine;
             }
