@@ -5,7 +5,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.54** · .NET 10 · [changelog](CHANGELOG.md)
+**Version 0.55** · .NET 10 · [changelog](CHANGELOG.md)
 
 **ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
@@ -244,7 +244,7 @@ cycles and which only fixtures.
 |---|---|---|
 | **Chain check** | The process is skipped and the change merged anyway | `sdlc verify-chain` runs as a required pull-request check and refuses a change whose chain is not complete, approved and hash-matched, or whose new lines are under 70% covered |
 | **The pull request from the cycle** | A pull request description is a summary somebody invented, and what the agent decided alone is buried in the diff | The build opens it. The body leads with the report — every deviation, every choice the build made alone, every concern — then the problem in the intent's words, each criterion with its verdict, the risk tier, and anything still open. Merging accepts it |
-| **Build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:build` with no id builds every approved cycle on its own branch; the factory runs the same playbook unattended whenever you start it and **never merges**. The sitrep it ends on says what is ready, in what order, and what needs a person |
+| **Build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:build` with no id builds every approved cycle on its own branch; `/sdlc:wave` and `/sdlc:series` build a wave, or wave after wave, into one pull request; the factory runs a series unattended whenever you start it and **never merges**. The sitrep it ends on says what is ready, in what order, and what needs a person |
 | **Leads** | Work arrives in a tracker and is retyped into a prompt | `/sdlc:intent --from` starts from an Azure DevOps or GitHub work item, a suggestion or a ready successor. Operate reads production's errors and files them as leads |
 | **Init** | Bringing governance into a repository is a week of setup nobody finishes | `/sdlc:init` interviews the team about what matters here and proposes its first rules. Adoption writes the hooks for every supported agent and the pipeline, drafts the files only a person writes, and creates the integration branch |
 | **Pinned release** | Upgrading the tool halfway through a change moves the rules under it, and moving to a new release costs a whole cycle about nothing | A solution pins its release, and a cycle runs on the one it opened on — the binary, its skills and its hooks together. Moving the pin needs no cycle: the pull-request check writes the framework's files again as the new release and merges the upgrade only if they match |
@@ -322,9 +322,9 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.54.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.55.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
-tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (28)` and
+tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (29)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
 is simply not loaded and every cycle will still appear to work.
 
@@ -412,11 +412,11 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill, refusal and piece of data, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-eight skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-nine skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/reference/data-views.md`](docs/reference/data-views.md) | **data views** — every piece of data, where it lives, and the command that shows it |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the twenty-eight skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-nine skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
@@ -467,7 +467,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | Capability | Has met | Not yet |
 |---|---|---|
 | **Bounded remediation** | the suite, far more than real use | enough real escalations to trust an unattended run over several cycles without watching the first ones |
-| **The factory** | real use: one unattended run that built a cycle and opened its pull request | a morning spent on a sitrep of more than one cycle |
+| **The factory** | real use: one unattended run that built a cycle and opened its pull request, before it ran series | a series run by the factory, with its tools named rather than permission checks off; a morning spent on a sitrep of more than one cycle |
 | **The Azure DevOps pipeline** | real use: one server, checking every pull request on the factory's agent image. It runs only once a person adds a build validation branch policy, which the file, the adoption guide and `sdlc doctor` all say | the branch-policy commands `sdlc branch-policy` prints for Azure DevOps |
 | **Round cost** | real use: one plan round's blind readers, from about $0.79 to $0.33 | a verify round measured; which readers run on which model (`CONCEPT.md` §19) |
 | **The reader prompts** | prompts generated against a real cycle, and the launch line measured on Windows PowerShell and Git Bash | a reader judging from them in a live cycle; whether answering row by row brings a plan's rounds down |
@@ -480,8 +480,9 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **A suggested intent** | the suite: the schema refuses a line still marked `(inferred)` | a real intent suggested and confirmed: how many questions it takes, and whether a carried premise gets caught |
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
-| **Parking, the backlog and `/sdlc:next`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave |
-| **Harvesting, areas and closing** | the suite, and one solution's history for reading a cycle's record (as mining) | a harvest one aspect at a time, a closed cycle or a harvest ledger in any solution; the notes for the framework and their export, and any export read across solutions |
+| **Parking, the backlog, `/sdlc:wave` and `/sdlc:series`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave; a wave or a series built into one pull request; a series run unattended end to end |
+| **One report per run, and a run checked as a whole** | the suite: `sdlc report --run` rendered for a wave and a series, and the run's pull-request check refusing a named test a later cycle broke | a reviewer accepting or rejecting a wave or a series from its report; a rejected series abandoned in one step and harvested |
+| **Harvesting, areas and closing** | the suite, and one solution's history for reading a cycle's record (as mining) | a harvest one aspect at a time, a closed cycle or a harvest ledger in any solution; the notes for the framework and their export, and any export read across solutions; a suggestions sitting answered with *covered* and handed back by theme through `sdlc harvest summary` |
 | **Amending a plan after admission** | the suite | an amended plan through a real pull request |
 | **The rebuilt patch** | a real git repository in the suite | a pull-request check rebuilding one |
 | **The upgrade check** | a refused real upgrade, replayed and passing in a copy of the repository | a real upgrade pull request passing it |

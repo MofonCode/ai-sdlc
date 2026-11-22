@@ -40,8 +40,12 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [work waiting on other work](../guides/running-a-cycle.md) | `.sdlc/successors/<slug>.md`, and the parked cycles | `sdlc backlog`, `sdlc successors` | the intent stage, or `sdlc draft harvest` |
 | [the open suggestions, every cycle](../guides/running-a-cycle.md) | each cycle's `suggestions.json` | `sdlc suggestions` | the binary |
 | [what the completed cycles can still give back](../../skills/README.md#harvest) | read from every completed cycle and the ledger | `sdlc harvest`, `sdlc harvest <aspect>` | — |
+| **A series** | | | |
+| [a series: its wave limit, the approval setting it started under, and what each wave took](commands.md) | `.sdlc/series/<id>/series.json`, committed on `series/<id>` | `sdlc series status [<id>]` | the binary, through `sdlc series start` and `sdlc series wave`; `sdlc harvest close` deletes the folder with the last cycle it lists |
+| [why a series stopped, which stops every cycle that exists only in the series](../mechanisms/protected-files.md) | `.sdlc/series/<id>/abandoned.md` | `sdlc series status <id>` | a person, from `sdlc draft abandon --series <id>` |
+| [the report a wave or a series hands back](commands.md) | worked out from each cycle the run's branch carries and the series' record; never a file of its own | `sdlc report --run` | nobody: the binary renders it |
 | **Harvest** | | | |
-| [the aspects each completed cycle has answered, the closed cycles, each sitting, what is watched and what was ignored, each concern with its reason](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
+| [the aspects each completed cycle has answered, the closed cycles, each sitting with what it declined and covered, what is watched and what was ignored, each concern with its reason](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
 | [the notes for the framework every sitting wrote, with the evidence that stays here](../guides/harvesting-the-cycles.md) | `.sdlc/framework-harvest.json` | `sdlc harvest framework`, which prints them without their evidence | the binary, through `sdlc harvest record` |
 | [a closed cycle's contents, once its folder is gone](../../skills/README.md#harvest) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |

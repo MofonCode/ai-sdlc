@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Sdlc.Core.Proposals;
+using Sdlc.Core.Reports;
 
 namespace Sdlc.Core.Harvest;
 
@@ -22,7 +23,7 @@ public static class HarvestRenderer
         // A concern ignored in enough cycles is a pattern, and the next sitting has to answer it (D-153).
         foreach (Watched ignored in response.Ignored.Where(ignored => ignored.Cycles.Count >= ProposeConstraints.Bar))
         {
-            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ignored in {ignored.Cycles.Count} cycles, at the bar: {ignored.Gist} -- the next sitting makes it a successor or declines it"));
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ignored in {ignored.Cycles.Count} cycles, at the bar: {ignored.Gist} -- the next sitting makes it a successor, declines it, or covers it"));
             Why(text, ignored, "    ");
         }
 
@@ -55,7 +56,14 @@ public static class HarvestRenderer
         {
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"Read from their own branches, never merged: {string.Join(", ", response.ReadFrom)}. Each folder is at its branch's last commit; 'sdlc tidy' lists the branch for deletion once this merges."));
+                $"Read from their own branches, never merged: {string.Join(", ", response.ReadFrom.Distinct(StringComparer.Ordinal))}. Each folder is at its branch's last commit; 'sdlc tidy' lists the branch for deletion once this merges."));
+        }
+
+        if (response.Series.Count > 0)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Every cycle of series {string.Join(", ", response.Series)} is closed, so its folder under .sdlc/series/ is removed in the same commit."));
         }
 
         foreach (HarvestReport.OpenCycle open in response.Waiting)
@@ -74,8 +82,12 @@ public static class HarvestRenderer
 
     /// <summary>The ledger, for a person: each closed cycle, each sitting, and what is watched.</summary>
     /// <param name="ledger">The ledger.</param>
+    /// <param name="named">
+    /// The ids its declined and covered answers name, each with what it says (<see cref="NamedIn"/>), or null to
+    /// leave the <c>Named:</c> block out.
+    /// </param>
     /// <returns>The text.</returns>
-    public static string RenderHistory(HarvestLedger ledger)
+    public static string RenderHistory(HarvestLedger ledger, IReadOnlyList<IdTexts.Named>? named = null)
     {
         ArgumentNullException.ThrowIfNull(ledger);
 
@@ -99,7 +111,7 @@ public static class HarvestRenderer
         foreach (HarvestSitting sitting in ledger.Sittings)
         {
             text.AppendLine();
-            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {sitting.Recorded:yyyy-MM-dd} {HarvestAspects.NameOf(sitting.Aspect)}: {sitting.Cycles.Count} cycles, {sitting.Accepted.Count} accepted, {sitting.Declined.Count} suggestions declined"));
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {sitting.Recorded:yyyy-MM-dd} {HarvestAspects.NameOf(sitting.Aspect)}: {sitting.Cycles.Count} cycles, {sitting.Accepted.Count} accepted, {sitting.Declined.Count} suggestions declined, {(sitting.Covered ?? []).Count} covered"));
 
             foreach (string accepted in sitting.Accepted)
             {
@@ -109,6 +121,11 @@ public static class HarvestRenderer
             foreach (HarvestDecline decline in sitting.Declined)
             {
                 text.AppendLine("    declined " + decline.Id + ": " + decline.Reason);
+            }
+
+            foreach (HarvestCover cover in sitting.Covered ?? [])
+            {
+                text.AppendLine("    covered " + cover.Id + " by " + cover.By + ": " + cover.Reason);
             }
         }
 
@@ -136,7 +153,29 @@ public static class HarvestRenderer
             }
         }
 
+        if (named is { Count: > 0 })
+        {
+            text.AppendLine();
+            text.Append(IdTexts.Render(named));
+        }
+
         return text.ToString();
+    }
+
+    /// <summary>
+    /// Every rule, decision and successor the ledger's declined and covered answers name, once each: what
+    /// <see cref="RenderHistory"/> shows with its text.
+    /// </summary>
+    /// <param name="ledger">The ledger.</param>
+    /// <returns>The ids, as written.</returns>
+    public static IReadOnlyList<string> NamedIn(HarvestLedger ledger)
+    {
+        ArgumentNullException.ThrowIfNull(ledger);
+
+        return IdTexts.Find(string.Join(
+            "\n",
+            ledger.Sittings.SelectMany(sitting => sitting.Declined.Select(decline => decline.Reason)
+                .Concat((sitting.Covered ?? []).SelectMany(cover => new[] { cover.By, cover.Reason })))));
     }
 
     /// <summary>Writes a concern's reason under it, when it carries one (D-194).</summary>

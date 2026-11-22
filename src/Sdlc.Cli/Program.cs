@@ -23,6 +23,7 @@ using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
+using Sdlc.Core.Series;
 using Sdlc.Core.Solutions;
 using Sdlc.Core.Successors;
 
@@ -102,8 +103,8 @@ try
         "slices" => await SlicesCommand(line).ConfigureAwait(false),
         "admit" => await Workspace.Run(line, AdmitCommand).ConfigureAwait(false),
         "park" => await WithCycle(line, "park", ParkCommand).ConfigureAwait(false),
-        "unpark" => await WithCycle(line, "unpark", UnparkCommand).ConfigureAwait(false),
-        "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
+        "unpark" => await WithCycle(line, "unpark", (w, id) => UnparkCommand(w, line, id)).ConfigureAwait(false),
+        "backlog" => await Workspace.Run(line, w => BacklogCommand(w, line)).ConfigureAwait(false),
         "discard" => await Workspace.Run(line, DiscardCommand).ConfigureAwait(false),
         "tidy" => await Workspace.Run(line, TidyCommand).ConfigureAwait(false),
         "upgrade" => await Workspace.Run(line, w => UpgradeCommand(w, line)).ConfigureAwait(false),
@@ -119,8 +120,9 @@ try
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
-        "report" => await WithCycle(line, "report", ReportCommand).ConfigureAwait(false),
+        "report" => await ReportVerb(line).ConfigureAwait(false),
         "build" => await BuildVerb(line).ConfigureAwait(false),
+        "series" => await SeriesCommand(line).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
@@ -449,6 +451,23 @@ static async Task<int> NewCycle(Workspace workspace)
 // the refusal, which has to be the same whether one cycle opens one or eight.
 static async Task<int> AskPrReady(CommandLine line)
 {
+    // No cycle named, on a run's branch: the run opens one pull request for every cycle it built, so the question
+    // is the run's, answered by the same check its pull request will meet.
+    if (line.Arguments.Count == 0)
+    {
+        const int NotARun = -1;
+        int answered = await Workspace.Run(line, async workspace =>
+            workspace.Repository.IsRepository(workspace.SolutionRoot)
+                && RunBranch.TryParse(workspace.Repository.CurrentBranch(workspace.SolutionRoot), out RunKind kind, out string? run)
+                ? await RunPrReady(workspace, line, kind, run).ConfigureAwait(false)
+                : NotARun).ConfigureAwait(false);
+
+        if (answered != NotARun)
+        {
+            return answered;
+        }
+    }
+
     return await WithCycle(line, "pr-ready", async (workspace, id) =>
         {
             Result<PullRequest.Response> result = await workspace
@@ -463,6 +482,37 @@ static async Task<int> AskPrReady(CommandLine line)
             await Console.Out.WriteAsync(PullRequestRenderer.Render(result.Value)).ConfigureAwait(false);
             return result.Value.MayOpen ? ExitCode.Ok : ExitCode.Refused;
         }).ConfigureAwait(false);
+}
+
+// Whether a run may open its one pull request: the run's check, against --base or else the integration branch.
+static async Task<int> RunPrReady(Workspace workspace, CommandLine line, RunKind kind, string run)
+{
+    string target = line.TryOption("base", out string? named)
+        ? named
+        : await SolutionDocument.IntegrationBranchOf(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+
+    (IReadOnlyList<string>? changed, string? divergence) = AgainstBranch(workspace, target);
+
+    if (changed is null)
+    {
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{RunBranch.NameOf(kind, run)} may not open a pull request yet: git could not say what it changes against {target}, so there is nothing to check."))
+            .ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    Result<VerifyRun.Response> result = await workspace
+        .Send<VerifyRun.Query, VerifyRun.Response>(new VerifyRun.Query(kind, run, changed, divergence))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(VerifyRun.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
 }
 
 // Every cycle is examined, and every one is listed -- ready or not. A list of only the eligible ones
@@ -576,14 +626,23 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
             }
         }
 
+        string? onto = null;
+
+        if (line.HasOption("onto") && (!line.TryOption("onto", out onto) || string.IsNullOrWhiteSpace(onto)))
+        {
+            await Console.Error.WriteLineAsync("--onto takes the branch the run builds onto, as in 'sdlc cycles --queued --onto series/20261121_0930_15'.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
         Result<ListQueuedCycles.Response> queue = await workspace
-            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(only))
+            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(only, onto))
             .ConfigureAwait(false);
 
         if (queue.IsFailed)
         {
-            // A named cycle that is not queued is refused with why; with none named, a failure is the gate's.
-            return await Report(queue, only is null ? ExitCode.Failed : ExitCode.Refused).ConfigureAwait(false);
+            // A named cycle that is not queued is refused with why, and so is a branch that is nowhere; with
+            // neither, a failure is the gate's.
+            return await Report(queue, only is null && onto is null ? ExitCode.Failed : ExitCode.Refused).ConfigureAwait(false);
         }
 
         await Console.Out.WriteAsync(QueuedRenderer.Render(queue.Value)).ConfigureAwait(false);
@@ -737,6 +796,11 @@ static async Task<int> VerifyChainCommand(CommandLine line)
         return await Workspace.Run(line, workspace => VerifySlicingCommand(workspace, line, slicing)).ConfigureAwait(false);
     }
 
+    if (RunBranch.TryParse(given, out RunKind kind, out string? run))
+    {
+        return await Workspace.Run(line, workspace => VerifyRunCommand(workspace, line, kind, run)).ConfigureAwait(false);
+    }
+
     if (!CycleId.TryParse(given, out CycleId? id) && !CycleId.TryParseBranch(given, out id))
     {
         // A change that moves the release and nothing else is checked by reproducing it (D-133). Chosen by
@@ -849,6 +913,35 @@ static async Task<int> VerifySlicingCommand(Workspace workspace, CommandLine lin
     return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
 }
 
+// A run's branch, wave/<id> or series/<id>: every cycle it built gets its whole chain, and every test any of their
+// plans named must have passed at the run's end. Still chosen by the diff: without --base, or when git cannot say
+// what changed, there are no cycles to check and it is refused.
+static async Task<int> VerifyRunCommand(Workspace workspace, CommandLine line, RunKind kind, string id)
+{
+    (IReadOnlyList<string>? changed, string? divergence) = await AgainstBase(workspace, line).ConfigureAwait(false);
+
+    if (changed is null)
+    {
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{RunBranch.NameOf(kind, id)} carries several cycles, and which is read against --base. Without it there is nothing to check, so the check does not hold."))
+            .ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    Result<VerifyRun.Response> result = await workspace
+        .Send<VerifyRun.Query, VerifyRun.Response>(new VerifyRun.Query(kind, id, changed, divergence))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(VerifyRun.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
+}
+
 // What a pull request changes against the target branch --base names, or null when there is no --base
 // or git cannot say. Null means the full chain, everywhere it is read.
 static async Task<IReadOnlyList<string>?> ChangedAgainstBase(Workspace workspace, CommandLine line) =>
@@ -863,6 +956,23 @@ static async Task<(IReadOnlyList<string>? Changed, string? Divergence)> AgainstB
         return (null, null);
     }
 
+    (IReadOnlyList<string>? changed, string? divergence) = AgainstBranch(workspace, target);
+
+    if (changed is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"git could not say what this pull request changes against {(target.StartsWith("refs/heads/", StringComparison.OrdinalIgnoreCase) ? target["refs/heads/".Length..] : target)}, so the full chain is checked."))
+            .ConfigureAwait(false);
+    }
+
+    return (changed, divergence);
+}
+
+// What the checked-out branch changes against a target branch, and the commit it left the target at; nulls when git
+// cannot say.
+static (IReadOnlyList<string>? Changed, string? Divergence) AgainstBranch(Workspace workspace, string target)
+{
     const string FullyQualified = "refs/heads/";
     string branch = target.StartsWith(FullyQualified, StringComparison.OrdinalIgnoreCase)
         ? target[FullyQualified.Length..]
@@ -872,14 +982,6 @@ static async Task<(IReadOnlyList<string>? Changed, string? Divergence)> AgainstB
     IReadOnlyList<string>? changed = divergence is not null
         ? workspace.Repository.CommittedChanges(workspace.SolutionRoot, divergence, "HEAD")
         : null;
-
-    if (changed is null)
-    {
-        await Console.Error.WriteLineAsync(string.Create(
-            CultureInfo.InvariantCulture,
-            $"git could not say what this pull request changes against {branch}, so the full chain is checked."))
-            .ConfigureAwait(false);
-    }
 
     return (changed, divergence);
 }
@@ -1055,7 +1157,7 @@ static async Task<int> BranchCommand(CommandLine line)
     if (line.Arguments.Count < 2)
     {
         await Console.Error.WriteLineAsync(
-            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- sandbox, plan, build, build-unattended or forward.")
+            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- sandbox, plan, build, build-unattended, forward, remediate or wave.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
@@ -1079,6 +1181,34 @@ static async Task<int> BranchCommand(CommandLine line)
             await Console.Error.WriteLineAsync(string.Create(
                 CultureInfo.InvariantCulture,
                 $"{(place.Value.Opened ? "Opened" : "Already open")}: {place.Value.Branch}, where the build is. Work there; push from there and the same pull request takes it."))
+                .ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
+    // A wave is built on a branch of its own, wave/<id>, from the sandbox it was planned in, in a worktree beside the
+    // repository: every cycle the sandbox carries, one after another, ending in one pull request.
+    if (string.Equals(line.Arguments[1], "wave", StringComparison.OrdinalIgnoreCase))
+    {
+        return await WithCycle(line, "branch", async (workspace, id) =>
+        {
+            string root = workspace.SolutionRoot;
+
+            if (!workspace.Repository.RefExists(root, SandboxBranch.NameOf(id)))
+            {
+                await Console.Error.WriteLineAsync(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"There is no {SandboxBranch.NameOf(id)} here to build a wave from. Name the sandbox by its first cycle, as 'sdlc branch <id> sandbox' opened it."))
+                    .ConfigureAwait(false);
+                return ExitCode.Refused;
+            }
+
+            bool exists = workspace.Repository.RefExists(root, RunBranch.NameOf(RunKind.Wave, id.ToString()));
+
+            await Console.Out.WriteLineAsync(RunBranch.OpenWave(root, id, exists)).ConfigureAwait(false);
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{(exists ? "wave/" + id + " already exists, so its worktree opens on it" : "This wave is built on wave/" + id + ", from " + SandboxBranch.NameOf(id) + ",")} at {RunBranch.WorktreePath(root, RunKind.Wave, id.ToString())}. Every cycle the sandbox planned is built there, one after another, into one pull request: 'sdlc build --run' in that worktree."))
                 .ConfigureAwait(false);
             return ExitCode.Ok;
         }).ConfigureAwait(false);
@@ -1154,10 +1284,18 @@ static async Task<int> LeadCommand(CommandLine line)
         return ExitCode.Usage;
     }
 
+    string? onto = null;
+
+    if (line.HasOption("onto") && (!line.TryOption("onto", out onto) || string.IsNullOrWhiteSpace(onto)))
+    {
+        await Console.Error.WriteLineAsync("--onto takes the branch a successor's predecessors must have reached, as in 'sdlc lead show successor:totals --onto series/20261121_0930_15'.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
     return await Workspace.Run(line, async workspace =>
     {
         Result<Sdlc.Core.Leads.ReadLead.Response> result = await workspace
-            .Send<Sdlc.Core.Leads.ReadLead.Query, Sdlc.Core.Leads.ReadLead.Response>(new Sdlc.Core.Leads.ReadLead.Query(reference))
+            .Send<Sdlc.Core.Leads.ReadLead.Query, Sdlc.Core.Leads.ReadLead.Response>(new Sdlc.Core.Leads.ReadLead.Query(reference, onto))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -1211,10 +1349,18 @@ static async Task<int> ParkCommand(Workspace workspace, CycleId id)
 }
 
 // A parked cycle back on its way, once everything it waited on has merged with a pass (D-145).
-static async Task<int> UnparkCommand(Workspace workspace, CycleId id)
+static async Task<int> UnparkCommand(Workspace workspace, CommandLine line, CycleId id)
 {
+    string? onto = null;
+
+    if (line.HasOption("onto") && (!line.TryOption("onto", out onto) || string.IsNullOrWhiteSpace(onto)))
+    {
+        await Console.Error.WriteLineAsync("--onto takes the branch the work builds onto, as in 'sdlc unpark " + id + " --onto series/20261121_0930_15'.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
     Result<UnparkCycle.Response> result = await workspace
-        .Send<UnparkCycle.Command, UnparkCycle.Response>(new UnparkCycle.Command(id))
+        .Send<UnparkCycle.Command, UnparkCycle.Response>(new UnparkCycle.Command(id, onto))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -1277,19 +1423,38 @@ static async Task<int> TidyCommand(Workspace workspace)
     return ExitCode.Ok;
 }
 
-// Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing.
-static async Task<int> BacklogCommand(Workspace workspace)
+// Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing. --onto judges
+// readiness against the branch a run builds onto rather than the integration branch.
+static async Task<int> BacklogCommand(Workspace workspace, CommandLine line)
 {
+    IReadOnlyList<string> unknown = line.OptionsOtherThan("onto", "solution");
+
+    if (unknown.Count > 0)
+    {
+        await Console.Error.WriteLineAsync(
+            $"'sdlc backlog' does not take {string.Join(", ", unknown.Select(name => "--" + name))}. It takes --onto <branch>.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string? onto = null;
+
+    if (line.HasOption("onto") && (!line.TryOption("onto", out onto) || string.IsNullOrWhiteSpace(onto)))
+    {
+        await Console.Error.WriteLineAsync("--onto takes the branch the work builds onto, as in 'sdlc backlog --onto series/20261121_0930_15'.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
     Result<ReadSuccessors.Response> result = await workspace
-        .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query())
+        .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(onto))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
     {
-        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+        return await Report(result, onto is null ? ExitCode.Failed : ExitCode.Refused).ConfigureAwait(false);
     }
 
-    await Console.Out.WriteAsync(BacklogRenderer.Render(result.Value)).ConfigureAwait(false);
+    await Console.Out.WriteAsync(BacklogRenderer.Render(result.Value, onto)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 
@@ -1298,9 +1463,181 @@ static async Task<int> BacklogCommand(Workspace workspace)
 // Build it (D-178, D-184, D-187): the one stage name the binary runs rather than answers with the skill to use. With
 // a cycle, that cycle; with none, every queued cycle in one process.
 static async Task<int> BuildVerb(CommandLine line) =>
-    line.Arguments.Count == 0
-        ? await Workspace.Run(line, BuildEveryQueuedCommand).ConfigureAwait(false)
-        : await WithCycle(line, "build", BuildCommand).ConfigureAwait(false);
+    line.HasOption("run")
+        ? await Workspace.Run(line, BuildRunCommand).ConfigureAwait(false)
+        : line.Arguments.Count == 0
+            ? await Workspace.Run(line, BuildEveryQueuedCommand).ConfigureAwait(false)
+            : await WithCycle(line, "build", BuildCommand).ConfigureAwait(false);
+
+// The run checked out here, wave/<id> or series/<id>: its own process builds every cycle the branch carries, one
+// after another, into that branch, with no branch or worktree of a cycle's own; it ends in the run's one pull request.
+static async Task<int> BuildRunCommand(Workspace workspace)
+{
+    string? on = workspace.Repository.IsRepository(workspace.SolutionRoot) ? workspace.Repository.CurrentBranch(workspace.SolutionRoot) : null;
+
+    if (!RunBranch.TryParse(on, out RunKind kind, out string? run))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"'sdlc build --run' builds a run's cycles on the run's own branch, wave/<id> or series/<id>, and this is {on ?? "no branch"}. Run it in the run's worktree, or name it with --solution; for one cycle, 'sdlc build <id>'."))
+            .ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
+    {
+        return ExitCode.Usage;
+    }
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Building every cycle {RunBranch.NameOf(kind, run)} carries, in {workspace.SolutionRoot}, one after another into that branch. Its own process implements, verifies and fixes what it can, and opens the run's one pull request; it asks nothing, and this waits for it."))
+        .ConfigureAwait(false);
+
+    return await Launched(await workspace
+        .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(null, workspace.SolutionRoot, plugin, Run: true))
+        .ConfigureAwait(false), "'sdlc report --run' says where each cycle stopped.").ConfigureAwait(false);
+}
+
+// How a launched process ended, said once for every command that starts one and prints nothing after it.
+static async Task<int> Launched(Result<Sdlc.Core.AgentExit> exit, string where)
+{
+    if (exit.IsFailed)
+    {
+        return await Report(exit, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (exit.Value.NeverStarted)
+    {
+        await Console.Error.WriteLineAsync("The process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    if (!exit.Value.Succeeded)
+    {
+        await Console.Error.WriteLineAsync("The process ended badly: " + exit.Value.Problem + " " + where).ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    return ExitCode.Ok;
+}
+
+// A series: wave after wave of successors planned and built into series/<id>, ending in one pull request. 'start'
+// opens its branch and worktree; 'wave' takes the next wave there; 'status' says where it stands; 'run' starts its own
+// process, which is what the factory runs.
+static async Task<int> SeriesCommand(CommandLine line)
+{
+    string what = line.Arguments.Count == 0 ? string.Empty : line.Arguments[0].ToUpperInvariant();
+    CommandLine rest = line.WithoutFirstArgument();
+
+    switch (what)
+    {
+        case "START":
+            if (!line.TryOption("waves", out string? given) || !int.TryParse(given, NumberStyles.Integer, CultureInfo.InvariantCulture, out int waves))
+            {
+                await Console.Error.WriteLineAsync("How many waves may it run? As in 'sdlc series start --waves 3': it stops there, or when nothing is ready, whichever comes first.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
+            return await Workspace.Run(rest, async workspace =>
+            {
+                Result<StartSeries.Response> started = await workspace
+                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves))
+                    .ConfigureAwait(false);
+
+                if (started.IsFailed)
+                {
+                    return await Report(started, ExitCode.Refused).ConfigureAwait(false);
+                }
+
+                // The path alone on standard output, so a pipeline can hand it to 'series run --solution'.
+                await Console.Out.WriteLineAsync(started.Value.Worktree).ConfigureAwait(false);
+                await Console.Error.WriteAsync(StartSeries.Render(started.Value)).ConfigureAwait(false);
+                return ExitCode.Ok;
+            }).ConfigureAwait(false);
+
+        case "WAVE":
+            return await Workspace.Run(rest, async workspace =>
+            {
+                Result<NextWave.Response> taken = await workspace
+                    .Send<NextWave.Command, NextWave.Response>(new NextWave.Command())
+                    .ConfigureAwait(false);
+
+                if (taken.IsFailed)
+                {
+                    return await Report(taken, ExitCode.Refused).ConfigureAwait(false);
+                }
+
+                await Console.Out.WriteAsync(NextWave.Render(taken.Value)).ConfigureAwait(false);
+                return ExitCode.Ok;
+            }).ConfigureAwait(false);
+
+        case "STATUS":
+            return await Workspace.Run(rest, async workspace =>
+            {
+                Result<SeriesStatus.Response> status = await workspace
+                    .Send<SeriesStatus.Query, SeriesStatus.Response>(new SeriesStatus.Query(rest.Arguments.Count > 0 ? rest.Arguments[0] : null))
+                    .ConfigureAwait(false);
+
+                if (status.IsFailed)
+                {
+                    return await Report(status, ExitCode.Refused).ConfigureAwait(false);
+                }
+
+                await Console.Out.WriteAsync(SeriesStatus.Render(status.Value)).ConfigureAwait(false);
+                return ExitCode.Ok;
+            }).ConfigureAwait(false);
+
+        case "RUN":
+            return await Workspace.Run(rest, workspace => SeriesRunCommand(workspace, rest)).ConfigureAwait(false);
+
+        default:
+            await Console.Error.WriteLineAsync("Which? 'sdlc series start --waves <n>', 'sdlc series wave', 'sdlc series status [<id>]' or 'sdlc series run [<id>]'.").ConfigureAwait(false);
+            return ExitCode.Usage;
+    }
+}
+
+// The series' own process, in its worktree, as 'sdlc build' starts a build's: headless, its tools named, never with
+// permission checks off. The factory runs this.
+static async Task<int> SeriesRunCommand(Workspace workspace, CommandLine rest)
+{
+    string? on = workspace.Repository.IsRepository(workspace.SolutionRoot) ? workspace.Repository.CurrentBranch(workspace.SolutionRoot) : null;
+    string? id = rest.Arguments.Count > 0
+        ? rest.Arguments[0]
+        : RunBranch.TryParse(on, out RunKind kind, out string? here) && kind == RunKind.Series ? here : null;
+
+    if (id is null || !RunBranch.TryParse(RunBranch.SeriesPrefix + id, out _, out _))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Which series? This is {on ?? "no branch"}. Name its worktree: 'sdlc series run --solution <worktree>', as 'sdlc series start' printed it."))
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    if (!string.Equals(on, RunBranch.SeriesPrefix + id, StringComparison.Ordinal))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Series {id} runs in its own worktree, on series/{id}, and {workspace.SolutionRoot} is on {on ?? "no branch"}. Pass --solution with the path 'sdlc series start' printed."))
+            .ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
+    {
+        return ExitCode.Usage;
+    }
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Running series {id} in {workspace.SolutionRoot}. Its own process takes each wave, plans and builds it into series/{id}, and opens one pull request; it asks nothing, and this waits for it."))
+        .ConfigureAwait(false);
+
+    return await Launched(await workspace
+        .Send<SeriesRun.Launch, Sdlc.Core.AgentExit>(new SeriesRun.Launch(id, workspace.SolutionRoot, plugin))
+        .ConfigureAwait(false), "'sdlc series status' says where each wave stopped.").ConfigureAwait(false);
+}
 
 // The plugin this release carries, which the build's process loads so it runs the release the solution pins.
 static async Task<string?> BuildPlugin()
@@ -1608,6 +1945,67 @@ static async Task<int> DeviationsCommand(Workspace workspace, CycleId id)
     return result.Value.State.Problems.Count > 0 ? ExitCode.Refused : ExitCode.Ok;
 }
 
+// One cycle's report, or with --run the one report of the run checked out here.
+static async Task<int> ReportVerb(CommandLine line) =>
+    line.HasOption("run")
+        ? await Workspace.Run(line, RunReportCommand).ConfigureAwait(false)
+        : await WithCycle(line, "report", ReportCommand).ConfigureAwait(false);
+
+// The one report a wave or a series ends on, and its pull request leads with after the agent's summary: a section per
+// wave, a short entry per cycle, what stopped and what it held back, and what each id named says. No cycle's own
+// report is printed. A copy is kept under .sdlc/reports/. Exits 1 when a cycle's deviations are unsound.
+static async Task<int> RunReportCommand(Workspace workspace)
+{
+    string? on = workspace.Repository.IsRepository(workspace.SolutionRoot) ? workspace.Repository.CurrentBranch(workspace.SolutionRoot) : null;
+
+    if (!RunBranch.TryParse(on, out RunKind kind, out string? run))
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"'sdlc report --run' reports on the run checked out here, wave/<id> or series/<id>, and this is {on ?? "no branch"}. Run it in the run's worktree, or name it with --solution; for one cycle, 'sdlc report <id>'."))
+            .ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    string integration = await SolutionDocument.IntegrationBranchOf(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+    string target = new[] { "origin/" + integration, integration }.FirstOrDefault(name => workspace.Repository.RefExists(workspace.SolutionRoot, name)) ?? integration;
+    (IReadOnlyList<string>? changed, _) = AgainstBranch(workspace, target);
+
+    if (changed is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"git could not say what {RunBranch.NameOf(kind, run)} changes against {target}, so which cycles it carries is unknown. Fetch {integration} and ask again."))
+            .ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    Result<RunReport.Response> result = await workspace
+        .Send<RunReport.Query, RunReport.Response>(new RunReport.Query(kind, run, changed))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    string body = RunReport.Render(result.Value);
+    await Console.Out.WriteAsync(body).ConfigureAwait(false);
+
+    // Said on standard error, so standard output is the pull request's body and nothing else.
+    try
+    {
+        string kept = await ReportFile.Write(workspace.SolutionRoot, RunReport.Kind, body, TimeProvider.System.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
+        await Console.Error.WriteLineAsync("Kept at " + kept).ConfigureAwait(false);
+    }
+    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+    {
+        await Console.Error.WriteLineAsync("Not kept: " + error.Message).ConfigureAwait(false);
+    }
+
+    return result.Value.Unsound ? ExitCode.Refused : ExitCode.Ok;
+}
+
 // The report a build ends on and the pull request leads with (D-181). Exits 1 when a deviation is unsound, which
 // the pull request check would refuse anyway.
 static async Task<int> ReportCommand(Workspace workspace, CycleId id)
@@ -1686,10 +2084,18 @@ static async Task<int> SuccessorCommand(CommandLine line)
         ? line.Arguments[1][Sdlc.Core.Successors.SuccessorReference.Prefix.Length..]
         : line.Arguments[1];
 
+    string? onto = null;
+
+    if (line.HasOption("onto") && (!line.TryOption("onto", out onto) || string.IsNullOrWhiteSpace(onto)))
+    {
+        await Console.Error.WriteLineAsync("--onto takes the branch the successor's predecessors must have reached, as in 'sdlc successor start totals " + id + " --onto series/20261121_0930_15'.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
     return await Workspace.Run(line, async workspace =>
     {
         Result<Sdlc.Core.Successors.StartSuccessor.Response> result = await workspace
-            .Send<Sdlc.Core.Successors.StartSuccessor.Command, Sdlc.Core.Successors.StartSuccessor.Response>(new Sdlc.Core.Successors.StartSuccessor.Command(slug, id.Value))
+            .Send<Sdlc.Core.Successors.StartSuccessor.Command, Sdlc.Core.Successors.StartSuccessor.Response>(new Sdlc.Core.Successors.StartSuccessor.Command(slug, id.Value, onto))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -1867,6 +2273,8 @@ static async Task<int> Draft(CommandLine line)
     {
         "approval" => await WithCycle(rest, "draft approval", (w, id) => DraftApproval(w, line, id))
             .ConfigureAwait(false),
+        "abandon" when rest.TryOption("series", out string? series) => await Workspace.Run(rest, w => DraftAbandonSeries(w, series))
+            .ConfigureAwait(false),
         "abandon" => await WithCycle(rest, "draft abandon", (w, id) => DraftAbandon(w, id))
             .ConfigureAwait(false),
         "solution" => await DraftSolution(rest).ConfigureAwait(false),
@@ -1934,6 +2342,16 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
 
     return await PrintDraft(await workspace
         .Send<AbandonText.Query, DraftResult>(new AbandonText.Query(id, by))
+        .ConfigureAwait(false)).ConfigureAwait(false);
+}
+
+// A rejected series, stopped in one step: one record beside the series' own covers every cycle it ran.
+static async Task<int> DraftAbandonSeries(Workspace workspace, string series)
+{
+    string by = workspace.Repository.UserName(workspace.SolutionRoot) ?? "<your name>";
+
+    return await PrintDraft(await workspace
+        .Send<AbandonText.SeriesQuery, DraftResult>(new AbandonText.SeriesQuery(series, by))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
@@ -2156,6 +2574,34 @@ static async Task<int> HarvestCommand(CommandLine line)
         }).ConfigureAwait(false);
     }
 
+    // What one proposal file asks of a person: its proposals, each answer counted by theme, and every id it names
+    // with what it says. The agent chose the themes; the counts and texts are the binary's.
+    if (sub == "summary")
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+
+        if (rest.Arguments.Count == 0)
+        {
+            await Console.Error.WriteLineAsync("Which proposal file? 'sdlc harvest summary <proposal file>'.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        return await Workspace.Run(rest, async workspace =>
+        {
+            Result<HarvestSummary.Response> summary = await workspace
+                .Send<HarvestSummary.Query, HarvestSummary.Response>(new HarvestSummary.Query(Path.GetFullPath(rest.Arguments[0])))
+                .ConfigureAwait(false);
+
+            if (summary.IsFailed)
+            {
+                return await Report(summary, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(HarvestSummary.Render(summary.Value)).ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
+    }
+
     if (line.HasOption("history"))
     {
         return await Workspace.Run(line, async workspace =>
@@ -2167,7 +2613,18 @@ static async Task<int> HarvestCommand(CommandLine line)
                 return await Report(ledger, ExitCode.Refused).ConfigureAwait(false);
             }
 
-            await Console.Out.WriteAsync(HarvestRenderer.RenderHistory(ledger.Value)).ConfigureAwait(false);
+            // The rules, decisions and successors its declined and covered answers name, each with what it says.
+            IReadOnlyList<string> ids = HarvestRenderer.NamedIn(ledger.Value);
+            Result<IdTexts.Response>? named = ids.Count == 0
+                ? null
+                : await workspace.Send<IdTexts.Query, IdTexts.Response>(new IdTexts.Query(ids)).ConfigureAwait(false);
+
+            if (named is { IsFailed: true })
+            {
+                return await Report(named, ExitCode.Refused).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(HarvestRenderer.RenderHistory(ledger.Value, named?.Value.Named)).ConfigureAwait(false);
             return ExitCode.Ok;
         }).ConfigureAwait(false);
     }
@@ -2178,7 +2635,7 @@ static async Task<int> HarvestCommand(CommandLine line)
     {
         if (!HarvestAspects.TryParse(sub, out HarvestAspect parsedAspect))
         {
-            await Console.Error.WriteLineAsync($"'{line.Arguments[0]}' is not something to harvest. One of {HarvestAspects.Listed}; or record, close, framework, read, review, --history.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"'{line.Arguments[0]}' is not something to harvest. One of {HarvestAspects.Listed}; or record, close, framework, read, review, summary, --history.").ConfigureAwait(false);
             return ExitCode.Usage;
         }
 
@@ -2908,7 +3365,7 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     ArtifactValidation? shape = text is null
         ? null
         : Departures.Checked(
-            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false)),
+            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false), status.Cycle.InSeries),
             text,
             recorded);
 

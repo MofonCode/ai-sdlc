@@ -254,7 +254,17 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     public bool Exists => System.IO.Directory.Exists(Directory);
 
     /// <summary>
-    /// Whether the cycle has been abandoned.
+    /// The file that abandons this cycle: its own <see cref="AbandonedPath"/>, or the <c>abandoned.md</c> of a series
+    /// whose record lists it; null when neither does.
+    /// </summary>
+    /// <remarks>
+    /// A rejected series is abandoned in one step: one file beside its record covers every cycle the record lists,
+    /// with the person's reason, so none is left neither merged nor abandoned and a harvest still reads them.
+    /// </remarks>
+    public string? AbandonmentPath => File.Exists(AbandonedPath) ? AbandonedPath : Series.SeriesRecord.AbandoningSeries(this);
+
+    /// <summary>
+    /// Whether the cycle has been abandoned: by its own record, or by its series'.
     /// </summary>
     /// <remarks>
     /// Abandonment is terminal: a cycle with this file never builds, even if it also holds an
@@ -262,5 +272,16 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     /// which of two hand-written files wins and the ordering of those is not something to rest a gate
     /// on.
     /// </remarks>
-    public bool IsAbandoned => File.Exists(AbandonedPath);
+    public bool IsAbandoned => AbandonmentPath is not null;
+
+    /// <summary>
+    /// Whether a series' record in this working copy lists the cycle: by its id, or as the successor its intent
+    /// records as its lead.
+    /// </summary>
+    /// <remarks>
+    /// A series asks nobody, so the lines its intents' suggestion inferred stay marked <c>(inferred)</c> and the run's
+    /// report lists them as not confirmed by anyone. The shape check lets those marks stand for such a cycle, and only
+    /// for one.
+    /// </remarks>
+    public bool InSeries => Series.SeriesRecord.ListingSeries(this, abandonedOnly: false) is not null;
 }

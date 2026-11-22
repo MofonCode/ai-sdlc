@@ -96,8 +96,8 @@ What it does not cover: setting it up, which is `setting-up-the-factory.md`; the
 **What a solution keeps from its completed cycles.** Which cycles a harvest reads — merged after a passing verify,
 or abandoned — the five aspects the playbook runs one at a time and how each is answered: the proposal file, the
 draft, the two reviews, the rename and the record. What makes a decision, and what qualifies by who wrote it; how a
-suggestion is answered — taken further, declined, or ignored and tallied by concern until it reaches the bar; and
-closing, which commits the closed cycles' removal for a pull request you merge. It closes with what refuses.
+suggestion is answered — taken further, declined, covered by what already handles it, or ignored and tallied by
+concern until it reaches the bar; and closing, which commits the closed cycles' removal for a pull request you merge. It closes with what refuses.
 
 What it does not cover: the skill's every input and output, which is `../../skills/README.md`; or a document's
 rounds settling inside a cycle, which is `handling-blockers.md` — the word *converge* now means only that.

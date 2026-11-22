@@ -262,9 +262,28 @@ substituted source". **What keeps happening**: `sdlc harvest constraints`, once 
 the rules cited in three or more distinct cycles. It proposes and never places; adding a rule to
 `.sdlc/constraints.md` is a person's job.
 
-**When merges make the next wave ready** — successors, and plans parked behind what merged — `/sdlc:next`
-takes all of it: it starts each ready successor with a suggested intent and its few questions, takes back each parked cycle, plans
-them in one sandbox, and stops at the approvals (D-147). `sdlc backlog` lists what is waiting.
+### Three sizes of run
+
+A cycle is one size of run. When work was sliced, or merges make the next wave ready — successors, and plans parked
+behind what merged — there are two larger ones. **Each is one skill, ends in one pull request, and never merges**:
+
+| Run | Builds | Asks you | Pull request |
+|---|---|---|---|
+| **cycle** — *build it*, `/sdlc:build` | one approved cycle, on its own branch | everything above | the cycle's |
+| **wave** — `/sdlc:wave` | every item ready now, planned together in one sandbox, then built one after another on `wave/<id>` | each successor's inferred lines and the suggestions; under `approval: required` it stops at the approvals, and `/sdlc:wave` again builds what you approved | one, the wave's |
+| **series** — `/sdlc:series --waves <n>` | wave after wave on `series/<id>`, until that many waves or nothing is ready | nothing, once started | one, the series' |
+
+**A series plans only where nobody reads plans before code anyway.** Under `approval: none` it suggests each
+successor's intent, plans it and builds it, wave after wave, asking nobody; every line it inferred stays marked and
+the report lists each as confirmed by nobody. Under `approval: required` it plans nothing: it builds the cycles you
+approved, in wave order, and stops where an unapproved one comes next. A successor in a series is ready once its
+predecessor passed on the series' branch, so later waves build on earlier ones before any of it merges — which is
+why **the whole series is accepted or rejected together**, at its one pull request. Rejecting it is one step:
+`sdlc draft abandon --series <id>` prints the record you place to stop every cycle that exists only in it; an approved cycle already on the integration branch stays as it stands, to be built again.
+
+**In a wave or a series, a blocked verification stops only that cycle and those that depend on it**; the rest
+carry on, and the run's report — `sdlc report --run`, which leads its pull request — names what stopped and what it
+held back. `sdlc backlog` lists what is waiting, and `sdlc series status` where a series stands.
 
 **With several cycles approved**, *build it* with no id — `/sdlc:build` — builds, verifies and remediates them
 all, each on its own branch, opens a pull request for each, and ends with the sitrep:

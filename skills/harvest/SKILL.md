@@ -14,7 +14,7 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Write, G
 |---|---|
 | the rules the findings argued | `harvest-constraints` |
 | the choices the cycles settled | `harvest-decisions` |
-| each open suggestion: taken further, declined or ignored | `harvest-suggestions` |
+| each open suggestion: taken further, declined, covered or ignored | `harvest-suggestions` |
 | what the declared stack never mentions | `harvest-stack` |
 | the areas the plans named | `harvest-areas` |
 | close the cycles every aspect has answered | `close-cycle` |
@@ -52,8 +52,8 @@ Each writes its proposal file, hands back a short report, and waits for the pers
 same skill drafts, reviews and records it. **Only then start the next.** Never hand the person two aspects at
 once: one aspect's report is what a person can sort through, and five together is not.
 
-**Keep every hand-back short**: the count, one line per proposal saying what and why, and the one thing needed
-from the person. The reports are kept under `.sdlc/reports/` for anyone who wants the detail.
+**Keep every hand-back short**: each skill shows `sdlc harvest summary` of its proposal file — the proposals, the
+answers counted by theme, and each id with what it says — and the one thing needed from the person. The reports are kept under `.sdlc/reports/` for anyone who wants the detail.
 
 A person may stop after any aspect. Nothing is lost: the ledger keeps which aspects each cycle has answered, and the
 next `sdlc harvest` picks up where this stopped.
@@ -65,7 +65,7 @@ closed cycles' removal on a branch of its own, and opens the pull request a pers
 
 ## Hand back
 
-One short message: what was placed, what was declined or ignored, which cycles closed and the pull request's link,
+One short message: what was placed, what was declined, covered or ignored, which cycles closed and the pull request's link,
 and which cycles stay open with what they still need. When a sitting kept notes for the framework, say how many, and
 that `sdlc harvest framework` prints what of them could be handed to the framework's maintainers — the person's
 choice, never sent for them (D-204).

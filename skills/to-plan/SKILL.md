@@ -1,8 +1,8 @@
 ---
 name: to-plan
-description: Take an intent to a plan -- one cycle, or every one this branch carries -- checking the intent, writing each cycle's spec and then its plan, running the interrogate and refine loop on each until it is clean, picking up wherever a cycle stopped, carrying a person's correction or chosen suggestions through steer first when they give one, and hand back once with every panel, one question about suggestions, and the approvals drafted. A playbook: spec and plan write the documents, steer writes a correction into them, interrogate judges, refine edits. Use when a person is happy with their intent and says take it to plan, or says what should change in a cycle being planned.
+description: Take an intent to a plan -- one cycle, or every one this branch carries -- checking the intent, writing each cycle's spec and then its plan, running the interrogate and refine loop on each until it is clean, picking up wherever a cycle stopped, carrying a person's correction or chosen suggestions through steer first when they give one, and hand back once with every panel, one question about suggestions, and the approvals drafted. A playbook: spec and plan write the documents, steer writes a correction into them, interrogate judges, refine edits. With --unattended, in a series' own process, it asks nobody: a cycle it cannot settle stops, with its reason. Use when a person is happy with their intent and says take it to plan, or says what should change in a cycle being planned.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[<cycle id>] [<finding id>...] [\"what to change\"]"
+argument-hint: "[<cycle id>] [<finding id>...] [\"what to change\"] | --unattended"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -23,6 +23,9 @@ person never needs to know that a document is written, checked and refined on th
 
 **It stops at the plan.** Approving is a person's, one cycle at a time. It drafts the approval, because drafting
 is not deciding; it never places one.
+
+**With `--unattended`** — run by the `series` playbook in its own process, under `approval: none` — it takes every
+cycle this branch carries the same way and **asks nobody**: §6 says what changes.
 
 ## 1. Find the work
 
@@ -64,7 +67,7 @@ again:
 
 | Where it stopped | What to do |
 |---|---|
-| the intent still marks a line `(inferred)` — its panel names it under `Shape` | **stop this cycle**: a reading nobody confirmed is a question only the person can answer (D-200). Say which lines, and that answering them is the `intent` skill's |
+| the intent still marks a line `(inferred)` — its panel names it under `Shape` | **stop this cycle**: a reading nobody confirmed is a question only the person can answer (D-200). Say which lines, and that answering them is the `intent` skill's. **Unattended, go on**: the marks are left for the run's report |
 | the intent is not clean — no round yet, a blocker open, or a round that judged an older version | **the loop** on the intent |
 | no spec | **`spec`** writes it, then **the loop** on it |
 | a spec that is not clean | **the loop** on the spec |
@@ -195,6 +198,23 @@ instead, `/sdlc:pr --plan` admits them to the integration branch by one pull req
 
 **Then stop.** Name no new session and no admission (D-178, D-182): the build takes each plan out of this sandbox
 itself and runs in a process of its own.
+
+## 6. Unattended: `--unattended`
+
+Run by the `series` playbook, in its own process, for the cycles a wave opened or unparked. Everything above holds,
+except that **nobody is there to answer**:
+
+- **A cycle that cannot go on stops, and the run goes on.** A loop stuck on a rule, a reader reporting a conflict, a
+  decision to keep or depart from, a question only a person can answer: leave the cycle where it is — planned as far
+  as it got — and write its reason in the hand-back. Never answer for the person, and never pick a side of a
+  conflict to keep the run moving.
+- **An intent's `(inferred)` marks are left**, as the series' `intent` wrote them: the run's report names each one
+  as confirmed by nobody.
+- **No suggestions question.** Every open suggestion stays open, in `sdlc suggestions`, for a person to answer
+  later; take none in and decline none.
+- **No approvals drafted**: under `approval: none` there are none to draft.
+- **Hand back one line per cycle**, its id, its headline, and `planned`, `parked` with what it waits on, or stopped
+  and why — and nothing else. The playbook that ran this goes on.
 
 ## What you may not do
 

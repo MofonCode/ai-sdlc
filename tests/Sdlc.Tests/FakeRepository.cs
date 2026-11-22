@@ -124,6 +124,12 @@ internal sealed class FakeRepository : IRepository
 
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
+    /// <summary>The <c>(ancestor, descendant)</c> pairs <see cref="IsAncestor"/> says hold; a commit is always its own.</summary>
+    public HashSet<(string Ancestor, string Descendant)> Ancestors { get; } = [];
+
+    public bool IsAncestor(string workingDirectory, string ancestor, string descendant) =>
+        string.Equals(ancestor, descendant, StringComparison.Ordinal) || Ancestors.Contains((ancestor, descendant));
+
     /// <summary>The files <see cref="ReadAt"/> returns, keyed <c>reference:path</c>.</summary>
     public Dictionary<string, string> Files { get; } = new(StringComparer.Ordinal);
 
@@ -161,9 +167,15 @@ internal sealed class FakeRepository : IRepository
     public IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix) =>
         Remote?.Where(branch => branch.StartsWith(prefix, StringComparison.Ordinal)).ToList();
 
+    /// <summary>How many times <see cref="Branches"/> was asked for each prefix, so a test can hold a request to asking once.</summary>
+    public Dictionary<string, int> ListedBy { get; } = new(StringComparer.Ordinal);
+
     /// <inheritdoc />
-    public IReadOnlyList<string> Branches(string workingDirectory, string prefix) =>
-        [.. Refs.Where(name => name.StartsWith(prefix, StringComparison.Ordinal) || name.StartsWith("origin/" + prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal)];
+    public IReadOnlyList<string> Branches(string workingDirectory, string prefix)
+    {
+        ListedBy[prefix] = ListedBy.GetValueOrDefault(prefix) + 1;
+        return [.. Refs.Where(name => name.StartsWith(prefix, StringComparison.Ordinal) || name.StartsWith("origin/" + prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal)];
+    }
 
     /// <summary>What <see cref="Worktrees"/> reports.</summary>
     public List<(string Path, string? Branch)> WorktreeList { get; } = [];
@@ -174,8 +186,19 @@ internal sealed class FakeRepository : IRepository
     /// <summary>What <see cref="CommittedChanges"/> reports, or null for git not being able to say.</summary>
     public IReadOnlyList<string>? Committed { get; set; }
 
+    /// <summary>What <see cref="CommittedChanges"/> reports for a given pair, before falling back to <see cref="Committed"/>.</summary>
+    public Dictionary<(string From, string Until), IReadOnlyList<string>> CommittedBetween { get; } = [];
+
     /// <inheritdoc />
-    public IReadOnlyList<string>? CommittedChanges(string workingDirectory, string from, string until) => Committed;
+    public IReadOnlyList<string>? CommittedChanges(string workingDirectory, string from, string until) =>
+        CommittedBetween.TryGetValue((from, until), out IReadOnlyList<string>? paths) ? paths : Committed;
+
+    /// <summary>What <see cref="MergeTree"/> answers for a pair of commits; a pair not here is one git cannot merge.</summary>
+    public Dictionary<(string Ours, string Theirs), (string Tree, IReadOnlyList<string> Conflicts)> Merges { get; } = [];
+
+    /// <inheritdoc />
+    public (string Tree, IReadOnlyList<string> Conflicts)? MergeTree(string workingDirectory, string ours, string theirs) =>
+        Merges.TryGetValue((ours, theirs), out (string Tree, IReadOnlyList<string> Conflicts) merged) ? merged : null;
 
     public string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude)
     {
@@ -202,7 +225,14 @@ internal sealed class FakeRepository : IRepository
     public string? CommitOf(string workingDirectory, string reference) =>
         reference == "HEAD" ? Head : Refs.Contains(reference) ? reference : null;
 
-    public IReadOnlyList<string> ChangedFiles(string workingDirectory, string from) => Changed;
+    /// <summary>The commit or tree the last <see cref="ChangedFiles"/> was measured from.</summary>
+    public string? ChangedFrom { get; private set; }
+
+    public IReadOnlyList<string> ChangedFiles(string workingDirectory, string from)
+    {
+        ChangedFrom = from;
+        return Changed;
+    }
 
     public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from) =>
         Messages;

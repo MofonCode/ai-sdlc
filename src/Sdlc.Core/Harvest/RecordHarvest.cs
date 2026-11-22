@@ -3,8 +3,12 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Artifacts;
+using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
+using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
+using Sdlc.Core.Successors;
 
 namespace Sdlc.Core.Harvest;
 
@@ -51,15 +55,50 @@ public static class RecordHarvest
         IReadOnlyList<HarvestReport.OpenCycle> Open,
         int FrameworkNotes = 0);
 
+    /// <summary>What a proposal file answered, as <see cref="Read"/> finds it.</summary>
+    /// <param name="Watch">The concerns watched.</param>
+    /// <param name="Declined">The suggestions declined, one per id, each with why.</param>
+    /// <param name="Accepted">Every heading marked <c>[x]</c>.</param>
+    /// <param name="Ignored">The concerns ignored.</param>
+    /// <param name="Covered">The <c>## Covered</c> lines, as written: checked before anything is recorded.</param>
+    public sealed record Answers(
+        IReadOnlyList<Watched> Watch,
+        IReadOnlyList<HarvestDecline> Declined,
+        IReadOnlyList<string> Accepted,
+        IReadOnlyList<Watched> Ignored,
+        IReadOnlyList<Cover> Covered);
+
     /// <summary>
-    /// Reads the proposal file's <c>## Watch</c>, <c>## Ignored</c> and <c>## Declined</c> sections: <c>-
-    /// &lt;concern&gt; — &lt;cycle&gt;, &lt;cycle&gt;</c> for the first two, each optionally followed by an indented
-    /// <c>Why: &lt;what it prevents and promotes&gt;</c> line (D-194), and <c>- &lt;suggestion id&gt;:
-    /// &lt;reason&gt;</c> for the last.
+    /// One <c>## Covered</c> line: <c>- &lt;suggestion id&gt;[, &lt;suggestion id&gt;…]: &lt;ref&gt; — &lt;how it
+    /// covers it&gt;</c>, optionally followed by an indented <c>Concern: &lt;gist&gt;</c> line naming the ignored or
+    /// watched concern it closes.
+    /// </summary>
+    /// <param name="Line">The line as written, without its bullet.</param>
+    /// <param name="Ids">The suggestions it answers; empty when the line does not read.</param>
+    /// <param name="By">
+    /// What covers them, as written without backticks: a rule id, a decision id, <c>successor:&lt;slug&gt;</c>, or a
+    /// path under the solution. Empty when the line does not read.
+    /// </param>
+    /// <param name="Reason">How it covers them; empty when the line does not read.</param>
+    /// <param name="Concern">The concern it closes, worded as the tally words it, or null.</param>
+    /// <param name="Theme">The <c>### &lt;theme&gt;</c> it stands under, or null.</param>
+    public sealed record Cover(string Line, IReadOnlyList<string> Ids, string By, string Reason, string? Concern = null, string? Theme = null)
+    {
+        /// <summary>Whether the line reads: ids, what covers them, and how.</summary>
+        public bool Reads => Ids.Count > 0 && By.Length > 0 && Reason.Length > 0;
+    }
+
+    /// <summary>
+    /// Reads the proposal file's <c>## Watch</c>, <c>## Ignored</c>, <c>## Declined</c> and <c>## Covered</c>
+    /// sections: <c>- &lt;concern&gt; — &lt;cycle&gt;, &lt;cycle&gt;</c> for the first two, each optionally followed by
+    /// an indented <c>Why: &lt;what it prevents and promotes&gt;</c> line (D-194); <c>- &lt;suggestion id&gt;[,
+    /// &lt;suggestion id&gt;…]: &lt;reason&gt;</c> for Declined; and <see cref="Cover"/> lines for Covered. A
+    /// <c>### &lt;theme&gt;</c> line inside any of them groups the lines for the person's reading and changes nothing
+    /// recorded.
     /// </summary>
     /// <param name="markdown">The proposal file.</param>
-    /// <returns>The concerns watched, the suggestions declined, every accepted heading, and the concerns ignored.</returns>
-    public static (IReadOnlyList<Watched> Watch, IReadOnlyList<HarvestDecline> Declined, IReadOnlyList<string> Accepted, IReadOnlyList<Watched> Ignored) Read(string markdown)
+    /// <returns>What the file answered.</returns>
+    public static Answers Read(string markdown)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
@@ -72,7 +111,8 @@ public static class RecordHarvest
 
             if (colon > 0 && line[(colon + 1)..].Trim().Length > 0)
             {
-                declined.Add(new HarvestDecline(line[..colon].Trim().Trim('`'), line[(colon + 1)..].Trim()));
+                string reason = line[(colon + 1)..].Trim();
+                declined.AddRange(Ids(line[..colon]).Select(id => new HarvestDecline(id, reason)));
             }
         }
 
@@ -80,7 +120,79 @@ public static class RecordHarvest
             .Where(line => line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase))
             .Select(line => line[7..].Trim())];
 
-        return (Concerns(sections, "Watch"), declined, accepted, Concerns(sections, "Ignored"));
+        return new Answers(Concerns(sections, "Watch"), declined, accepted, Concerns(sections, "Ignored"), Covers(sections));
+    }
+
+    /// <summary>
+    /// A section's lines with the <c>### &lt;theme&gt;</c> each stands under: a theme groups lines for a person's
+    /// reading, and a line before any theme stands under none.
+    /// </summary>
+    /// <param name="sections">The file's sections.</param>
+    /// <param name="name">The section.</param>
+    /// <returns>Each line that is not a theme heading, with its theme or null.</returns>
+    internal static IEnumerable<(string? Theme, string Line)> Themed(IReadOnlyDictionary<string, IReadOnlyList<string>> sections, string name)
+    {
+        string? theme = null;
+
+        foreach (string line in sections.TryGetValue(name, out IReadOnlyList<string>? lines) ? lines : [])
+        {
+            string trimmed = line.Trim();
+
+            if (trimmed.StartsWith("### ", StringComparison.Ordinal))
+            {
+                theme = trimmed[4..].Trim();
+                theme = theme.Length == 0 ? null : theme;
+                continue;
+            }
+
+            yield return (theme, line);
+        }
+    }
+
+    /// <summary>The suggestion ids written before a line's colon, comma-separated, without backticks.</summary>
+    /// <param name="written">The text before the colon.</param>
+    /// <returns>The ids.</returns>
+    internal static List<string> Ids(string written) =>
+        [.. written.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(id => id.Trim('`').Trim()).Where(id => id.Length > 0)];
+
+    // "- <id>, <id>: <ref> — <how>", and the "Concern: <gist>" line under it.
+    private static List<Cover> Covers(IReadOnlyDictionary<string, IReadOnlyList<string>> sections)
+    {
+        List<Cover> covers = [];
+
+        foreach ((string? theme, string raw) in Themed(sections, "Covered"))
+        {
+            string trimmed = raw.Trim();
+
+            if (trimmed.StartsWith("Concern:", StringComparison.OrdinalIgnoreCase) && covers.Count > 0 && trimmed[8..].Trim().Length > 0)
+            {
+                covers[^1] = covers[^1] with { Concern = trimmed[8..].Trim() };
+                continue;
+            }
+
+            if (!trimmed.StartsWith("- ", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string line = trimmed[2..].Trim();
+            int colon = line.IndexOf(':', StringComparison.Ordinal);
+            string rest = colon > 0 ? line[(colon + 1)..].Trim() : string.Empty;
+            int dash = rest.IndexOf(" — ", StringComparison.Ordinal);
+            int width = 3;
+
+            if (dash < 0)
+            {
+                dash = rest.IndexOf(" -- ", StringComparison.Ordinal);
+                width = 4;
+            }
+
+            covers.Add(colon > 0 && dash > 0
+                ? new Cover(line, Ids(line[..colon]), rest[..dash].Trim().Trim('`').Trim(), rest[(dash + width)..].Trim(), Theme: theme)
+                : new Cover(line, [], string.Empty, string.Empty, Theme: theme));
+        }
+
+        return covers;
     }
 
     /// <summary>
@@ -184,7 +296,20 @@ public static class RecordHarvest
                 return Result.Fail<Response>(string.Create(CultureInfo.InvariantCulture, $"No completed cycle still needs {HarvestAspects.NameOf(request.Aspect)} answered, so there is nothing to record."));
             }
 
-            (IReadOnlyList<Watched> watch, IReadOnlyList<HarvestDecline> declined, IReadOnlyList<string> accepted, IReadOnlyList<Watched> ignored) = Read(proposal);
+            (IReadOnlyList<Watched> watch, IReadOnlyList<HarvestDecline> declined, IReadOnlyList<string> accepted, IReadOnlyList<Watched> ignored, IReadOnlyList<Cover> covered) = Read(proposal);
+
+            // A covered answer names what handles the suggestion, and that thing must be real: checked before anything
+            // is written, so one line naming nothing refuses the whole sitting rather than half of it.
+            HashSet<string> concerns = new(
+                ledger.Value.Watch.Concat(ledger.Value.Ignored ?? []).Concat(watch).Concat(ignored).Select(concern => concern.Gist),
+                StringComparer.Ordinal);
+            Result unresolved = await Resolved(covered, concerns, cancellationToken).ConfigureAwait(false);
+
+            if (unresolved.IsFailed)
+            {
+                return unresolved.ToResult<Response>();
+            }
+
             DateTimeOffset now = clock.GetUtcNow();
             List<string> sitting = [.. report.Value.Sitting.Select(cycle => cycle.ToString())];
 
@@ -210,10 +335,12 @@ public static class RecordHarvest
                 return framework.ToResult<Response>();
             }
 
+            List<HarvestCover> covers = [.. covered.SelectMany(cover => cover.Ids.Select(id => new HarvestCover(id, cover.By, cover.Reason)))];
             HarvestLedger written = ledger.Value.With(
-                new HarvestSitting(now, request.Aspect, sitting, accepted, declined),
+                new HarvestSitting(now, request.Aspect, sitting, accepted, declined, covers.Count > 0 ? covers : null),
                 watch,
-                ignored);
+                ignored,
+                [.. covered.Select(cover => cover.Concern).OfType<string>()]);
 
             await File.WriteAllTextAsync(HarvestLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
 
@@ -229,6 +356,85 @@ public static class RecordHarvest
                 written.Ignored ?? [],
                 [.. report.Value.Open.Select(open => open with { Missing = written.Missing(open.Cycle.ToString()) })],
                 notes.Value.Count));
+        }
+
+        // Every covered line reads, and what it names is real: a rule in force, a standing decision, a successor
+        // with a file or a cycle started from it, or a file or directory under the solution.
+        // A covered line's Concern: must name a concern the ledger or this sitting tallies, word for word, or it would
+        // close nothing and the concern would go on counting.
+        private async Task<Result> Resolved(IReadOnlyList<Cover> covered, HashSet<string> concerns, CancellationToken cancellationToken)
+        {
+            if (covered.Count == 0)
+            {
+                return Result.Ok();
+            }
+
+            List<string> ids = [.. covered.Where(cover => cover.Reads && IdTexts.IsId(cover.By)).Select(cover => cover.By).Distinct(StringComparer.Ordinal)];
+            Dictionary<string, IdTexts.Named> named = new(StringComparer.Ordinal);
+
+            if (ids.Count > 0)
+            {
+                Result<IdTexts.Response> resolved = await mediator
+                    .Send<IdTexts.Query, IdTexts.Response>(new IdTexts.Query(ids), cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (resolved.IsFailed)
+                {
+                    return resolved.ToResult();
+                }
+
+                foreach (IdTexts.Named id in resolved.Value.Named)
+                {
+                    named[id.Id] = id;
+                }
+            }
+
+            List<string> refused = [];
+
+            foreach (Cover cover in covered)
+            {
+                if (!cover.Reads)
+                {
+                    refused.Add("'- " + cover.Line + "' does not read: write '- <suggestion id>: <rule, decision, successor:<slug> or path> — <how it covers it>'.");
+                }
+                else if (named.TryGetValue(cover.By, out IdTexts.Named? id))
+                {
+                    if (!id.Standing)
+                    {
+                        refused.Add("'- " + cover.Line + "': " + Unresolved(cover.By, id.Text is not null) + ".");
+                    }
+                }
+                else if (!IsPathHere(cover.By))
+                {
+                    refused.Add("'- " + cover.Line + "': " + cover.By + " is not a rule, a decision, successor:<slug>, or a file or directory in this solution.");
+                }
+
+                if (cover.Concern is { } gist && !concerns.Contains(gist))
+                {
+                    refused.Add("'Concern: " + gist + "' matches no concern ignored or watched: its wording must match the report's 'ignored before' or watch line exactly.");
+                }
+            }
+
+            return refused.Count > 0
+                ? Result.Fail("Under '## Covered', nothing was recorded: " + string.Join(" ", refused)
+                    + " Name what really covers each, or decline it with why if nothing does, then record the sitting again.")
+                : Result.Ok();
+        }
+
+        private static string Unresolved(string by, bool superseded) =>
+            ConstraintId.TryParse(by, out _)
+                ? by + (superseded ? " is superseded, so it covers nothing now" : " is not a rule in force here") + " ('sdlc constraints' lists them)"
+                : DecisionId.TryParse(by, out _)
+                    ? by + (superseded ? " is superseded, so it covers nothing now" : " is not a decision recorded here") + " ('sdlc decisions' lists them)"
+                    : by + " names no successor: there is no " + Successor.RelativePath(by[SuccessorReference.Prefix.Length..]) + " and no cycle started from it";
+
+        private bool IsPathHere(string written)
+        {
+            string root = Path.GetFullPath(solution.Path);
+            string full = Path.GetFullPath(Path.Combine(root, written.Replace('/', Path.DirectorySeparatorChar)));
+            string inside = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
+
+            return full.StartsWith(inside, StringComparison.OrdinalIgnoreCase) && (File.Exists(full) || Directory.Exists(full));
         }
     }
 }

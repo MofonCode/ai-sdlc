@@ -31,7 +31,11 @@ public static class UnparkCycle
 
     /// <summary>Unparks a cycle.</summary>
     /// <param name="Id">The cycle.</param>
-    public sealed record Command(CycleId Id) : IRequest<Response>;
+    /// <param name="Onto">
+    /// The branch the work builds onto, when it is not the integration branch: what the cycle waits on counts as
+    /// merged once its passing verify is committed there.
+    /// </param>
+    public sealed record Command(CycleId Id, string? Onto = null) : IRequest<Response>;
 
     /// <summary>What was unparked.</summary>
     /// <param name="Id">The cycle.</param>
@@ -52,7 +56,7 @@ public static class UnparkCycle
             }
 
             Result<ReadSuccessors.Response> backlog = await mediator
-                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(), cancellationToken)
+                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(request.Onto), cancellationToken)
                 .ConfigureAwait(false);
 
             if (backlog.IsFailed)
@@ -71,7 +75,7 @@ public static class UnparkCycle
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{request.Id} is {standing.State.ToString().ToUpperInvariant()[0]}{standing.State.ToString()[1..]}: {string.Join(", ", standing.Waits.Select(ReadSuccessors.Describe))}. It unparks once each has merged into the integration branch with a passing verify."));
+                    $"{request.Id} is {standing.State.ToString().ToUpperInvariant()[0]}{standing.State.ToString()[1..]}: {string.Join(", ", standing.Waits.Select(ReadSuccessors.Describe))}. It unparks once each has merged into {request.Onto ?? "the integration branch"} with a passing verify."));
             }
 
             File.Delete(Parked.PathOf(cycle));

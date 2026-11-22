@@ -4,9 +4,10 @@ From an adopted solution to a pipeline that builds your approved plans whenever 
 an hour the first time. `running-the-factory.md` is what you do every day once it is running; this is the
 part you do once.
 
-**What you will have at the end:** a pipeline you start, which takes every plan you approved and admitted —
-or the one cycle you name — builds and verifies each on its own branch, and opens a pull request per cycle,
-a draft for any that did not pass. When it finishes you read one page, the sitrep, and merge. Nothing
+**What you will have at the end:** a pipeline you start, which runs one series: wave after wave, up to the
+number of waves you ask for, every plan you approved and admitted is built and verified into one branch,
+`series/<id>`, in wave order — and under `approval: none` the ready successors are planned and built too — ending
+in one pull request, whose body is the series' report. When it finishes you read that, and the sitrep, and merge. Nothing
 schedules it: starting it is the decision to spend (D-143). **It never merges anything itself,
 and it never writes a file only a person writes.**
 
@@ -211,8 +212,8 @@ step of this guide to revisit:
 |---|---|
 | install sdlc and the agent | each is installed at your version, or reported as already on this agent |
 | prove the agent signs in and the hooks refuse | the agent answers, a `claude` the agent starts answers too, then the agent is refused a write to `.sdlc/approval.md`, and the file never appears |
-| build the queue | one cycle built on `cycle/<id>/build-unattended`, and a pull request opened into `development` |
-| the sitrep | the run's summary: the cycle under **Ready to merge** — or under **Needs a person**, as a draft |
+| run the series | `series/<id>` opened from `development`, the cycle built into it, and one pull request opened into `development` |
+| the sitrep | the run's summary |
 
 **It worked when** the pull request exists, its check has run on it, and the run's summary shows the
 sitrep. Review the pull request as you would a person's, and merge it — or close it; it was a throwaway.
@@ -221,7 +222,7 @@ sitrep. Review the pull request as you would a person's, and merge it — or clo
 
 There is no schedule to switch on. When `sdlc cycles --queued` lists what you want built, start the pipeline —
 from the Actions tab or Pipelines > Run pipeline, or `gh workflow run sdlc-factory.yml` / `az pipelines run
---name <its name>` — and set `cycle` to build one alone. Start it before you leave and it has run by the
+--name <its name>` — and set `waves` to how many waves the series may run, one unless you say. Start it before you leave and it has run by the
 morning; start it again once your merges have made the next cycles ready.
 
 From here, `running-the-factory.md` is the routine: admit plans, start a run, read the sitrep, merge.

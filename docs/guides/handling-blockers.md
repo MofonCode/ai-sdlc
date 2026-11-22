@@ -327,6 +327,14 @@ sdlc draft abandon <id>
 
 Abandoning is terminal and recorded with a reason, and the rename is yours, like every decision.
 
+### In a wave or a series
+
+**A cycle that stays blocked or escalated in a run of several stops only itself and what depends on it.** Its
+siblings carry on; every successor that succeeds it and every parked cycle that waits on it is skipped, not built.
+There is no draft pull request of its own: the run's one pull request is a draft, and its report — `sdlc report
+--run` — names the cycle, what stopped it, and each cycle it held back. Answer it the same way, naming the cycle:
+*fix it* on that pull request, or abandon it.
+
 ---
 
 ## Suggestions are not blockers

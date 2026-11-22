@@ -20,7 +20,11 @@ namespace Sdlc.Core.Cycles;
 /// <param name="By">Who stopped it.</param>
 /// <param name="At">When, in UTC.</param>
 /// <param name="Reason">Why, in the author's own words.</param>
-public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, string Reason)
+/// <param name="Series">
+/// The series it stops, when it is a series' abandonment rather than one cycle's: <c>series:</c> in place of
+/// <c>cycle:</c>, covering every cycle the series' record lists that exists only in the series (D-208).
+/// </param>
+public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, string Reason, string? Series = null)
 {
     /// <summary>
     /// Reads an <c>abandoned.md</c>.
@@ -101,7 +105,8 @@ public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, s
                 shape!.Cycle ?? string.Empty,
                 shape.By!.Trim(),
                 shape.At!.Value.ToUniversalTime(),
-                reason));
+                reason,
+                string.IsNullOrWhiteSpace(shape.Series) ? null : shape.Series.Trim()));
     }
 
     /// <summary>
@@ -134,6 +139,8 @@ public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, s
     private sealed class Shape
     {
         public string? Cycle { get; set; }
+
+        public string? Series { get; set; }
 
         public string? By { get; set; }
 

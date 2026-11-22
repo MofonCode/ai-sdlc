@@ -27,7 +27,7 @@ finds it. A question that only a person can answer is a stop: hand back, and the
 
 ## Stay where the playbook put you
 
-You are on the cycle's build branch, in the worktree the playbook — or the binary, for `build` — put you in.
+You are on the cycle's build branch, or the run's branch (`wave/<id>`, `series/<id>`) that carries it, in the worktree the playbook — or the binary, for `build` — put you in.
 Stay there. Everything below measures the change from where this branch diverged, so working on the
 integration or default branch directly makes the diff meaningless.
 

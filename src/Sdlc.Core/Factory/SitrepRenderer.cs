@@ -80,6 +80,8 @@ public static class SitrepRenderer
                 $"- `{cycle.Id}` {cycle.Headline ?? "(no headline)"} - `{cycle.Branch}` - {next}"));
         }
 
+        Runs(output, page.Runs);
+
         output.AppendLine();
         output.AppendLine("## Held back, not built");
         output.AppendLine();
@@ -97,6 +99,33 @@ public static class SitrepRenderer
         }
 
         return Tail(page, output);
+    }
+
+    // The waves and series still open, each with what to do next. Left out when there is none: a solution that never
+    // runs one should not read about them every morning.
+    private static void Runs(StringBuilder output, IReadOnlyList<Sitrep.Run> runs)
+    {
+        if (runs.Count == 0)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        output.AppendLine("## Waves and series open");
+        output.AppendLine();
+
+        foreach (Sitrep.Run run in runs)
+        {
+            string what = run.Kind == Cycles.RunKind.Wave
+                ? "a wave -> `sdlc report --run` in its worktree says where each cycle stopped; its pull request is where a person accepts it"
+                : run.Rejected
+                    ? "a series a person rejected -> `/sdlc:harvest` learns from its cycles, and closing them removes the branch from this page"
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"a series, {(run.Waves is { } waves && run.Limit is { } limit ? $"{waves} of {limit} waves taken" : "its record not read")} -> `sdlc series status {run.Id}` in its worktree; its one pull request is where a person accepts it");
+
+            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"- `{run.Branch}` - {what}"));
+        }
     }
 
     private static string Next(Sitrep.Built cycle) => cycle.Outcome?.ToUpperInvariant() switch
@@ -182,7 +211,7 @@ public static class SitrepRenderer
             output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Nothing waits here: no successor, and no parked cycle on {page.IntegrationBranch}."));
         }
 
-        Group(output, "**Ready now** — what the merges made ready. `/sdlc:next` takes all of it; the factory starts none.", items, Successors.SuccessorState.Ready);
+        Group(output, "**Ready now** — what the merges made ready. `/sdlc:wave` takes all of it; the factory's series takes it under `approval: none`.", items, Successors.SuccessorState.Ready);
         Group(output, "**Still waiting**", items, Successors.SuccessorState.Waiting);
         Group(output, "**No merge makes these ready**", items, Successors.SuccessorState.Stuck, Successors.SuccessorState.Unresolved);
 

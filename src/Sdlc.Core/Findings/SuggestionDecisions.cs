@@ -71,8 +71,11 @@ public static partial class SuggestionDecisions
             {
                 // An abandoned cycle accepts nothing: its intent's lines and its lead stop counting, so
                 // what it took in reads open again. Its abandonment may still decline, one line each with
-                // its reason; a line kept with none declines nothing.
-                string abandoned = await File.ReadAllTextAsync(cycle.AbandonedPath, cancellationToken).ConfigureAwait(false);
+                // its reason; a line kept with none declines nothing. Only its own record declines: a series'
+                // abandonment covers several cycles, and an unqualified id in it would name no one cycle's suggestion.
+                string abandoned = File.Exists(cycle.AbandonedPath)
+                    ? await File.ReadAllTextAsync(cycle.AbandonedPath, cancellationToken).ConfigureAwait(false)
+                    : string.Empty;
 
                 foreach (string id in DeclinedIn(abandoned, withReason: true))
                 {

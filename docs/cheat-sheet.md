@@ -28,7 +28,8 @@ the next one.
 - **The plan is wrong** after approval — *steer the plan*: it drafts the reopen and walks the rest
 - **After the merge** — `/sdlc:harvest` takes back what completed cycles settled, one aspect at a time, then closes them — `guides/harvesting-the-cycles.md`; `sdlc tidy` for the worktrees and branches left over
 - **A successor is ready** — `/sdlc:intent --from successor:<slug>`; `sdlc backlog` lists them, with parked cycles
-- **Merges landed** — `/sdlc:next` starts what they made ready, plans it in one sandbox, and stops at the approvals
+- **Merges landed** — `/sdlc:wave` plans what they made ready in one sandbox and builds it into one pull request; under `approval: required` it stops at the approvals first
+- **Several waves, unattended** — `/sdlc:series --waves <n>` plans and builds wave after wave into one pull request; under `approval: required` it builds only what you approved
 - **A plan was parked** — it waits on another's code; `sdlc unpark <id>` once that merged, then *take it to plan* again
 - **Something refused** — `reference/refusals.md`
 - **Stop for good** — `sdlc draft abandon <id>`, and place it yourself

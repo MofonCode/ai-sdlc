@@ -255,12 +255,37 @@ public sealed class HarvestTests
     }
 
     [TestMethod]
+    public void An_agent_writing_a_series_record_is_denied_by_path_and_by_command_and_may_still_commit_it()
+    {
+        Assert.IsTrue(ProtectedPaths.IsProtected(".sdlc/series/20261121_0930_15/series.json", out ProtectedFile? byPath));
+        Assert.AreSame(ProtectedPaths.SeriesRecord, byPath);
+        StringAssert.Contains(byPath!.Reason, "sdlc series wave");
+
+        Assert.IsTrue(ProtectedPaths.CommandTouchesProtected("echo {} > .sdlc/series/20261121_0930_15/series.json", out ProtectedFile? byRedirect));
+        Assert.AreSame(ProtectedPaths.SeriesRecord, byRedirect);
+        Assert.IsTrue(ProtectedPaths.CommandTouchesProtected("cp other.json .sdlc/series/20261121_0930_15/series.json", out _));
+        Assert.IsFalse(ProtectedPaths.CommandTouchesProtected("cat .sdlc/series/20261121_0930_15/series.json", out _), "Reading it is allowed.");
+
+        // A solution's own series.json -- a chart's data -- is not the record: only a command naming a series' folder is.
+        Assert.IsFalse(ProtectedPaths.CommandTouchesProtected("cp fixtures/prices.json src/charts/series.json", out _));
+        Assert.IsFalse(ProtectedPaths.CommandTouchesProtected("echo {} > series.json", out _));
+
+        // Committing what the binary wrote is how the series playbook keeps it, as the harvest ledger is kept.
+        foreach (string ledger in new[] { ".sdlc/series/20261121_0930_15/series.json", ".sdlc/harvested.json" })
+        {
+            Assert.IsFalse(ProtectedPaths.CommandTouchesProtected("git add " + ledger, out _), ledger);
+            Assert.IsFalse(ProtectedPaths.CommandTouchesProtected("git add .sdlc && git commit -m \"Series 20261121_0930_15: wave 1 built\"", out _), ledger);
+        }
+    }
+
+    [TestMethod]
     [DataRow(".sdlc/decisions.md", true)]
     [DataRow(".sdlc/harvested.json", true)]
     [DataRow(".sdlc/framework-harvest.json", true)]
     [DataRow(".sdlc/areas.md", true)]
     [DataRow(".sdlc/successors/import-trades.md", true)]
     [DataRow(".sdlc/cycles/20261001_0900_01/plan.md", true)]
+    [DataRow(".sdlc/series/20261121_0930_15/series.json", true)]
     [DataRow("src/Thing.cs", false)]
     public void A_harvest_pull_request_is_known_by_what_it_carries(string path, bool harvest)
     {
@@ -281,6 +306,56 @@ public sealed class HarvestTests
 
         Assert.IsFalse(refused.Holds, "A cycle the ledger does not record, and whose file is still there, is not a husk.");
         StringAssert.Contains(VerifyHarvest.Render(refused), "20261002_0900_01");
+    }
+
+    [TestMethod]
+    public async Task A_harvest_pull_request_may_delete_a_series_folder_and_never_change_one()
+    {
+        using var workspace = CycleWorkspace.Create();
+        await WriteLedger(workspace, Husk("20261001_0900_01"));
+        string record = ".sdlc/series/20261121_0930_15/series.json";
+
+        VerifyUpgrade.Response holds = await Verify(workspace, [".sdlc/harvested.json", ".sdlc/cycles/20261001_0900_01/plan.md", record]);
+        Assert.IsTrue(holds.Holds, VerifyHarvest.Render(holds));
+
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, ".sdlc", "series", "20261121_0930_15", "series.json"), "{}");
+        VerifyUpgrade.Response refused = await Verify(workspace, [".sdlc/harvested.json", record]);
+
+        Assert.IsFalse(refused.Holds, "A series' record still there is a change to it, which only its run makes.");
+        StringAssert.Contains(VerifyHarvest.Render(refused), record);
+    }
+
+    [TestMethod]
+    public async Task Close_deletes_a_series_folder_with_the_last_cycle_its_record_lists_and_keeps_one_still_listing_an_open_cycle()
+    {
+        using CycleWorkspace workspace = Completed();
+        FakeRepository git = Merged(workspace, branch: "development");
+        string id = workspace.Cycle.Id.ToString();
+        DateTimeOffset now = DateTimeOffset.UnixEpoch;
+
+        // One series ran only this cycle, as the successor its intent leads with; another also ran a cycle still open.
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.PathOf(ArtifactKind.Intent),
+            (await File.ReadAllTextAsync(workspace.Cycle.PathOf(ArtifactKind.Intent))).Replace("cycle: " + id, "cycle: " + id + "\nlead: successor:totals", StringComparison.Ordinal));
+        Sdlc.Core.Series.SeriesRecord done = Sdlc.Core.Series.SeriesRecord.Start("20261121_0930_15", now, 1, Sdlc.Core.Solutions.ApprovalRequirement.None)
+            .WithWave(now, [new Sdlc.Core.Series.SeriesItem(Sdlc.Core.Series.SeriesItemKind.Successor, "totals", null)]);
+        Sdlc.Core.Series.SeriesRecord open = Sdlc.Core.Series.SeriesRecord.Start("20261121_0930_16", now, 1, Sdlc.Core.Solutions.ApprovalRequirement.None)
+            .WithWave(now, [new Sdlc.Core.Series.SeriesItem(Sdlc.Core.Series.SeriesItemKind.Parked, id, id), new Sdlc.Core.Series.SeriesItem(Sdlc.Core.Series.SeriesItemKind.Parked, "20991231_0000_00", "20991231_0000_00")]);
+        CycleWorkspace.WriteRaw(Sdlc.Core.Series.SeriesRecord.PathIn(workspace.Root, done.Id), done.Write());
+        CycleWorkspace.WriteRaw(Sdlc.Core.Series.SeriesRecord.PathIn(workspace.Root, open.Id), open.Write());
+
+        foreach (HarvestAspect aspect in HarvestAspects.All)
+        {
+            Assert.IsTrue((await Record(workspace, git, aspect, await Proposals(workspace, string.Empty))).IsSuccess);
+        }
+
+        CloseHarvest.Response closed = (await Close(workspace, git)).Value;
+
+        CollectionAssert.AreEqual(new[] { done.Id }, closed.Series.ToArray());
+        Assert.IsTrue(git.Ran.Any(run => run.Arguments == "rm -r -q -f --ignore-unmatch -- \".sdlc/series/" + done.Id + "\""));
+        Assert.IsFalse(File.Exists(Sdlc.Core.Series.SeriesRecord.PathIn(workspace.Root, done.Id)), "Removed with its last cycle, whether git tracked it or it was gathered from a branch.");
+        Assert.IsTrue(File.Exists(Sdlc.Core.Series.SeriesRecord.PathIn(workspace.Root, open.Id)), "A cycle it lists is still open.");
+        StringAssert.Contains(HarvestRenderer.RenderClosed(closed), "series " + done.Id);
     }
 
     [TestMethod]
@@ -335,6 +410,230 @@ public sealed class HarvestTests
     }
 
     [TestMethod]
+    public async Task A_covered_line_is_recorded_with_what_covers_it_and_its_concern_leaves_the_tallies()
+    {
+        using CycleWorkspace workspace = Covering();
+        string cycle = workspace.Cycle.Id.ToString();
+        await File.WriteAllTextAsync(
+            HarvestLedger.PathIn(workspace.Root),
+            HarvestLedger.Empty
+                .With(Sitting(HarvestAspect.Suggestions), [new Watched("a watched concern", ["20261001_0900_01"])], [new Watched("the chart needs a keyboard path", ["20261001_0900_01", "20261002_0900_01"])])
+                .Write());
+
+        string proposals = await Proposals(
+            workspace,
+            "## Covered\n\n"
+            + "### Already handled by a rule\n\n"
+            + $"- {cycle}/security.S_01, {cycle}/security.S_02: LOC_01 — rule 1 already forbids it\n"
+            + "  Concern: the chart needs a keyboard path\n"
+            + $"- {cycle}/security.S_03: CON_01 — an intent never names the fix\n\n"
+            + "### Handled elsewhere\n\n"
+            + $"- {cycle}/maintainability.S_04: DEC_01 — settled by the outbox decision\n"
+            + $"- {cycle}/maintainability.S_05: successor:keyboard-chart — the successor builds it\n"
+            + $"- {cycle}/maintainability.S_06: `docs/checklist.md` — the checklist covers it\n"
+            + "  Concern: a watched concern\n");
+
+        Result<RecordHarvest.Response> recorded = await Record(workspace, Merged(workspace), HarvestAspect.Suggestions, proposals);
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
+
+        HarvestLedger ledger = (await HarvestLedger.Read(workspace.Root, CancellationToken.None)).Value;
+        IReadOnlyList<HarvestCover> covered = ledger.Sittings[^1].Covered!;
+
+        CollectionAssert.AreEqual(
+            new[] { "LOC_01", "LOC_01", "CON_01", "DEC_01", "successor:keyboard-chart", "docs/checklist.md" },
+            covered.Select(cover => cover.By).ToArray(),
+            "One entry per suggestion, each with what covers it as written.");
+        Assert.AreEqual(cycle + "/security.S_02", covered[1].Id);
+        Assert.AreEqual("rule 1 already forbids it", covered[0].Reason);
+        Assert.AreEqual(0, ledger.Ignored!.Count, "A covered concern stops counting toward the bar.");
+        Assert.AreEqual(0, ledger.Watch.Count, "A covered concern leaves the watch list too.");
+        Assert.AreEqual(0, ledger.Sittings[^1].Declined.Count, "Covering declines nothing.");
+
+        string history = HarvestRenderer.RenderHistory(ledger);
+        StringAssert.Contains(history, "0 suggestions declined, 6 covered");
+        StringAssert.Contains(history, "covered " + cycle + "/maintainability.S_04 by DEC_01: settled by the outbox decision");
+        CollectionAssert.AreEqual(
+            new[] { "LOC_01", "CON_01", "DEC_01", "successor:keyboard-chart" },
+            HarvestRenderer.NamedIn(ledger).ToArray(),
+            "The history names each id its answers rely on, once.");
+    }
+
+    [TestMethod]
+    public async Task A_covered_line_naming_nothing_real_refuses_the_whole_sitting_and_writes_nothing()
+    {
+        using CycleWorkspace workspace = Covering();
+        string cycle = workspace.Cycle.Id.ToString();
+
+        string proposals = await Proposals(
+            workspace,
+            "## Covered\n\n"
+            + $"- {cycle}/security.S_01: LOC_01 — a real rule\n"
+            + $"- {cycle}/security.S_02: LOC_09 — no such rule\n"
+            + $"- {cycle}/security.S_03: DEC_07 — no such decision\n"
+            + $"- {cycle}/security.S_04: successor:nowhere — no such successor\n"
+            + $"- {cycle}/security.S_05: docs/missing.md — no such file\n"
+            + $"- {cycle}/security.S_06: LOC_01 with no reason\n\n"
+            + "## For the framework\n\n### reports — a note that would otherwise be kept\n\nKind: cost\n");
+
+        Result<RecordHarvest.Response> refused = await Record(workspace, Merged(workspace), HarvestAspect.Suggestions, proposals);
+
+        Assert.IsTrue(refused.IsFailed, "A covered answer naming nothing real is refused.");
+        string message = refused.Errors[0].Message;
+        StringAssert.Contains(message, "LOC_09 is not a rule in force here");
+        StringAssert.Contains(message, "DEC_07 is not a decision recorded here");
+        StringAssert.Contains(message, "successor:nowhere names no successor");
+        StringAssert.Contains(message, "docs/missing.md is not a rule, a decision, successor:<slug>, or a file or directory in this solution");
+        StringAssert.Contains(message, "LOC_01 with no reason' does not read");
+        Assert.IsFalse(message.Contains("a real rule", StringComparison.Ordinal), "A line that resolves is not listed.");
+        Assert.IsFalse(File.Exists(HarvestLedger.PathIn(workspace.Root)), "Nothing is recorded.");
+        Assert.IsFalse(File.Exists(FrameworkHarvest.PathIn(workspace.Root)), "Not even the framework's notes.");
+    }
+
+    [TestMethod]
+    public async Task A_covered_concern_worded_unlike_any_tallied_one_refuses_the_sitting()
+    {
+        using CycleWorkspace workspace = Covering();
+        string cycle = workspace.Cycle.Id.ToString();
+        string before = HarvestLedger.Empty
+            .With(Sitting(HarvestAspect.Suggestions), [], [new Watched("the chart needs a keyboard path", ["20261001_0900_01"])])
+            .Write();
+        await File.WriteAllTextAsync(HarvestLedger.PathIn(workspace.Root), before);
+
+        string proposals = await Proposals(
+            workspace,
+            "## Covered\n\n"
+            + $"- {cycle}/security.S_01: LOC_01 — rule 1 covers it\n"
+            + "  Concern: the chart needs keyboard access\n"
+            + $"- {cycle}/security.S_02: LOC_01 — closes one this sitting ignores\n"
+            + "  Concern: a concern raised now\n\n"
+            + $"## Ignored\n\n- a concern raised now — {cycle}\n");
+
+        Result<RecordHarvest.Response> refused = await Record(workspace, Merged(workspace), HarvestAspect.Suggestions, proposals);
+
+        Assert.IsTrue(refused.IsFailed, "A concern worded differently closes nothing and is refused.");
+        StringAssert.Contains(refused.Errors[0].Message, "'Concern: the chart needs keyboard access' matches no concern ignored or watched");
+        StringAssert.Contains(refused.Errors[0].Message, "must match the report's 'ignored before' or watch line exactly");
+        Assert.IsFalse(refused.Errors[0].Message.Contains("'Concern: a concern raised now'", StringComparison.Ordinal), "One this sitting tallies is known.");
+        Assert.AreEqual(before, await File.ReadAllTextAsync(HarvestLedger.PathIn(workspace.Root)), "Nothing is recorded.");
+    }
+
+    [TestMethod]
+    public void A_ledger_written_before_covered_still_parses_and_a_sitting_that_covers_nothing_writes_no_key()
+    {
+        const string before = """
+            {
+              "cycles": [],
+              "watch": [],
+              "sittings": [
+                {
+                  "recorded": "2026-10-01T09:00:00+00:00",
+                  "aspect": "suggestions",
+                  "cycles": [ "20261001_0900_01" ],
+                  "accepted": [],
+                  "declined": [ { "id": "20261001_0900_01/security.S_01", "reason": "not ours" } ]
+                }
+              ]
+            }
+            """;
+
+        Result<HarvestLedger> read = HarvestLedger.Parse(before, HarvestLedger.FileName);
+
+        Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(error => error.Message)));
+        Assert.IsNull(read.Value.Sittings.Single().Covered);
+        StringAssert.Contains(HarvestRenderer.RenderHistory(read.Value), "1 suggestions declined, 0 covered");
+        Assert.IsFalse(HarvestLedger.Empty.With(Sitting(HarvestAspect.Suggestions), []).Write().Contains("\"covered\"", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void A_declined_line_may_name_several_suggestions_and_a_theme_changes_nothing_recorded()
+    {
+        RecordHarvest.Answers answers = RecordHarvest.Read(
+            "## Declined\n\n### Settled by a recorded decision\n\n- a/x.S_01, `a/x.S_02`: DEC_01 settles it\n\n### Another theme\n\n- b/y.S_03: not ours\n\n"
+            + "## Ignored\n\n### Slips\n\n- wrong counts — a, b\n  Why: prevents nothing\n");
+
+        CollectionAssert.AreEqual(new[] { "a/x.S_01", "a/x.S_02", "b/y.S_03" }, answers.Declined.Select(decline => decline.Id).ToArray());
+        Assert.AreEqual("DEC_01 settles it", answers.Declined[1].Reason);
+        Assert.AreEqual("wrong counts", answers.Ignored.Single().Gist);
+        Assert.AreEqual("prevents nothing", answers.Ignored.Single().Why);
+        Assert.AreEqual(0, answers.Accepted.Count, "A theme heading is not a proposal.");
+    }
+
+    [TestMethod]
+    public void The_summary_counts_each_answer_by_theme_and_lists_what_the_person_approves()
+    {
+        HarvestSummary.Response summary = HarvestSummary.Read(
+            "# Harvest proposals\n\n## Successors\n\n### [x] add keyboard-chart — a keyboard path\n\n### [ ] add export-csv — an export\n\n"
+            + "## Declined\n\n### Settled by a recorded decision\n\n- a/x.S_01, a/x.S_02: DEC_01 settles it\n- a/x.S_03: DEC_01 again\n\n- a/x.S_09: before any theme? no, after\n\n"
+            + "## Covered\n\n- a/x.S_04: LOC_01 — unthemed\n\n### Already handled by a rule\n\n- a/x.S_05, a/x.S_06: LOC_01 — the rule\n  Concern: wrong counts\n- a/x.S_07: `docs/checklist.md` — the checklist\n\n"
+            + "## Ignored\n\n### Slips fixed in a later round\n\n- wrong counts — a, b\n- vague criteria — a\n");
+
+        Assert.AreEqual(2, summary.Proposals.Count);
+        Assert.IsTrue(summary.Proposals[0].Marked);
+        Assert.AreEqual("add keyboard-chart — a keyboard path", summary.Proposals[0].Heading);
+
+        HarvestSummary.Answer declined = summary.Answers.Single(answer => answer.Kind == "Declined");
+        Assert.AreEqual(4, declined.Total, "Declined counts suggestion ids, several to a line.");
+        Assert.AreEqual(4, declined.Themes.Single().Count);
+
+        HarvestSummary.Answer covered = summary.Answers.Single(answer => answer.Kind == "Covered");
+        Assert.AreEqual(4, covered.Total);
+        Assert.AreEqual(HarvestSummary.NoTheme, covered.Themes[0].Name, "A line before any theme counts under none.");
+        HarvestSummary.Theme rule = covered.Themes.Single(theme => theme.Name == "Already handled by a rule");
+        Assert.AreEqual(3, rule.Count);
+        CollectionAssert.AreEqual(new[] { "LOC_01", "docs/checklist.md" }, rule.Refs.ToArray());
+
+        HarvestSummary.Answer ignored = summary.Answers.Single(answer => answer.Kind == "Ignored");
+        Assert.AreEqual(2, ignored.Total, "Ignored counts concerns.");
+
+        string rendered = HarvestSummary.Render(summary);
+        StringAssert.Contains(rendered, "Proposals: 2, 1 marked");
+        StringAssert.Contains(rendered, "  [x] add keyboard-chart — a keyboard path");
+        StringAssert.Contains(rendered, "Covered: 4 suggestions");
+        StringAssert.Contains(rendered, "  Already handled by a rule — 3 (by LOC_01, docs/checklist.md)");
+        StringAssert.Contains(rendered, "Ignored: 2 concerns");
+        StringAssert.Contains(rendered, "  Slips fixed in a later round — 2");
+    }
+
+    [TestMethod]
+    public async Task The_summary_names_every_id_in_the_file_with_what_it_says()
+    {
+        using CycleWorkspace workspace = Covering();
+        string proposals = await Proposals(
+            workspace,
+            "## Covered\n\n- a/x.S_01: LOC_01 — rule\n- a/x.S_02: DEC_01 — decision\n- a/x.S_03: successor:keyboard-chart — successor\n\n"
+            + "## Declined\n\n- a/x.S_04: LOC_09 and successor:nowhere say nothing here, CON_01 does\n");
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(Merged(workspace)));
+        Result<HarvestSummary.Response> summary = await gate.Send<HarvestSummary.Query, HarvestSummary.Response>(new HarvestSummary.Query(proposals));
+
+        Assert.IsTrue(summary.IsSuccess, string.Join("; ", summary.Errors.Select(error => error.Message)));
+        string rendered = HarvestSummary.Render(summary.Value);
+
+        StringAssert.Contains(rendered, "Named:");
+        StringAssert.Contains(rendered, "  LOC_01 — rule 1");
+        StringAssert.Contains(rendered, "  DEC_01 — publishing goes through an outbox");
+        StringAssert.Contains(rendered, "  successor:keyboard-chart — Finance sees the month's totals beside the export.");
+        StringAssert.Contains(rendered, "  LOC_09 — not found");
+        StringAssert.Contains(rendered, "  successor:nowhere — not found");
+        StringAssert.Contains(rendered, "  CON_01 — An intent states the problem, not the solution");
+        Assert.AreEqual(6, summary.Value.Named.Count, "Each id once.");
+    }
+
+    [TestMethod]
+    public void The_history_shows_each_id_its_answers_name_with_its_text()
+    {
+        HarvestLedger ledger = HarvestLedger.Empty.With(
+            new HarvestSitting(DateTimeOffset.UnixEpoch, HarvestAspect.Suggestions, ["a"], [], [new HarvestDecline("a/x.S_01", "DEC_01 settles it")], [new HarvestCover("a/x.S_02", "LOC_01", "the rule")]),
+            []);
+
+        string history = HarvestRenderer.RenderHistory(ledger, [new Sdlc.Core.Reports.IdTexts.Named("DEC_01", "an outbox", true), new Sdlc.Core.Reports.IdTexts.Named("LOC_01", null, false)]);
+
+        StringAssert.Contains(history, "covered a/x.S_02 by LOC_01: the rule");
+        StringAssert.Contains(history, "Named:\n  DEC_01 — an outbox".ReplaceLineEndings());
+        StringAssert.Contains(history, "  LOC_01 — not found");
+    }
+
+    [TestMethod]
     public void The_history_says_what_closed_what_each_sitting_answered_and_what_is_watched()
     {
         HarvestLedger ledger = HarvestLedger.Empty
@@ -352,7 +651,7 @@ public sealed class HarvestTests
     public void A_concern_carries_its_reason_past_its_folders_and_a_later_sitting_may_sharpen_it()
     {
         // D-194: the case a person weighs at the bar is kept beside the count, not left in git.
-        (IReadOnlyList<Watched> watch, _, _, IReadOnlyList<Watched> ignored) = RecordHarvest.Read(
+        (IReadOnlyList<Watched> watch, _, _, IReadOnlyList<Watched> ignored, _) = RecordHarvest.Read(
             "## Watch\n\n- the log level is missing — 20261001_0900_01\n  Why: prevents a silent failure; promotes logs a person on call can read\n- no reason given — 20261001_0900_01\n\n"
             + "## Ignored\n\n- the chart needs a keyboard path — 20261001_0900_01\n  Why: prevents a screen a keyboard cannot reach\n");
 
@@ -482,6 +781,23 @@ public sealed class HarvestTests
         var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
         workspace.WriteVerify("pass");
+        return workspace;
+    }
+
+    /// <summary>A completed cycle in a solution with a rule, a decision, a successor and a file a covered line may name.</summary>
+    private static CycleWorkspace Covering()
+    {
+        CycleWorkspace workspace = Completed();
+        workspace.WriteSolutionConstraints(1);
+        CycleWorkspace.WriteRaw(
+            Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Sdlc.Core.Decisions.DecisionParser.FileName),
+            "# This solution's decisions\n\n## DEC_01 — publishing goes through an outbox\n\n"
+            + "**Decided:** the handler writes to an outbox and a dispatcher publishes from it\n\n"
+            + "**Because:** the broker cannot join our transaction\n\n"
+            + "**Instead of:** a direct publish from the handler, which costs the atomicity\n\n"
+            + "**From:** 20260901_0900_01\n");
+        SuccessorTests.Write(workspace, "keyboard-chart", workspace.Cycle.Id.ToString());
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, "docs", "checklist.md"), "# Checklist\n");
         return workspace;
     }
 

@@ -56,12 +56,17 @@ public static class CloseHarvest
     /// The cycle branches closed cycles were read from because their abandonment never merged: their folders never
     /// reach the integration branch, and once this pull request merges <c>sdlc tidy</c> lists each for deletion.
     /// </param>
+    /// <param name="Series">
+    /// The series whose folders went with their last cycle: every cycle a series' record lists is closed once this
+    /// merges, so <c>.sdlc/series/&lt;id&gt;/</c> is deleted on the same branch.
+    /// </param>
     public sealed record Response(
         IReadOnlyList<HarvestedCycle> Closed,
         string Branch,
         string IntegrationBranch,
         IReadOnlyList<HarvestReport.OpenCycle> Waiting,
-        IReadOnlyList<string> ReadFrom);
+        IReadOnlyList<string> ReadFrom,
+        IReadOnlyList<string> Series);
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository, TimeProvider clock) : IRequestHandler<Command, Response>
     {
@@ -126,6 +131,16 @@ public static class CloseHarvest
             HarvestLedger written = report.Value.Ledger.Closing(closed);
             await File.WriteAllTextAsync(HarvestLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
 
+            // A series' folder goes with the last of its cycles: read before any cycle's folder goes, because a
+            // successor it took is matched through the intent in that folder.
+            HashSet<CycleId> closedNow = [.. closing.Select(open => open.Cycle)];
+            List<string> series =
+            [
+                .. Series.SeriesRecord.Folders(solution.Path)
+                    .Where(folder => folder.Cycles.Any(closedNow.Contains) && folder.Cycles.All(id => written.Find(id.ToString()) is not null))
+                    .Select(folder => folder.Id),
+            ];
+
             foreach (HarvestReport.OpenCycle open in closing)
             {
                 // A cycle read from its own branch was restored here untracked, over whatever of it had merged, so its
@@ -143,6 +158,28 @@ public static class CloseHarvest
                 if (Directory.Exists(cycle.Directory))
                 {
                     Directory.Delete(cycle.Directory, recursive: true);
+                }
+            }
+
+            foreach (string id in series)
+            {
+                // Forced, as a cycle read from its own branch is: a rejected series' folder was restored from its
+                // branch, untracked, over whatever of it had merged.
+                string folder = Series.SeriesRecord.RelativeDirectory(id);
+                Result<string> removed = repository.Git(solution.Path, string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"rm -r -q -f --ignore-unmatch -- \"{folder}\""));
+
+                if (removed.IsFailed)
+                {
+                    return removed.ToResult<Response>();
+                }
+
+                string onDisk = Path.Combine(solution.Path, folder.Replace('/', Path.DirectorySeparatorChar));
+
+                if (Directory.Exists(onDisk))
+                {
+                    Directory.Delete(onDisk, recursive: true);
                 }
             }
 
@@ -167,7 +204,7 @@ public static class CloseHarvest
 
             return committed.IsFailed
                 ? committed
-                : Result.Ok(new Response(closed, branch, integration, waiting, [.. closing.Select(open => open.Branch).OfType<string>()]));
+                : Result.Ok(new Response(closed, branch, integration, waiting, [.. closing.Select(open => open.Branch).OfType<string>()], series));
         }
 
         private async Task<HarvestedCycle> Husk(Cycle cycle, string? branch, string integration, DateTimeOffset now, HarvestReport.Response report, CancellationToken cancellationToken)

@@ -89,9 +89,14 @@ public static class BuildRun
 
     /// <summary>What the build's own process is asked to do.</summary>
     /// <param name="id">The cycle, or none for every queued cycle.</param>
-    /// <returns>The prompt: the build playbook, unattended, for this cycle or every queued one (D-187).</returns>
-    public static string PromptFor(CycleId? id) =>
-        id is { } cycle
+    /// <param name="run">
+    /// True to build every cycle a run's branch carries, one after another, into that branch: <c>wave/&lt;id&gt;</c> or
+    /// <c>series/&lt;id&gt;</c>, checked out where the process starts.
+    /// </param>
+    /// <returns>The prompt: the build playbook, unattended, for this cycle, every queued one, or the run's (D-187).</returns>
+    public static string PromptFor(CycleId? id, bool run = false) =>
+        run ? "/sdlc:build --run --unattended"
+        : id is { } cycle
             ? string.Create(CultureInfo.InvariantCulture, $"/sdlc:build {cycle} --unattended")
             : "/sdlc:build --unattended";
 
@@ -99,12 +104,13 @@ public static class BuildRun
     /// <param name="id">The cycle, or none for every queued cycle.</param>
     /// <param name="pluginDirectory">This release's skills, so the process runs the release the solution pins.</param>
     /// <param name="buildTools">The commands the solution's <c>build_tools</c> names, or none.</param>
+    /// <param name="run">True to build the run checked out where the process starts.</param>
     /// <returns>The arguments, one each; the named tools last, because the option takes every word after it.</returns>
-    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory, IReadOnlyList<string>? buildTools = null)
+    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory, IReadOnlyList<string>? buildTools = null, bool run = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pluginDirectory);
 
-        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id), "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
+        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id, run), "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
     }
 
     /// <summary>
@@ -181,7 +187,8 @@ public static class BuildRun
     /// <param name="Id">The cycle, or none for every queued cycle, each of which the playbook builds in a worktree of its own.</param>
     /// <param name="Worktree">The worktree's full path, or the repository's root when no cycle is named.</param>
     /// <param name="PluginDirectory">This release's skills.</param>
-    public sealed record Launch(CycleId? Id, string Worktree, string PluginDirectory) : IRequest<AgentExit>;
+    /// <param name="Run">True to build every cycle the run checked out in <paramref name="Worktree"/> carries, into its branch.</param>
+    public sealed record Launch(CycleId? Id, string Worktree, string PluginDirectory, bool Run = false) : IRequest<AgentExit>;
 
     private sealed class PrepareHandler(SolutionRoot solution, Mediator mediator, IRepository repository)
         : IRequestHandler<Prepare, Place>
@@ -283,37 +290,57 @@ public static class BuildRun
         }
     }
 
+    /// <summary>
+    /// Starts an agent's own process in a worktree, with arguments that follow from the solution's own commands, and
+    /// waits for it.
+    /// </summary>
+    /// <remarks>
+    /// The worktree's own solution document, because that is the commit the process works from. One that cannot be
+    /// read stops the launch: a process started without the commands the person named would be refused at the step
+    /// that needs them, with nobody there to ask. Its output is passed straight through, so the person sees the
+    /// process's own hand-back as it ends.
+    /// </remarks>
+    /// <param name="agents">What starts the process.</param>
+    /// <param name="worktree">Where it starts.</param>
+    /// <param name="arguments">Its arguments, given the commands <c>build_tools</c> names.</param>
+    /// <param name="cancellationToken">The token.</param>
+    /// <returns>How it ended, or why it could not start.</returns>
+    internal static async Task<Result<AgentExit>> Start(
+        IAgentProcess agents,
+        string worktree,
+        Func<IReadOnlyList<string>, IReadOnlyList<string>> arguments,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(worktree))
+        {
+            return Result.Fail<AgentExit>(string.Create(CultureInfo.InvariantCulture, $"There is no worktree at {worktree}."));
+        }
+
+        Result<SolutionDocument> solution = await SolutionDocument.ReadFile(worktree, cancellationToken).ConfigureAwait(false);
+
+        if (solution.IsFailed)
+        {
+            return solution.ToResult<AgentExit>();
+        }
+
+        return Result.Ok(await agents.Run(
+            new AgentLaunch(
+                worktree,
+                arguments(solution.Value.ExtraBuildTools),
+                Input: null,
+                Output: null,
+                Reader: false,
+                Timeout: null),
+            cancellationToken).ConfigureAwait(false));
+    }
+
     private sealed class LaunchHandler(IAgentProcess agents) : IRequestHandler<Launch, AgentExit>
     {
-        public async Task<Result<AgentExit>> Handle(Launch request, CancellationToken cancellationToken)
+        public Task<Result<AgentExit>> Handle(Launch request, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            if (!Directory.Exists(request.Worktree))
-            {
-                return Result.Fail<AgentExit>(string.Create(CultureInfo.InvariantCulture, $"There is no worktree at {request.Worktree}."));
-            }
-
-            // The worktree's own solution document, because that is the commit the build works from. One that cannot be
-            // read stops the launch: a build started without the commands the person named would be refused at the
-            // step that needs them, with nobody there to ask.
-            Result<SolutionDocument> solution = await SolutionDocument.ReadFile(request.Worktree, cancellationToken).ConfigureAwait(false);
-
-            if (solution.IsFailed)
-            {
-                return solution.ToResult<AgentExit>();
-            }
-
-            // Its output is passed straight through, so the person sees the build's own hand-back as it ends.
-            return Result.Ok(await agents.Run(
-                new AgentLaunch(
-                    request.Worktree,
-                    ArgumentsFor(request.Id, request.PluginDirectory, solution.Value.ExtraBuildTools),
-                    Input: null,
-                    Output: null,
-                    Reader: false,
-                    Timeout: null),
-                cancellationToken).ConfigureAwait(false));
+            return Start(agents, request.Worktree, tools => ArgumentsFor(request.Id, request.PluginDirectory, tools, request.Run), cancellationToken);
         }
     }
 }

@@ -58,6 +58,8 @@ public enum WaitState
 /// <para><strong>Merged means on the integration branch with a passing verify</strong>, read at
 /// <c>origin/&lt;integration&gt;</c>, else the local branch, else — a solution with no integration branch — the
 /// working copy. A plan admitted and not built is not merged: its code does not exist yet.</para>
+/// <para><strong>Or on the branch the work builds onto</strong>, when one is named: a run's branch, where a
+/// predecessor is ready once its passing verify is committed there.</para>
 /// </remarks>
 public static class ReadSuccessors
 {
@@ -72,7 +74,12 @@ public static class ReadSuccessors
     }
 
     /// <summary>Asks where every successor stands.</summary>
-    public sealed record Query : IRequest<Response>;
+    /// <param name="Onto">
+    /// The branch the work builds onto, when it is not the integration branch: a run's branch, where a predecessor
+    /// is ready once its passing verify is committed there. Read at the local branch, else <c>origin/&lt;onto&gt;</c>;
+    /// a branch that is in neither is refused.
+    /// </param>
+    public sealed record Query(string? Onto = null) : IRequest<Response>;
 
     /// <summary>One thing a successor waits for, and where it stands.</summary>
     /// <param name="Reference">As <c>succeeds:</c> wrote it.</param>
@@ -200,6 +207,70 @@ public static class ReadSuccessors
         };
     }
 
+    /// <summary>Every slug an intent here records as its lead: the successors that have become cycles.</summary>
+    /// <param name="root">The solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>Each started slug, with the live cycle that started it.</returns>
+    internal static async Task<Dictionary<string, CycleId>> Started(string root, CancellationToken cancellationToken)
+    {
+        Dictionary<string, CycleId> started = new(StringComparer.Ordinal);
+
+        foreach ((string slug, IReadOnlyList<CycleId> cycles) in await Starts(root, cancellationToken).ConfigureAwait(false))
+        {
+            started[slug] = cycles[0];
+        }
+
+        return started;
+    }
+
+    /// <summary>Every slug an intent here records as its lead, with every live cycle that did, oldest first.</summary>
+    /// <remarks>
+    /// What a series resolves its items from: the earliest start of a slug may be older than the wave that took it, and
+    /// only a cycle opened once the wave was taken is the one the series ran.
+    /// </remarks>
+    /// <param name="root">The solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>Each started slug, with its live cycles.</returns>
+    internal static async Task<Dictionary<string, IReadOnlyList<CycleId>>> Starts(string root, CancellationToken cancellationToken)
+    {
+        Dictionary<string, List<CycleId>> started = new(StringComparer.Ordinal);
+
+        foreach (Cycle cycle in CycleIndex.All(root))
+        {
+            string intent = cycle.PathOf(ArtifactKind.Intent);
+
+            if (!File.Exists(intent))
+            {
+                continue;
+            }
+
+            Result<FrontmatterDocument> split = Frontmatter.Read(
+                await File.ReadAllTextAsync(intent, cancellationToken).ConfigureAwait(false),
+                intent);
+
+            if (split.IsSuccess
+                && Frontmatter.Key(split.Value.Yaml, "lead") is { } lead
+                && lead.StartsWith(SuccessorReference.Prefix, StringComparison.Ordinal))
+            {
+                // An abandoned start does not resolve the slug: the piece it stood for was not done. The
+                // earliest live cycle wins, which is the one that started it.
+                if (!cycle.IsAbandoned)
+                {
+                    string slug = lead[SuccessorReference.Prefix.Length..].Trim();
+
+                    if (!started.TryGetValue(slug, out List<CycleId>? cycles))
+                    {
+                        started[slug] = cycles = [];
+                    }
+
+                    cycles.Add(cycle.Id);
+                }
+            }
+        }
+
+        return started.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<CycleId>)[.. pair.Value.Order()], StringComparer.Ordinal);
+    }
+
     private sealed class Handler(SolutionRoot solution, IRepository repository) : IRequestHandler<Query, Response>
     {
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
@@ -237,14 +308,33 @@ public static class ReadSuccessors
                 }
             }
 
-            string integration = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
             bool repo = repository.IsRepository(root);
-            string? at = repo
-                ? new[] { "origin/" + integration, integration }.FirstOrDefault(name => repository.RefExists(root, name))
-                : null;
+            string integration = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
+            string? at;
+
+            if (request.Onto is { Length: > 0 } onto)
+            {
+                // The branch the work builds onto: its own copy first, since a run commits there before it pushes.
+                at = repo
+                    ? new[] { onto, "origin/" + onto }.FirstOrDefault(name => repository.RefExists(root, name))
+                    : null;
+
+                if (at is null)
+                {
+                    return Result.Fail(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"There is no branch {onto} here or on origin, so nothing can be judged ready against it. Name a branch that exists, or leave --onto out to judge against the integration branch."));
+                }
+            }
+            else
+            {
+                at = repo
+                    ? new[] { "origin/" + integration, integration }.FirstOrDefault(name => repository.RefExists(root, name))
+                    : null;
+            }
 
             Dictionary<string, CycleId> started = await Started(root, cancellationToken).ConfigureAwait(false);
-            Records records = new(root, at, repo ? repository : null);
+            Records records = new(root, at, repo ? repository : null, integration);
 
             List<IReadOnlyList<string>> loops = Loops(read, started);
             HashSet<string> looped = [.. loops.SelectMany(loop => loop)];
@@ -308,40 +398,6 @@ public static class ReadSuccessors
                 loops,
                 at,
                 parked));
-        }
-
-        /// <summary>Every slug an intent here records as its lead: the successors that have become cycles.</summary>
-        private static async Task<Dictionary<string, CycleId>> Started(string root, CancellationToken cancellationToken)
-        {
-            Dictionary<string, CycleId> started = new(StringComparer.Ordinal);
-
-            foreach (Cycle cycle in CycleIndex.All(root))
-            {
-                string intent = cycle.PathOf(ArtifactKind.Intent);
-
-                if (!File.Exists(intent))
-                {
-                    continue;
-                }
-
-                Result<FrontmatterDocument> split = Frontmatter.Read(
-                    await File.ReadAllTextAsync(intent, cancellationToken).ConfigureAwait(false),
-                    intent);
-
-                if (split.IsSuccess
-                    && Frontmatter.Key(split.Value.Yaml, "lead") is { } lead
-                    && lead.StartsWith(SuccessorReference.Prefix, StringComparison.Ordinal))
-                {
-                    // An abandoned start does not resolve the slug: the piece it stood for was not done. The
-                    // earliest live cycle wins, which is the one that started it.
-                    if (!cycle.IsAbandoned)
-                    {
-                        started.TryAdd(lead[SuccessorReference.Prefix.Length..].Trim(), cycle.Id);
-                    }
-                }
-            }
-
-            return started;
         }
 
         private static async Task<SuccessorState> Work(
@@ -455,7 +511,7 @@ public static class ReadSuccessors
     }
 
     /// <summary>Where a cycle stands, read from the working copy and the integration branch.</summary>
-    private sealed class Records(string root, string? at, IRepository? repository)
+    private sealed class Records(string root, string? at, IRepository? repository, string integration)
     {
         private readonly Dictionary<CycleId, WaitState> _known = [];
 
@@ -491,7 +547,9 @@ public static class ReadSuccessors
             {
                 state = WaitState.Missing;
             }
-            else if (cycle.IsAbandoned || (at is not null && repository!.PathExistsAt(root, at, folder + "abandoned.md")))
+            else if (cycle.IsAbandoned
+                || (at is not null && (repository!.PathExistsAt(root, at, folder + "abandoned.md")
+                    || Abandonments().AbandonedAt(at, id))))
             {
                 state = WaitState.Abandoned;
             }
@@ -511,6 +569,12 @@ public static class ReadSuccessors
         }
 
         private Harvest.HarvestLedger? _ledger;
+
+        private Series.SeriesAbandonment? _series;
+
+        // The series this clone knows of and what each abandons, read once: a rejected series abandons every cycle
+        // that exists only in it.
+        private Series.SeriesAbandonment Abandonments() => _series ??= new Series.SeriesAbandonment(repository!, root, integration);
 
         // Read where merged is read: the integration branch, else the working copy.
         private Harvest.HarvestLedger Ledger()

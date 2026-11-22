@@ -32,7 +32,11 @@ public static class StartSuccessor
     /// <summary>Starts a successor as the cycle given.</summary>
     /// <param name="Slug">The successor.</param>
     /// <param name="Cycle">The cycle opened for it, here.</param>
-    public sealed record Command(string Slug, CycleId Cycle) : IRequest<Response>;
+    /// <param name="Onto">
+    /// The branch its predecessors must have reached: null for the run branch checked out here, or the integration
+    /// branch when none is.
+    /// </param>
+    public sealed record Command(string Slug, CycleId Cycle, string? Onto = null) : IRequest<Response>;
 
     /// <summary>What was started.</summary>
     /// <param name="Successor">The successor, as its file held it.</param>
@@ -40,7 +44,7 @@ public static class StartSuccessor
     /// <param name="Deleted">The file deleted, relative to the root.</param>
     public sealed record Response(Successor Successor, CycleId Cycle, string Deleted);
 
-    private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Command, Response>
+    private sealed class Handler(SolutionRoot solution, Mediator mediator, Git.IRepository repository) : IRequestHandler<Command, Response>
     {
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -56,7 +60,7 @@ public static class StartSuccessor
             }
 
             Result<ReadSuccessors.Response> read = await mediator
-                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(), cancellationToken)
+                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(RunBranch.OntoHere(repository, solution.Path, request.Onto)), cancellationToken)
                 .ConfigureAwait(false);
 
             if (read.IsFailed)

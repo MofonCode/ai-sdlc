@@ -239,6 +239,43 @@ public static class VerifyChain
     }
 
     /// <summary>
+    /// Every cycle whose folder a pull request changes, whatever else it changes.
+    /// </summary>
+    /// <remarks>
+    /// A run's pull request carries several cycles' code and paperwork together, so unlike
+    /// <see cref="PlanningCycles"/> nothing it carries besides is a reason to answer none.
+    /// </remarks>
+    /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
+    /// <returns>The cycles, in id order; empty when it changes no cycle's folder.</returns>
+    public static IReadOnlyList<CycleId> ChangedCycles(IReadOnlyList<string> changed)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+
+        string cycles = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/";
+        SortedSet<CycleId> ids = [];
+
+        foreach (string path in changed)
+        {
+            string normalised = path.Replace('\\', '/').TrimStart('/');
+
+            if (!normalised.StartsWith(cycles, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string rest = normalised[cycles.Length..];
+            int slash = rest.IndexOf('/', StringComparison.Ordinal);
+
+            if (slash > 0 && CycleId.TryParse(rest[..slash], out CycleId? id))
+            {
+                ids.Add(id.Value);
+            }
+        }
+
+        return [.. ids];
+    }
+
+    /// <summary>
     /// The check that the successors a pull request carries are sound: readable, resolving, and loop-free (D-125).
     /// </summary>
     /// <param name="mediator">Where to ask.</param>
@@ -542,6 +579,7 @@ public static class VerifyChain
                     $"{evidence}/{Coverage.SummaryFileName}",
                     $"{evidence}/{RecordEvidence.BaseFileName}",
                     $"{evidence}/{RecordEvidence.HeadFileName}",
+                    $"{evidence}/{RecordEvidence.MergedFileName}",
                     $"{Cycle.SdlcDirectoryName}/{Coverage.SummaryFileName}",
                 ]);
 
@@ -781,6 +819,9 @@ public static class VerifyChain
             bool areas = await NewerRules.Since(cycle, NewerRules.Areas, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<Decisions.Decision> recorded = await Decisions.Departures.Recorded(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
 
+            // A series asked nobody, so its intents keep their (inferred) marks for the report.
+            bool unasked = cycle.InSeries;
+
             foreach (ArtifactKind kind in required)
             {
                 string path = cycle.PathOf(kind);
@@ -792,7 +833,7 @@ public static class VerifyChain
                 }
 
                 string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-                ArtifactValidation shape = Decisions.Departures.Checked(ArtifactSchema.Validate(kind, text, id, fence, areas), text, recorded);
+                ArtifactValidation shape = Decisions.Departures.Checked(ArtifactSchema.Validate(kind, text, id, fence, areas, unasked), text, recorded);
 
                 misshapen.AddRange(shape.Violations.Select(violation => string.Create(
                     CultureInfo.InvariantCulture,

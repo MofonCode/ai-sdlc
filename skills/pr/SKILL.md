@@ -1,8 +1,8 @@
 ---
 name: pr
-description: Push a cycle's branch and open its pull request into the integration branch, or update the one already open with a new push and a refreshed report. The only stage that touches the remote. Run by the build and remediate playbooks, or by a person: after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
+description: Push a cycle's branch and open its pull request into the integration branch, or update the one already open with a new push and a refreshed report. The only stage that touches the remote. Run by the build, remediate and series playbooks, or by a person: after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, with --run for a wave's or a series' one pull request, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[<cycle id>...] [--plan | --draft] | --plan | --all"
+argument-hint: "[<cycle id>...] [--plan | --draft] | --plan | --run | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---
 
@@ -23,6 +23,7 @@ happened.
 | `pr --plan`, in a sandbox | every approved plan the sandbox carries, and the successors it wrote, by one pull request | `sdlc admit`, which names each before you are asked to push |
 | `pr <id> --draft` | a build that did not pass: `blocked` or `escalated` | `sdlc pr-ready <id>`, which must refuse for exactly that: did not pass, or escalated |
 | `pr <id>`, its pull request already open | a new push after `remediate`, and the body's report refreshed | nothing: the playbook that ran it already decided |
+| `pr --run`, on `wave/<id>` or `series/<id>` | every cycle a run built, by one pull request, draft or ready | `sdlc pr-ready`, with no id |
 
 ## Which cycle
 
@@ -152,6 +153,32 @@ Not met, by its number with its reason as `verify.md` states it; and each open b
 `sdlc findings <id> --stage verify --blocking` prints it — its rule, its gist, where, and its fix. Copied,
 not summarised: the reviewer reads the body, not the ledger. Its check will be red,
 which is accurate. A person remedies it on this branch and marks it ready.
+
+## A run: `--run`
+
+On a run's branch — `wave/<id>` or `series/<id>` — **one pull request for every cycle the run built**, never one per
+cycle. Run by the `build` playbook at the end of a wave, and by the `series` playbook at the end of a series.
+
+```
+sdlc pr-ready
+```
+
+With no id, on a run's branch, it answers for the run — the check its pull request will meet. **It decides draft or
+ready**: ready when it holds, a draft when it refuses because a cycle did not pass, and nothing pushed when it
+refuses for anything else — show that and stop.
+
+**The body is a short summary, then the report, verbatim:**
+
+1. **What was built and the reasoning**, in brief plain language: a sentence or two per cycle, headed by its id
+   and headline so a comment can name it. Write it from the cycles' plans and their reports. **Never restate a
+   deviation, and never leave one out**: those are the report's, and a summary is where one quietly goes missing
+   (D-181).
+2. **What `sdlc report --run` prints**, copied as it stands — each cycle's outcome, deviations, choices and
+   concerns, what stopped and what it held back, and for a series every intent line nobody confirmed.
+
+Push the branch and open the pull request into the integration branch as below, with `--draft` when `sdlc pr-ready`
+said so. **An open one is refreshed, not opened again**: push, and replace the body as for one cycle. Ask nothing:
+the run was the decision.
 
 ## A verified build: ask first, every time
 

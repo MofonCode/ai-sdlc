@@ -148,6 +148,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Chain.VerifySlicing",
         "Sdlc.Core.Chain.VerifySlicing+Query",
         "Sdlc.Core.Chain.VerifySlicing+Response",
+        "Sdlc.Core.Chain.VerifyRun",
+        "Sdlc.Core.Chain.VerifyRun+Query",
+        "Sdlc.Core.Chain.VerifyRun+Response",
         "Sdlc.Core.Chain.VerifyUpgrade",
         "Sdlc.Core.Chain.VerifyUpgrade+Query",
         "Sdlc.Core.Chain.VerifyUpgrade+Response",
@@ -186,6 +189,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.AbandonRecord",
         "Sdlc.Core.Cycles.AbandonText",
         "Sdlc.Core.Cycles.AbandonText+Query",
+        "Sdlc.Core.Cycles.AbandonText+SeriesQuery",
         "Sdlc.Core.Cycles.ArtifactKind",
         "Sdlc.Core.Cycles.Cycle",
         "Sdlc.Core.Cycles.CycleId",
@@ -234,6 +238,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.ComposeAdmission+Query",
         "Sdlc.Core.Cycles.ComposeAdmission+Response",
         "Sdlc.Core.Cycles.SandboxBranch",
+        "Sdlc.Core.Cycles.RunBranch",
+        "Sdlc.Core.Cycles.RunKind",
 
         // 'sdlc cycles --here': which cycle a skill given no id means, one used and several asked about (D-142).
         "Sdlc.Core.Cycles.NextStep",
@@ -257,6 +263,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Factory.Sitrep+Overlap",
         "Sdlc.Core.Factory.Sitrep+Query",
         "Sdlc.Core.Factory.Sitrep+Response",
+        "Sdlc.Core.Factory.Sitrep+Run",
         "Sdlc.Core.Factory.Sitrep+Waiting",
         "Sdlc.Core.Factory.SitrepRenderer",
 
@@ -300,6 +307,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Harvest.GatherAbandoned+Response",
         "Sdlc.Core.Harvest.HarvestAspect",
         "Sdlc.Core.Harvest.HarvestAspects",
+        "Sdlc.Core.Harvest.HarvestCover",
         "Sdlc.Core.Harvest.HarvestDecline",
         "Sdlc.Core.Harvest.HarvestedArea",
         "Sdlc.Core.Harvest.HarvestedCycle",
@@ -318,9 +326,17 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Harvest.HarvestReport+Response",
         "Sdlc.Core.Harvest.HarvestReport+Verdict",
         "Sdlc.Core.Harvest.HarvestSitting",
+        "Sdlc.Core.Harvest.HarvestSummary",
+        "Sdlc.Core.Harvest.HarvestSummary+Answer",
+        "Sdlc.Core.Harvest.HarvestSummary+Proposal",
+        "Sdlc.Core.Harvest.HarvestSummary+Query",
+        "Sdlc.Core.Harvest.HarvestSummary+Response",
+        "Sdlc.Core.Harvest.HarvestSummary+Theme",
         "Sdlc.Core.Harvest.ReaderYield",
         "Sdlc.Core.Harvest.RecordHarvest",
+        "Sdlc.Core.Harvest.RecordHarvest+Answers",
         "Sdlc.Core.Harvest.RecordHarvest+Command",
+        "Sdlc.Core.Harvest.RecordHarvest+Cover",
         "Sdlc.Core.Harvest.RecordHarvest+Response",
         "Sdlc.Core.Harvest.SentCycle",
         "Sdlc.Core.Harvest.SentNote",
@@ -465,7 +481,37 @@ public sealed class PublicSurfaceTests
         // Writes the copy of a report a person works from. Public because Sdlc.Cli calls it after
         // printing, and deliberately not an operation through the mediator: nothing reads a report back,
         // so there is no state here for a handler to own.
+        "Sdlc.Core.Reports.IdTexts",
+        "Sdlc.Core.Reports.IdTexts+Named",
+        "Sdlc.Core.Reports.IdTexts+Query",
+        "Sdlc.Core.Reports.IdTexts+Response",
         "Sdlc.Core.Reports.ReportFile",
+
+        // 'sdlc report --run': the one report a wave or a series ends on, a short entry per cycle and what stopped.
+        "Sdlc.Core.Reports.RunReport",
+        "Sdlc.Core.Reports.RunReport+Entry",
+        "Sdlc.Core.Reports.RunReport+Query",
+        "Sdlc.Core.Reports.RunReport+Response",
+        "Sdlc.Core.Reports.RunReport+Stopped",
+
+        // 'sdlc series': a series' record and its four operations -- start, the next wave, where it stands, and its own
+        // process, whose skills a test holds to the series playbook.
+        "Sdlc.Core.Series.NextWave",
+        "Sdlc.Core.Series.NextWave+Command",
+        "Sdlc.Core.Series.NextWave+Response",
+        "Sdlc.Core.Series.SeriesItem",
+        "Sdlc.Core.Series.SeriesItemKind",
+        "Sdlc.Core.Series.SeriesRecord",
+        "Sdlc.Core.Series.SeriesRun",
+        "Sdlc.Core.Series.SeriesRun+Launch",
+        "Sdlc.Core.Series.SeriesStatus",
+        "Sdlc.Core.Series.SeriesStatus+ItemState",
+        "Sdlc.Core.Series.SeriesStatus+Query",
+        "Sdlc.Core.Series.SeriesStatus+Response",
+        "Sdlc.Core.Series.SeriesWave",
+        "Sdlc.Core.Series.StartSeries",
+        "Sdlc.Core.Series.StartSeries+Command",
+        "Sdlc.Core.Series.StartSeries+Response",
 
         // 'sdlc harvest decisions': the operation, its response, and the two shapes that response
         // carries. DecisionSource is public because Candidate exposes it.

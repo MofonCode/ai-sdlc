@@ -24,6 +24,10 @@ before the remote's), and brings its folder into your working tree, untracked, s
 What you keep from it reaches the integration branch through the harvest's own pull request; its folder never does. A
 branch that only exists on somebody else's machine is not seen: push it if it should be harvested.
 
+**A rejected series is abandoned in one step.** Place the record `sdlc draft abandon --series <id>` prints beside the
+series' own, on `series/<id>`, and push it: every cycle the series ran reads as abandoned with your one reason, and
+`sdlc harvest` brings the series' folder and theirs in from that branch the same way.
+
 You do not have to harvest after every cycle. The three-cycle bar — one cycle is an instance, two a coincidence,
 three a pattern — is easier to see with several cycles in front of you.
 
@@ -39,7 +43,7 @@ Say `/sdlc:harvest`. It is a playbook: it runs five skills, **one at a time**, a
 |---|---|---|---|
 | 1 | `/sdlc:harvest-constraints` | rules the findings kept arguing | `constraints.md` |
 | 2 | `/sdlc:harvest-decisions` | choices the cycles settled | `decisions.md` |
-| 3 | `/sdlc:harvest-suggestions` | each open suggestion: taken further, declined or ignored | `.sdlc/successors/`, and the ledger |
+| 3 | `/sdlc:harvest-suggestions` | each open suggestion: taken further, declined, covered or ignored | `.sdlc/successors/`, and the ledger |
 | 4 | `/sdlc:harvest-stack` | rows the declared stack never mentions | `techstack.md` |
 | 5 | `/sdlc:harvest-areas` | areas the plans named | `areas.md` |
 | 6 | `/sdlc:close-cycle` | — it closes the cycles every aspect has answered | a pull request you merge |
@@ -50,8 +54,10 @@ ledger remembers which aspects each cycle has answered.
 
 **Every aspect runs the same way:**
 
-1. The skill writes a proposal file under `.sdlc/reports/` and hands back a short report: how many proposals, one
-   line each saying what and why, and what it needs from you. It places nothing.
+1. The skill writes a proposal file under `.sdlc/reports/` and hands back what `sdlc harvest summary <file>` prints:
+   each proposal with its mark, the other answers counted by theme, and every rule, decision and successor the file
+   names with what it says — then what it needs from you. The skill chooses the themes; the binary counts and quotes,
+   so a group cannot claim more than it holds. It places nothing.
 2. You open the file, mark `[x]` on each proposal you accept, and edit its wording to yours.
 3. The skill runs `sdlc draft harvest <file>`, which writes the draft beside the real file — a copy with only your
    accepted lines applied — and two fresh processes review it: whether what you approved still serves its evidence
@@ -84,16 +90,23 @@ something, that half is a rule instead.
 
 ## Answering the suggestions
 
-Every open suggestion of a completed cycle gets one of three answers (D-153):
+Every open suggestion of a completed cycle gets one of four answers (D-153):
 
 | Answer | Means | Afterwards |
 |---|---|---|
-| **taken further** | it is worth doing | a successor, its text copied in, which `/sdlc:next` picks up |
+| **taken further** | it is worth doing | a successor, its text copied in, which `/sdlc:wave` or `/sdlc:series` picks up |
 | **declined** | you decided against it, and someone who raises it again deserves the reason | the reason, kept in the sitting in the ledger |
+| **covered** | a rule, a decision, a successor or a file here already handles it | what covers it, checked and kept in the sitting in the ledger |
 | **ignored** | nothing to do, nothing to decide | a tally of the concern and the cycles it was ignored in |
 
-**Ignoring is counted, by concern.** One ignored in three cycles is at the bar: that sitting takes it further or
-declines it, rather than ignoring it a fourth time.
+**Covered is checked.** `sdlc harvest record` refuses the sitting when a `## Covered` line names a rule not in force,
+a decision not standing, a successor that does not exist and was never started, or a file that is not here — every
+such line at once, and nothing is recorded. Covered keeps *declined* for real refusals: nobody decided against a
+concern a rule already handles.
+
+**Ignoring is counted, by concern.** One ignored in three cycles is at the bar: that sitting takes it further,
+declines it or covers it, rather than ignoring it a fourth time. A covered line's `Concern:` names the concern it
+closes, and that concern leaves the tally.
 
 **Every counted concern carries its reason.** A concern watched below the bar, or ignored, is kept with a line
 saying what it prevents and what it promotes, so when it reaches the bar you can weigh it without digging the

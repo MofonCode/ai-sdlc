@@ -72,6 +72,15 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **A slicing's pull request — `sdlc verify-chain slices/<slug>/plan`** | |
 | [a plan that needs a sibling's code](../guides/handling-refusals.md#a-plan-that-needs-a-siblings-code) | make that piece a successor of the sibling, or merge the two pieces |
 | [a slicing that carries more than plans](../guides/handling-refusals.md#a-slicing-that-carries-more-than-plans) | take the other files off the branch, or compose it again with `sdlc slices` |
+| **A run's pull request — `sdlc verify-chain wave/<id>` or `series/<id>`** | |
+| [a run that carries no cycle](../guides/handling-refusals.md#a-run-that-carries-no-cycle) | build a cycle on the branch, or open the change from a branch of its own |
+| [a named test that failed at the end of the run](../guides/handling-refusals.md#a-named-test-that-failed-at-the-end-of-the-run) | fix it on the run's branch and record the last cycle's evidence again |
+| [code no verified cycle accounts for](../guides/handling-refusals.md#code-no-verified-cycle-accounts-for) | record the evidence of the cycle that built it, or revert the code of a cycle left unbuilt or abandoned |
+| **A series, and a run's own commands — `sdlc series`, `sdlc build --run`, `sdlc report --run`** | |
+| [fewer than one wave](../guides/handling-refusals.md#fewer-than-one-wave) | start it again with the number of waves it may run |
+| [not on a series' branch](../guides/handling-refusals.md#not-on-a-series-branch) | run it in the series' worktree, or pass it with `--solution` |
+| [a series that has taken every wave](../guides/handling-refusals.md#a-series-that-has-taken-every-wave) | open its pull request; a new series takes what is ready next |
+| [not on a run's branch](../guides/handling-refusals.md#not-on-a-runs-branch) | run it in the run's worktree, or pass it with `--solution` |
 | **An upgrade's pull request — `sdlc verify-chain <branch> --base <branch>`** | |
 | [the check runs as another release](../guides/handling-refusals.md#the-check-runs-as-another-release) | let the pipeline restore the pin first; `sdlc init` rewrites a pipeline that does not |
 | [a framework file adoption did not write](../guides/handling-refusals.md#a-framework-file-adoption-did-not-write) | move the team's own change to a cycle, or run `sdlc init` again as the pinned release |
@@ -86,9 +95,10 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename the draft into place or delete it, then run the command again |
 | [nothing left to record](../guides/handling-refusals.md#nothing-left-to-record) | `sdlc harvest` shows what each cycle still needs; copy `## Cycles` as the report wrote it |
 | [a note for the framework that does not read](../guides/handling-refusals.md#a-note-for-the-framework-that-does-not-read) | name a surface and a `Kind:` under each `## For the framework` heading, then record again |
+| [a covered answer that names nothing real](../guides/handling-refusals.md#a-covered-answer-that-names-nothing-real) | name the rule, decision, successor or file that really covers each listed line, or decline it with why, then record again |
 | [an aspect is still unanswered](../guides/handling-refusals.md#an-aspect-is-still-unanswered) | run that aspect's skill, or `/sdlc:harvest`, then close again |
 | [not on the integration branch](../guides/handling-refusals.md#not-on-the-integration-branch) | switch to the integration branch and close again |
-| [a harvest pull request carries something that is not a harvest's](../guides/handling-refusals.md#a-harvest-pull-request-carries-something-that-is-not-a-harvests) | take out what is not a closed cycle's deletion, and fix the record the check names |
+| [a harvest pull request carries something that is not a harvest's](../guides/handling-refusals.md#a-harvest-pull-request-carries-something-that-is-not-a-harvests) | take out what is not a closed cycle's or a closed series' deletion, and fix the record the check names |
 | [a command that was renamed](../guides/handling-refusals.md#a-command-that-was-renamed) | run the name it gives: `sdlc harvest`, `sdlc draft harvest`, `sdlc theme`, or `sdlc constraints --new` |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
@@ -98,6 +108,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [an empty patch beside a changed file](../guides/handling-refusals.md#an-empty-patch-beside-a-changed-file) | `git status --short`; the evidence is wrong, not the code |
 | [no results file](../guides/handling-refusals.md#no-results-file) | point `--tests` at the directory holding the `.trx` files |
 | [one test name with two outcomes](../guides/handling-refusals.md#one-test-name-with-two-outcomes) | rename one test, or run the projects separately |
+| [a merged-in change that overlaps the work before it](../guides/handling-refusals.md#a-merged-in-change-that-overlaps-the-work-before-it) | record once the overlap is resolved in a commit of its own, or build the cycle again on top of the merge |
 | **Opening a pull request — `sdlc pr-ready`** | |
 | [not verified](../guides/handling-refusals.md#not-verified) | `sdlc evidence <id>` if needed, then `/sdlc:verify <id>` |
 | [the verification did not pass](../guides/handling-refusals.md#the-verification-did-not-pass) | `/sdlc:remediate <id>` |

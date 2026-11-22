@@ -181,6 +181,40 @@ public sealed class QueueTests
         Assert.IsFalse(queue.Cycles.Any(cycle => cycle.Id == LocalId));
     }
 
+    [TestMethod]
+    public async Task Onto_a_run_branch_a_parked_cycle_whose_predecessor_passed_there_is_held_as_ready_to_unpark()
+    {
+        const string Before = "20261020_0900_00";
+        const string Series = "series/20261121_0930_15";
+        using CycleWorkspace workspace = Approved();
+        Directory.CreateDirectory(Path.Combine(workspace.Root, ".sdlc", "cycles", Before));
+        await File.WriteAllTextAsync(Path.Combine(workspace.Cycle.Directory, "parked.md"), "---\nwaits_on: " + Before + "\n---\n");
+        FakeRepository git = new();
+        git.Refs.Add(Series);
+        git.Files[Series + ":.sdlc/cycles/" + Before + "/verify.md"] = "---\noutcome: pass\n---\n";
+
+        ListQueuedCycles.Response plain = await Read(workspace, git);
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        Result<ListQueuedCycles.Response> onto = await gate.Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(null, Series));
+
+        Assert.IsTrue(onto.IsSuccess, string.Join("; ", onto.Errors.Select(e => e.Message)));
+        StringAssert.Contains(plain.Held.Single().Reason, "it is parked, waiting on");
+        StringAssert.Contains(onto.Value.Held.Single().Reason, "it is parked and ready: everything it waited on has merged into " + Series);
+    }
+
+    [TestMethod]
+    public async Task Onto_a_branch_that_is_nowhere_the_queue_is_refused()
+    {
+        using CycleWorkspace workspace = Approved();
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(new FakeRepository()));
+
+        Result<ListQueuedCycles.Response> onto = await gate.Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(null, "wave/20261121_0930_15"));
+
+        Assert.IsTrue(onto.IsFailed);
+        StringAssert.Contains(onto.Errors[0].Message, "There is no branch wave/20261121_0930_15");
+    }
+
     private static CycleId LocalId => CycleId.TryParse("20261101_0900_00", out CycleId? id) ? id.Value : throw new InvalidOperationException();
 
     private static FakeRepository Admitted(string admission, bool approved)

@@ -95,6 +95,20 @@ public sealed class DraftHarvestTests
     }
 
     [TestMethod]
+    public void A_covered_line_and_a_theme_are_never_drafted()
+    {
+        // Covered is recorded, not drafted: it names what already handles a suggestion. A '### <theme>' under
+        // Declined, Covered or Ignored groups lines for a person's reading and is no proposal either.
+        IReadOnlyList<DraftHarvest.Proposal> read = DraftHarvest.Parse(
+            Proposals
+            + "\n## Covered\n\n### Already handled by a rule\n\n- a/x.S_01: LOC_01 — the rule\n  Concern: wrong counts\n"
+            + "\n## Declined\n\n### Settled by a recorded decision\n\n- a/x.S_02: DEC_01 settles it\n"
+            + "\n## Ignored\n\n### Slips\n\n- wrong counts — a\n").Value;
+
+        Assert.AreEqual(5, read.Count, "A covered line or a theme was read as a proposal.");
+    }
+
+    [TestMethod]
     public void There_is_no_remove()
     {
         FluentResults.Result<IReadOnlyList<DraftHarvest.Proposal>> parsed = DraftHarvest.Parse("## Rules\n\n### [x] remove LOC_01 — gone\n");

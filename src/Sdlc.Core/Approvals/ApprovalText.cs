@@ -380,9 +380,8 @@ public static class ApprovalText
         /// </summary>
         private async Task<(string? Admitted, string? Build)> AdmittedUnderBuild(CycleId id, CancellationToken cancellationToken)
         {
-            if (!CycleBranch.TryParse(repository.CurrentBranch(solution.Path), out CycleBranch? branch)
-                || branch.Id != id
-                || !branch.IsBuild)
+            // A run's branch is a build branch for every cycle it carries.
+            if (repository.CurrentBranch(solution.Path) is not { } branch || !RunBranch.BuildsOn(branch, id))
             {
                 return (null, null);
             }
@@ -392,7 +391,7 @@ public static class ApprovalText
 
             return AmendedPlan.IntegrationRef(repository, solution.Path, integration) is { } reference
                 && repository.PathExistsAt(solution.Path, reference, plan)
-                ? (reference, branch.ToString())
+                ? (reference, branch)
                 : (null, null);
         }
 

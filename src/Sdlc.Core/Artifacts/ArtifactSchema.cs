@@ -153,8 +153,13 @@ public static partial class ArtifactSchema
     /// Whether a plan must carry an <c>## Areas</c> section: true for a cycle opened since areas (D-150), which
     /// <see cref="Findings.NewerRules.Since"/> decides. A plan that has one is held to its shape either way.
     /// </param>
+    /// <param name="unasked">
+    /// Whether a series opened the cycle, which asks nobody: its intent may keep lines marked <see cref="InferredMark"/>,
+    /// because the run's report lists each one as not confirmed by anyone. <see cref="Cycle.InSeries"/> decides. False
+    /// everywhere else, where a mark left behind is refused.
+    /// </param>
     /// <returns>What is wrong with its shape, which may be nothing.</returns>
-    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool newerRules = true, bool areas = false)
+    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool newerRules = true, bool areas = false, bool unasked = false)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
@@ -185,7 +190,11 @@ public static partial class ArtifactSchema
         if (newerRules)
         {
             CheckTakenIn(kind, markdown, violations);
-            CheckInferred(kind, markdown, violations);
+            if (!unasked)
+            {
+                CheckInferred(kind, markdown, violations);
+            }
+
             CheckAssumptions(kind, markdown, violations);
             CheckCases(kind, markdown, violations);
         }

@@ -619,7 +619,8 @@ public sealed class PluginTests
     [DataRow("interrogate")]
     [DataRow("to-plan")]
     [DataRow("steer")]
-    [DataRow("next")]
+    [DataRow("wave")]
+    [DataRow("series")]
     public void Every_skill_that_runs_a_round_may_run_the_binary_that_starts_its_readers(string skill)
     {
         // The loop is a playbook's (D-188, reversing D-29), and `sdlc round run` starts its readers (D-183). So all
@@ -793,6 +794,30 @@ public sealed class PluginTests
         }
 
         CollectionAssert.AreEquivalent(reached.ToList(), Sdlc.Core.Cycles.BuildRun.Skills.ToList());
+    }
+
+    [TestMethod]
+    public void The_series_process_is_allowed_every_skill_the_series_playbook_reaches()
+    {
+        // `sdlc series run` names the skills the series' headless process may run, as `sdlc build` does, and one left
+        // off is refused with nobody to ask. The series plans as well as builds, so its list is the planning skills and
+        // the build's together -- read from the kinds table, transitively, so it moves when a playbook does.
+        var edges = Kinds().ToDictionary(entry => entry.Key, entry => RunsCell(entry.Value.Runs).ToArray(), StringComparer.Ordinal);
+        HashSet<string> reached = new(StringComparer.Ordinal);
+        Stack<string> pending = new(["series"]);
+
+        while (pending.TryPop(out string? at))
+        {
+            foreach (string next in edges.GetValueOrDefault(at, []))
+            {
+                if (reached.Add(next))
+                {
+                    pending.Push(next);
+                }
+            }
+        }
+
+        CollectionAssert.AreEquivalent(reached.ToList(), Sdlc.Core.Series.SeriesRun.Skills.ToList());
     }
 
     // The skills a Runs cell names; none for a single skill's dash.
@@ -1310,10 +1335,10 @@ public sealed class PluginTests
 
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
-        Assert.AreEqual(28, skills, "The readme says twenty-eight skills.");
+        Assert.AreEqual(29, skills, "The readme says twenty-nine skills.");
         Assert.AreEqual(19, constraints, "The readme says nineteen global constraints.");
 
-        StringAssert.Contains(readme, "twenty-eight skills");
+        StringAssert.Contains(readme, "twenty-nine skills");
         StringAssert.Contains(readme, "nineteen global constraints");
     }
 
@@ -1325,10 +1350,10 @@ public sealed class PluginTests
         // root readme, from the same sources.
         string package = File.ReadAllText(Path.Combine(Root, "src", "Sdlc.Cli", "README.md"));
 
-        Assert.AreEqual(28, Skills().Count(), "The package readme says twenty-eight skills.");
+        Assert.AreEqual(29, Skills().Count(), "The package readme says twenty-nine skills.");
         Assert.AreEqual(7, ProtectedPaths.Names.Count, "The package readme says seven files are a person's alone.");
 
-        StringAssert.Contains(package, "twenty-eight skills");
+        StringAssert.Contains(package, "twenty-nine skills");
         StringAssert.Contains(package, "Seven files are a person's alone");
     }
 

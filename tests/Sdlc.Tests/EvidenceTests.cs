@@ -755,6 +755,186 @@ public sealed class EvidenceTests
             + string.Join("; ", result.Errors.Select(e => e.Message)));
     }
 
+    [TestMethod]
+    public async Task A_cycle_built_after_another_on_the_same_branch_is_measured_from_where_that_one_ended()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Earlier = "1111111111111111111111111111111111111111";
+        const string Later = "2222222222222222222222222222222222222222";
+        await Built(workspace, "20200101_0900_00", Earlier);
+        await Built(workspace, "20200101_0900_01", Later);
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+        git.Ancestors.Add((Earlier, git.Head!));
+        git.Ancestors.Add((Later, git.Head!));
+        git.Ancestors.Add((Earlier, Later));
+        git.Ancestors.Add((git.Base!, Earlier));
+        git.Ancestors.Add((git.Base!, Later));
+
+        await RecordWith(workspace, git);
+
+        Assert.AreEqual(Later, await Base(workspace));
+        Assert.AreEqual((Later, git.Head!), git.Between);
+    }
+
+    [TestMethod]
+    public async Task A_cycle_alone_on_its_branch_is_measured_from_where_the_branch_left_the_integration_branch()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+
+        await RecordWith(workspace, git);
+
+        Assert.AreEqual(git.Base, await Base(workspace));
+    }
+
+    [TestMethod]
+    public async Task A_merged_cycles_older_head_is_not_where_a_new_cycle_is_measured_from()
+    {
+        // It is an ancestor of HEAD, and of the divergence too: it merged before this branch left.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Merged = "3333333333333333333333333333333333333333";
+        await Built(workspace, "20200101_0900_00", Merged);
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+        git.Ancestors.Add((Merged, git.Head!));
+        git.Ancestors.Add((Merged, git.Base!));
+
+        await RecordWith(workspace, git);
+
+        Assert.AreEqual(git.Base, await Base(workspace));
+    }
+
+    [TestMethod]
+    public async Task Remediating_an_earlier_cycle_of_a_run_keeps_the_base_it_was_measured_from()
+    {
+        // The first cycle of a run, recorded at Earlier; the second built on top of it at Later; the first remediated
+        // after that, at HEAD. Measured from Later, the first cycle's own change would leave its evidence.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Earlier = "1111111111111111111111111111111111111111";
+        const string Later = "2222222222222222222222222222222222222222";
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+        Directory.CreateDirectory(workspace.Cycle.EvidenceDirectory);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.BaseFileName), git.Base + "\n");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.HeadFileName), Earlier + "\n");
+        await Built(workspace, "20200101_0900_01", Later);
+        git.Ancestors.Add((git.Base!, Earlier));
+        git.Ancestors.Add((git.Base!, Later));
+        git.Ancestors.Add((git.Base!, git.Head!));
+        git.Ancestors.Add((Earlier, Later));
+        git.Ancestors.Add((Earlier, git.Head!));
+        git.Ancestors.Add((Later, git.Head!));
+
+        await RecordWith(workspace, git);
+
+        Assert.AreEqual(git.Base, await Base(workspace));
+        Assert.AreEqual((git.Base!, git.Head!), git.Between);
+    }
+
+    [TestMethod]
+    public async Task A_cycle_whose_old_base_is_gone_is_never_measured_from_a_cycle_built_after_it()
+    {
+        // Its recorded base is no longer behind HEAD -- the branch was rebuilt -- so a base is chosen again, and the
+        // later cycle's head, which descends from this cycle's previous head, is not one to choose.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Gone = "5555555555555555555555555555555555555555";
+        const string Earlier = "1111111111111111111111111111111111111111";
+        const string Later = "2222222222222222222222222222222222222222";
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+        Directory.CreateDirectory(workspace.Cycle.EvidenceDirectory);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.BaseFileName), Gone + "\n");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.HeadFileName), Earlier + "\n");
+        await Built(workspace, "20200101_0900_01", Later);
+        git.Ancestors.Add((Earlier, Later));
+        git.Ancestors.Add((Earlier, git.Head!));
+        git.Ancestors.Add((Later, git.Head!));
+        git.Ancestors.Add((git.Base!, Later));
+
+        await RecordWith(workspace, git);
+
+        Assert.AreEqual(git.Base, await Base(workspace));
+    }
+
+    [TestMethod]
+    public async Task A_cycle_after_a_merge_of_the_integration_branch_is_measured_from_its_base_with_the_merge_taken_in()
+    {
+        // The run merged the integration branch after the cycle before this one ended: where the branch now leaves the
+        // integration branch is not behind that cycle's head. The patch is measured from the merge of the two, and both
+        // commits are recorded so any clone rebuilds it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Later = "2222222222222222222222222222222222222222";
+        const string Tree = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+        await Built(workspace, "20200101_0900_01", Later);
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+        git.Ancestors.Add((Later, git.Head!));
+        git.Ancestors.Add((git.Base!, git.Head!));
+        git.Merges[(Later, git.Base!)] = (Tree, []);
+
+        await RecordWith(workspace, git);
+
+        Assert.AreEqual(Later, await Base(workspace));
+        Assert.AreEqual(git.Base, (await File.ReadAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.MergedFileName))).Trim());
+        Assert.AreEqual((Tree, git.Head!), git.Between, "The patch is measured from the merged tree.");
+        Assert.AreEqual(Tree, git.ChangedFrom, "And so is the list of what changed.");
+
+        // Every reader of the patch rebuilds the same one.
+        git.CommittedPatch = "the merged patch";
+        Assert.AreEqual("the merged patch", await EvidenceDiff.Rebuild(workspace.Cycle, git, workspace.Root, CancellationToken.None));
+        Assert.AreEqual((Tree, git.Head!), git.Between);
+    }
+
+    [TestMethod]
+    public async Task A_merge_that_clashes_with_the_work_before_it_is_refused_in_plain_words_and_nothing_is_recorded()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Later = "2222222222222222222222222222222222222222";
+        await Built(workspace, "20200101_0900_01", Later);
+        FakeRepository git = new() { Changed = ["src/Thing.cs"] };
+        git.Ancestors.Add((Later, git.Head!));
+        git.Merges[(Later, git.Base!)] = ("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", ["src/Thing.cs"]);
+
+        using Gate gate = Recorder(workspace, git);
+        Result<RecordEvidence.Response> clashed = await gate.Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(clashed.IsFailed);
+        StringAssert.Contains(clashed.Errors[0].Message, "overlaps the work before it in src/Thing.cs");
+        StringAssert.Contains(clashed.Errors[0].Message, "build the cycle again");
+        Assert.IsFalse(File.Exists(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.BaseFileName)));
+
+        // A git that cannot merge without a working tree says what it needs.
+        git.Merges.Clear();
+        Result<RecordEvidence.Response> old = await gate.Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(workspace.Cycle.Id, null));
+        Assert.IsTrue(old.IsFailed);
+        StringAssert.Contains(old.Errors[0].Message, "git 2.38");
+    }
+
+    /// <summary>Another cycle whose evidence records the head its build ended at.</summary>
+    private static async Task Built(CycleWorkspace workspace, string id, string head)
+    {
+        Assert.IsTrue(CycleId.TryParse(id, out CycleId? parsed));
+        Cycle other = new(parsed.Value, workspace.Root);
+        Directory.CreateDirectory(other.EvidenceDirectory);
+        await File.WriteAllTextAsync(Path.Combine(other.EvidenceDirectory, RecordEvidence.HeadFileName), head + "\n");
+    }
+
+    private static async Task RecordWith(CycleWorkspace workspace, FakeRepository git)
+    {
+        using Gate gate = Recorder(workspace, git);
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+    }
+
+    private static async Task<string> Base(CycleWorkspace workspace) =>
+        (await File.ReadAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.BaseFileName))).Trim();
+
     private static Gate Recorder(CycleWorkspace workspace, FakeRepository git) =>
         Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 
