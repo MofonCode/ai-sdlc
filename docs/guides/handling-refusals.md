@@ -81,7 +81,8 @@ there, you have the wrong id — `sdlc cycles` lists every cycle this solution h
 
 ### abandoned
 
-The cycle was stopped, which is terminal.
+The cycle was stopped, which is terminal: by its own `abandoned.md`, or by the one beside its series' record
+when the whole series was rejected.
 
 **Next:** open a new cycle. An abandoned cycle does not reopen, and the record says why it stopped —
 which is the point of it being a file a person wrote rather than an exit an agent took.
@@ -495,6 +496,81 @@ the plan branches with `sdlc slices` is usually the quickest way.
 
 ---
 
+## A run's pull request — the ways it is refused
+
+`wave/<id>` and `series/<id>` carry several cycles built one after another into one branch. Each cycle whose
+folder the pull request changes gets the whole chain it would get alone, and one that fails refuses the run —
+the entries above say what each of those means. An abandoned cycle in it is admitted as a record. Three refusals
+are a run's own, and `sdlc verify-chain series/<id> --base <branch>` gives all three; `sdlc pr-ready` on the run's
+branch gives the same answer before the pull request opens.
+
+### a run that carries no cycle
+
+Nothing the pull request changes is under `.sdlc/cycles/`, so there is no chain to check. A run's branch
+carries the cycles it built.
+
+**Next:** build a cycle on the branch, or open the change from a branch of its own.
+
+### a named test that failed at the end of the run
+
+A test one of the run's plans names in its `## Proof` did not run and pass in the last cycle's recorded
+run — the cycle every other one was built before. A later cycle broke what an earlier one proved, and
+nothing verifies the earlier cycle again. The check names each test and the cycle whose plan named it.
+
+**Next:** fix it on the run's branch, then record the last cycle's evidence again, so its run is the one
+that shows every named test passing.
+
+### code no verified cycle accounts for
+
+A file outside `.sdlc/` that the pull request changes is in no built cycle's recorded change, or changed after
+the last cycle's recorded head. A cycle that carries only its paperwork — an abandoned one, a plan nobody built —
+is read from its own folder, so without this a run could carry code nobody verified while every cycle in it
+passed. Two causes are common: a cycle whose code was committed and whose evidence was never recorded, and an
+abandoned or unbuilt cycle whose code was left on the branch. A run with no built cycle at all that changes code
+is refused the same way. What a merge of the integration branch brought after the last cycle does not count. The
+check names each file.
+
+**Next:** if a cycle built the file, record that cycle's evidence on the run's branch (`sdlc evidence <id>`); if
+the file belongs to a cycle that was abandoned or never built, revert that code. A change made after the last
+cycle's head is recorded by recording the last cycle's evidence again on top of it, or reverted.
+
+---
+
+## A series, and a run's own commands — the four ways they are refused
+
+A series runs wave after wave into `series/<id>`, in a worktree of its own; `sdlc build --run` and
+`sdlc report --run` work on a run's branch, `wave/<id>` or `series/<id>`. Each refuses before it does anything.
+
+### fewer than one wave
+
+`sdlc series start --waves <n>` was given a number below one. A series stops at its number of waves or an empty
+backlog, whichever comes first, and the number is the person's: an open-ended run is spend nobody chose.
+
+**Next:** start it again with the number of waves it may run.
+
+### not on a series' branch
+
+`sdlc series wave`, or `sdlc series status` with no id, ran somewhere other than `series/<id>`. A wave is judged
+against the series' branch and recorded in its record, which only its worktree carries.
+
+**Next:** run it in the worktree `sdlc series start` printed, or pass that path with `--solution`.
+
+### a series that has taken every wave
+
+`sdlc series wave` found the record's wave limit reached. The series is finished.
+
+**Next:** open its pull request. What is ready next is a new series' to take.
+
+### not on a run's branch
+
+`sdlc build --run` or `sdlc report --run` ran somewhere other than `wave/<id>` or `series/<id>`. A run builds, and
+reports on, the cycles its own branch carries.
+
+**Next:** run it in the run's worktree, or pass it with `--solution`; for one cycle, `sdlc build <id>` or
+`sdlc report <id>`.
+
+---
+
 ## An upgrade's or a version move's pull request — the five ways it is refused
 
 A pull request on a branch that is no cycle's normally gets *no chain*. **One that changes only the pin in
@@ -619,6 +695,19 @@ and one that cannot be grouped by what it is about cannot be read across solutio
 **Next:** fix each heading the refusal names — `### stage:verify — <what fell short>` and a `Kind:` line under it
 — and record again.
 
+### a covered answer that names nothing real
+
+`sdlc harvest record <aspect>` is refused when a line under `## Covered` does not read as `- <suggestion id>: <what
+covers it> — <how>`, or names something that is not here: a rule not in force, a decision not standing, a
+`successor:<slug>` with no file under `.sdlc/successors/` and no cycle started from it, or a path that is not a file
+or directory in the solution; or when a line's `Concern:` matches no concern the ledger or the sitting tallies, word for
+word. It lists every such line at once and records nothing, so the sitting is never half
+answered. *Covered* says something already handles the suggestion; one naming nothing real would be a decline
+nobody gave a reason for.
+
+**Next:** name what really covers each line the refusal lists — `sdlc constraints` and `sdlc decisions` list what
+stands — or move it to `## Declined` with the reason, then record again.
+
 ### an aspect is still unanswered
 
 `sdlc harvest close` is refused while no completed cycle has had every aspect answered. It names each cycle and the
@@ -638,9 +727,10 @@ would carry other work with it.
 ### a harvest pull request carries something that is not a harvest's
 
 A pull request with no cycle that carries only the records, the harvest ledger, successors and changes under
-`.sdlc/cycles/` is checked as a harvest. It is refused when a cycle path is not the deletion of a cycle the ledger
-records as closed, when the records it places do not parse, when an area covers no file, or when an entry names an
-area nobody defines. A cycle's folder leaves only once it is closed, and only by deletion.
+`.sdlc/cycles/` or `.sdlc/series/` is checked as a harvest. It is refused when a cycle path is not the deletion of a
+cycle the ledger records as closed, when a series path is not a deletion, when the records it places do not parse,
+when an area covers no file, or when an entry names an area nobody defines. A cycle's folder leaves only once it is
+closed, and a series' folder with the last cycle its record lists, each only by deletion.
 
 **Next:** `sdlc verify-chain <branch> --base <integration branch>` names each failing check. Take out what is not a
 closed cycle's deletion, and fix the record the check names.
@@ -782,6 +872,17 @@ report.
 Two projects reported the same test name, one passing and one failing. The chain check matches a plan's
 named test on the end of what the runner reported, so the passing result would answer for the failing
 one. **Next:** rename one of them, or run the projects separately.
+
+### a merged-in change that overlaps the work before it
+
+On a run's branch, a cycle is measured from where the cycle before it ended. When the run merged the
+integration branch after that, the cycle is measured from that point with the merge taken in, so what the
+merge brought is not counted as the cycle's own (D-206) — and that needs git to redo the merge without a
+working tree. It refuses when the merge clashes with the work before it, because the cycle's change can then
+not be told apart from the merge's, and when git is older than 2.38, which cannot do it.
+
+**Next:** record once the overlap is resolved in a commit of its own, or build the cycle again on top of the
+merge. For an older git, upgrade it.
 
 ---
 

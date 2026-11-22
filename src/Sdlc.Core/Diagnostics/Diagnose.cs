@@ -252,7 +252,7 @@ public static class Diagnose
             return new Check(
                 "the factory",
                 CheckOutcome.Problem,
-                FactoryPipeline.PathOf(platform).Replace('\\', '/') + " still runs on a schedule; this release's factory is started by a person, for every queued cycle or one named (D-143)",
+                FactoryPipeline.PathOf(platform).Replace('\\', '/') + " still runs on a schedule; this release's factory is started by a person, for one series of the waves asked for (D-143, D-205)",
                 pools.Count == 0
                     ? "run 'sdlc factory', which writes this release's pipeline over it, put back from 'git diff' any step of your own it dropped, and commit it"
                     : "run 'sdlc factory', which writes this release's pipeline over it and its own pool over yours ("

@@ -67,7 +67,8 @@ At the path the report names:
 
 ## 4. Hand back, short
 
-Tell the person: how many proposals, one line each, and that they mark `[x]` on what they accept. Then stop.
+Run `sdlc harvest summary <the proposal file>` and show it: each proposal, one line each. Then say they mark `[x]` on
+what they accept, and stop.
 
 ## 5. Once they have marked it
 

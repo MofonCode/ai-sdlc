@@ -112,8 +112,9 @@ shorter wording, never reworded in place.
 
 ## 4. Hand back, short
 
-Tell the person: how many proposals, one line each (what was decided, and from whose words), how many items were
-answered without one, and that they mark `[x]` on what they accept. Then stop.
+Run `sdlc harvest summary <the proposal file>` and show it: each proposal, and every decision it names with what it
+says. Add whose words each came from, how many items were answered without one, and that they mark `[x]` on what they
+accept. Then stop.
 
 ## 5. Once they have marked it
 

@@ -14,7 +14,8 @@ namespace Sdlc.Core.Chain;
 
 /// <summary>
 /// The check on a pull request that carries a harvest and no cycle: the records a person placed, the
-/// ledger, successors, and the deletion of closed cycles' folders (D-152, D-192).
+/// ledger, successors, and the deletion of closed cycles' folders, and of a series' folder with its last cycle (D-152,
+/// D-192).
 /// </summary>
 /// <remarks>
 /// <para><strong>A husk can only leave through a pull request</strong>, and a pull request with no governed cycle
@@ -27,6 +28,9 @@ namespace Sdlc.Core.Chain;
 /// </remarks>
 public static class VerifyHarvest
 {
+    // Where every series' folder is: a close deletes one with the last cycle its record lists.
+    private const string SeriesDirectory = Cycle.SdlcDirectoryName + "/" + Series.SeriesRecord.DirectoryName + "/";
+
     private static readonly HashSet<string> _records = new(StringComparer.OrdinalIgnoreCase)
     {
         Cycle.SdlcDirectoryName + "/" + FileConstraintDocuments.SolutionConstraintsFileName,
@@ -63,7 +67,8 @@ public static class VerifyHarvest
         return changed.Count > 0 && changed.Select(Normalised).All(path =>
             _records.Contains(path)
             || Successors.Successor.IsSuccessorPath(path)
-            || path.StartsWith(cycles, StringComparison.Ordinal));
+            || path.StartsWith(cycles, StringComparison.Ordinal)
+            || path.StartsWith(SeriesDirectory, StringComparison.Ordinal));
     }
 
     /// <summary>Whether a path is one of the records a harvest places, or its ledger.</summary>
@@ -141,6 +146,20 @@ public static class VerifyHarvest
             checks.Add(notHusks.Count == 0
                 ? new VerifyChain.ChainCheck("every cycle it touches is a husk it deletes", true, string.Create(CultureInfo.InvariantCulture, $"{deleted.Count} closed cycle folder{(deleted.Count == 1 ? string.Empty : "s")} deleted."))
                 : new VerifyChain.ChainCheck("every cycle it touches is a husk it deletes", false, "carries " + string.Join(", ", notHusks.Take(5)) + (notHusks.Count > 5 ? " and more" : string.Empty) + ": a cycle's folder leaves only once the ledger records it closed, and only by deletion."));
+
+            // A series' folder leaves with the last cycle its record lists, and only by deletion: its record is the
+            // binary's, written on the run's own branch, and nothing else may change it.
+            List<string> series = [.. request.Changed.Select(Normalised).Where(path => path.StartsWith(SeriesDirectory, StringComparison.Ordinal))];
+
+            if (series.Count > 0)
+            {
+                List<string> kept = [.. series.Where(path => File.Exists(Path.Combine(solution.Path, path)))];
+                int gone = series.Except(kept).Select(path => path[SeriesDirectory.Length..].Split('/')[0]).Distinct(StringComparer.Ordinal).Count();
+
+                checks.Add(kept.Count == 0
+                    ? new VerifyChain.ChainCheck("every series folder it touches is one it deletes", true, string.Create(CultureInfo.InvariantCulture, $"{gone} closed series folder{(gone == 1 ? string.Empty : "s")} deleted."))
+                    : new VerifyChain.ChainCheck("every series folder it touches is one it deletes", false, "carries " + string.Join(", ", kept.Take(5)) + (kept.Count > 5 ? " and more" : string.Empty) + ": a series' folder leaves only with the last cycle its record lists, and only by deletion."));
+            }
 
             checks.Add(await RecordsRead(cancellationToken).ConfigureAwait(false));
 

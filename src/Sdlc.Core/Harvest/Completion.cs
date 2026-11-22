@@ -91,17 +91,34 @@ public static class Completion
     {
         ArgumentNullException.ThrowIfNull(repository);
 
+        return AbandonedOn(repository, root, new Series.SeriesAbandonment(repository, root, integration), cycle);
+    }
+
+    /// <summary>
+    /// <see cref="AbandonedOn(IRepository, string, string, CycleId)"/> with what the series abandon read once, for a
+    /// caller asking it of many cycles.
+    /// </summary>
+    /// <param name="repository">The repository.</param>
+    /// <param name="root">The solution's root.</param>
+    /// <param name="series">The series' abandonments, read once for the request.</param>
+    /// <param name="cycle">The cycle.</param>
+    /// <returns>The branch, or null.</returns>
+    internal static string? AbandonedOn(IRepository repository, string root, Series.SeriesAbandonment series, CycleId cycle)
+    {
         string abandoned = AbandonedPath(cycle);
 
-        if (new[] { "origin/" + integration, integration }.Any(name => repository.RefExists(root, name) && repository.PathExistsAt(root, name, abandoned)))
+        if (series.Integrations.Any(name => repository.PathExistsAt(root, name, abandoned)) || series.AbandonedOnIntegration(cycle))
         {
             return null;
         }
 
+        // A rejected series is abandoned in one step, on its own branch, and never merges: the series branch whose
+        // abandonment covers the cycle, when no branch of the cycle's own carries one.
         return repository.Branches(root, CycleId.BranchPrefix + cycle + "/")
             .OrderBy(name => name.StartsWith("origin/", StringComparison.Ordinal))
             .ThenBy(name => name, StringComparer.Ordinal)
-            .FirstOrDefault(name => repository.PathExistsAt(root, name, abandoned));
+            .FirstOrDefault(name => repository.PathExistsAt(root, name, abandoned))
+            ?? series.BranchFor(cycle);
     }
 
     /// <summary>A cycle's abandonment record, relative to the root with forward slashes.</summary>

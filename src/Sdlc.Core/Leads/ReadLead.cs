@@ -35,7 +35,11 @@ public static class ReadLead
 
     /// <summary>Asks for a lead.</summary>
     /// <param name="Reference">The lead.</param>
-    public sealed record Query(LeadReference Reference) : IRequest<Response>;
+    /// <param name="Onto">
+    /// For a successor, the branch its predecessors must have reached: null for the run branch checked out here, or
+    /// the integration branch when none is.
+    /// </param>
+    public sealed record Query(LeadReference Reference, string? Onto = null) : IRequest<Response>;
 
     /// <summary>A lead, in one shape whatever its source.</summary>
     /// <param name="Reference">Where it came from, as the intent records it.</param>
@@ -52,7 +56,7 @@ public static class ReadLead
         string? Reproduction,
         string? Link);
 
-    private sealed class Handler(SolutionRoot solution, ITracker tracker, Mediator mediator)
+    private sealed class Handler(SolutionRoot solution, ITracker tracker, Mediator mediator, Git.IRepository repository)
         : IRequestHandler<Query, Response>
     {
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
@@ -69,7 +73,7 @@ public static class ReadLead
                     return await Suggestion(reference, cancellationToken).ConfigureAwait(false);
 
                 case LeadSource.Successor:
-                    return await Successor(reference, cancellationToken).ConfigureAwait(false);
+                    return await Successor(reference, request.Onto, cancellationToken).ConfigureAwait(false);
 
                 default:
                     Result<TrackerItem> item = await tracker.Fetch(reference, solution.Path, cancellationToken).ConfigureAwait(false);
@@ -109,10 +113,10 @@ public static class ReadLead
         /// Refused unless it is ready, because the one thing <c>intent --from</c> does with it is start a cycle,
         /// and a cycle started before its predecessor merged is a cycle that cannot be built alone.
         /// </remarks>
-        private async Task<Result<Response>> Successor(LeadReference reference, CancellationToken cancellationToken)
+        private async Task<Result<Response>> Successor(LeadReference reference, string? named, CancellationToken cancellationToken)
         {
             Result<ReadSuccessors.Response> read = await mediator
-                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(), cancellationToken)
+                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(RunBranch.OntoHere(repository, solution.Path, named)), cancellationToken)
                 .ConfigureAwait(false);
 
             if (read.IsFailed)

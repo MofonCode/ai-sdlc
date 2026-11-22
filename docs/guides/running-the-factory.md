@@ -3,8 +3,9 @@
 Many cycles, built unattended: the integration branch, the factory's pipeline, the run you start, and what
 you do with what it opened. `running-a-cycle.md` is one cycle, built when you say *build it*; this is what changes when a pipeline builds them.
 
-**The factory automates four things and nothing else** — finding approved plans, building, verifying,
-opening pull requests (`CONCEPT.md` D-84) — and **you start every run**; nothing schedules it (D-143). Everything after the pull request is yours: reviewing,
+**The factory runs one thing: a series** — the `series` skill, through `sdlc series run`. Under `approval:
+required` it automates four things and nothing else — finding approved plans, building, verifying, opening the pull
+request (`CONCEPT.md` D-84); under `approval: none` it plans the ready successors as well — and **you start every run**; nothing schedules it (D-143). Everything after the pull request is yours: reviewing,
 resolving conflicts, merging, and promoting to main. It never merges, and it never writes a file only a
 person writes.
 
@@ -58,14 +59,16 @@ It writes `.azuredevops/sdlc-factory.yml` or `.github/workflows/sdlc-factory.yml
    only a person writes and fails the run if the file appears, because a host whose hooks did not load would
    build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
    in writes nothing either, and would pass
-3. runs `/sdlc:build --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
-   branch, independently, and a pull request for each — **a draft for one that did not pass**. Given one cycle
-   id, that cycle alone: the binary checks it is queued before the agent sees it, and the run stops with why
-   if it is not
+3. runs one series: `sdlc series start --waves <n>` opens `series/<id>` from `development` in a worktree, and
+   `sdlc series run` starts its own process there, which takes wave after wave — under `approval: required`
+   every approved cycle not yet built, in wave order; under `approval: none` every ready successor and parked
+   cycle too, planned and built — until the number of waves or an empty backlog, and opens **one pull request**,
+   led by the series' report: what each cycle did, and what stopped and what it held back. The binary checks
+   the number of waves before anything starts
 4. publishes the sitrep as the run's summary, whatever happened above
 
 **Start it** from the Actions tab or Pipelines > Run pipeline, or from a terminal — `gh workflow run
-sdlc-factory.yml`, `az pipelines run --name <its name>` — with `cycle` set to build one alone. There is no
+sdlc-factory.yml`, `az pipelines run --name <its name>` — with `waves` set to how many waves it may run. There is no
 schedule: starting it is the decision to spend, made each time by the person who can see what is queued.
 
 **A new release needs no rebuild of the agent** (D-201). The run finds the release the image carries, and when the
@@ -99,7 +102,7 @@ The same page the run published, against the state now. In the order it lists:
 | **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, say what to do and `/sdlc:remediate <id>`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
 | **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
-| **Backlog** | always shown, empty or not. *Ready now*: a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>`, and a parked cycle whose predecessor merged, with `sdlc unpark <id>` — `/sdlc:next` takes all of them, and the factory never does. *Still waiting*: each with what it waits on. *No merge makes these ready*: stuck behind an abandoned cycle, or naming something that does not exist — correct its `succeeds:` or `waits_on:`. It ends by naming what it cannot see: cycles still being planned in a sandbox are on no branch it reads until admitted, so `sdlc backlog` in the sandbox is where they show |
+| **Backlog** | always shown, empty or not. *Ready now*: a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>`, and a parked cycle whose predecessor merged, with `sdlc unpark <id>` — `/sdlc:wave` takes all of them, and the factory's series does under `approval: none`. *Still waiting*: each with what it waits on. *No merge makes these ready*: stuck behind an abandoned cycle, or naming something that does not exist — correct its `succeeds:` or `waits_on:`. It ends by naming what it cannot see: cycles still being planned in a sandbox are on no branch it reads until admitted, so `sdlc backlog` in the sandbox is where they show |
 
 **When a pull request conflicts, or goes red after an earlier merge:**
 
@@ -117,8 +120,9 @@ converges, and updates the pull request. Nothing merges it but a person.
 that each pass and break together, before the second one lands.
 
 Then define the next batch, and admit each approved plan with `/sdlc:pr <id> --plan`. **What your merges made
-ready is built by the next run you start**: the sitrep's successors become cycles through you, and a cycle
-waiting on another builds once that one has merged.
+ready is built by the next run you start**: under `approval: required` the sitrep's successors become cycles
+through you; under `approval: none` the series plans them itself. A cycle waiting on another builds once that one
+has merged, or within a series once it passed on the series' branch.
 
 ## Operate: production's errors as leads
 

@@ -72,11 +72,11 @@ public static class ProtectedPaths
             // file. The friction also landed on the wrong party: every host renders this text as the
             // error a person reads.
             return new ProtectedFile(
-                "a cycle's abandonment record",
+                "a cycle's or a series' abandonment record",
                 "Abandoning a cycle is a decision, not an exit. An agent stuck on a blocking finding has "
                 + "an obvious escape - abandon and start clean - and a hand-written reason is what keeps "
-                + "the objections that killed it on the record. Run 'sdlc draft abandon <id>' and write "
-                + "the reason by hand.");
+                + "the objections that killed it on the record. Run 'sdlc draft abandon <id>', or for a "
+                + "whole series 'sdlc draft abandon --series <id>', and write the reason by hand.");
         }
 
         if (string.Equals(fileName, FileConstraintDocuments.SolutionConstraintsFileName, StringComparison.OrdinalIgnoreCase))
@@ -233,13 +233,29 @@ public static class ProtectedPaths
         "It is written by the binary from the '## For the framework' section of a proposal file a person marked. "
         + "Write the note there and run 'sdlc harvest record <aspect> <file>'.");
 
-    // The files only the binary writes outside a cycle's findings: the harvest ledger and the framework's notes.
+    /// <summary>
+    /// A series' record: written by the binary as each wave is taken, denied to an agent like the harvest ledger.
+    /// </summary>
+    /// <remarks>
+    /// It says which cycles the series ran, so one abandonment beside it covers each, a cycle it lists may keep its
+    /// intent's unconfirmed marks, and a close deletes its folder with the last of them. An agent that could write it
+    /// could put any cycle under a series and take those three with it.
+    /// </remarks>
+    public static ProtectedFile SeriesRecord { get; } = new(
+        "a series' record",
+        "It is written by the binary: 'sdlc series start' opens it and 'sdlc series wave' adds each wave, and it says "
+        + "which cycles the series ran. Run those, and commit what they wrote with 'git add' and 'git commit'.");
+
+    // The files only the binary writes outside a cycle's findings: the harvest ledger, the framework's notes and a
+    // series' record.
     private static ProtectedFile? BinaryLedger(string name) =>
         string.Equals(name, Harvest.HarvestLedger.FileName, StringComparison.OrdinalIgnoreCase)
             ? Harvested
             : string.Equals(name, Harvest.FrameworkHarvest.FileName, StringComparison.OrdinalIgnoreCase)
                 ? FrameworkNotes
-                : null;
+                : string.Equals(name, Series.SeriesRecord.FileName, StringComparison.OrdinalIgnoreCase)
+                    ? SeriesRecord
+                    : null;
 
     /// <summary>
     /// Whether a file name is a findings ledger's: <c>&lt;artifact&gt;.json</c> (D-107).
@@ -337,6 +353,11 @@ public static class ProtectedPaths
             foreach (string target in RedirectTargets(segment))
             {
                 string name = target.Replace('\\', '/').Split('/')[^1];
+                if (!NamesTheSeriesRecord(target, name))
+                {
+                    continue;
+                }
+
                 if ((IsFindingsPath(target) ? Round : BinaryLedger(name) ?? Describe(name)) is { } redirected)
                 {
                     file = redirected;
@@ -364,9 +385,9 @@ public static class ProtectedPaths
                 return true;
             }
 
-            foreach (string ledger in (string[])[Harvest.HarvestLedger.FileName, Harvest.FrameworkHarvest.FileName])
+            foreach (string ledger in (string[])[Harvest.HarvestLedger.FileName, Harvest.FrameworkHarvest.FileName, Series.SeriesRecord.FileName])
             {
-                if (NamesWhole(segment, ledger))
+                if (NamesWhole(segment, ledger) && NamesTheSeriesRecord(segment, ledger))
                 {
                     file = BinaryLedger(ledger);
                     return true;
@@ -376,6 +397,13 @@ public static class ProtectedPaths
 
         return false;
     }
+
+    // A solution may well keep a series.json of its own -- a chart's data -- so a command is judged to name the series
+    // record only where it also names a series' folder. The path rule still holds every write to
+    // .sdlc/series/<id>/series.json exactly; a write by bare name from inside that folder is what this gives up.
+    private static bool NamesTheSeriesRecord(string text, string name) =>
+        !string.Equals(name, Series.SeriesRecord.FileName, StringComparison.OrdinalIgnoreCase)
+        || text.Replace('\\', '/').Contains("series/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Whether a protected file's name appears as a name of its own rather than inside a longer one.

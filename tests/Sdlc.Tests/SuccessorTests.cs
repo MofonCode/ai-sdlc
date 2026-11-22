@@ -19,6 +19,7 @@ public sealed class SuccessorTests
     private const string First = "20261103_0900_00";
     private const string Second = "20261103_0900_01";
     private const string Third = "20261103_0900_02";
+    private const string Series = "series/20261121_0930_15";
 
     [TestMethod]
     public void A_well_formed_successor_reads_its_waits_and_its_substance()
@@ -303,6 +304,91 @@ public sealed class SuccessorTests
     }
 
     [TestMethod]
+    public async Task Onto_a_run_branch_a_predecessor_is_ready_once_its_passing_verify_is_committed_there()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "totals", First);
+        FakeRepository git = Git();
+        git.Refs.Add(Series);
+        git.Files[Series + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        Assert.AreEqual(SuccessorState.Waiting, (await Read(workspace, git)).Find("totals")!.State, "against the integration branch it has not merged");
+
+        ReadSuccessors.Response onto = await Read(workspace, git, Series);
+
+        Assert.AreEqual(SuccessorState.Ready, onto.Find("totals")!.State);
+        Assert.AreEqual(Series, onto.ReadAt);
+    }
+
+    [TestMethod]
+    public async Task Onto_reads_the_local_branch_before_the_remote_one_and_a_failed_verify_is_not_ready()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "totals", First);
+        FakeRepository git = Git();
+        git.Refs.Add(Series);
+        git.Refs.Add("origin/" + Series);
+        git.Files[Series + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: blocked\n---\n\n# v\n";
+        git.Files["origin/" + Series + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        ReadSuccessors.Response onto = await Read(workspace, git, Series);
+
+        Assert.AreEqual(SuccessorState.Waiting, onto.Find("totals")!.State);
+        Assert.AreEqual(Series, onto.ReadAt);
+    }
+
+    [TestMethod]
+    public async Task Onto_falls_back_to_the_remote_branch_when_there_is_no_local_one()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "totals", First);
+        FakeRepository git = Git();
+        git.Refs.Add("origin/" + Series);
+        git.Files["origin/" + Series + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        ReadSuccessors.Response onto = await Read(workspace, git, Series);
+
+        Assert.AreEqual(SuccessorState.Ready, onto.Find("totals")!.State);
+        Assert.AreEqual("origin/" + Series, onto.ReadAt);
+    }
+
+    [TestMethod]
+    public async Task Onto_a_branch_that_is_nowhere_is_refused_in_plain_words()
+    {
+        using CycleWorkspace workspace = Solution();
+        Write(workspace, "totals", First);
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(Git()));
+
+        Result<ReadSuccessors.Response> result = await gate.Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(Series));
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(result.Errors[0].Message, "There is no branch " + Series + " here or on origin");
+    }
+
+    [TestMethod]
+    public async Task The_backlog_says_what_each_wave_builds_and_names_the_branch_it_was_judged_against()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "totals", First);
+        Write(workspace, "chart", "successor:totals");
+        FakeRepository git = Git();
+        git.Refs.Add(Series);
+        git.Files[Series + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        string text = BacklogRenderer.Render(await Read(workspace, git, Series), Series);
+
+        StringAssert.StartsWith(text, "Judged against " + Series);
+        StringAssert.Contains(text, "Ready now:");
+        StringAssert.Contains(text, "Wave 2, after 1 more merge:");
+        StringAssert.Contains(text, "builds: Finance sees the month's totals beside the export.");
+        Assert.IsFalse(BacklogRenderer.Render(await Read(workspace, git)).Contains("Judged against", StringComparison.Ordinal), "without --onto the header is as before");
+    }
+
+    [TestMethod]
     public async Task The_listing_puts_what_is_ready_first_with_the_command_that_starts_it()
     {
         using CycleWorkspace workspace = Solution();
@@ -492,11 +578,11 @@ public sealed class SuccessorTests
         return await gate.Send<StartSuccessor.Command, StartSuccessor.Response>(new StartSuccessor.Command(slug, Parse(id)));
     }
 
-    private static async Task<ReadSuccessors.Response> Read(CycleWorkspace workspace, FakeRepository git)
+    private static async Task<ReadSuccessors.Response> Read(CycleWorkspace workspace, FakeRepository git, string? onto = null)
     {
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 
-        Result<ReadSuccessors.Response> result = await gate.Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query());
+        Result<ReadSuccessors.Response> result = await gate.Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(onto));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

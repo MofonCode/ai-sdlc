@@ -17,7 +17,8 @@ namespace Sdlc.Core.Cycles;
 /// <para><strong>Done is read from the integration branch, never from git's merge state.</strong> A squash merge
 /// leaves every branch unmerged as far as git can tell, which is why one person removed twelve worktrees and fifteen
 /// branches by hand. A plan branch is done once its plan is on the integration branch; any other cycle branch once
-/// the verification there passes; a slicing or a sandbox once every cycle it changed is; and every branch of a cycle
+/// the verification there passes; a slicing or a sandbox once every cycle it changed is; a wave or a series once every
+/// cycle it changed passed there, was abandoned or was closed by a harvest; and every branch of a cycle
 /// once its abandonment is there, or once the harvest ledger there records it closed: a cycle abandoned before any of
 /// it merged is harvested from its branch, and never reaches the integration branch any other way.</para>
 /// <para><strong>It reports and never deletes</strong>, as <c>discard</c> does: a worktree is removed without
@@ -52,7 +53,7 @@ public static class TidyCycles
     /// <param name="Commands">The worktree removals, then one branch deletion; empty when nothing can go.</param>
     public sealed record Response(string Integration, IReadOnlyList<Entry> Removable, IReadOnlyList<Entry> Kept, IReadOnlyList<string> Commands);
 
-    private static readonly string[] _families = [CycleId.BranchPrefix, SlicingBranch.Prefix, SandboxBranch.Prefix];
+    private static readonly string[] _families = [CycleId.BranchPrefix, SlicingBranch.Prefix, SandboxBranch.Prefix, RunBranch.WavePrefix, RunBranch.SeriesPrefix];
 
     /// <summary>Why a branch the framework opened is done, or null while it is not or this cannot tell.</summary>
     /// <param name="repository">Git.</param>
@@ -181,6 +182,21 @@ public static class TidyCycles
             }
 
             List<CycleId> carried = [.. CyclesIn(changed)];
+
+            if (RunBranch.IsRun(branch))
+            {
+                // A wave or a series built what it carries, so it is done once each cycle passed verification there,
+                // or was abandoned, or -- a rejected series, whose cycles never merge -- a harvest there closed it.
+                string ledgerPath = Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName;
+                HarvestLedger? closed = repository.ReadAt(root, at, ledgerPath) is { } text ? HarvestLedger.Parse(text, ledgerPath).ValueOrDefault : null;
+
+                return carried.Count > 0
+                    && carried.All(cycle => MergedCycle.Passed(repository.ReadAt(root, at, Folder(cycle) + Cycle.FileNameOf(ArtifactKind.Verify)))
+                        || repository.PathExistsAt(root, at, Folder(cycle) + "abandoned.md")
+                        || closed?.Find(cycle.ToString()) is not null)
+                    ? string.Create(CultureInfo.InvariantCulture, $"every cycle its run built is done on {at}: {string.Join(", ", carried)}")
+                    : null;
+            }
 
             return carried.Count > 0
                 && carried.All(cycle => repository.PathExistsAt(root, at, Folder(cycle) + Cycle.FileNameOf(ArtifactKind.Plan))

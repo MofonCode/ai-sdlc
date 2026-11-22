@@ -9,6 +9,61 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.55
+
+**Three sizes of run, each ending in one pull request** (D-205). A cycle is `/sdlc:build`, as before. A **wave** is
+`/sdlc:wave`, renamed from `/sdlc:next`: every successor and parked cycle ready now, planned with the person in one
+sandbox, then built one after another on `wave/<id>` into one pull request; under `approval: required` it still stops
+at the approvals first. A **series** is `/sdlc:series`: wave after wave into `series/<id>`, in one worktree, until the
+number of waves a person set or an empty backlog. Under `approval: none` it suggests each successor's intent, plans
+and builds without asking anybody; under `approval: required` it plans nothing and builds approved cycles in wave
+order. A blocked verification stops only that cycle and the cycles that depend on it. Its record,
+`.sdlc/series/<id>/series.json`, is written only by the binary. `sdlc build --run`, `sdlc series start|wave|status|run`
+and `sdlc branch <id> wave` are new. **The factory runs only series**: its pipeline's `cycle` input is replaced by
+`waves`, and its process is started by the binary with its tools named, no longer with permission checks off.
+
+**Readiness is judged against the branch the work builds onto** (D-206): a predecessor is ready once its passing
+verify is committed there — the integration branch for a cycle or a wave, `series/<id>` for a series. `--onto
+<branch>` on `backlog`, `cycles --queued`, `unpark`, `lead show` and `successor start` names it, and a run's branch
+implies it. In a run each cycle's evidence is measured from the cycle before it; a cycle recorded again keeps its
+base, and a merge of the integration branch taken in after the base is measured out of its change — recorded as
+`merged.sha` beside `base.sha`, which needs git 2.38 or later. The pull-request check for `wave/<id>` and
+`series/<id>` runs the whole chain for every cycle the run changes, then requires every test named in every built
+cycle's plan to have passed at the run's last recorded run, and every change outside `.sdlc/` to belong to a built
+cycle's recorded change.
+
+**One report per run** (D-207). `sdlc report --run` renders the report a wave or a series ends on: a short entry per
+cycle with its outcome, deviations, choices and concerns, a section per wave of a series with the forecast beside
+what ran, what stopped and what it held back, every intent line a series left `(inferred)`, and every rule, decision
+and successor named with its text. It is the pull request's body below a brief summary the agent writes, and a copy
+goes to `.sdlc/reports/`.
+
+**A series is abandoned in one step** (D-208): one abandonment record beside the series' record, printed by `sdlc
+draft abandon --series <id>` and placed by a person, abandons every cycle that exists only in the series; an approved
+cycle already on the integration branch stays as it stands, to be built again. A rejected series' cycles are gathered
+from its branch for a harvest, and `sdlc harvest close` removes the series' folder with its last cycle.
+
+**A harvest may answer a suggestion *covered*, and hands back by theme** (D-209). Under `## Covered`, a line names
+the rule, decision, successor or file that already handles a suggestion; `sdlc harvest record` checks it exists and
+refuses the sitting when it does not. A covered line's `Concern:` takes a tallied concern out of the ignored and
+watch tallies. Declined, covered and ignored lines may be grouped under `### <theme>` headings. `sdlc harvest summary
+<proposal file>` prints each answer counted by theme and every id the file names with its text, and every harvest
+skill hands back through it; `sdlc harvest --history` shows ids with their text too.
+
+**What moving to it asks of a solution:**
+
+- **`/sdlc:next` is now `/sdlc:wave`**, with no alias. A wave's cycles now go out in **one pull request**, not one
+  each.
+- **The factory pipeline's `cycle` input is replaced by `waves`.** Rewrite it: run the upgrade pipeline, or `sdlc
+  factory --keep` on a branch and merge it — a pipeline still carrying the old `build the queue` step does not carry
+  this release's steps, so it is rewritten and the team's pool named. Its process now runs with its tools named
+  rather than with permission checks off, so **a solution whose build needs a command beyond the defaults declares it
+  in `build_tools`** in `solution.md` (D-202), or the factory's run is refused it.
+- **Harvest suggestions have a fourth answer.** A concern a rule, decision, successor or file already handles goes
+  under `## Covered`, not `## Declined`; a covered line naming nothing real refuses the sitting at `harvest record`.
+- **`.sdlc/series/` is new.** Its `series.json` is written only by the binary and denied to agents, as the harvest
+  ledger is; the abandonment record beside it is a person's file.
+
 ## 0.54
 
 **A harvest keeps what it found about the framework** (D-204). Notes under `## For the framework` were written into a

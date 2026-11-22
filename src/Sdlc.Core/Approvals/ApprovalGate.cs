@@ -205,7 +205,7 @@ public static class ApprovalGate
             {
                 return Verdict(cycle, GateRefusal.Abandoned, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} was abandoned, and abandonment is terminal. Open a new cycle rather than reviving this one; {cycle.AbandonedPath} says why it stopped."));
+                    $"Cycle {cycle.Id} was abandoned, and abandonment is terminal. Open a new cycle rather than reviving this one; {cycle.AbandonmentPath} says why it stopped."));
             }
 
             foreach (ArtifactKind kind in Cycle.PlanningDocuments)

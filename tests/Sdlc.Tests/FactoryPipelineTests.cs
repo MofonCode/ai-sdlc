@@ -23,7 +23,7 @@ public sealed class FactoryPipelineTests
         Assert.AreEqual(1, stream.Documents.Count);
 
         int smoke = pipeline.IndexOf("the hooks refuse", StringComparison.Ordinal);
-        int build = pipeline.IndexOf("/sdlc:build", StringComparison.Ordinal);
+        int build = pipeline.IndexOf("sdlc series run", StringComparison.Ordinal);
         int sitrep = pipeline.IndexOf("sdlc sitrep", StringComparison.Ordinal);
 
         Assert.IsTrue(smoke > 0 && build > smoke, "The hooks are proved before the agent is trusted with anything.");
@@ -93,7 +93,7 @@ public sealed class FactoryPipelineTests
                 .Where(line => line.Contains("claude -p", StringComparison.Ordinal) && !line.TrimStart().StartsWith('#')),
         ];
 
-        Assert.IsTrue(calls.Length >= 4);
+        Assert.IsTrue(calls.Length >= 3);
 
         foreach (string call in calls)
         {
@@ -135,7 +135,7 @@ public sealed class FactoryPipelineTests
         string factory = FactoryPipeline.Text(platform, "development");
 
         Assert.IsFalse(factory.Contains("plugin install", StringComparison.Ordinal), "The factory installs no plugin.");
-        StringAssert.Contains(factory, "sdlc claude -p '/sdlc:build");
+        StringAssert.Contains(factory, "sdlc series run --solution", "The series' process is started by the pinned binary, with the skills beside it.");
         StringAssert.Contains(factory, "sdlc claude -p 'Create the file .sdlc/approval.md", "The hooks proved are the pinned release's.");
 
         string[] bare = [.. factory.Split('\n')
@@ -224,16 +224,22 @@ public sealed class FactoryPipelineTests
     [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
-    public void The_one_cycle_asked_for_is_checked_by_the_binary_before_the_agent_reads_it(Platform platform)
+    public void The_factory_runs_only_a_series_of_the_waves_asked_for_checked_before_anything_starts(Platform platform)
     {
-        // The input is text typed into a form and it reaches a prompt, so only an id the queue accepted goes on.
+        // The factory runs only series: the number of waves is text typed into a form, so it is refused unless it is a
+        // whole number before the series starts, and the worktree 'series start' prints is where its process runs.
         string pipeline = FactoryPipeline.Text(platform, "development");
 
-        int check = pipeline.IndexOf("sdlc cycles --queued \"$CYCLE\" || exit 1", StringComparison.Ordinal);
-        int build = pipeline.IndexOf("/sdlc:build '\"$CYCLE\"' --unattended", StringComparison.Ordinal);
+        int check = pipeline.IndexOf("*[!0-9]*) echo", StringComparison.Ordinal);
+        int start = pipeline.IndexOf("series=\"$(sdlc series start --waves \"$WAVES\")\" || exit 1", StringComparison.Ordinal);
+        int run = pipeline.IndexOf("sdlc series run --solution \"$series\"", StringComparison.Ordinal);
 
-        Assert.IsTrue(check > 0 && build > check, "The cycle is refused before anything is built.");
-        StringAssert.Contains(pipeline, "CYCLE: ${{ ", "It arrives through the environment, never pasted into the script.");
+        Assert.IsTrue(check > 0 && start > check && run > start, "The number is checked, then the series starts, then it runs.");
+        StringAssert.Contains(pipeline, "WAVES: ${{ ", "It arrives through the environment, never pasted into the script.");
+        StringAssert.Contains(pipeline, platform == Platform.GitHub ? "      waves:" : "  - name: waves");
+        Assert.IsFalse(pipeline.Contains("/sdlc:build", StringComparison.Ordinal), "No cycle is built outside a series.");
+        Assert.IsFalse(pipeline.Contains("CYCLE", StringComparison.Ordinal), "There is no one cycle to ask for any more.");
+        Assert.IsFalse(pipeline.Contains("series run --solution \"$series\" --permission-mode", StringComparison.Ordinal), "The series' process keeps its permission checks.");
     }
 
     [TestMethod]

@@ -455,15 +455,17 @@ public static class ProposeConstraints
         /// </remarks>
         private static async Task<Stopped> Reason(Cycle cycle, CancellationToken cancellationToken)
         {
+            // Its own record, or its series' when the series was rejected as one.
+            string path = cycle.AbandonmentPath ?? cycle.AbandonedPath;
             string text = await File
-                .ReadAllTextAsync(cycle.AbandonedPath, cancellationToken)
+                .ReadAllTextAsync(path, cancellationToken)
                 .ConfigureAwait(false);
 
-            Result<AbandonRecord> read = AbandonRecord.Read(text, cycle.AbandonedPath);
+            Result<AbandonRecord> read = AbandonRecord.Read(text, path);
 
             return read.IsSuccess
                 ? new Stopped(cycle.Id, read.Value.Reason)
-                : new Stopped(cycle.Id, Reason: null, cycle.AbandonedPath);
+                : new Stopped(cycle.Id, Reason: null, path);
         }
 
         /// <summary>This solution's own rules, and what a person has already refused.</summary>

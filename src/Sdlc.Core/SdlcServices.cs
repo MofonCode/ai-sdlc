@@ -23,6 +23,8 @@ using Sdlc.Core.Deviations;
 using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
+using Sdlc.Core.Reports;
+using Sdlc.Core.Series;
 using Sdlc.Core.Solutions;
 using Sdlc.Core.Successors;
 
@@ -140,6 +142,7 @@ public static class SdlcServices
 
         // The same check over every plan sliced together, admitted by one pull request (D-125).
         services.AddVerifySlicingRequestHandler();
+        services.AddVerifyRunRequestHandler();
 
         // A change that moves the release and nothing else, reproduced rather than governed (D-133).
         services.AddVerifyUpgradeRequestHandler();
@@ -164,10 +167,23 @@ public static class SdlcServices
         services.AddGatherAbandonedRequestHandler();
         services.AddVerifyHarvestRequestHandler();
 
+        // What a proposal file asks of a person, and what each id it names says: the binary counts and resolves, so a
+        // hand-back groups by theme without claiming more than it holds or retyping a rule.
+        services.AddHarvestSummaryRequestHandler();
+        services.AddIdTextsRequestHandler();
+
         // Where the build bent the approved documents, and what it chose that they left open (deviations), and
         // the report a build ends on, which the pull request leads with (D-181).
         services.AddCycleDeviationsRequestHandler();
         services.AddBuildReportRequestHandler();
+
+        // A series: wave after wave into one branch, ending in one pull request, and the one report a run of several
+        // cycles ends on, a wave's or a series'.
+        services.AddStartSeriesRequestHandler();
+        services.AddNextWaveRequestHandler();
+        services.AddSeriesStatusRequestHandler();
+        services.AddSeriesRunRequestHandler();
+        services.AddRunReportRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

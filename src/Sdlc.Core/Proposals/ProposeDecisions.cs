@@ -165,9 +165,11 @@ public static class ProposeDecisions
                 // An abandoned cycle gives its reason and nothing else: its approach is what was refused.
                 if (cycle.IsAbandoned)
                 {
+                    // Its own record, or its series' when the series was rejected as one.
+                    string stopped = cycle.AbandonmentPath ?? cycle.AbandonedPath;
                     Result<AbandonRecord> abandon = AbandonRecord.Read(
-                        await File.ReadAllTextAsync(cycle.AbandonedPath, cancellationToken).ConfigureAwait(false),
-                        cycle.AbandonedPath);
+                        await File.ReadAllTextAsync(stopped, cancellationToken).ConfigureAwait(false),
+                        stopped);
 
                     if (abandon.IsSuccess && !string.IsNullOrWhiteSpace(abandon.Value.Reason))
                     {

@@ -16,6 +16,15 @@ public sealed record HarvestedArea(string Name, IReadOnlyList<string> Files);
 public sealed record HarvestDecline(string Id, string Reason);
 
 /// <summary>
+/// A suggestion a sitting answered as already handled: a rule, a decision, a successor or a file covers it, so
+/// nobody declined it and nothing is left to do.
+/// </summary>
+/// <param name="Id">The suggestion's id, as its cycle's ledger held it.</param>
+/// <param name="By">What covers it, as the proposal file wrote it: a rule or decision id, <c>successor:&lt;slug&gt;</c>, or a path.</param>
+/// <param name="Reason">How it covers it.</param>
+public sealed record HarvestCover(string Id, string By, string Reason);
+
+/// <summary>
 /// What one closed cycle leaves in the tree once its folder is deleted (D-152).
 /// </summary>
 /// <param name="Cycle">The cycle's id.</param>
@@ -80,12 +89,17 @@ public sealed record Watched(string Gist, IReadOnlyList<string> Cycles, string? 
 /// <param name="Cycles">The cycles it answered that aspect for.</param>
 /// <param name="Accepted">The headings the person marked, as the proposal file wrote them.</param>
 /// <param name="Declined">The suggestions it declined, with why.</param>
+/// <param name="Covered">
+/// The suggestions it answered as already handled, each with what covers it. Absent from ledgers written before,
+/// and from a sitting that covered nothing.
+/// </param>
 public sealed record HarvestSitting(
     DateTimeOffset Recorded,
     HarvestAspect Aspect,
     IReadOnlyList<string> Cycles,
     IReadOnlyList<string> Accepted,
-    IReadOnlyList<HarvestDecline> Declined);
+    IReadOnlyList<HarvestDecline> Declined,
+    IReadOnlyList<HarvestCover>? Covered = null);
 
 /// <summary>
 /// The harvest ledger, <c>.sdlc/harvested.json</c>: which aspects each completed cycle has had answered, and what
@@ -194,22 +208,30 @@ public sealed record HarvestLedger(
 
     /// <summary>
     /// The ledger with a sitting and its watched and ignored concerns added: a concern already held gains the new
-    /// cycles, and a new one is added.
+    /// cycles, and a new one is added. A concern the sitting covered leaves both tallies, so it stops counting
+    /// toward the bar: something already handles it.
     /// </summary>
     /// <param name="sitting">The sitting.</param>
     /// <param name="watch">The concerns the sitting watched.</param>
     /// <param name="ignored">The suggestions the sitting ignored, by concern.</param>
+    /// <param name="covered">The concerns the sitting covered, each as the tally words it.</param>
     /// <returns>The new ledger.</returns>
-    public HarvestLedger With(HarvestSitting sitting, IReadOnlyList<Watched> watch, IReadOnlyList<Watched>? ignored = null)
+    public HarvestLedger With(
+        HarvestSitting sitting,
+        IReadOnlyList<Watched> watch,
+        IReadOnlyList<Watched>? ignored = null,
+        IReadOnlyCollection<string>? covered = null)
     {
         ArgumentNullException.ThrowIfNull(sitting);
         ArgumentNullException.ThrowIfNull(watch);
 
+        HashSet<string> gone = new(covered ?? [], StringComparer.Ordinal);
+
         return this with
         {
-            Watch = Merged(Watch, watch),
+            Watch = [.. Merged(Watch, watch).Where(concern => !gone.Contains(concern.Gist))],
             Sittings = [.. Sittings, sitting],
-            Ignored = Merged(Ignored ?? [], ignored ?? []),
+            Ignored = [.. Merged(Ignored ?? [], ignored ?? []).Where(concern => !gone.Contains(concern.Gist))],
         };
     }
 

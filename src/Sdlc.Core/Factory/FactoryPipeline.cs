@@ -4,13 +4,15 @@ using Sdlc.Core.Init;
 namespace Sdlc.Core.Factory;
 
 /// <summary>
-/// The factory's pipeline: a run a person starts, of <c>/sdlc:build --unattended</c> (D-187) against the integration
-/// branch, one run at a time, inside a time limit, and publishes the sitrep (D-84).
+/// The factory's pipeline: a run a person starts, of one series -- <c>sdlc series start</c>, then <c>sdlc series run</c>
+/// in the worktree it opened -- from the integration branch, one run at a time, inside a time limit, and publishes the
+/// sitrep (D-84).
 /// </summary>
 /// <remarks>
-/// <para><strong>It automates four things and nothing else</strong>: finding approved plans, building,
-/// verifying, opening pull requests. It merges nothing and pushes nothing but the cycles' own branches; a
-/// person reviews and merges every pull request it opens.</para>
+/// <para><strong>The factory runs only series.</strong> Cycles and waves are a person's slower, more controlled ways to
+/// run. Under <c>approval: required</c> the series builds only approved cycles, in wave order; under
+/// <c>approval: none</c> it plans and builds the ready successors too, wave after wave. It merges nothing and pushes
+/// nothing but the series' own branch; a person reviews and merges the one pull request it opens.</para>
 /// <para><strong>The hooks are proved before the agent is trusted.</strong> The run asks the headless agent to write a
 /// file only a person writes and fails if the file appears, because enforcement lives below the agent (§2.1)
 /// and a host whose hooks did not load would build all night with nothing refusing anything.</para>
@@ -44,11 +46,11 @@ public static class FactoryPipeline
                 "# cycle, and watch it.",
                 "#",
                 "# The factory (CONCEPT.md section 10.5, D-84, D-143). A person starts it, from the Actions tab or with",
-                $"# 'gh workflow run sdlc-factory.yml'. It finds the cycles approved on {integrationBranch} with no verify,",
-                "# builds and verifies each on its own branch -- the one the most successors wait on first -- and opens a",
-                "# pull request per cycle, a draft for one that did not pass. Name one cycle to build that one alone.",
-                "# It merges nothing: a person reviews and merges every pull request, starting from the sitrep this run",
-                "# publishes, and starts it again for what those merges made ready.",
+                $"# 'gh workflow run sdlc-factory.yml'. It runs one series from {integrationBranch}: wave after wave, up to",
+                "# the number of waves asked for, each cycle built and verified into series/<id>, ending in one pull",
+                "# request. Under approval: required it builds only approved cycles; under approval: none it plans the",
+                "# ready successors too. It merges nothing: a person reviews and merges the pull request, starting from",
+                "# the sitrep this run publishes, and starts it again for what that merge made ready.",
                 "#",
                 "# Secrets, set in Settings > Secrets and variables > Actions:",
                 "#   One way for the agent to sign in -- either, and the API key wins when both are set:",
@@ -64,10 +66,10 @@ public static class FactoryPipeline
                 "on:",
                 "  workflow_dispatch:",
                 "    inputs:",
-                "      cycle:",
-                "        description: One cycle id to build alone. Empty builds every queued cycle.",
+                "      waves:",
+                "        description: How many waves the series may run. It stops sooner when nothing is ready.",
                 "        required: false",
-                "        default: ''",
+                "        default: '1'",
                 string.Empty,
                 "# One run at a time. A second waits rather than picking the same cycles.",
                 "concurrency:",
@@ -109,16 +111,15 @@ public static class FactoryPipeline
                 "          sdlc claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
                 "          if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything in this run.'; exit 1; fi",
                 string.Empty,
-                "      - name: build the queue",
+                "      - name: run the series",
                 "        env:",
                 "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
                 "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "          GH_TOKEN: ${{ secrets.SDLC_FACTORY_TOKEN }}",
-                "          CYCLE: ${{ inputs.cycle }}",
+                "          WAVES: ${{ inputs.waves }}",
                 "        run: |",
                 .. Credential("          ", check: false),
-                .. Asked("          "),
-                "          sdlc claude -p '/sdlc:build '\"$CYCLE\"' --unattended' --permission-mode bypassPermissions < /dev/null",
+                .. Series("          "),
                 string.Empty,
                 "      # The morning starts from this page, whatever the run above did.",
                 "      - name: the sitrep",
@@ -137,11 +138,11 @@ public static class FactoryPipeline
                 "# against one throwaway approved cycle, and watch it.",
                 "#",
                 "# The factory (CONCEPT.md section 10.5, D-84, D-143). A person starts it, from Pipelines > Run pipeline",
-                $"# or with 'az pipelines run'. It finds the cycles approved on {integrationBranch} with no verify, builds",
-                "# and verifies each on its own branch -- the one the most successors wait on first -- and opens a pull",
-                "# request per cycle, a draft for one that did not pass. Name one cycle to build that one alone. It",
-                "# merges nothing: a person reviews and merges every pull request, starting from the sitrep this run",
-                "# publishes, and starts it again for what those merges made ready.",
+                $"# or with 'az pipelines run'. It runs one series from {integrationBranch}: wave after wave, up to the",
+                "# number of waves asked for, each cycle built and verified into series/<id>, ending in one pull request.",
+                "# Under approval: required it builds only approved cycles; under approval: none it plans the ready",
+                "# successors too. It merges nothing: a person reviews and merges the pull request, starting from the",
+                "# sitrep this run publishes, and starts it again for what that merge made ready.",
                 "#",
                 "# What a person sets up, once:",
                 "#   - Pipelines > New pipeline > this file.",
@@ -152,16 +153,16 @@ public static class FactoryPipeline
                 "#   - The project's build service may contribute, create branches and contribute to pull",
                 "#     requests on this repository (Project settings > Repositories > Security).",
                 "#   - Pipelines > Environments > sdlc-factory > Approvals and checks > Exclusive lock. Without it",
-                "#     two runs could pick the same cycles; with it a second waits.",
+                "#     two runs could take the same cycles; with it a second waits.",
                 "# Started by a person, never on a schedule: starting it is the decision to spend (D-143).",
                 "trigger: none",
                 "pr: none",
                 string.Empty,
                 "parameters:",
-                "  - name: cycle",
-                "    displayName: One cycle id to build alone. Empty builds every queued cycle.",
-                "    type: string",
-                "    default: ' '",
+                "  - name: waves",
+                "    displayName: How many waves the series may run. It stops sooner when nothing is ready.",
+                "    type: number",
+                "    default: 1",
                 string.Empty,
                 "lockBehavior: sequential",
                 string.Empty,
@@ -207,14 +208,13 @@ public static class FactoryPipeline
                 string.Empty,
                 "            - script: |",
                 .. Credential("                ", check: false),
-                .. Asked("                "),
-                "                sdlc claude -p '/sdlc:build '\"$CYCLE\"' --unattended' --permission-mode bypassPermissions < /dev/null",
-                "              displayName: build the queue",
+                .. Series("                "),
+                "              displayName: run the series",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
                 "                CLAUDE_CODE_OAUTH_TOKEN: $(CLAUDE_CODE_OAUTH_TOKEN)",
                 "                AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)",
-                "                CYCLE: ${{ parameters.cycle }}",
+                "                WAVES: ${{ parameters.waves }}",
                 string.Empty,
                 "            # The morning starts from this page, whatever the run above did.",
                 "            - script: |",
@@ -230,21 +230,23 @@ public static class FactoryPipeline
     };
 
     /// <summary>
-    /// The lines that read the one cycle a person asked the run to build, and stop the run before it builds
-    /// anything when that cycle is not queued.
+    /// The lines that start the series: the number of waves a person asked for, checked; the series' branch and
+    /// worktree opened from the integration branch; and its own process started there.
     /// </summary>
     /// <remarks>
-    /// <para><strong>The binary reads it before the agent does.</strong> The input is text a person typed into a
-    /// form, and it reaches the agent's prompt; <c>sdlc cycles --queued</c> refuses anything that is not a cycle id,
-    /// and a cycle that is not queued, with why, so only an id it accepted is ever passed on.</para>
-    /// <para><strong>Empty means every queued cycle.</strong> Azure DevOps will not take an empty string as a
-    /// parameter's default, so the default is a space, trimmed here.</para>
+    /// <para><strong>The binary reads the number before anything starts.</strong> It is text typed into a form, so it
+    /// is refused here unless it is a whole number, and <c>sdlc series start</c> refuses one below one.</para>
+    /// <para><strong>The worktree is the one line <c>sdlc series start</c> prints on standard output</strong>, so the
+    /// step hands it to <c>sdlc series run --solution</c> without parsing anything. The series' process is started
+    /// as a build's is: headless, its tools named, never with the permission checks off (D-183, D-202).</para>
     /// </remarks>
-    private static IEnumerable<string> Asked(string indent)
+    private static IEnumerable<string> Series(string indent)
     {
-        yield return indent + "# The cycle asked for, if any: refused here, before anything is built, unless it is queued.";
-        yield return indent + "CYCLE=\"$(printf '%s' \"${CYCLE:-}\" | tr -d '[:space:]')\"";
-        yield return indent + "if [ -n \"$CYCLE\" ]; then sdlc cycles --queued \"$CYCLE\" || exit 1; fi";
+        yield return indent + "# The number of waves asked for: refused here, before anything starts, unless it is a whole number.";
+        yield return indent + "WAVES=\"$(printf '%s' \"${WAVES:-1}\" | tr -d '[:space:]')\"";
+        yield return indent + "case \"$WAVES\" in ''|*[!0-9]*) echo \"waves is a whole number of waves, 1 or more: '$WAVES' is not.\"; exit 1 ;; esac";
+        yield return indent + "series=\"$(sdlc series start --waves \"$WAVES\")\" || exit 1";
+        yield return indent + "sdlc series run --solution \"$series\"";
     }
 
     /// <summary>

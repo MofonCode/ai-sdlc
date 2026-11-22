@@ -20,8 +20,9 @@ public static class BacklogRenderer
 
     /// <summary>Renders the backlog.</summary>
     /// <param name="read">Where every successor and parked cycle stands.</param>
+    /// <param name="onto">The branch readiness was judged against, when one was named rather than the integration branch.</param>
     /// <returns>The text, ending in a newline.</returns>
-    public static string Render(ReadSuccessors.Response read)
+    public static string Render(ReadSuccessors.Response read, string? onto = null)
     {
         ArgumentNullException.ThrowIfNull(read);
 
@@ -32,16 +33,24 @@ public static class BacklogRenderer
                 s.Successor.Headline,
                 s.State,
                 s.Waits,
-                "/sdlc:intent --from successor:" + s.Successor.Slug)),
+                "/sdlc:intent --from successor:" + s.Successor.Slug,
+                FirstLine(s.Successor.Outcome))),
             .. read.Waiting.Select(p => new Item(
                 p.Cycle + " (parked)",
                 p.Headline,
                 p.State,
                 p.Waits,
-                "sdlc unpark " + p.Cycle + ", then read its spec and plan again")),
+                "sdlc unpark " + p.Cycle + ", then read its spec and plan again",
+                null)),
         ];
 
         StringBuilder output = new();
+
+        if (onto is not null)
+        {
+            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Judged against {onto}: a predecessor is merged once its passing verify is committed there."));
+            output.AppendLine();
+        }
 
         if (items.Count == 0)
         {
@@ -88,8 +97,29 @@ public static class BacklogRenderer
         return output.ToString().TrimEnd() + Environment.NewLine;
     }
 
-    private static void Line(StringBuilder output, Item item) =>
+    private static void Line(StringBuilder output, Item item)
+    {
         output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Indent}{item.Name}  {item.Headline ?? "(no headline)"}"));
+
+        if (item.Outcome is not null)
+        {
+            output.AppendLine(Indent + Indent + "  builds: " + item.Outcome);
+        }
+    }
+
+    /// <summary>What a successor's outcome says first: its first sentence, or its first line when it has no full stop.</summary>
+    private static string? FirstLine(string? outcome)
+    {
+        if (string.IsNullOrWhiteSpace(outcome))
+        {
+            return null;
+        }
+
+        string line = outcome.Trim().ReplaceLineEndings("\n").Split('\n', 2)[0].Trim().TrimStart('-', '*', ' ');
+        int stop = line.IndexOf(". ", StringComparison.Ordinal);
+
+        return stop > 0 ? line[..(stop + 1)] : line;
+    }
 
     private static string Key(Item item) => item.Name.Replace(" (parked)", string.Empty, StringComparison.Ordinal);
 
@@ -122,5 +152,5 @@ public static class BacklogRenderer
         return known[key] = deepest + 1;
     }
 
-    private sealed record Item(string Name, string? Headline, SuccessorState State, IReadOnlyList<ReadSuccessors.Wait> Waits, string Start);
+    private sealed record Item(string Name, string? Headline, SuccessorState State, IReadOnlyList<ReadSuccessors.Wait> Waits, string Start, string? Outcome);
 }

@@ -124,7 +124,8 @@ public static class HarvestReport
     /// concerns watched below the bar, whose counts carry across sittings because the folders they came from go (D-152).
     /// </param>
     /// <param name="Suggestions">
-    /// The open suggestions of the sitting's cycles: each is taken further, declined with its reason, or ignored,
+    /// The open suggestions of the sitting's cycles: each is taken further, declined with its reason, covered by what already
+    /// handles it, or ignored,
     /// and an ignored one is tallied by concern in the ledger, since nothing else keeps it (D-153).
     /// </param>
     /// <param name="Sitting">The completed cycles this report reads: for an aspect, those that have not answered it yet.</param>
@@ -486,9 +487,14 @@ public static class HarvestReport
                 break;
             case HarvestAspect.Suggestions:
                 text.AppendLine("  ## Successors   ### [ ] add <slug> — <what it makes possible>, with **Succeeds:**, **Outcome:** and **Why it matters:** beneath");
-                text.AppendLine("  ## Declined     - <cycle>/<suggestion id>: <why>");
+                text.AppendLine("  ## Declined     - <cycle>/<suggestion id>[, <cycle>/<suggestion id>]: <why somebody decided against it>");
+                text.AppendLine("  ## Covered      - <cycle>/<suggestion id>[, ...]: <LOC_nn | DEC_nn | successor:<slug> | path> — <how it covers it>");
+                text.AppendLine("                   Concern: <an ignored or watched concern, worded as above, that this closes> (optional)");
                 text.AppendLine("  ## Ignored      - <the concern, worded as it was ignored before> — <cycle>, <cycle>");
                 text.AppendLine("                   Why: <what it prevents, and what it promotes> (a new concern; keep or sharpen a known one's)");
+                text.AppendLine("                  Under Declined, Covered and Ignored, '### <theme>' groups lines for the person's reading.");
+                text.AppendLine("                  'sdlc harvest record' checks every Covered line names a rule in force, a standing");
+                text.AppendLine("                  decision, a successor, or a file here, and refuses the sitting when one does not.");
                 break;
             case HarvestAspect.Stack:
                 text.AppendLine("  ## Stack        ### [ ] set <concern> — <choice, or none>");
@@ -521,8 +527,9 @@ public static class HarvestReport
     /// The open suggestions of the sitting's cycles, and the concerns earlier sittings ignored (D-153).
     /// </summary>
     /// <remarks>
-    /// Each suggestion is answered one of three ways. Taken further, it becomes a successor and lives on as a file;
-    /// declined, its reason is kept in the sitting; ignored, nothing about it survives its folder but the tally.
+    /// Each suggestion is answered one of four ways. Taken further, it becomes a successor and lives on as a file;
+    /// declined, its reason is kept in the sitting; covered, what handles it is named and checked; ignored, nothing
+    /// about it survives its folder but the tally.
     /// The earlier ignored concerns are listed in their own words so an ignored suggestion is worded the same way
     /// and counted with them, and one at the bar is not ignored again.
     /// </remarks>
@@ -531,7 +538,7 @@ public static class HarvestReport
         text.AppendLine();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"Suggestions   {suggestions.Count} open -- take each further, decline it with why, or ignore it"));
+            $"Suggestions   {suggestions.Count} open -- take each further, decline it with why, cover it with what already handles it, or ignore it"));
 
         foreach (Suggestion suggestion in suggestions
             .OrderBy(suggestion => suggestion.Cycle.ToString(), StringComparer.Ordinal)
@@ -546,7 +553,7 @@ public static class HarvestReport
         foreach (Watched concern in ignored.OrderByDescending(concern => concern.Cycles.Count))
         {
             string bar = concern.Cycles.Count >= ProposeConstraints.Bar
-                ? " -- at the bar: make it a successor or decline it, and do not ignore it again"
+                ? " -- at the bar: make it a successor, decline it, or cover it, and do not ignore it again"
                 : string.Empty;
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -700,6 +707,7 @@ public static class HarvestReport
 
             List<OpenCycle> open = [];
             List<CycleId> unmerged = [];
+            Series.SeriesAbandonment abandonments = new(repository, solution.Path, integration);
 
             foreach (Cycle cycle in CycleIndex.All(solution.Path))
             {
@@ -720,7 +728,7 @@ public static class HarvestReport
                     cycle.Id,
                     cycle.IsAbandoned,
                     ledger.Missing(cycle.Id.ToString()),
-                    cycle.IsAbandoned ? Completion.AbandonedOn(repository, solution.Path, integration, cycle.Id) : null));
+                    cycle.IsAbandoned ? Completion.AbandonedOn(repository, solution.Path, abandonments, cycle.Id) : null));
             }
 
             List<CycleId> completed = [.. open.Select(cycle => cycle.Cycle)];

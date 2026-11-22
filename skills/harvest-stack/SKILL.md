@@ -52,8 +52,8 @@ At the path the report names:
 
 ## 4. Hand back, short
 
-Tell the person: how many rows, one line each (the concern, the choice, and why), and that they mark `[x]` on what
-they accept. Then stop.
+Run `sdlc harvest summary <the proposal file>` and show it: each row, the concern and the choice. Add why in a
+sentence if it is not plain, and that they mark `[x]` on what they accept. Then stop.
 
 ## 5. Once they have marked it
 

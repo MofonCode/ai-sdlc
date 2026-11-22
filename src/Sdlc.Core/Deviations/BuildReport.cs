@@ -65,6 +65,31 @@ public static class BuildReport
             return text.ToString();
         }
 
+        text.Append(Sections(response));
+
+        if (deviations.InForce.Count + deviations.Choices.Count > 0)
+        {
+            text.Append("Merging the pull request accepts the deviations and choices above. To change one, say what to do instead: the build goes round again and updates this pull request.\n");
+        }
+
+        text.Append(HarvestLine);
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// The report's sections -- deviations, choices, what was changed at the person's request, and the concerns -- each
+    /// only when it has something in it; empty when none has. A run's report renders each cycle's with this, so the
+    /// facts are said one way wherever they are said.
+    /// </summary>
+    /// <param name="response">What was read.</param>
+    /// <returns>The sections, each ending in a blank line, or an empty string.</returns>
+    internal static string Sections(Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        DeviationsState deviations = response.Deviations;
+        StringBuilder text = new();
+
         if (deviations.InForce.Count > 0)
         {
             text.Append("**Deviations** — where the build could not follow the approved text, and what it did instead\n\n");
@@ -115,12 +140,6 @@ public static class BuildReport
             text.Append('\n');
         }
 
-        if (deviations.InForce.Count + deviations.Choices.Count > 0)
-        {
-            text.Append("Merging the pull request accepts the deviations and choices above. To change one, say what to do instead: the build goes round again and updates this pull request.\n");
-        }
-
-        text.Append(HarvestLine);
         return text.ToString();
     }
 

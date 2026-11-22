@@ -333,6 +333,8 @@ public static class Templates
             "| `cycles/<id>/findings/` | what each interrogation found | `sdlc round`, from the readers' answers |",
             "| `cycles/<id>/evidence/` | the diff, the logs, the test results | the build stage |",
             "| `successors/<slug>.md` | a slice of the work that waits on another's code: what it succeeds, its outcome and why. Not a cycle; `sdlc successors` says when it is ready | the intent stage, when it slices the work |",
+            "| `series/<id>/series.json` | a series' record: its wave limit, the approval setting it started under, and what each wave took; `sdlc series status` | `sdlc series start`, `sdlc series wave`; `sdlc harvest close` deletes the folder with its last cycle |",
+            "| `series/<id>/abandoned.md` | why a series stopped, which stops every cycle that exists only in the series | a person, by hand |",
             string.Empty,
             "Seven of those are written only by a person. No tool writes them; a tool prints or drafts what",
             "belongs in them and the person places it. The pre-tool hook denies every agent write to all seven,",

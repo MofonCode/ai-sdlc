@@ -2,7 +2,7 @@
 name: intent
 description: Turn a request into governed intents -- propose how to slice the work, open each cycle in a sandbox, and suggest the intent that says why it exists from the solution's record and code, asking a person only what it inferred, or interview them in full when asked. Writes the intent and nothing else; take it to plan checks it. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--type bug|add|change] [--from <lead>] [--interview] | --reslice <cycle id>..."
+argument-hint: "[--type bug|add|change] [--from <lead>] [--interview] | --from successor:<slug> --unattended | --reslice <cycle id>..."
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -21,6 +21,9 @@ them your reading and asking where it is only yours, rather than by walking them
 
 **The full interview is there when it is the better tool** — `--interview`, a new solution, or a request too
 thin to read a direction from (§4). Everything else starts with a suggestion.
+
+**Unattended, in a series' own process** — `--from successor:<slug> --unattended`, and only with a successor —
+nobody is there to ask. §8 says what changes: the suggestion is written as always and asked about never.
 
 Run `sdlc constraints --for intent` first and keep what it prints in front of you. That is the set in
 force for this solution, which is not the same as the set you remember.
@@ -701,3 +704,20 @@ decision, and a skill that chained straight into the next stage would remove it 
 plan* — or type `/sdlc:to-plan` — which checks the intent with fresh readers first, then writes the spec and the
 plan; and if anything reads wrong, they can just say what, and you will change it first. It can carry on in this
 session: writing an intent leaves little behind, and the build runs in a process of its own (D-178).
+
+## 8. Unattended: `--from successor:<slug> --unattended`
+
+Run by the `series` playbook in its own process, on `series/<id>`, for a successor ready against that branch.
+**Only with a successor**: a successor's outcome and why were accepted by a person at the slicing, so what is left
+to suggest is how the code that has merged since bears on them. Any other lead, or none, is refused — say that an
+intent from anything else needs its person.
+
+- **Open the cycle on this branch.** `sdlc new`, then `sdlc successor start <slug> <id>` — no sandbox and no plan
+  branch: the series' branch is where every cycle it plans opens.
+- **Suggest the intent as §3 says, and ask nobody.** Write the file with every line you inferred marked
+  `(inferred)`, and **leave the marks**: nobody confirmed them, and the run's report lists each one as not
+  confirmed by anyone. Never drop a mark to make the file look settled, and never answer for the person.
+- **No interview, and no slicing.** A successor is a slice already; one that reads as too thin to suggest from is
+  written with what the lead says, its gaps under `## Open`.
+- **Hand back in one line**: the cycle's id, its headline, and how many lines are marked `(inferred)`. No offer,
+  no panel: the playbook that ran this goes on.

@@ -108,6 +108,17 @@ public interface IRepository
     /// <returns>The commit, or null when git cannot say.</returns>
     string? MergeBase(string workingDirectory, string branch, string integrationBranch);
 
+    /// <summary>Whether one commit is an ancestor of another, or the same commit.</summary>
+    /// <remarks>
+    /// What lets a cycle built after another on the same branch be measured from where that one ended, rather than
+    /// from where the branch left the integration branch.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="ancestor">The commit that may come first.</param>
+    /// <param name="descendant">The commit that may come after it.</param>
+    /// <returns>True when git says so; false when it does not, or cannot say.</returns>
+    bool IsAncestor(string workingDirectory, string ancestor, string descendant);
+
     /// <summary>The diff from a commit to the working tree, including what is not yet committed.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <param name="from">The commit to measure from.</param>
@@ -229,6 +240,25 @@ public interface IRepository
     /// <param name="until">The commit to measure to.</param>
     /// <returns>The paths, relative to the root, or null when git cannot say.</returns>
     IReadOnlyList<string>? CommittedChanges(string workingDirectory, string from, string until);
+
+    /// <summary>
+    /// The tree a merge of two commits would produce, written to git's objects without touching the working tree, the
+    /// index or any branch.
+    /// </summary>
+    /// <remarks>
+    /// What lets a cycle on a run's branch that merged the integration branch after the cycle before it be measured
+    /// from where it started with that merge taken in, so the merged changes are not counted as its own (D-206). The
+    /// same two commits give the same tree, so the patch can be rebuilt on any clone that holds them. Needs git 2.38
+    /// or later, for <c>git merge-tree --write-tree</c>.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="ours">One commit.</param>
+    /// <param name="theirs">The other.</param>
+    /// <returns>
+    /// The tree's id and the paths the merge could not settle, none when it was clean; null when git cannot say --
+    /// a commit this clone does not hold, or a git too old to merge without a working tree.
+    /// </returns>
+    (string Tree, IReadOnlyList<string> Conflicts)? MergeTree(string workingDirectory, string ours, string theirs);
 
     /// <summary>
     /// The full message of every commit a branch has that the base does not.
@@ -662,6 +692,16 @@ public sealed class GitRepository : IRepository
     }
 
     /// <inheritdoc />
+    public bool IsAncestor(string workingDirectory, string ancestor, string descendant)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ancestor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(descendant);
+
+        // The exit code is the answer: zero when it is, one when it is not, anything else when git cannot say.
+        return Run(workingDirectory, $"merge-base --is-ancestor \"{ancestor}\" \"{descendant}\"") is not null;
+    }
+
+    /// <inheritdoc />
     public bool RefExists(string workingDirectory, string reference)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
@@ -741,6 +781,31 @@ public sealed class GitRepository : IRepository
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <c>--name-only</c> lists each conflicted path once after the tree, and <c>--no-messages</c> leaves out the
+    /// explanations, so the output is the tree and the paths alone. Exit 0 is a clean merge, 1 a merge with conflicts;
+    /// anything else is git unable to say.
+    /// </remarks>
+    public (string Tree, IReadOnlyList<string> Conflicts)? MergeTree(string workingDirectory, string ours, string theirs)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ours);
+        ArgumentException.ThrowIfNullOrWhiteSpace(theirs);
+
+        (int? code, string said) = Exit(workingDirectory, $"merge-tree --write-tree --name-only --no-messages \"{ours}\" \"{theirs}\"");
+
+        if (code is not (0 or 1))
+        {
+            return null;
+        }
+
+        IReadOnlyList<string> lines = Lines(said);
+
+        return lines.Count == 0 || lines[0].Length < 40
+            ? null
+            : (lines[0], [.. lines.Skip(1).Distinct(StringComparer.Ordinal)]);
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(branch);
@@ -801,6 +866,24 @@ public sealed class GitRepository : IRepository
     /// </returns>
     private static (string? Output, string? Error) Ask(string workingDirectory, string arguments)
     {
+        (int? code, string said, string? error) = Execute(workingDirectory, arguments);
+
+        return code == 0 ? (said, null) : (null, error);
+    }
+
+    /// <summary>Runs git and returns its exit code with what it printed, for a command whose non-zero exit is an answer.</summary>
+    /// <param name="workingDirectory">Where to run it.</param>
+    /// <param name="arguments">The arguments, after the word git.</param>
+    /// <returns>The exit code, null when git could not be started or did not finish, and standard output.</returns>
+    private static (int? Code, string Output) Exit(string workingDirectory, string arguments)
+    {
+        (int? code, string said, _) = Execute(workingDirectory, arguments);
+
+        return (code, said);
+    }
+
+    private static (int? Code, string Output, string? Error) Execute(string workingDirectory, string arguments)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
 
         try
@@ -816,7 +899,7 @@ public sealed class GitRepository : IRepository
 
             if (process is null)
             {
-                return (null, null);
+                return (null, string.Empty, null);
             }
 
             // Started before either is awaited, so neither pipe can fill while this waits on the other.
@@ -837,7 +920,7 @@ public sealed class GitRepository : IRepository
                 // TotalSeconds, not `_patience / 1000`. Dividing a TimeSpan by 1000 gives five
                 // milliseconds, so the message read "did not finish within 00:00:00.0050000 seconds"
                 // -- about a timeout nobody could have hit.
-                return (null, string.Create(
+                return (null, string.Empty, string.Create(
                     CultureInfo.InvariantCulture,
                     $"git {arguments} did not finish within {_patience.TotalSeconds} seconds and was stopped."));
             }
@@ -847,8 +930,8 @@ public sealed class GitRepository : IRepository
             string complained = error.GetAwaiter().GetResult();
 
             return process.ExitCode == 0
-                ? (said, null)
-                : (null, string.IsNullOrWhiteSpace(complained)
+                ? (0, said, null)
+                : (process.ExitCode, said, string.IsNullOrWhiteSpace(complained)
                     ? string.Create(CultureInfo.InvariantCulture, $"git {arguments} exited {process.ExitCode} and said nothing.")
                     : complained.Trim());
         }
@@ -858,7 +941,7 @@ public sealed class GitRepository : IRepository
             // No git on PATH, or it could not be started. Every caller treats a null output as "git
             // cannot say", which is what lets a missing git produce a clear refusal rather than a
             // stack trace.
-            return (null, "git could not be started. " + error.Message);
+            return (null, string.Empty, "git could not be started. " + error.Message);
         }
     }
 }

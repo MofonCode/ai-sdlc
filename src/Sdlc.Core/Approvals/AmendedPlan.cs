@@ -70,7 +70,7 @@ public static class AmendedPlan
     }
 
     /// <summary>
-    /// Whether the working copy is this cycle's build branch and the integration branch holds an approval it lacks.
+    /// Whether the working copy is this cycle's build branch, or a run's branch carrying it, and the integration branch holds an approval it lacks.
     /// </summary>
     /// <param name="repository">Git.</param>
     /// <param name="root">The repository's root.</param>
@@ -82,9 +82,8 @@ public static class AmendedPlan
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(cycle);
 
-        if (!CycleBranch.TryParse(repository.CurrentBranch(root), out CycleBranch? branch)
-            || branch.Id != cycle.Id
-            || !branch.IsBuild
+        // A run's branch is a build branch for every cycle it carries.
+        if (!RunBranch.BuildsOn(repository.CurrentBranch(root), cycle.Id)
             || !File.Exists(cycle.ApprovalPath))
         {
             return null;

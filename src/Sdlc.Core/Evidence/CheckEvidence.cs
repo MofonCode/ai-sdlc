@@ -66,6 +66,7 @@ public static class CheckEvidence
         RecordEvidence.SummaryFileName,
         RecordEvidence.DiffFileName,
         RecordEvidence.BaseFileName,
+        RecordEvidence.MergedFileName,
         Coverage.SummaryFileName,
         "build.log",
         "coverage_floor",
@@ -197,7 +198,7 @@ public static class CheckEvidence
             // they hold. The log is not committed, so in a pipeline it is simply not searched. The summary and
             // the two commits are searched as text as well (D-161): a verdict quoting the platform the tests ran
             // on, or the commit it judged, was reported as citing nothing.
-            foreach (string other in new[] { Coverage.SummaryFileName, "build.log", RecordEvidence.SummaryFileName, RecordEvidence.BaseFileName, RecordEvidence.HeadFileName, ProofSources.FileName })
+            foreach (string other in new[] { Coverage.SummaryFileName, "build.log", RecordEvidence.SummaryFileName, RecordEvidence.BaseFileName, RecordEvidence.HeadFileName, RecordEvidence.MergedFileName, ProofSources.FileName })
             {
                 string path = Path.Combine(cycle.EvidenceDirectory, other);
 

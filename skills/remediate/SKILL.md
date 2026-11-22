@@ -32,7 +32,8 @@ and why: ask the person which, in one question, and **never pick one yourself**.
 
 ## Where you work
 
-**Inside the build's own process**, you are already on the cycle's build branch, in the worktree the binary
+**Inside the build's own process**, you are already on the cycle's build branch, or the run's branch (`wave/<id>`,
+`series/<id>`) that carries it, in the worktree the binary
 started you in. Stay there.
 
 **In a person's session**, the cycle's branch is checked out in the build's worktree, not in their checkout:

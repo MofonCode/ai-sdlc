@@ -65,7 +65,11 @@ public static class ListQueuedCycles
     /// The one cycle a run was asked to build. The queue is then that cycle alone, and one that is not queued is
     /// refused with why, so a run started for it stops before it builds anything.
     /// </param>
-    public sealed record Query(CycleId? Only = null) : IRequest<Response>;
+    /// <param name="Onto">
+    /// The branch the run builds onto, when it is not the integration branch: a parked cycle's predecessors are read
+    /// as merged once their passing verify is committed there.
+    /// </param>
+    public sealed record Query(CycleId? Only = null, string? Onto = null) : IRequest<Response>;
 
     /// <summary>The queue.</summary>
     /// <param name="Cycles">
@@ -132,7 +136,7 @@ public static class ListQueuedCycles
             }
 
             Result<ReadSuccessors.Response> successors = await mediator
-                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(), cancellationToken)
+                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(request.Onto), cancellationToken)
                 .ConfigureAwait(false);
 
             if (successors.IsFailed)
@@ -166,12 +170,18 @@ public static class ListQueuedCycles
                 // D-145: a parked plan needs code another cycle has not merged, so building it now cannot work.
                 if (successors.Value.Waiting.FirstOrDefault(p => p.Cycle == claim.Cycle) is { } parked)
                 {
+                    // Ready once what it waits on merged into the branch the run builds onto, but still parked: its
+                    // spec and plan were written before that code existed, so somebody reads them again first.
                     held.Add(new HeldBack(
                         claim.Cycle,
                         headline,
-                        string.Create(
-                            CultureInfo.InvariantCulture,
-                            $"it is parked, waiting on {string.Join(", ", parked.Waits.Select(ReadSuccessors.Describe))}; once each has merged, 'sdlc unpark {claim.Cycle}' and read its spec and plan again")));
+                        parked.State == SuccessorState.Ready
+                            ? string.Create(
+                                CultureInfo.InvariantCulture,
+                                $"it is parked and ready: everything it waited on has merged{(request.Onto is null ? string.Empty : " into " + request.Onto)}; 'sdlc unpark {claim.Cycle}' and read its spec and plan again")
+                            : string.Create(
+                                CultureInfo.InvariantCulture,
+                                $"it is parked, waiting on {string.Join(", ", parked.Waits.Select(ReadSuccessors.Describe))}; once each has merged, 'sdlc unpark {claim.Cycle}' and read its spec and plan again")));
                     continue;
                 }
 

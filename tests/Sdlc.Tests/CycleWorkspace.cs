@@ -42,6 +42,19 @@ internal sealed class CycleWorkspace : IDisposable
         return workspace;
     }
 
+    /// <summary>Another cycle in the same solution, for a branch that carries several.</summary>
+    /// <remarks>Not to be disposed: the workspace it was made from owns the directory.</remarks>
+    /// <param name="id">The other cycle's id.</param>
+    /// <returns>A workspace on the same root, for that cycle.</returns>
+    public CycleWorkspace Beside(string id)
+    {
+        Assert.IsTrue(CycleId.TryParse(id, out CycleId? parsed), $"'{id}' is not a cycle id.");
+
+        CycleWorkspace other = new(Root, parsed.Value);
+        Directory.CreateDirectory(other.Cycle.Directory);
+        return other;
+    }
+
     /// <summary>
     /// Writes one artifact, shaped the way the schema asks for.
     /// </summary>

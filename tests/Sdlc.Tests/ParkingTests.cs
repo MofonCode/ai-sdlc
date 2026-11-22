@@ -107,6 +107,30 @@ public sealed class ParkingTests
     }
 
     [TestMethod]
+    public async Task Onto_a_run_branch_a_parked_cycle_is_ready_and_unparks_once_what_it_needs_passed_there()
+    {
+        const string Series = "series/20261121_0930_15";
+        using CycleWorkspace workspace = Two();
+        await Park(workspace, Needer);
+        FakeRepository git = new();
+        git.Refs.Add(Integration);
+        git.Refs.Add(Series);
+        git.Files[Series + ":.sdlc/cycles/" + Creator + "/verify.md"] = "---\noutcome: pass\n---\n";
+
+        Assert.AreEqual(SuccessorState.Waiting, (await Read(workspace, git)).Waiting.Single().State, "nothing merged into the integration branch");
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        ReadSuccessors.Response onto = (await gate.Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(Series))).Value;
+        Result<UnparkCycle.Response> refused = await gate.Send<UnparkCycle.Command, UnparkCycle.Response>(new UnparkCycle.Command(Cycle(workspace, Needer).Id));
+        Result<UnparkCycle.Response> unparked = await gate.Send<UnparkCycle.Command, UnparkCycle.Response>(new UnparkCycle.Command(Cycle(workspace, Needer).Id, Series));
+
+        Assert.AreEqual(SuccessorState.Ready, onto.Waiting.Single().State);
+        Assert.IsTrue(refused.IsFailed);
+        Assert.IsTrue(unparked.IsSuccess, string.Join("; ", unparked.Errors.Select(e => e.Message)));
+        Assert.IsFalse(File.Exists(Parked.PathOf(Cycle(workspace, Needer))));
+    }
+
+    [TestMethod]
     public void An_empty_backlog_says_so()
     {
         StringAssert.Contains(BacklogRenderer.Render(new ReadSuccessors.Response([], [], [], null)), "The backlog is empty");

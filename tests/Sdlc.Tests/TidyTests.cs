@@ -56,6 +56,41 @@ public sealed class TidyTests
     }
 
     [TestMethod]
+    public async Task A_wave_or_series_is_open_on_the_sitrep_until_what_it_built_passed_there_and_then_tidy_removes_it()
+    {
+        string wave = "wave/" + Merged;
+        string series = "series/" + Open;
+        FakeRepository git = new() { Base = "base" };
+        git.Refs.UnionWith([At, wave, series, "origin/" + series]);
+        git.Files[$"{At}:{Folder(Merged)}verify.md"] = "---\ncycle: " + Merged + "\noutcome: pass\n---\n\n# Done\n";
+        git.Files[$"{series}:.sdlc/series/{Open}/series.json"] = Sdlc.Core.Series.SeriesRecord.Start(Open, DateTimeOffset.UnixEpoch, 3, Sdlc.Core.Solutions.ApprovalRequirement.None)
+            .WithWave(DateTimeOffset.UnixEpoch, [new Sdlc.Core.Series.SeriesItem(Sdlc.Core.Series.SeriesItemKind.Parked, Open, Open)])
+            .Write();
+        git.WorktreeList.Add(("/repo", "master"));
+        git.WorktreeList.Add(($"/repo.series/{Open}", series));
+
+        // Each carries a cycle that has not passed on the integration branch yet: both open, neither tidied.
+        git.Committed = [Folder(Open) + "plan.md"];
+        Assert.AreEqual(0, (await Review(git)).Removable.Count);
+
+        Sdlc.Core.Factory.Sitrep.Response page = await Sitrep(git);
+        CollectionAssert.AreEqual(new[] { wave, series }, page.Runs.Select(run => run.Branch).ToArray(), "Each once, the local branch read before the remote's, in id order.");
+        Assert.AreEqual(1, page.Runs[1].Waves);
+        Assert.AreEqual(3, page.Runs[1].Limit);
+        string rendered = Sdlc.Core.Factory.SitrepRenderer.Render(page);
+        StringAssert.Contains(rendered, "## Waves and series open");
+        StringAssert.Contains(rendered, "1 of 3 waves taken");
+
+        // What they built passed there: done, and the worktree and branches go the way a cycle's build does.
+        git.Committed = [Folder(Merged) + "verify.md"];
+        TidyCycles.Response review = await Review(git);
+
+        CollectionAssert.AreEqual(new[] { series, wave }, review.Removable.Select(entry => entry.Branch).ToArray());
+        CollectionAssert.Contains(review.Commands.ToArray(), $"git worktree remove /repo.series/{Open}");
+        Assert.AreEqual(0, (await Sitrep(git)).Runs.Count);
+    }
+
+    [TestMethod]
     public async Task A_done_branch_checked_out_in_the_main_checkout_is_named_and_kept()
     {
         FakeRepository git = new() { Base = "base" };
@@ -127,6 +162,16 @@ public sealed class TidyTests
     private static async Task<TidyCycles.Response> Review(FakeRepository git)
     {
         Result<TidyCycles.Response> result = await Send(git);
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
+        return result.Value;
+    }
+
+    private static async Task<Sdlc.Core.Factory.Sitrep.Response> Sitrep(FakeRepository git)
+    {
+        using var workspace = CycleWorkspace.Create(Merged);
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        Result<Sdlc.Core.Factory.Sitrep.Response> result = await gate.Send<Sdlc.Core.Factory.Sitrep.Query, Sdlc.Core.Factory.Sitrep.Response>(new Sdlc.Core.Factory.Sitrep.Query());
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
         return result.Value;

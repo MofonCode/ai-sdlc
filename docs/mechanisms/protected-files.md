@@ -21,7 +21,7 @@ writes is the framework's own, checked at the pull request (D-199).
 | `decisions.md` | `.sdlc/` | the choices this solution has settled |
 | `areas.md` | `.sdlc/` | the parts of this solution's code and the files each covers, which decide which rules and decisions reach a reader in full |
 | `approval.md` | `.sdlc/cycles/<id>/` | the gate decisions on one cycle's three planning documents |
-| `abandoned.md` | `.sdlc/cycles/<id>/` | why one cycle stopped |
+| `abandoned.md` | `.sdlc/cycles/<id>/`, or `.sdlc/series/<id>/` | why one cycle stopped, or why a whole series did — which stops every cycle that exists only in the series; an approved cycle already on the integration branch stays as it stands, to be built again |
 
 **Each one is a decision, and a decision means something only if no tool could have made it.** Most of
 them are also something a cycle is judged against — the constraints, the declared stack, the recorded

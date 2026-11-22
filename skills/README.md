@@ -1,4 +1,4 @@
-# The twenty-eight skills
+# The twenty-nine skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -46,7 +46,7 @@ repository, so a push needs a person's word — *build it*, which the plan's han
 request (D-178), or the question `pr` asks when started by hand — but no hook blocks a push, and what stops an
 unready cycle from merging is the pull-request check.
 
-**All twenty-eight are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+**All twenty-nine are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the seven protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
@@ -59,7 +59,7 @@ only when that cycle passed; `to-plan` one per cycle, ticked when its plan is cl
 keep none of their own while it runs them. Every one is the agent's view of a session and never the record —
 what is done is what is on disk and what `sdlc doctor`, `sdlc status` and `sdlc cycles --pr-ready` report — and
 a host without a task list loses nothing, because no step depends on one. `../CONCEPT.md` D-80 has why a stage's
-list stops at the hand-back, why a run over several cycles is shaped differently, and why the other twenty-one
+list stops at the hand-back, why a run over several cycles is shaped differently, and why the other twenty-three
 have none.
 
 **Two words are kept apart throughout.** A **refusal** is a command or a hook declining to proceed —
@@ -94,7 +94,8 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`spec`](#spec) | single | — |
 | [`plan`](#plan) | single | — |
 | [`to-plan`](#to-plan) | playbook | `spec`, `plan`, `interrogate`, `refine`, `steer` |
-| [`next`](#next) | playbook | `intent`, `to-plan` |
+| [`wave`](#wave) | playbook | `intent`, `to-plan` |
+| [`series`](#series) | playbook | `intent`, `to-plan`, `build`, `pr` |
 | [`interrogate`](#interrogate) | single | — |
 | [`refine`](#refine) | single | — |
 | [`steer`](#steer) | single | — |
@@ -277,6 +278,7 @@ Suggests the intent, the first artifact of a cycle, from the solution's record a
 
 ```
 /sdlc:intent [--type bug|add|change] [--from <lead>] [--interview]
+/sdlc:intent --from successor:<slug> --unattended
 /sdlc:intent --reslice <cycle id>...
 ```
 
@@ -287,6 +289,7 @@ Suggests the intent, the first artifact of a cycle, from the solution's record a
 | `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — which decides what the intent must say and which questions are worth asking. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
 | `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, `successor:<slug>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the suggestion and never stands in for the person's confirmation: a premise in it the person never said is asked about. A lead or a description is what a slicing is proposed from; a ready successor is started rather than sliced again |
 | `--interview` | interview in full, one question at a time with example answers, rather than suggesting the intent and asking what was inferred (D-200). A new solution is always interviewed, and the skill offers the interview itself when a request is too thin to read a direction from |
+| `--unattended` | only with `--from successor:<slug>`, in a series' own process: open the cycle on the series' branch, suggest the intent as always and ask nobody. What it inferred stays marked `(inferred)`, and the run's report lists each mark as confirmed by nobody |
 | `--reslice <cycle id>...` | slice again intents already written — one to split it, several to join or re-cut them — while none has a spec (D-141). The first id keeps its cycle and becomes the first piece; each further piece opens as a cycle or waits as a successor; a cycle emptied by the cut is removed if it was never pushed, or recommended for abandonment if it holds something worth keeping. The person accepts the cut, as for any slicing |
 
 #### Output
@@ -586,6 +589,7 @@ again from the highest document that moved.
 
 ```
 /sdlc:to-plan [<cycle id>] [<finding id>...] ["what to change"]
+/sdlc:to-plan --unattended
 ```
 
 #### Parameters
@@ -595,6 +599,7 @@ again from the highest document that moved.
 | `<cycle id>` | the one cycle to take to plan. Optional: without it, `sdlc cycles --here --for to-plan` lists every cycle this branch carries with an intent, a plan not yet clean and no standing approval, and it takes them all |
 | `<finding id>...` | open suggestions of the cycle to take in or decline, handed to `steer` before the loops run |
 | `"what to change"` | a correction in the person's words, handed to `steer` before the loops run |
+| `--unattended` | in a series' own process: take every cycle this branch carries and ask nobody. A cycle whose loop cannot settle, or which needs a person, stops with its reason in the hand-back; an intent's `(inferred)` marks are left for the run's report; no suggestions question, and no approvals drafted |
 
 #### Output
 
@@ -637,60 +642,152 @@ the same one taken in after the plan; one question across every cycle is the tra
 
 ---
 
-### `next`
+### `wave`
 
-Pulls the next wave from the backlog — every successor ready now started, every parked cycle whose predecessor
-merged taken back and read again — plans them in one sandbox, and stops at the approvals (D-147).
+Runs the next wave from the backlog — every successor ready now started, every parked cycle whose predecessor
+merged taken back and read again — plans them in one sandbox, then builds every cycle of the wave one after another
+on one branch, `wave/<id>`, into **one pull request for the wave**. Under `approval: required` it stops at the
+approvals, and a later run builds what was approved.
 
 | | |
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
-| Stage | the planning chain, for whatever the last merges made ready |
+| Stage | the planning chain and the build, for whatever the last merges made ready |
 | Started by | a person, after merges land, or asking what is next for a piece of work |
-| Reads | `sdlc backlog` for the wave; then what `intent`, `interrogate`, `spec` and `plan` read, per item |
-| Writes | what `intent`, `spec` and `plan` write, per item; removes a parked cycle's `parked.md` through `sdlc unpark` |
+| Reads | `sdlc backlog` for the wave, or `sdlc cycles --here --for build` in a sandbox already planned; then what `intent`, `interrogate`, `spec` and `plan` read, per item |
+| Writes | what `intent`, `spec` and `plan` write, per item; removes a parked cycle's `parked.md` through `sdlc unpark`; then, through `sdlc build --run` on the wave's branch, what the build writes and the wave's one pull request |
 
 #### Syntax
 
 ```
-/sdlc:next
+/sdlc:wave
 ```
 
 #### Parameters
 
-None. The wave is everything `sdlc backlog` lists as ready now.
+None. The wave is everything `sdlc backlog` lists as ready now — or, when a sandbox holds a wave approved and not
+built, that wave.
 
 #### Output
 
-One line per item — planned, read again and unchanged or changed, parked, or stopped and why — then the plan panels,
-one question about suggestions, and the backlog still to come. It stops at the approvals.
+One line per item — planned, read again and unchanged or changed, parked, or stopped and why — then the plan panels
+and one question about suggestions. Under `approval: required` it stops there, at the approvals. Otherwise, and on
+a later run once they are approved, `sdlc build --run`'s report, the wave's pull request, and the backlog still to
+come.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
-| nothing in the backlog is ready | shows the backlog and the queue, and stops | merge what the queue says unlocks the most, then ask again |
+| nothing in the backlog is ready, and no sandbox holds an approved wave | shows the backlog and the queue, and stops | merge what the queue says unlocks the most, then ask again |
+| under `approval: required`, an approval placed and not committed in the sandbox | asks the person to commit it, and never commits it itself | commit it, then `/sdlc:wave` again |
+| `sdlc build --run` refuses, or its process cannot start | shows what it said; the wave is never built in the person's session instead | [Handling refusals](../docs/guides/handling-refusals.md) |
 
 #### Example
 
 ```
-/sdlc:next
+/sdlc:wave
 ```
 
-Expect one line per item it will take, each successor's suggested intent and its few questions, a long run with no questions, then
-one line per item, the plan panels, one question, and the waves still to come.
+Expect one line per item it will take, each successor's suggested intent and its few questions, a long run with no
+questions, then one line per item, the plan panels and one question. Under `approval: none`, once that is answered,
+one line saying the wave's build has started, a wait, then the run's report, its pull request and the waves still to
+come.
 
 #### Remarks
 
-**It is local, and the factory never runs it.** An intent is confirmed by its person and a plan is read before it is approved;
-the factory builds what a person approved and nothing more (D-143). Run after each wave merges, it carries a sliced
-piece of work to completion one wave at a time.
+**One pull request for the wave.** Every cycle keeps its own folder, rounds, verification and commits; the wave's
+branch is a grouping, and its pull request is where a person accepts the whole wave. A blocked verification stops
+only that cycle and the cycles that depend on it, and the report names what stopped and what it held back.
+
+**It asks, and it never merges.** An intent is confirmed by its person, and under `approval: required` a plan is
+read before it is approved. A run that asks nobody, wave after wave, is [`series`](#series). This skill was `next`
+until the series arrived; the rename took no alias, as `batch-build`'s retirement did (D-187).
 
 #### See also
 
 - [`to-plan`](#to-plan) — what it runs for the intents it opened
 - [`intent`](#intent) — `--from successor:<slug>`, what it runs for each successor
+- [`build`](#build) — `--run`, what `sdlc build --run` starts for the wave
 - [Running a cycle](../docs/guides/running-a-cycle.md)
+
+---
+
+### `series`
+
+Runs a **series**: wave after wave of ready successors and parked cycles, planned and built one after another into
+one branch, `series/<id>`, ending in **one pull request**, until its wave limit or an empty backlog. What it may do
+follows the approval setting: under `approval: none` it plans and builds asking nobody; under `approval: required`
+it plans nothing and builds only cycles a person approved, in wave order.
+
+| | |
+|---|---|
+| Kind | playbook — it names the skills it runs and does no stage work itself |
+| Stage | the planning chain and the build, across several waves |
+| Started by | a person, with the number of waves it may run; with `--unattended`, the process `sdlc series run` starts, and the factory, which runs only series |
+| Reads | `sdlc series wave` for each wave, and `sdlc series status` |
+| Writes | nothing itself: what `intent`, `to-plan`, `build` and `pr` write, on `series/<id>`; the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start` and `sdlc series wave` |
+
+#### Syntax
+
+```
+/sdlc:series [<id>] [--waves <n>] [--unattended]
+```
+
+#### Parameters
+
+| Parameter | Description |
+|---|---|
+| `<id>` | the series, as `sdlc series start` named it. `sdlc series run` passes it; a person starting one names none |
+| `--waves <n>` | how many waves it may run: it stops there or when nothing is ready, whichever comes first. Asked for when not given, since an open-ended run is spend nobody chose |
+| `--unattended` | run as the series' own process: ask nothing. `sdlc series run` passes it, and the factory's pipeline runs it. A person never needs to type it |
+
+#### Output
+
+In a person's session, what `sdlc series run` printed, `sdlc series status` verbatim, and the pull request's link.
+In its own process, wave after wave: each successor's intent suggested with its `(inferred)` marks left, each cycle
+planned with its loop, each wave built and recorded on the series' branch — then one pull request, its body a short
+summary followed by `sdlc report --run`.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| fewer than one wave | `sdlc series start` refuses | name a number |
+| `sdlc series run` names no series, or the worktree is not on its branch | refuses, saying which worktree to pass | `--solution` with the path `sdlc series start` printed |
+| a cycle's loop cannot settle, or a question only a person can answer comes up | that cycle stops where it is, with its reason; the series goes on with what is ready | answer it after the series, then take it to plan |
+| a verification stays blocked | that cycle and every cycle depending on it stop; the rest carry on | the pull request's report names each |
+
+#### Example
+
+```
+/sdlc:series --waves 3
+```
+
+Expect one line saying the series has started in a process of its own, a long wait, then its status — each wave,
+each cycle and where it stands — and the pull request's link.
+
+#### Remarks
+
+**A series asks nobody**, which is why it plans only where nobody reads plans before code anyway (D-137). Under
+`approval: required` a person approves each plan before it is built, so a series there builds what they approved,
+in wave order, and stops where an unapproved cycle comes next. **What it inferred is never confirmed**: every
+intent line marked `(inferred)` is listed in the report as confirmed by nobody.
+
+**A successor is ready once its predecessor passed on the series' branch**, not on the integration branch — so a
+later wave builds on an earlier one before any of it merges. The cost is code stacked unread, and the answer is the
+report and the one pull request: **the whole series is accepted or rejected together**. Rejecting it is one step,
+`sdlc draft abandon --series <id>`, which prints the record a person places to stop every cycle that exists only in
+the series with one reason; an approved cycle already on the integration branch stays as it stands.
+
+**One pull request, many cycles, each still its own.** Each keeps its folder, rounds, verification and commits, so
+a harvest reads each as it would alone once the series merges.
+
+#### See also
+
+- [`wave`](#wave) — one wave, with the person
+- [`intent`](#intent), [`to-plan`](#to-plan) — each `--unattended`; [`build`](#build), [`pr`](#pr) — each `--run`: what it runs
+- [Running a cycle](../docs/guides/running-a-cycle.md), [Running the factory](../docs/guides/running-the-factory.md)
 
 ---
 
@@ -1104,7 +1201,7 @@ build made that nothing approved settled, and every concern (D-181).
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | build, verify and the pull request, once the gate is satisfied |
-| Started by | a person saying *build it*, after the cycle's planning documents are approved; with `--unattended`, the process `sdlc build` starts, and the factory |
+| Started by | a person saying *build it*, after the cycle's planning documents are approved; with `--unattended`, the process `sdlc build` starts; with `--run`, the process `sdlc build --run` starts for a wave, and the series for each of its waves |
 | Reads | `sdlc gate`, then `sdlc cycles --queued` and `--claims` in its own process |
 | Writes | nothing itself: what `implement`, `verify`, `remediate` and `pr` write, for each cycle, in its own worktree on `cycle/<id>/build-unattended` |
 
@@ -1112,6 +1209,7 @@ build made that nothing approved settled, and every concern (D-181).
 
 ```
 /sdlc:build [<cycle id>] [--unattended]
+/sdlc:build --run [--no-pr] --unattended
 ```
 
 #### Parameters
@@ -1119,7 +1217,9 @@ build made that nothing approved settled, and every concern (D-181).
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the approved cycle to build. Optional: without it, every approved cycle ready to build — `sdlc cycles --here --for build` says which before it starts |
-| `--unattended` | run as the build's own process: ask nothing. `sdlc build` passes it, and the factory's pipeline runs it. A person never needs to type it |
+| `--unattended` | run as the build's own process: ask nothing. `sdlc build` passes it. A person never needs to type it |
+| `--run` | on a run's branch, `wave/<id>` or `series/<id>`: build every planned, unbuilt cycle the branch carries — a wave's, or a series' current wave — one after another on that branch, with no branch or worktree of a cycle's own, then one pull request for the run through `pr --run`. A cycle that stays blocked or escalated is left as it is, and every cycle depending on it is skipped and named. `sdlc build --run` starts it for a wave; the series runs it for each wave |
+| `--no-pr` | with `--run`: open no pull request. The series passes it for each wave and opens one at the end |
 
 #### Output
 
@@ -1154,11 +1254,13 @@ it (D-66), which is why the factory's pipeline job has a timeout.
 
 **One name for building** (D-187). `batch-build` was the many-cycle form and `sdlc build-run` the command that
 started a person's build; both are gone. Given no id it builds every approved cycle, each independently in its own
-worktree; with `--unattended` it asks nothing, which is the factory's run.
+worktree; with `--unattended` it asks nothing. **With `--run` it builds a run of several cycles** into one branch and
+one pull request — a wave's or a series' — and a series is what the factory runs now.
 
 #### See also
 
 - [`implement`](#implement), [`verify`](#verify), [`remediate`](#remediate), [`pr`](#pr) — what it runs
+- [`wave`](#wave), [`series`](#series) — what starts its run form
 - [Running a cycle](../docs/guides/running-a-cycle.md), [Running the factory](../docs/guides/running-the-factory.md)
 
 ### `implement`
@@ -1402,15 +1504,16 @@ touches the remote.
 |---|---|
 | Kind | single — one job, and it starts no other skill |
 | Stage | pull requests: after a verification passed, after a plan is approved, or after a build that did not pass |
-| Started by | the build, once its verification passes — saying *build it* was the consent to push (D-178); or `remediate` updating one already open; or a person, and then **it asks before the push** |
+| Started by | the build, once its verification passes — saying *build it* was the consent to push (D-178); the build's run form or the series, for a run's one pull request; or `remediate` updating one already open; or a person, and then **it asks before the push** |
 | Reads | `sdlc pr-ready`, or `sdlc gate` and `sdlc verify-chain`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
-| Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>`, or a slicing's `slices/<slug>/plan` — and a pull request |
+| Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>`, a slicing's `slices/<slug>/plan`, or a run's `wave/<id>` or `series/<id>` — and a pull request |
 
 #### Syntax
 
 ```
 /sdlc:pr [<cycle id>...] [--plan | --draft] | --all
 /sdlc:pr --plan
+/sdlc:pr --run
 ```
 
 #### Parameters
@@ -1420,6 +1523,7 @@ touches the remote.
 | `<cycle id>` | the verified cycle to push — optional, and without it `sdlc cycles --here --for pr` names the one whose verify passed, or it asks which, and the question before the push names it (D-158) — or, with `--plan`, every cycle of one slicing |
 | `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125). Given no id, in a sandbox, every approved plan the sandbox carries and the successors it wrote, composed by `sdlc admit` onto `cycle/<id>/plan` or `slices/sandbox-<id>/plan`; what is not approved stays, and each cycle taken is named before the push is asked for (D-144) |
 | `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence, its body leading with the criteria marked Not met and each open blocker's rule, gist, place and fix |
+| `--run` | on a run's branch, `wave/<id>` or `series/<id>`: one pull request for every cycle the run built, draft or ready as `sdlc pr-ready` with no id says. Its body is a short summary — what was built and the reasoning, a sentence or two per cycle, never restating or dropping a deviation — followed verbatim by `sdlc report --run`. An open one is refreshed, as for one cycle |
 | `--all` | every cycle that is ready, asking once before the first push |
 
 #### Output
@@ -1998,7 +2102,7 @@ not a decision**: it stays in its sitting. A reversed decision takes a new id an
 
 ### `harvest-suggestions`
 
-Answers every open suggestion of the completed cycles — taken further, declined, or ignored — and lists the gaps the
+Answers every open suggestion of the completed cycles — taken further, declined, covered, or ignored — and lists the gaps the
 framework should hear about. Proposes and never places.
 
 | | |
@@ -2024,16 +2128,20 @@ framework should hear about. Proposes and never places.
 #### Output
 
 Each suggestion is **taken further**, as a successor under `## Successors` with its text copied in; **declined**,
-under `## Declined` with the reason a person would give; or **ignored**, under `## Ignored` as its concern and the
+under `## Declined` with the reason a person would give; **covered**, under `## Covered` naming the rule, decision,
+`successor:<slug>` or file that already handles it, with an optional `Concern:` line naming the tallied concern it
+closes; or **ignored**, under `## Ignored` as its concern and the
 cycles it was ignored in (D-153), with a `Why:` line under a new one (D-194). A concern ignored in three cycles is at the bar and is not ignored again. An
 accepted successor is written to `.sdlc/successors/<slug>.md`, ready once its cycle has merged. A successor marked
 `framework:` becomes a note under `## For the framework`, headed by the surface it is about, with its slug beneath
-(D-204).
+(D-204). Lines under Declined, Covered and Ignored may be grouped under `### <theme>` headings, and the hand-back is
+what `sdlc harvest summary` prints of the file.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
+| a `## Covered` line naming no rule in force, standing decision, successor or file here, or one that does not read, at `sdlc harvest record` | records nothing, and lists every such line | name what really covers it, or decline it with why |
 | a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
 
 #### Example
@@ -2050,7 +2158,7 @@ as the report's *ignored before* line when it is one.
 
 #### See also
 
-- [`suggestions`](#suggestions), [`next`](#next)
+- [`suggestions`](#suggestions), [`wave`](#wave)
 
 ---
 

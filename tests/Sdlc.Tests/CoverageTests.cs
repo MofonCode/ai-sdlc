@@ -194,6 +194,34 @@ public sealed class CoverageTests
     }
 
     [TestMethod]
+    public async Task A_cycle_built_after_another_on_its_branch_reads_the_baseline_where_that_one_ended()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        const string Earlier = "1111111111111111111111111111111111111111";
+        Assert.IsTrue(CycleId.TryParse("20200101_0900_00", out CycleId? earlier));
+        Cycle before = new(earlier.Value, workspace.Root);
+        Directory.CreateDirectory(before.EvidenceDirectory);
+        await File.WriteAllTextAsync(Path.Combine(before.EvidenceDirectory, RecordEvidence.HeadFileName), Earlier + "\n");
+
+        string report = Path.Combine(workspace.Root, "coverage.cobertura.xml");
+        await File.WriteAllTextAsync(report, Report(workspace.Root, ("src/Thing.cs", 2, 1), ("src/Thing.cs", 3, 1), ("src/Thing.cs", 13, 1), ("src/Other.cs", 1, 0)));
+
+        FakeRepository git = new() { Patch = Patch, Changed = ["src/Thing.cs"] };
+        git.Ancestors.Add((Earlier, git.Head!));
+        git.Ancestors.Add((git.Base!, Earlier));
+        git.Files[git.Base + ":.sdlc/coverage.json"] = Coverage.WriteBaseline(0.5);
+        git.Files[Earlier + ":.sdlc/coverage.json"] = Coverage.WriteBaseline(0.72);
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        Result<RecordEvidence.Response> result = await gate.Send<RecordEvidence.Command, RecordEvidence.Response>(
+            new RecordEvidence.Command(workspace.Cycle.Id, Coverage: report));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
+        Assert.AreEqual(0.72, result.Value.Coverage!.Baseline, "Read where the previous cycle on the branch ended, not where the branch began.");
+    }
+
+    [TestMethod]
     [DataRow("70%", 0.75, DisplayName = "at or above the floor a fall becomes the baseline")]
     [DataRow("80%", 0.9, DisplayName = "under the floor a fall leaves the baseline where it was")]
     public async Task Recording_carries_the_rate_forward_whenever_the_codebase_holds_its_coverage(string floor, double expected)

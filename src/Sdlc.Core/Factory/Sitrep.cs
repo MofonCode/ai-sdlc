@@ -64,6 +64,15 @@ public static class Sitrep
     /// <param name="Changed">The declared files that changed since.</param>
     public sealed record Waiting(CycleId Id, string? Headline, int Days, IReadOnlyList<string> Changed);
 
+    /// <summary>A wave or a series still open: its branch is here or on the remote, and what it built has not all merged.</summary>
+    /// <param name="Kind">Which size of run.</param>
+    /// <param name="Id">The run's id.</param>
+    /// <param name="Branch">Its branch, as git names it here: the local one when there is one.</param>
+    /// <param name="Waves">For a series, how many waves its record says it has taken; null for a wave, or a record not read.</param>
+    /// <param name="Limit">For a series, how many it may take; null otherwise.</param>
+    /// <param name="Rejected">Whether a person placed the series' abandonment on its branch.</param>
+    public sealed record Run(RunKind Kind, string Id, string Branch, int? Waves, int? Limit, bool Rejected);
+
     /// <summary>Asks for the page.</summary>
     public sealed record Query : IRequest<Response>;
 
@@ -96,7 +105,14 @@ public static class Sitrep
         bool RemoteRead,
         IReadOnlyList<Successors.ReadSuccessors.Standing> Successors,
         ApprovalRequirement Approval = ApprovalRequirement.Required,
-        Successors.ReadSuccessors.Response? Backlog = null);
+        Successors.ReadSuccessors.Response? Backlog = null)
+    {
+        /// <summary>
+        /// The waves and series still open: each run branch whose built cycles have not all passed, been abandoned or
+        /// been closed on the integration branch, as <c>sdlc tidy</c> reads done.
+        /// </summary>
+        public IReadOnlyList<Run> Runs { get; init; } = [];
+    }
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository, TimeProvider time)
         : IRequestHandler<Query, Response>
@@ -159,7 +175,52 @@ public static class Sitrep
                 remote is not null,
                 [.. successors.Where(s => s.State is Successors.SuccessorState.Ready or Successors.SuccessorState.Stuck)],
                 await SolutionDocument.ApprovalOf(root, cancellationToken).ConfigureAwait(false),
-                read.IsSuccess ? read.Value : null));
+                read.IsSuccess ? read.Value : null)
+            {
+                Runs = Runs(root, integrationRef),
+            });
+        }
+
+        /// <summary>
+        /// Every wave and series branch, here or on the remote, whose run is not done on the integration branch.
+        /// </summary>
+        /// <remarks>
+        /// Read at the local branch first, since a run commits there before it pushes. A series' record says how many
+        /// waves it has taken; whether its pull request is open is the platform's to say, as for a cycle's.
+        /// </remarks>
+        private List<Run> Runs(string root, string? integrationRef)
+        {
+            List<Run> runs = [];
+            HashSet<string> seen = new(StringComparer.Ordinal);
+
+            foreach (string name in new[] { RunBranch.WavePrefix, RunBranch.SeriesPrefix }
+                .SelectMany(prefix => repository.Branches(root, prefix))
+                .OrderBy(name => name.StartsWith("origin/", StringComparison.Ordinal))
+                .ThenBy(name => name, StringComparer.Ordinal))
+            {
+                string bare = name.StartsWith("origin/", StringComparison.Ordinal) ? name["origin/".Length..] : name;
+
+                if (!RunBranch.TryParse(bare, out RunKind kind, out string? id) || !seen.Add(bare)
+                    || (integrationRef is not null && TidyCycles.Done(repository, root, integrationRef, name) is not null))
+                {
+                    continue;
+                }
+
+                if (kind == RunKind.Wave)
+                {
+                    runs.Add(new Run(kind, id, name, null, null, false));
+                    continue;
+                }
+
+                string folder = Series.SeriesRecord.RelativeDirectory(id) + "/";
+                Series.SeriesRecord? record = repository.ReadAt(root, name, folder + Series.SeriesRecord.FileName) is { } json
+                    ? Series.SeriesRecord.Parse(json, folder + Series.SeriesRecord.FileName).ValueOrDefault
+                    : null;
+
+                runs.Add(new Run(kind, id, name, record?.Waves.Count, record?.Limit, repository.PathExistsAt(root, name, folder + Series.SeriesRecord.AbandonedFileName)));
+            }
+
+            return [.. runs.OrderBy(run => run.Id, StringComparer.Ordinal)];
         }
 
         private async Task<Built> Read(string root, CycleBranch branch, CancellationToken cancellationToken)

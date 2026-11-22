@@ -140,6 +140,100 @@ public sealed class RebuiltDiffTests
         Assert.IsNull(git.DiffBetween(repo.Root, from, "0000000000000000000000000000000000000000", [".sdlc"]), "A commit this clone lacks is no patch, not an empty one.");
     }
 
+    [TestMethod]
+    public void A_merge_tree_is_a_tree_and_the_paths_it_could_not_settle()
+    {
+        // Real git, because the claim is about how its output is read: the tree first, each conflicted path after it.
+        using var repo = Repo.Create();
+        repo.Git("branch -M development");
+        repo.Git("switch -c run");
+        File.WriteAllText(Path.Combine(repo.Root, "Run.cs"), "// run\n");
+        File.WriteAllText(Path.Combine(repo.Root, "README.md"), "# run\n");
+        repo.Git("add -A");
+        repo.Git("commit -m run");
+        repo.Git("switch development");
+        File.WriteAllText(Path.Combine(repo.Root, "Other.cs"), "// other\n");
+        repo.Git("add -A");
+        repo.Git("commit -m other");
+        string other = repo.Git("rev-parse HEAD").Trim();
+        File.WriteAllText(Path.Combine(repo.Root, "README.md"), "# development\n");
+        repo.Git("add -A");
+        repo.Git("commit -m clash");
+
+        var git = new GitRepository();
+        (string Tree, IReadOnlyList<string> Conflicts)? clean = git.MergeTree(repo.Root, "run", other);
+        (string Tree, IReadOnlyList<string> Conflicts)? clash = git.MergeTree(repo.Root, "run", "development");
+
+        Assert.IsNotNull(clean);
+        Assert.AreEqual(0, clean.Value.Conflicts.Count);
+        StringAssert.Contains(git.CommittedChanges(repo.Root, "run", clean.Value.Tree)!.Single(), "Other.cs");
+        Assert.IsNotNull(clash);
+        CollectionAssert.AreEqual(new[] { "README.md" }, clash.Value.Conflicts.ToArray());
+        Assert.IsNull(git.MergeTree(repo.Root, "run", "0000000000000000000000000000000000000000"));
+    }
+
+    [TestMethod]
+    public async Task A_cycle_built_after_the_run_merged_the_integration_branch_records_only_its_own_change()
+    {
+        // Real git end to end: one cycle on the run's branch, a change merged in from the integration branch, then the
+        // next cycle. Its patch holds its own file, never the merged one nor the cycle before it's, and a checkout
+        // without the patch rebuilds the same one from what the evidence records.
+        using var repo = Repo.Create();
+        repo.Git("branch -M development");
+        repo.Git("switch -c series/20261121_0930_15");
+        const string First = "20261121_1000_00";
+        const string Second = "20261121_1000_01";
+
+        await Cycle(repo, First, "First.cs");
+        Assert.IsTrue((await RecordReal(repo, First)).IsSuccess);
+        repo.Git("add -A");
+        repo.Git("commit -m first-evidence");
+
+        repo.Git("switch development");
+        await File.WriteAllTextAsync(Path.Combine(repo.Root, "Merged.cs"), "// from the integration branch\n");
+        repo.Git("add -A");
+        repo.Git("commit -m merged");
+        repo.Git("switch series/20261121_0930_15");
+        repo.Git("merge --no-edit development");
+
+        await Cycle(repo, Second, "Second.cs");
+        Result<RecordEvidence.Response> recorded = await RecordReal(repo, Second);
+
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(e => e.Message)));
+        string evidence = Path.Combine(repo.Root, ".sdlc", "cycles", Second, "evidence");
+        string patch = await File.ReadAllTextAsync(Path.Combine(evidence, RecordEvidence.DiffFileName));
+        StringAssert.Contains(patch, "Second.cs");
+        Assert.IsFalse(patch.Contains("Merged.cs", StringComparison.Ordinal), patch);
+        Assert.IsFalse(patch.Contains("First.cs", StringComparison.Ordinal), patch);
+        CollectionAssert.DoesNotContain(recorded.Value.Changed.ToArray(), "Merged.cs");
+        Assert.IsTrue(File.Exists(Path.Combine(evidence, RecordEvidence.MergedFileName)));
+
+        Assert.IsTrue(Sdlc.Core.Cycles.CycleId.TryParse(Second, out Sdlc.Core.Cycles.CycleId? id));
+        Sdlc.Core.Cycles.Cycle cycle = new(id.Value, repo.Root);
+        Assert.AreEqual(patch, await EvidenceDiff.Rebuild(cycle, new GitRepository(), repo.Root, CancellationToken.None));
+        CollectionAssert.AreEqual(
+            new[] { "Second.cs" },
+            (await EvidenceDiff.ChangedFiles(cycle, new GitRepository(), repo.Root, CancellationToken.None))!.Where(path => !path.StartsWith(".sdlc/", StringComparison.Ordinal)).ToArray(),
+            "Outside .sdlc/, the change is the cycle's own file alone.");
+    }
+
+    private static async Task Cycle(Repo repo, string id, string file)
+    {
+        string folder = Path.Combine(repo.Root, ".sdlc", "cycles", id);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, "plan.md"), "---\ncycle: " + id + "\n---\n\n# Plan\n");
+        await File.WriteAllTextAsync(Path.Combine(repo.Root, file), "// " + id + "\n");
+        repo.Git("add -A");
+        repo.Git("commit -m " + id);
+    }
+
+    private static async Task<Result<RecordEvidence.Response>> RecordReal(Repo repo, string id)
+    {
+        Assert.IsTrue(Sdlc.Core.Cycles.CycleId.TryParse(id, out Sdlc.Core.Cycles.CycleId? parsed));
+        using var gate = Gate.For(repo.Root);
+        return await gate.Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(parsed.Value));
+    }
+
     private static async Task<Result<RecordEvidence.Response>> Record(CycleWorkspace workspace, FakeRepository git, string? buildLog = null)
     {
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));

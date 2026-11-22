@@ -11,7 +11,7 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, solution, techstack, harvest <file>. "
+        "One of: approval <id>, abandon <id>, abandon --series <id>, solution, techstack, harvest <file>. "
         + "A constraint is harvested from the completed cycles, 'sdlc harvest constraints', or begun empty, 'sdlc constraints --new'.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
@@ -58,6 +58,12 @@ internal static class Usage
                                      carries gets the admission check, its successors must be
                                      sound, and a plan that needs a file only a sibling's plan
                                      creates is refused (D-125).
+            verify-chain wave/<id> --base <branch>
+            verify-chain series/<id> --base <branch>
+                                     The check for a run's pull request: every cycle whose folder
+                                     it changes gets the whole chain, an abandoned one is admitted
+                                     as a record, and every test named in every cycle's plan must
+                                     have passed in the last cycle's run.
             verify-chain <branch> --base <branch>
                                      On a branch that is no cycle's: no cycle needed when everything
                                      it changes is the pin, what 'sdlc init' and 'sdlc factory'
@@ -114,6 +120,10 @@ internal static class Usage
                                      one its pull request is from -- opening it when absent, from
                                      the local branch or the remote's. Where remediation works, on
                                      a blocked, escalated or passed cycle (D-185).
+            branch <id> wave         Print the git command that opens wave/<id> from the sandbox
+                                     sandbox/<id> -- named by its first cycle -- in a worktree
+                                     beside the repository, or on wave/<id> when it exists. Where
+                                     the wave is built: 'sdlc build --run' there.
             build [<id>]             Build it (D-178, D-184, D-187): commits the approval a person
                                      placed in the sandbox if it is uncommitted, admits the plan
                                      when it is only in a sandbox, opens the build's worktree beside
@@ -128,29 +138,64 @@ internal static class Usage
                                      in a sandbox is queued only when named. Refuses when the
                                      build's process cannot start, or ends without a report. The
                                      one stage this binary runs rather than names a skill for.
+            build --run              On a run's branch, wave/<id> or series/<id>: start the build's
+                                     own process there, running /sdlc:build --run --unattended,
+                                     which builds every cycle the branch carries, one after
+                                     another, into it -- no branch or worktree of a cycle's own --
+                                     and opens the run's one pull request. Refused on any other
+                                     branch. --solution names the run's worktree.
+            series start --waves <n>
+                                     Start a series: series/<id> from the integration branch, in
+                                     a worktree beside the repository, its record committed there
+                                     at .sdlc/series/<id>/series.json with the wave limit and the
+                                     approval setting. Prints the worktree's path alone; what it
+                                     will do and the next command go to standard error. Under
+                                     approval: required it builds only approved cycles. Refuses
+                                     fewer than one wave.
+            series wave              On series/<id>: record the next wave and print one line per
+                                     item with what starts it. Under approval: none, every
+                                     successor and parked cycle ready against the series branch;
+                                     under approval: required, every approved cycle nothing has
+                                     built that no earlier wave took. Refuses once every wave is
+                                     taken; records nothing when nothing is ready. Commits nothing.
+            series status [<id>]     The series' waves, each item's cycle and where it stands --
+                                     planned, built: pass, blocked, escalated, abandoned -- and
+                                     the backlog judged against the series branch.
+            series run [<id>]        Start the series' own process in its worktree, running
+                                     /sdlc:series <id> --unattended, its tools named as a build's
+                                     are, never with permission checks off. --solution names the
+                                     worktree 'series start' printed. The factory runs this.
             factory                  Write the factory's pipeline for the recorded platform: a run
-                                     a person starts, never a schedule, of /sdlc:build
-                                     --unattended against the integration branch -- every queued
-                                     cycle, or the one named as its input -- one run at a time,
-                                     six hours at most, proving the hooks refuse before it builds,
-                                     and publishing the sitrep. It never merges. Refuses on a
-                                     local solution. --keep leaves a file that already carries
-                                     every step this release writes as it is, the team's pool and
-                                     steps with it; the upgrade pipeline runs it that way.
-            lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
+                                     a person starts, never a schedule, of one series from the
+                                     integration branch -- 'series start' with the number of waves
+                                     asked for as its input, then 'series run' in its worktree --
+                                     one run at a time, six hours at most, proving the hooks
+                                     refuse before it builds, and publishing the sitrep. It never
+                                     merges. Refuses on a local solution. --keep leaves a file
+                                     that already carries every step this release writes as it
+                                     is, the team's pool and steps with it; the upgrade pipeline
+                                     runs it that way.
+            lead show <reference> [--onto <branch>]
+                                     Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
                                      suggestion:<cycle>/<finding>, a ready successor:<slug>, or a
                                      file path. What came from outside is fenced as untrusted text.
-                                     Refuses a successor that is not ready. Jira is not read yet.
+                                     Refuses a successor that is not ready: judged against the run
+                                     branch checked out here, wave/<id> or series/<id>, or the one
+                                     --onto names, else the integration branch. Jira is not read yet.
             successors               Every slice waiting on another's code, as a file in
                                      .sdlc/successors/, and where each stands -- waiting, ready,
                                      stuck behind an abandoned cycle, or unresolved -- worked out
                                      from the record. Ready means everything it succeeds is on
                                      the integration branch with a passing verify (D-125).
-            backlog                  Every successor and every parked cycle, in the waves they come
+            backlog [--onto <branch>]
+                                     Every successor and every parked cycle, in the waves they come
                                      ready in -- ready now, then after one more merge, and so on
-                                     -- each with how to start it, and apart from them the stuck
-                                     and the unresolved. A view; it writes nothing (D-145).
+                                     -- each with what it builds and how to start it, and apart
+                                     from them the stuck and the unresolved. A view; it writes
+                                     nothing (D-145). --onto judges against the branch a run
+                                     builds onto: a predecessor is merged once its passing verify
+                                     is committed there. A branch that is nowhere is refused.
             discard                  In a sandbox: what throwing it away would lose. Each cycle
                                      is empty, can go, is worth recording -- it fixed a decision,
                                      or its readers raised something -- or is recorded already.
@@ -160,7 +205,8 @@ internal static class Usage
             tidy                     The worktrees and local branches the framework opened whose
                                      work has reached the integration branch: a plan branch once
                                      its plan is there, a build once its verification passes there,
-                                     a slicing or sandbox once every cycle it carries is, anything
+                                     a slicing or sandbox once every cycle it carries is, a wave or
+                                     series once every cycle it built passed there, anything
                                      of an abandoned cycle, and anything of a cycle the harvest
                                      ledger there records closed. Prints the removal for a person to run.
                                      Deletes nothing, and leaves remote branches alone.
@@ -176,17 +222,20 @@ internal static class Usage
                                      only another creates parks it: writes parked.md with what it
                                      waits on, keeping its spec and plan. A file two plans both
                                      name is reported. The plan skill runs it.
-            unpark <id>              Take a parked cycle back once everything it waits on merged
+            unpark <id> [--onto <branch>]
+                                     Take a parked cycle back once everything it waits on merged
                                      with a passing verify; its spec and plan are then read again
                                      against what merged. Refuses one still waiting, saying why.
+                                     --onto counts what passed on the branch a run builds onto.
             successor check          Refuse a successor file that cannot be read, one naming a
                                      cycle or slug that does not exist, and a loop through
                                      succeeds:. Exits 0 when the set is sound.
-            successor start <slug> <id>
+            successor start <slug> <id> [--onto <branch>]
                                      In a cycle opened for a ready successor, on its plan branch:
                                      refuse unless it is ready, then delete its file there. The
                                      intent then records lead: successor:<slug>. /sdlc:intent
-                                     --from successor:<slug> runs it.
+                                     --from successor:<slug> runs it. Ready is judged as for
+                                     'lead show': on a run branch, against that branch.
             slices <slug> <id> <id>...
                                      Print the one git command that composes slices/<slug>/plan:
                                      the integration branch with each sibling's plan branch merged
@@ -226,7 +275,9 @@ internal static class Usage
                                      the intent, or brought by the plan's declared files.
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
-                                     what needs a person; what was held back and why; what is
+                                     what needs a person; each wave and series still open, a
+                                     series with how many of its waves it has taken; what was
+                                     held back and why; what is
                                      waiting and going stale; the backlog -- every successor and
                                      parked cycle, ready, waiting or stuck -- and what it cannot
                                      see. Fetch the remote first: a built cycle is read from its
@@ -241,19 +292,31 @@ internal static class Usage
                                      Exactly one:
                                      prints its id alone and exits 0. Several, or none: lists
                                      them and exits 1, so the person is asked, never guessed for.
-            cycles --queued [<id>]   What a build would take now -- approved, no verify, not
+            cycles --queued [<id>] [--onto <branch>]
+                                     What a build would take now -- approved, no verify, not
                                      abandoned -- in the order to build it: the cycle the most
                                      successors wait on first, then oldest. And every cycle held
                                      back, with why: a cycle/<id>/... branch on the remote, or an
                                      approval the gate no longer accepts. Deleting the branch
                                      re-queues it. With an id, that cycle alone, and exits 1 with
-                                     why when it is not queued.
+                                     why when it is not queued. --onto reads a parked cycle's
+                                     predecessors as merged once they passed on that branch.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
                                      one. Exits 1 if not -- and always for a test run, a cycle
                                      a local build judged. For every cycle, 'cycles --pr-ready'.
+            pr-ready [--base <branch>]
+                                     On a run's branch, wave/<id> or series/<id>, with no cycle
+                                     named: whether the run may open its one pull request -- the
+                                     run's check, against --base or else the integration branch.
+                                     Exits 1 if not.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
+            draft abandon --series <id>
+                                     Print the record that stops a whole series, for a person to
+                                     place beside its record on series/<id>: every cycle that
+                                     exists only in the series reads as abandoned, with the one
+                                     reason; one already on the integration branch stays.
             draft harvest <file>     Write drafts of constraints.md, decisions.md, techstack.md and
                                      areas.md from the proposals marked [x] in a harvest proposal
                                      file: each a copy of the file as it stands with only those
@@ -306,6 +369,16 @@ internal static class Usage
                                      and the verification's concerns, as markdown. Merging the pull
                                      request accepts them (D-181). Exits 1 when a deviation is
                                      unsound.
+            report --run             On a run's branch, wave/<id> or series/<id>: the one report
+                                     the run ends on and its pull request leads with, never one
+                                     per cycle. A section per wave of a series with what it
+                                     forecast and what ran; a short entry per cycle the branch
+                                     carries -- its outcome, deviations, choices, changes and
+                                     concerns, and for a series every intent line marked
+                                     (inferred), confirmed by nobody; what stopped, with the
+                                     successors and parked cycles it held back; and every rule,
+                                     decision and successor named, with its text. Keeps a copy
+                                     under .sdlc/reports/. Exits 1 when a deviation is unsound.
             round <id> <artifact>    Append the next round to the artifact's findings ledger from
                                      --from <file>: the readers' findings merged in, stamped with
                                      the time and the hashes of what was judged, and chained to the
@@ -399,11 +472,14 @@ internal static class Usage
                                      Once the aspect's draft is renamed into place: record in
                                      .sdlc/harvested.json that the cycles the file's '## Cycles'
                                      names have answered it, with the concerns under '## Watch' and
-                                     '## Ignored' tallied and the suggestions under '## Declined'
-                                     kept, and each note under '## For the framework' kept in
-                                     .sdlc/framework-harvest.json. Closes nothing. Refuses while the
-                                     draft is still beside its file, and when a note names no
-                                     surface of the framework or no Kind.
+                                     '## Ignored' tallied, the suggestions under '## Declined' and
+                                     '## Covered' kept, a covered line's 'Concern:' taken out of
+                                     both tallies, and each note under '## For the framework' kept
+                                     in .sdlc/framework-harvest.json. Closes nothing. Refuses while
+                                     the draft is still beside its file, when a note names no
+                                     surface of the framework or no Kind, and when a covered line
+                                     names no rule in force, standing decision, successor or file
+                                     here -- every such line at once, and nothing recorded.
             harvest framework [--out <file>]
                                      What of the harvests may be handed to the framework: every
                                      note for the framework without its evidence, and each closed
@@ -413,7 +489,8 @@ internal static class Usage
             harvest close            Close every completed cycle whose five aspects have all been
                                      answered: record what later harvests need, and on a new
                                      harvest/<date> branch commit the removal of their folders with
-                                     the ledger and the records a person placed. Pushes nothing.
+                                     the ledger and the records a person placed, and a series'
+                                     folder with the last cycle its record lists. Pushes nothing.
                                      Refuses, naming what each cycle still needs, while nothing can
                                      close; while a draft is still beside its file; and anywhere
                                      but the integration branch.
@@ -429,10 +506,18 @@ internal static class Usage
                                      draft and solution.md; one handed the aspect's report and the
                                      proposal file. The newest of each in .sdlc/reports unless
                                      --proposals names the file.
+            harvest summary <proposal file>
+                                     What one proposal file asks of a person, in a few lines: each
+                                     proposal with its mark; the Declined, Covered and Ignored
+                                     answers counted by the '### <theme>' each stands under, with
+                                     what each Covered theme relies on; and every rule, decision
+                                     and successor:<slug> the file names, with what it says or
+                                     'not found'. Writes nothing.
             harvest --history        The harvest ledger: every closed cycle, every sitting with its
-                                     aspect and what was accepted and declined, the concerns
-                                     watched below the bar of three cycles, and the concerns
-                                     ignored, with the cycles each was ignored in.
+                                     aspect and what was accepted, declined and covered, the
+                                     concerns watched below the bar of three cycles, the concerns
+                                     ignored with the cycles each was ignored in, and every rule,
+                                     decision and successor the answers name, with what it says.
             doctor                   Check this installation and this repository: the rules, git,
                                      how many decisions every reader is handed,
                                      adoption, which release wrote adoption's files against this
@@ -641,8 +726,8 @@ internal static class Usage
             because it is mechanical. Silence is what the rules catch, never the departure.
 
         Reports
-            'suggestions' and 'harvest <aspect>' both print their answer and keep a copy under
-            .sdlc/reports/, because a person works through one of these rather than reading it
+            'suggestions', 'harvest <aspect>' and 'report --run' print their answer and keep a copy
+            under .sdlc/reports/, because a person works through one of these rather than reading it
             once. Nothing reads one back, ever: the directory ignores itself, and a report found
             later is already out of date if a cycle has run since. Re-run the command rather than
             trusting one.

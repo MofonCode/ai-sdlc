@@ -55,6 +55,12 @@ public static class RecordEvidence
     /// <summary>The commit the build was recorded at, which the patch is measured to (D-124).</summary>
     public const string HeadFileName = "head.sha";
 
+    /// <summary>
+    /// The integration branch's commit a run merged in after the base, when it did: the patch is then measured from
+    /// the merge of the two, so what the merge brought is not counted as the cycle's (D-206).
+    /// </summary>
+    public const string MergedFileName = "merged.sha";
+
     /// <summary>The change itself.</summary>
     public const string DiffFileName = "diff.patch";
 
@@ -111,6 +117,47 @@ public static class RecordEvidence
         IRepository repository,
         TimeProvider time) : IRequestHandler<Command, Response>
     {
+        /// <summary>
+        /// Where the previous cycle built on this branch ended, when one was: the latest head another cycle's evidence
+        /// records that this commit descends from and the branch's divergence does not; else null.
+        /// </summary>
+        /// <remarks>
+        /// A run builds several cycles one after another into one branch, so measuring each from where the branch
+        /// left the integration branch would credit, and blame, a cycle for every one built before it. A cycle that
+        /// already merged recorded a head the divergence descends from, so it is never taken; on a branch carrying
+        /// one cycle there is none, and the divergence stands as before. <strong>A cycle built after this one is never
+        /// taken either</strong>: remediating an earlier cycle of a run lands on top of the later ones, and measuring
+        /// from their head would leave the earlier cycle's own change out of its evidence. Its head descends from this
+        /// cycle's previous head, which is how it is told apart.
+        /// </remarks>
+        private async Task<string?> BuiltOnto(Cycle cycle, string head, string divergence, string? previousHead, CancellationToken cancellationToken)
+        {
+            List<(CycleId Id, string Head)> before = [];
+
+            foreach (Cycle other in CycleIndex.All(solution.Path).Where(c => c.Id != cycle.Id))
+            {
+                if (await EvidenceDiff.Commit(other, HeadFileName, cancellationToken).ConfigureAwait(false) is { } recorded
+                    && repository.IsAncestor(solution.Path, recorded, head)
+                    && !repository.IsAncestor(solution.Path, recorded, divergence)
+                    && (previousHead is null || !repository.IsAncestor(solution.Path, previousHead, recorded)))
+                {
+                    before.Add((other.Id, recorded));
+                }
+            }
+
+            // The latest is the one every other descends into. On a branch built in a line there always is one; were
+            // there not, the newest cycle among those nothing else descends from.
+            return before
+                .Where(candidate => before.All(o => repository.IsAncestor(solution.Path, o.Head, candidate.Head)))
+                .Select(candidate => candidate.Head)
+                .FirstOrDefault()
+                ?? before
+                    .Where(candidate => !before.Any(o => o.Head != candidate.Head && repository.IsAncestor(solution.Path, candidate.Head, o.Head)))
+                    .OrderByDescending(candidate => candidate.Id)
+                    .Select(candidate => candidate.Head)
+                    .FirstOrDefault();
+        }
+
         /// <inheritdoc />
         public async Task<Result<Response>> Handle(
             Command request,
@@ -208,13 +255,49 @@ public static class RecordEvidence
             // is checked out is the build being recorded. D-85.
             string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken)
                 .ConfigureAwait(false);
-            string? baseCommit = repository.MergeBase(solution.Path, "HEAD", integration);
+            string? divergence = repository.MergeBase(solution.Path, "HEAD", integration);
 
-            if (baseCommit is null)
+            if (divergence is null)
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"git could not say where this branch diverged from {integration} or the default branch. The diff is measured from that commit, so without it there is nothing to record."));
+            }
+
+            // A cycle recorded before keeps the base it was measured from while that is still behind what is checked
+            // out: a remediation records the same cycle again, and by then later cycles of its run may sit between
+            // its base and the new head (D-206).
+            string? previousBase = await EvidenceDiff.Commit(cycle, BaseFileName, cancellationToken).ConfigureAwait(false);
+            string? previousHead = await EvidenceDiff.Commit(cycle, HeadFileName, cancellationToken).ConfigureAwait(false);
+
+            string baseCommit = previousBase is not null && repository.IsAncestor(solution.Path, previousBase, head)
+                ? previousBase
+                : await BuiltOnto(cycle, head, divergence, previousHead, cancellationToken).ConfigureAwait(false) ?? divergence;
+
+            // A run that merged the integration branch after the base would otherwise hand this cycle everything the
+            // merge brought. Measured instead from the base with that merge taken in, rebuilt from the two commits
+            // (D-206); EvidenceDiff.From is where every reader of the patch does the same.
+            string from = baseCommit;
+            string? merged = null;
+
+            if (!repository.IsAncestor(solution.Path, divergence, baseCommit))
+            {
+                if (repository.MergeTree(solution.Path, baseCommit, divergence) is not { } tree)
+                {
+                    return Result.Fail<Response>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"This branch took in {integration} after {Short(baseCommit)}, where cycle {cycle.Id} is measured from, and git could not work out that merge on its own to leave what it brought out of the cycle's change. That needs git 2.38 or later ('git --version'). Nothing was recorded."));
+                }
+
+                if (tree.Conflicts.Count > 0)
+                {
+                    return Result.Fail<Response>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"This branch took in {integration} after {Short(baseCommit)}, where cycle {cycle.Id} is measured from, and that merge overlaps the work before it in {string.Join(", ", tree.Conflicts.Take(5))}{(tree.Conflicts.Count > 5 ? ", ..." : string.Empty)}. The cycle's own change cannot be told apart from what the merge brought, so nothing was recorded. Record the evidence once the overlap is resolved in a commit of its own, or build the cycle again on top of the merge."));
+                }
+
+                from = tree.Tree;
+                merged = divergence;
             }
 
             await Write(cycle, BaseFileName, baseCommit + Environment.NewLine, written, cancellationToken)
@@ -222,18 +305,30 @@ public static class RecordEvidence
             await Write(cycle, HeadFileName, head + Environment.NewLine, written, cancellationToken)
                 .ConfigureAwait(false);
 
+            string mergedPath = Path.Combine(cycle.EvidenceDirectory, MergedFileName);
+
+            if (merged is not null)
+            {
+                await Write(cycle, MergedFileName, merged + Environment.NewLine, written, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else if (File.Exists(mergedPath))
+            {
+                File.Delete(mergedPath);
+            }
+
             // The cycle's own paperwork is left out, for the reason DeclaredFiles.IsFrameworkOwned gives:
             // this patch is what a verify reads and nothing else, and it used to open with the plan the
             // verify is meant to be checked against. Keeping the two readers on one answer is the point.
             //
             // Between the two commits rather than to the working tree (D-124): the one patch the chain can
             // rebuild on a clean checkout, and the same one the uncommitted check above makes it equal to.
-            string diff = repository.DiffBetween(solution.Path, baseCommit, head, [Cycle.SdlcDirectoryName])
+            string diff = repository.DiffBetween(solution.Path, from, head, [Cycle.SdlcDirectoryName])
                 ?? string.Empty;
 
             await Write(cycle, DiffFileName, diff, written, cancellationToken).ConfigureAwait(false);
 
-            IReadOnlyList<string> changed = repository.ChangedFiles(solution.Path, baseCommit);
+            IReadOnlyList<string> changed = repository.ChangedFiles(solution.Path, from);
 
             // The two answers have to agree, and they used to not: `git diff` cannot see an untracked
             // file while ChangedFiles asks for them explicitly, so a cycle that created files recorded
@@ -252,7 +347,7 @@ public static class RecordEvidence
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{substantive} file(s) outside {Cycle.SdlcDirectoryName}/ changed since {baseCommit[..Math.Min(12, baseCommit.Length)]} and the recorded patch is empty, which cannot both be true. Nothing was recorded, because a verify reads the patch and nothing else -- an empty one would leave a claim with nothing to cite and a panel saying everything is in order. Check that git can see the change: 'git status --short'."));
+                    $"{substantive} file(s) outside {Cycle.SdlcDirectoryName}/ changed since {Short(baseCommit)} and the recorded patch is empty, which cannot both be true. Nothing was recorded, because a verify reads the patch and nothing else -- an empty one would leave a claim with nothing to cite and a panel saying everything is in order. Check that git can see the change: 'git status --short'."));
             }
 
             TestSummary? summary = null;
@@ -321,6 +416,8 @@ public static class RecordEvidence
 
             return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage, retire, timings));
         }
+
+        private static string Short(string commit) => commit[..Math.Min(12, commit.Length)];
 
         /// <summary>Whether an uncommitted path is the run's own output, named on the command line.</summary>
         private bool IsRunOutput(string path, Command request)
