@@ -208,11 +208,20 @@ public static class Initialise
         bool Branched = false)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
+        /// <remarks>
+        /// A move is both of its paths, the one it left staged as gone, so it is committed whole rather than leaving
+        /// the old file deleted and the new one untracked in the working tree (D-203).
+        /// </remarks>
         public IReadOnlyList<string> Written =>
         [
             .. Actions
-                .Where(action => action.Change is InitChange.Created or InitChange.Updated)
-                .Select(action => action.Path),
+                .SelectMany(action => action.Change switch
+                {
+                    InitChange.Created or InitChange.Updated => [action.Path],
+                    InitChange.Moved => new[] { action.Path, RetiredPipelines.Single(pair => pair.Retired == action.Path).Current },
+                    _ => [],
+                })
+                .DistinctBy(path => path.Replace('\\', '/'), StringComparer.Ordinal),
         ];
     }
 
