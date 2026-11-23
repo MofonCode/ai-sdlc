@@ -77,6 +77,12 @@ copy on its own integration branch, so its first move to 0.55.1 or later is made
 MofonCode.Sdlc.Cli --version <release>`, `sdlc init`, `sdlc factory --keep`, on a branch, into a pull request. The
 pipeline it writes makes every move after that.
 
+**From 0.55.2 a machine's upgrade no longer looks broken after a build past `.0`.** A plugin installed from the
+marketplace says `0.55.0` whatever the build, because the build is stamped only into the package (D-197), yet `sdlc
+version`, the `upgrade` skill's check and the install guide all said the plugin's number had to match the binary's,
+so every upgrade to a `.1` or later reported one half behind. They now compare the first two numbers, as the
+session-start check already did. `sdlc doctor` expects `Skills (29)`, not 28. Nothing changes for a solution.
+
 ## 0.54
 
 **A harvest keeps what it found about the framework** (D-204). Notes under `## For the framework` were written into a

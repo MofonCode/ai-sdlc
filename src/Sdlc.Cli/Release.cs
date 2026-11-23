@@ -25,6 +25,13 @@ internal static class Release
     /// </remarks>
     public static string Version { get; } = Sdlc.Core.Release.Version;
 
+    /// <remarks>
+    /// The major and minor alone, because that is all a plugin installed from the marketplace can match: the
+    /// repository's manifests say <c>.0</c> and the pipeline stamps the build only into the package's (D-197). The
+    /// session-start check compares the same two numbers, for the same reason.
+    /// </remarks>
+    private static string Line { get; } = string.Join('.', Version.Split('-')[0].Split('.').Take(2));
+
     /// <summary>What <c>sdlc version</c> writes to standard output.</summary>
     public static string Text { get; } = Compose();
 
@@ -41,14 +48,16 @@ internal static class Release
         $"""
         sdlc {Version}
 
-        Two versions, and they are meant to match.
+        Two versions, and they are meant to be one release.
 
             this binary        {Version}
             the plugin         packed beside this binary, and 'sdlc claude' starts a session with
                                it, so the two cannot disagree. A plugin installed separately and
                                started with plain 'claude' can: 'claude plugin details sdlc@ai-sdlc'
-                               reports it, and a number that is not {Version} means one half was
-                               installed without the other.
+                               reports it. One from the marketplace always says {Line}.0, because
+                               the build is stamped only into the package, so compare the first
+                               two numbers: anything but {Line} means one half was installed
+                               without the other.
 
 
         """);

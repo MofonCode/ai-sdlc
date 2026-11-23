@@ -57,9 +57,11 @@ sdlc version
 claude plugin details sdlc@ai-sdlc
 ```
 
-Both name the release. Say what each reports, and that the skills this session loaded are the old ones until a new
-session starts. When they disagree, say which half is behind and run its step again; never work around a command the
-binary lacks.
+Both name the release's line, its first two numbers. The binary names the whole release; a plugin from the
+marketplace always ends in `.0`, because the build is stamped only into the package, so `0.55.0` beside `0.55.3` is
+one release and nothing to fix. Say what each reports, and that the skills this session loaded are the old ones until
+a new session starts. When the lines disagree, say which half is behind and run its step again; never work around a
+command the binary lacks.
 
 **Then hand back.** If the person is in a governed solution, `sdlc upgrade` there lists what moves for it, starting
 with its upgrade pipeline.
