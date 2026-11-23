@@ -411,7 +411,13 @@ public sealed class InitTests
             Initialise.InitAction action = report.Actions.Single(action => action.Path == retired);
             Assert.AreEqual(Initialise.InitChange.Moved, action.Change);
             StringAssert.Contains(action.Why!, current);
+
+            // Both halves committed, so the move is not left as a deletion beside an untracked file.
+            CollectionAssert.Contains(report.Written.ToArray(), retired, "The old path is staged as gone.");
+            Assert.IsTrue(report.Written.Any(path => path.Replace('\\', '/') == current), current);
         }
+
+        Assert.AreEqual(report.Written.Count, report.Written.Select(path => path.Replace('\\', '/')).Distinct(StringComparer.Ordinal).Count(), "A moved file adoption also rewrote is staged once.");
 
         Assert.AreEqual(verify, await File.ReadAllTextAsync(Path.Combine(solution.Root, ".azuredevops", "sdlc-verify.yml")), "Moved as it was, the team's step with it.");
         Assert.AreEqual("the factory as the team keeps it\n", await File.ReadAllTextAsync(Path.Combine(solution.Root, ".azuredevops", "sdlc-factory.yml")));

@@ -100,9 +100,9 @@ public static class UpgradePipeline
                 "          RELEASE: ${{ inputs.release }}",
                 "          GH_TOKEN: ${{ steps.token.outputs.token }}",
                 "        run: |",
-                .. Move("          "),
                 "          git config user.name 'sdlc upgrade'",
                 "          git config user.email 'sdlc-upgrade@users.noreply.github.com'",
+                .. Move("          "),
                 .. Commit("          "),
                 $"          if url=\"$(gh pr view \"$branch\" --json url --jq .url 2>/dev/null)\"; then echo \"The pull request is open already, and now carries sdlc $release: $url\"; exit 0; fi",
                 $"          gh pr create --base {integrationBranch} --head \"$branch\" --title \"$title\" --body \"$body\"",
@@ -157,9 +157,9 @@ public static class UpgradePipeline
                 string.Empty,
                 "      - script: |",
                 $"          git switch {integrationBranch}",
-                .. Move("          "),
                 "          git config user.name 'sdlc upgrade'",
                 "          git config user.email 'sdlc-upgrade@localhost'",
+                .. Move("          "),
                 .. Commit("          "),
                 "          az extension add --name azure-devops --only-show-errors",
                 "          az devops configure --defaults organization=\"$(System.CollectionUri)\" project=\"$(System.TeamProject)\"",
@@ -184,9 +184,14 @@ public static class UpgradePipeline
     /// not take an empty string as a parameter's default, so the default is a space, trimmed here.</para>
     /// <para><strong>A solution already on the release stops cleanly</strong>, as success: there is nothing to
     /// propose.</para>
-    /// <para><strong>Adoption runs as the new release.</strong> The global binary is the release itself, and the
-    /// manifest pins it, so <c>sdlc init</c> writes what that release writes; the pull-request check compares
-    /// against the same release.</para>
+    /// <para><strong>Adoption runs as the new release</strong>, through the tool manifest that now pins it, so
+    /// <c>sdlc init</c> writes what that release writes and the pull-request check compares against the same release.
+    /// <c>dotnet sdlc</c> rather than a global install: an agent's image may carry an older global binary in a lower
+    /// layer, which <c>dotnet tool uninstall</c> cannot remove there ("Invalid cross-device link"), and a hosted agent
+    /// carries none.</para>
+    /// <para><strong>Adoption's own commit is undone into the working tree</strong>, after the git identity it needs is
+    /// set. Left in place, it would put on the upgrade's branch whatever adoption wrote, including files an upgrade may
+    /// not carry, and leave nothing staged, so the run would end saying the release writes nothing new.</para>
     /// </remarks>
     private static IEnumerable<string> Move(string indent)
     {
@@ -199,14 +204,15 @@ public static class UpgradePipeline
         yield return indent + "pinned=\"$(dotnet tool list --local | awk 'tolower($1) == \"mofoncode.sdlc.cli\" { print $2 }')\"";
         yield return indent + "if [ \"$pinned\" = \"$release\" ]; then echo \"This solution pins sdlc $release already. Nothing to upgrade.\"; exit 0; fi";
         yield return indent + $"dotnet tool update --local {PinnedRelease.PackageId} --version \"$release\"";
-        yield return indent + $"dotnet tool uninstall --global {PinnedRelease.PackageId} >/dev/null 2>&1 || true";
-        yield return indent + $"dotnet tool install --global {PinnedRelease.PackageId} --version \"$release\"";
-        yield return indent + "sdlc init";
+        yield return indent + "# Adoption commits what it writes. Taken back into the working tree, so only what an upgrade may carry is staged.";
+        yield return indent + "base=\"$(git rev-parse HEAD)\"";
+        yield return indent + "dotnet sdlc init";
+        yield return indent + "git reset -q \"$base\"";
         yield return indent + "# The factory's pipeline is kept while it carries every step this release writes, with the team's pool and steps";
         yield return indent + "# beside them. Only one that does not is rewritten, and the pull request says what to put back.";
         yield return indent + "factory_note=\"\"";
         yield return indent + $"if [ -f {Slashed(FactoryPipeline.PathOf(Platform.GitHub))} ] || [ -f {Slashed(FactoryPipeline.PathOf(Platform.AzureDevOps))} ]; then";
-        yield return indent + "  factory=\"$(sdlc factory --keep)\"";
+        yield return indent + "  factory=\"$(dotnet sdlc factory --keep)\"";
         yield return indent + "  echo \"$factory\"";
         yield return indent + "  case \"$factory\" in Kept*) ;; *) factory_note=\" sdlc $release rewrote the factory's pipeline: put back any pool or step of the team's own from the diff before merging.\" ;; esac";
         yield return indent + "fi";

@@ -64,6 +64,19 @@ skill hands back through it; `sdlc harvest --history` shows ids with their text 
 - **`.sdlc/series/` is new.** Its `series.json` is written only by the binary and denied to agents, as the harvest
   ledger is; the abandonment record beside it is a person's file.
 
+**From 0.55.1 the upgrade pipeline can finish a move.** Until it, no run could open its pull request, on either
+platform: the script ran `sdlc init` before setting a git identity, so adoption's own commit failed on any agent
+without one; had it succeeded, it would have left nothing staged for the script's commit, which then ended saying
+the release writes nothing new. The identity is now set first, adoption's commit is taken back into the working
+tree, and only what an upgrade may carry is staged, as before. The script runs the release through the tool manifest
+(`dotnet sdlc`) rather than replacing the agent's global binary, which failed with *Invalid cross-device link* on an
+agent image that carried an older release in a lower layer. And `sdlc init` now commits the pipelines it moves into
+`.azuredevops/` (D-203) whole, rather than leaving the old files deleted and the new ones untracked. A suite test now
+runs the script under bash, with no git identity, against a throwaway remote. **A solution's upgrade pipeline is the
+copy on its own integration branch, so its first move to 0.55.1 or later is made by hand, once**: `dotnet tool update --local
+MofonCode.Sdlc.Cli --version <release>`, `sdlc init`, `sdlc factory --keep`, on a branch, into a pull request. The
+pipeline it writes makes every move after that.
+
 ## 0.54
 
 **A harvest keeps what it found about the framework** (D-204). Notes under `## For the framework` were written into a
