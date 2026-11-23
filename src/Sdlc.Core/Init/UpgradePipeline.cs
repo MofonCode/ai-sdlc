@@ -208,13 +208,13 @@ public static class UpgradePipeline
         yield return indent + "base=\"$(git rev-parse HEAD)\"";
         yield return indent + "dotnet sdlc init";
         yield return indent + "git reset -q \"$base\"";
-        yield return indent + "# The factory's pipeline is kept while it carries every step this release writes, with the team's pool and steps";
-        yield return indent + "# beside them. Only one that does not is rewritten, and the pull request says what to put back.";
+        yield return indent + "# The factory's pipeline is kept while it carries every step this release writes, and otherwise takes this release's";
+        yield return indent + "# steps with the team's pool and steps carried in. Only one that cannot is rewritten, and the pull request says what to put back.";
         yield return indent + "factory_note=\"\"";
         yield return indent + $"if [ -f {Slashed(FactoryPipeline.PathOf(Platform.GitHub))} ] || [ -f {Slashed(FactoryPipeline.PathOf(Platform.AzureDevOps))} ]; then";
         yield return indent + "  factory=\"$(dotnet sdlc factory --keep)\"";
         yield return indent + "  echo \"$factory\"";
-        yield return indent + "  case \"$factory\" in Kept*) ;; *) factory_note=\" sdlc $release rewrote the factory's pipeline: put back any pool or step of the team's own from the diff before merging.\" ;; esac";
+        yield return indent + "  case \"$factory\" in Kept*) ;; Merged*) factory_note=\" sdlc $release rewrote the factory's steps and carried the team's pool and steps into it: check none it carried is an older release's step.\" ;; *) factory_note=\" sdlc $release rewrote the factory's pipeline: put back any pool or step of the team's own from the diff before merging.\" ;; esac";
         yield return indent + "fi";
     }
 

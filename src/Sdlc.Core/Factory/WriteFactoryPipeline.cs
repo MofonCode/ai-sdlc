@@ -20,8 +20,10 @@ namespace Sdlc.Core.Factory;
 /// <c>sdlc-verify.yml</c> is (D-40): running the command again writes the current template over it.</para>
 /// <para><strong>Kept, when asked and it still holds</strong> (D-201). A team's factory carries its own pool and steps
 /// beside the framework's, and a rewrite drops them. With <c>--keep</c>, as the upgrade pipeline runs it, a file that
-/// already carries every step this release writes, by the upgrade check's own measure, is left as it is; one that
-/// does not is rewritten, and what of the team's that loses is named.</para>
+/// already carries every step this release writes, by the upgrade check's own measure, is left as it is. One that
+/// does not is merged: written as this release writes it, with the team's pool and every step the release writes
+/// nothing of the same name for carried into it, each named for a person to check. Only a file that cannot be read
+/// that way is rewritten, and what of the team's that loses is named.</para>
 /// </remarks>
 public static class WriteFactoryPipeline
 {
@@ -36,7 +38,7 @@ public static class WriteFactoryPipeline
     }
 
     /// <summary>Asks for the factory's pipeline to be written.</summary>
-    /// <param name="Keep">Leave a file that already carries every step this release writes as it is.</param>
+    /// <param name="Keep">Leave a file that already carries every step this release writes as it is, and carry the team's own into one that does not.</param>
     public sealed record Command(bool Keep = false) : IRequest<Response>;
 
     /// <summary>What was written.</summary>
@@ -46,7 +48,8 @@ public static class WriteFactoryPipeline
     /// <param name="Kept">Whether the file was left as it is, because it already carries this release's steps.</param>
     /// <param name="Lost">Each pool of the team's own the rewrite replaced; empty when there was none.</param>
     /// <param name="MovedFrom">Where an older release had written it, when it was moved from there first (D-203).</param>
-    public sealed record Response(string Path, bool Rewritten, Platform Platform, bool Kept = false, IReadOnlyList<string>? Lost = null, string? MovedFrom = null);
+    /// <param name="Carried">What of the team's was carried into this release's file, when it was merged; null when it was not.</param>
+    public sealed record Response(string Path, bool Rewritten, Platform Platform, bool Kept = false, IReadOnlyList<string>? Lost = null, string? MovedFrom = null, IReadOnlyList<string>? Carried = null);
 
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, Response>
     {
@@ -94,6 +97,12 @@ public static class WriteFactoryPipeline
                 return Result.Ok(new Response(slashed, false, document.Platform, Kept: true, MovedFrom: moved));
             }
 
+            if (request.Keep && existing is not null && VerifyUpgrade.Merge(slashed, template, existing) is { Carried.Count: > 0 } merged)
+            {
+                await File.WriteAllTextAsync(path, merged.Text, cancellationToken).ConfigureAwait(false);
+                return Result.Ok(new Response(slashed, true, document.Platform, MovedFrom: moved, Carried: merged.Carried));
+            }
+
             IReadOnlyList<string> lost = existing is null ? [] : VerifyUpgrade.OwnPools(template, existing);
 
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? solution.Path);
@@ -117,6 +126,13 @@ public static class WriteFactoryPipeline
         if (written.Kept)
         {
             return $"Kept {written.Path} as it is: it already carries every step this release writes, beside the team's own.\n{moved}";
+        }
+
+        if (written.Carried is { Count: > 0 } carried)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"Merged {written.Path}: this release's steps, with the team's own carried into it -- {string.Join(", ", carried)}.\nA step is carried when this release writes none of the same name: check none of them is an older release's step this one dropped.\n{moved}");
         }
 
         string lost = written.Lost is { Count: > 0 } pools

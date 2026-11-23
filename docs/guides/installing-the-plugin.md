@@ -385,8 +385,10 @@ chain: it runs as the release the branch pins and compares each framework file w
 writes. The blocks a release adds to `.sdlc/cycles/.gitignore`, which the next `sdlc new` would append,
 may ride along too. A pipeline is compared step by step, so the steps a solution added beside the framework's ride
 through unchanged. `sdlc factory --keep` leaves a factory pipeline that still carries every step the release writes
-as it is, with your pool and steps; when it has to rewrite it, it names your pool, and you put it and your steps back
-before committing. The
+as it is. One that does not is merged: the release's steps, with your pool and every step the release writes nothing
+of the same name for carried in where they were, each named so you can check none is an older release's step it
+dropped. Only a file it cannot read that way is rewritten; then it names your pool, and you put it and your steps
+back before committing. The
 same pull request may answer the rows the release asks about in `techstack.md` — added rows only, each one
 `sdlc stack` lists under *Not mentioned*. Anything else in it, one source file or one changed answer, and
 it is refused as a change with no chain; `handling-refusals.md` has the five upgrade refusals.

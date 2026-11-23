@@ -217,7 +217,8 @@ reads the decisions, the constraints, the declared stack and the code the reques
 at once, and marks every line that is its own reading `(inferred)` — a premise carried from a lead the person
 never said included. It asks, in one turn, about each mark, a departure from a decision, a bounding word and the
 perspectives, and nothing a file answers or no answer would change; it edits the file as the person answers, and
-the schema refuses an intent that still carries a mark. `--interview` asks one question at a time, by type, each
+the schema refuses an intent that still carries a mark. Taking the intent to plan is the person's *go*: `to-plan`
+adopts each line still marked and names it in its hand-back (D-211). `--interview` asks one question at a time, by type, each
 with example answers, and a new solution — or a request too thin to read a direction from — is interviewed. On
 either path *not sure* is an answer with a place to go. The intent's sections are the same for every type and
 both paths: the questions vary, the contract downstream does not.
@@ -7731,6 +7732,64 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-211 — Taking an intent to plan is a *go*: the readings still marked are adopted, and named in the hand-back
+
+**Governs:** §3.1, §6.4
+
+**Revises D-200**, whose `to-plan` stopped a cycle on an intent that still carried a mark.
+
+**Decision.** A person who starts `to-plan` on a cycle whose intent still marks a line `(inferred)` has said *go*.
+The playbook runs `steer` with that answer, which drops each mark and changes nothing else, then runs the loop on the
+intent as it would on any edited one. Its hand-back names every line it adopted, word for word, under *Adopted as
+written, because you took it to plan*, and a person who reads one as wrong says so and `steer` carries it down. The
+schema still refuses a mark, the chain still refuses one at the pull request, and an unattended run still leaves the
+marks for its report: only who answers changes.
+
+**Why.** The `intent` skill prints the file in full and asks about each mark in one turn; starting the next stage is
+the person moving past that turn. One solution's version move showed the cost: a one-line test fix's intent carried
+five marks, the person took it to plan, and the playbook stopped to ask them to type *go* to the same five lines they
+had just been shown. A stop that only asks for the word the person already acted on is ceremony, and the cheapest
+answer to it is to treat the action as the word.
+
+**Rejected.**
+
+- *Dropping the marks for a bug fix alone.* Every type's marks are shown the same way and answered the same way; a
+  rule by type would ask the person to know which intents stop and which do not.
+- *Keeping the stop and shortening its question.* It is still a turn spent on an answer already given.
+- *Adopting the marks silently.* D-200's reason holds: a reading built on the record anchors hard, so every one the
+  person did not answer line by line is put in front of them again where they will read it, the hand-back.
+
+### D-210 — `sdlc factory --keep` merges the release's steps with the team's own, rather than rewriting
+
+**Governs:** §9, §10.5
+
+**Extends D-201**, whose `--keep` left a file alone only when it already carried every step the release writes.
+
+**Decision.** With `--keep`, a factory pipeline that does not carry this release's steps is merged rather than
+rewritten: written as the release writes it, with the team's pool put back in place of the release's, and every
+step the release writes nothing of the same name for carried in after the release's step it followed. A step is the
+release's when the release writes one with the same display name, or the same first line when it has none, in the
+same step list, so an older release's version of it is replaced; two steps sharing a name match in order. The merge
+must pass the upgrade check's own measure with the old file as its base, or the file is rewritten as before and the
+pool named. The report begins *Merged*, names the pool and each step carried, and the upgrade pipeline's pull
+request asks a person to check that none is an older release's step this one dropped.
+
+**Why.** Most releases that touch the factory pipeline change one of its steps, so a file that carries every step
+of the new release was rare and `--keep` rarely kept. A governed solution's 0.51 to 0.55 move rewrote the file and
+dropped its own pool and two steps of its own, restored by hand from a committed copy. What the team added is
+visible in the file; only what the release dropped cannot be told from it.
+
+**Rejected.**
+
+- *Keeping every section the team changed, not only the pool.* A release changes the timeout, the parameters and
+  the triggers too; nothing in the file says whose a changed value is. The pool is the one section no release
+  changes (D-201).
+- *Matching steps by their text.* Every release that edits a script would carry its older version beside the new
+  one.
+- *Shipping the older releases' templates to tell their steps from the team's.* It would identify a dropped step,
+  at the cost of the binary carrying every template it ever wrote; a step named in the report and checked once is
+  cheaper.
 
 ### D-209 — A harvest answer may be *covered*, and every harvest step hands back its answers by theme with each id's text
 
