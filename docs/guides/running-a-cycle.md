@@ -50,7 +50,7 @@ a premise carried from a lead that you never said. Under it comes one message of
 inferred line as its reading (*"I've read this as preparing for deployment, not fixing harm seen today. Right?"*),
 anything that would depart from a recorded decision, and the perspectives it added. Answer some or all, correct
 a line in your own words, or say *go*. It edits the file as you answer and shows only what changed; *go* takes the rest as written. **_Not
-sure_ is always an answer**, and records that reading as unconfirmed rather than as what you want. It is done when no mark is left — `to-plan` will not take an intent that still carries one.
+sure_ is always an answer**, and records that reading as unconfirmed rather than as what you want. It is done when no mark is left. **Taking it to plan is a *go* too** (D-211): `to-plan` adopts every line still marked and names each one when it hands back, so you can correct any afterwards.
 
 **Want to be asked instead?** `/sdlc:intent --interview` interviews you one question at a time, each with a few
 example answers, the next depending on what you said. A new solution is always interviewed, and the skill offers

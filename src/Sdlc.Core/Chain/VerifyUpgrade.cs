@@ -578,6 +578,135 @@ public static class VerifyUpgrade
         ];
     }
 
+    /// <summary>
+    /// A pipeline as this release writes it, with the team's own carried into it: the pool it runs on, and each step
+    /// this release writes nothing of the same name for, after the step of the release's it followed.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Merged rather than replaced</strong>, so <c>sdlc factory --keep</c> keeps what a team added to a
+    /// file the release changed, not only to one it left alone. A step is the release's when the release writes one
+    /// of the same name, whatever its text, so an older release's version of it is replaced. One the release does not
+    /// write is carried as it was: the team's own, or a step an older release wrote and this one dropped, which nothing
+    /// here can tell apart, so each carried step is named for a person to check.</para>
+    /// <para><strong>Held to the upgrade check's own measure.</strong> What it returns passes <see cref="Shaped"/>
+    /// with the file as its base, or it returns nothing and the file is rewritten as before.</para>
+    /// </remarks>
+    /// <param name="path">The path, as the check names it.</param>
+    /// <param name="template">What this release writes.</param>
+    /// <param name="file">The file as it is.</param>
+    /// <returns>The merged text and what of the team's it carried, or null when it cannot be merged.</returns>
+    internal static (string Text, IReadOnlyList<string> Carried)? Merge(string path, string template, string file)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(file);
+
+        string newline = template.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        List<string> lines = [.. template.ReplaceLineEndings("\n").Split('\n')];
+        string[] had = file.ReplaceLineEndings("\n").Split('\n');
+        List<string> carried = [];
+
+        var want = Shape.Of(template);
+        var has = Shape.Of(file);
+        // Two steps may share a name, as the two SDK selections do: the file's second of a name is the release's second.
+        Dictionary<string, Queue<int>> release = new(StringComparer.Ordinal);
+
+        for (int i = 0; i < want.Steps.Count; i++)
+        {
+            string identity = Shape.Identity(want.Steps[i]);
+
+            if (!release.TryGetValue(identity, out Queue<int>? named))
+            {
+                release[identity] = named = new Queue<int>();
+            }
+
+            named.Enqueue(i);
+        }
+
+        // Each step of the team's goes in after the step of the release's it followed, or before the list's first.
+        List<(int At, int Order, string[] Lines)> inserts = [];
+        int? after = null;
+        string? list = null;
+
+        for (int i = 0; i < has.Steps.Count; i++)
+        {
+            string step = has.Steps[i];
+            string within = step.Split('\n')[0];
+
+            if (!string.Equals(within, list, StringComparison.Ordinal))
+            {
+                list = within;
+                after = null;
+            }
+
+            if (release.TryGetValue(Shape.Identity(step), out Queue<int>? named) && named.TryDequeue(out int ours))
+            {
+                after = ours;
+                continue;
+            }
+
+            string[] block = had[has.Spans[i].Start..has.Spans[i].End];
+
+            if (after is { } anchor)
+            {
+                inserts.Add((want.Spans[anchor].End, i, [string.Empty, .. block]));
+            }
+            else
+            {
+                int first = Enumerable.Range(0, want.Steps.Count).FirstOrDefault(
+                    n => string.Equals(want.Steps[n].Split('\n')[0], within, StringComparison.Ordinal),
+                    -1);
+
+                if (first < 0)
+                {
+                    return null;
+                }
+
+                inserts.Add((want.Spans[first].Start, i, [.. block, string.Empty]));
+            }
+
+            carried.Add("the step '" + Shape.Name(step) + "'");
+        }
+
+        foreach ((int at, _, string[] block) in inserts.OrderByDescending(insert => insert.At).ThenByDescending(insert => insert.Order))
+        {
+            lines.InsertRange(at, block);
+        }
+
+        // The pool goes back in place of the release's, wherever the release writes one under the same name.
+        Dictionary<string, string> wanted = Sections(want.Frame);
+
+        foreach (KeyValuePair<string, string> section in Sections(has.Frame))
+        {
+            if (section.Key.Split(" > ")[^1] is not ("pool" or "runs-on")
+                || !wanted.TryGetValue(section.Key, out string? theirs)
+                || string.Equals(section.Value, theirs, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string[] from = theirs.Split('\n');
+            int[] found =
+            [
+                .. Enumerable.Range(0, Math.Max(0, lines.Count - from.Length + 1)).Where(at =>
+                    from.Select((line, n) => string.Equals(lines[at + n].TrimEnd(), line, StringComparison.Ordinal)).All(same => same)),
+            ];
+
+            if (found.Length != 1)
+            {
+                return null;
+            }
+
+            lines.RemoveRange(found[0], from.Length);
+            lines.InsertRange(found[0], section.Value.Split('\n'));
+            carried.Insert(0, "the pool (" + string.Join("; ", section.Value.Split('\n').Skip(1).Select(line => line.Trim()).DefaultIfEmpty(section.Value.Trim())) + ")");
+        }
+
+        string merged = string.Join(newline, lines);
+
+        return Shaped(path, template, file, merged).Passed ? (merged, carried) : null;
+    }
+
     /// <summary>What lies outside a pipeline's step lists, as its sections, each named by where it sits.</summary>
     /// <remarks>
     /// A section is a key and every line under it. A key with a step list somewhere beneath it is a container
@@ -683,15 +812,19 @@ public static class VerifyUpgrade
     /// <summary>A pipeline as what lies outside its step lists and each step in them, comments and blank lines aside.</summary>
     /// <param name="Frame">Every line outside a step list, the <c>steps:</c> key included, in order.</param>
     /// <param name="Steps">Each step, its lines joined and prefixed with which step list it is in.</param>
-    private sealed record Shape(IReadOnlyList<string> Frame, IReadOnlyList<string> Steps)
+    /// <param name="Spans">Where each step lies in the text's lines: its first line, and the line after its last.</param>
+    private sealed record Shape(IReadOnlyList<string> Frame, IReadOnlyList<string> Steps, IReadOnlyList<(int Start, int End)> Spans)
     {
-        public static Shape Empty { get; } = new([], []);
+        public static Shape Empty { get; } = new([], [], []);
 
         public static Shape Of(string text)
         {
             List<string> frame = [];
             List<string> steps = [];
+            List<(int Start, int End)> spans = [];
             StringBuilder? step = null;
+            int start = 0;
+            int end = 0;
             int list = -1;
             int key = -1;
             int? item = null;
@@ -701,13 +834,16 @@ public static class VerifyUpgrade
                 if (step is not null)
                 {
                     steps.Add(step.ToString());
+                    spans.Add((start, end));
                     step = null;
                 }
             }
 
-            foreach (string raw in text.ReplaceLineEndings("\n").Split('\n'))
+            string[] raws = text.ReplaceLineEndings("\n").Split('\n');
+
+            for (int index = 0; index < raws.Length; index++)
             {
-                string line = raw.TrimEnd();
+                string line = raws[index].TrimEnd();
                 string trimmed = line.TrimStart();
 
                 if (trimmed.Length == 0 || trimmed.StartsWith('#'))
@@ -733,11 +869,13 @@ public static class VerifyUpgrade
                     {
                         Close();
                         step = new StringBuilder(list.ToString(CultureInfo.InvariantCulture));
+                        start = index;
                     }
 
                     if (step is not null)
                     {
                         step.Append('\n').Append(line);
+                        end = index + 1;
                         continue;
                     }
                 }
@@ -752,11 +890,33 @@ public static class VerifyUpgrade
             }
 
             Close();
-            return new Shape(frame, steps);
+            return new Shape(frame, steps, spans);
         }
 
         /// <summary>A step's first line, to name it by.</summary>
         public static string Opening(string step) => step.Split('\n')[1].Trim();
+
+        /// <summary>
+        /// What makes a step the same step from one release to the next: its step list and its display name, or its
+        /// first line when it has none. A script's first line says nothing about it; its name says what it does.
+        /// </summary>
+        public static string Identity(string step)
+        {
+            string[] lines = step.Split('\n');
+            int indent = lines[1].Length - lines[1].TrimStart().Length + 2;
+            string? named = lines.Skip(2).FirstOrDefault(line =>
+                line.Length - line.TrimStart().Length == indent
+                && line.TrimStart().StartsWith("displayName:", StringComparison.Ordinal));
+
+            return lines[0] + "\n" + (named ?? lines[1]).Trim();
+        }
+
+        /// <summary>A step's name, to report it by: its display name, or its first line when it has none.</summary>
+        public static string Name(string step)
+        {
+            string named = Identity(step).Split('\n')[1];
+            return named.StartsWith("displayName:", StringComparison.Ordinal) ? named["displayName:".Length..].Trim() : named;
+        }
     }
 
     /// <summary>Whether the declared stack only gained answers to rows this release asks about.</summary>

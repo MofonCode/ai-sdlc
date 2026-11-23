@@ -356,7 +356,8 @@ marked there — the frontmatter is read as data — so name the ones you added 
 **Ask nothing else.** A question earns its place only when nothing on disk answers it **and** different
 plausible answers would change the outcomes or the scope. Usually that is a handful at most, and sometimes none:
 a file with no mark and nothing in conflict is shown and handed back. **Say that the person may answer only the ones
-they disagree with**, and that *go* takes the rest as written.
+they disagree with**, and that *go* takes the rest as written — as does taking it to plan, which adopts every line
+still marked and names each one when it hands back (D-211).
 
 ### As the conversation goes
 
@@ -693,8 +694,8 @@ more unknown stated as fact; a reader finds them one at a time, and you can find
 sdlc status <id> --stage intent --brief
 ```
 
-**The panel must show no shape problem.** A line still marked `(inferred)` is one: settle it as §3 says
-before handing back, never hand it on for the readers to find.
+**The panel must show no shape problem** but the marks the person has not answered yet, which §3 asked about in
+one turn: never hand a mark on for the readers to find, and say that taking it to plan adopts each as written (D-211).
 
 Show what it prints **verbatim**: the intent's headline and sections, and that no reader has judged it yet.
 **Say nothing else beyond two sentences**, then stop. The person reads the intent; whether to carry on is their

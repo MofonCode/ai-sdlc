@@ -1,4 +1,5 @@
 using FluentResults;
+using Sdlc.Core.Chain;
 using Sdlc.Core.Factory;
 using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
@@ -285,14 +286,45 @@ public sealed class FactoryPipelineTests
         Assert.AreEqual(team, await File.ReadAllTextAsync(path), "Kept means untouched.");
         StringAssert.StartsWith(WriteFactoryPipeline.Render(kept), "Kept .azuredevops/sdlc-factory.yml");
 
-        // A framework step missing: the file no longer carries the release, so it is rewritten and the pool named.
-        CycleWorkspace.WriteRaw(path, team.Replace("git switch integration", "git switch elsewhere", StringComparison.Ordinal));
-
-        WriteFactoryPipeline.Response rewritten = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+        // Without --keep the file is the framework's, rewritten whole, and the pool it dropped is named.
+        WriteFactoryPipeline.Response rewritten = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command())).Value;
 
         Assert.IsFalse(rewritten.Kept);
         Assert.AreEqual(template, await File.ReadAllTextAsync(path));
         StringAssert.Contains(WriteFactoryPipeline.Render(rewritten), "Team-Pool");
+    }
+
+    [TestMethod]
+    public async Task With_keep_a_factory_an_older_release_wrote_takes_this_releases_steps_and_keeps_the_teams_own()
+    {
+        // Issue #75: most releases change a framework step, so keeping only an untouched file rarely kept anything. The
+        // older release's version of a step is replaced, by its name; the team's pool and its own step are carried.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            "---\norigin: adopted\nplatform: azure-devops\nintegration_branch: integration\n---\n");
+        string path = Path.Combine(workspace.Root, ".azuredevops", "sdlc-factory.yml");
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "integration");
+        int first = template.IndexOf("            - script: |", StringComparison.Ordinal);
+        string own = "            - task: NuGetAuthenticate@1" + Environment.NewLine + "              displayName: sign in to the feed" + Environment.NewLine + Environment.NewLine;
+        string older = (template[..first] + own + template[first..])
+            .Replace("vmImage: ubuntu-latest", "name: Team-Pool", StringComparison.Ordinal)
+            .Replace("git switch integration", "git checkout integration", StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(path, older);
+        using var gate = Gate.For(workspace.Root);
+
+        WriteFactoryPipeline.Response merged = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+        string written = await File.ReadAllTextAsync(path);
+
+        Assert.IsFalse(merged.Kept);
+        Assert.AreEqual(template.Replace("vmImage: ubuntu-latest", "name: Team-Pool", StringComparison.Ordinal), written.Replace(own, string.Empty, StringComparison.Ordinal), "The release's steps, the team's pool.");
+        Assert.IsTrue(written.IndexOf("NuGetAuthenticate@1", StringComparison.Ordinal) < written.IndexOf("displayName: install sdlc and the agent", StringComparison.Ordinal), "The team's step stays where it was, before the step it preceded.");
+        Assert.IsFalse(written.Contains("git checkout integration", StringComparison.Ordinal), "The older release's version of a step is replaced.");
+        Assert.IsTrue(VerifyUpgrade.Shaped(".azuredevops/sdlc-factory.yml", template, older, written).Passed, "The upgrade check accepts what it wrote.");
+        string report = WriteFactoryPipeline.Render(merged);
+        StringAssert.StartsWith(report, "Merged .azuredevops/sdlc-factory.yml");
+        StringAssert.Contains(report, "Team-Pool");
+        StringAssert.Contains(report, "'sign in to the feed'");
     }
 
     [TestMethod]

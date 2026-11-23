@@ -93,6 +93,10 @@ the same intent, finished later. Two limits stay:
 - **Suggestions still only sharpen** (D-128). Words with a finding id behind them follow the rules below;
   words with none are the person's own and are written as theirs.
 
+**A *go* adopts every reading still marked** (D-200, D-211): drop each `(inferred)` mark and change nothing else.
+It is the same answer the `intent` skill takes, and `to-plan` hands it here when a person starts it on an intent
+that still carries marks.
+
 **Write the change into the section it belongs to, not into `Fixed decisions`.** An outcome the person
 added is a wanted outcome; an approach they settled is a fixed decision, with attribution as below. Then
 hand back, as step 4 says.

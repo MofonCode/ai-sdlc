@@ -83,6 +83,14 @@ version`, the `upgrade` skill's check and the install guide all said the plugin'
 so every upgrade to a `.1` or later reported one half behind. They now compare the first two numbers, as the
 session-start check already did. `sdlc doctor` expects `Skills (29)`, not 28. Nothing changes for a solution.
 
+**From 0.55.3 a version move asks less.** `sdlc factory --keep`, which the upgrade pipeline runs, no longer rewrites
+a factory pipeline whose framework steps an older release wrote: it writes this release's steps and carries the
+team's pool and its own steps into them, each named in the report and the upgrade's pull request, so a person checks
+none is a step an older release wrote and this one dropped (D-210). Only a file it cannot read that way is rewritten,
+as before. And taking an intent to plan is a *go*: `to-plan` no longer stops on lines still marked `(inferred)`, but
+adopts each as written and names it when it hands back, for a person to correct any afterwards (D-211). Nothing a
+cycle is judged on changes.
+
 ## 0.54
 
 **A harvest keeps what it found about the framework** (D-204). Notes under `## For the framework` were written into a

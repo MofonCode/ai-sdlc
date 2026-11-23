@@ -67,7 +67,7 @@ again:
 
 | Where it stopped | What to do |
 |---|---|
-| the intent still marks a line `(inferred)` — its panel names it under `Shape` | **stop this cycle**: a reading nobody confirmed is a question only the person can answer (D-200). Say which lines, and that answering them is the `intent` skill's. **Unattended, go on**: the marks are left for the run's report |
+| the intent still marks a line `(inferred)` — its panel names it under `Shape` | **a person starting this playbook said *go*** (D-211): run **`steer`** with *go — every line still marked `(inferred)` is adopted as written*, then **the loop** on the intent. Keep each line it adopted, word for word, for the hand-back. A person who wants to answer them first does that with the `intent` skill before starting this. **Unattended, go on** without steering: the marks are left for the run's report |
 | the intent is not clean — no round yet, a blocker open, or a round that judged an older version | **the loop** on the intent |
 | no spec | **`spec`** writes it, then **the loop** on it |
 | a spec that is not clean | **the loop** on the spec |
@@ -129,6 +129,10 @@ has not read the rounds: *"the die has no label (S_04)"*, never *"S_04"* alone.
 **One line per cycle**: its id, its headline, and where it got to — `planned`, `parked` with what it waits on, or
 stopped and why, in the person's terms, never as a count. Then `sdlc backlog` verbatim when anything was parked,
 and, for each planned cycle, `sdlc status <id> --stage plan --brief` verbatim, one after another.
+
+**Then the readings it adopted**, when a cycle's intent carried `(inferred)` marks: under *Adopted as written,
+because you took it to plan*, each line word for word. A person who reads one as wrong says so, and `steer` carries
+the correction down like any other.
 
 ### The suggestions, once, for every cycle together
 
@@ -222,4 +226,5 @@ except that **nobody is there to answer**:
 - **Place an approval**, or write any file only a person writes. Drafting one is not placing it.
 - **Start a build.** The plan is the last artifact before a person approves.
 - **Take a cycle another branch carries**, or one `sdlc cycles --here` did not list as ready.
-- **Answer a question meant for the person** to keep the run moving. A stopped cycle is a result.
+- **Answer a question meant for the person** to keep the run moving. A stopped cycle is a result. An intent's
+  `(inferred)` marks are not such a question once the person started this playbook: that was their *go* (D-211).

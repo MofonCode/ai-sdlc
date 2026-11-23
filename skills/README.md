@@ -309,7 +309,7 @@ stack and the spec.
 | `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
 | `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:to-plan <id>` with what should change, which carries it down instead |
 | `--reslice` names a cycle approved, abandoned or missing | refuses on that cycle, saying which | — |
-| a line is still marked `(inferred)` | the panel shows a shape problem, `to-plan` stops that cycle, and the chain refuses it at the pull request (D-200) | answer it: confirm it, correct it, or let it be recorded as unconfirmed |
+| a line is still marked `(inferred)` | the panel shows a shape problem, and the chain refuses it at the pull request (D-200). Taking it to plan is a *go*: `to-plan` adopts each line as written and names it in its hand-back (D-211) | answer it: confirm it, correct it, or let it be recorded as unconfirmed — or take it to plan and correct any line it names afterwards |
 
 #### Example
 
