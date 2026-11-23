@@ -79,7 +79,14 @@ public sealed class UpgradePipelineScriptTests
             Git(work, environment, "-c user.name=seed -c user.email=seed@localhost commit -q -m seed");
             Git(work, environment, $"push -q origin {Integration}");
 
-            File.WriteAllText(Path.Combine(bin, "dotnet"), FakeDotnet.ReplaceLineEndings("\n"));
+            string dotnet = Path.Combine(bin, "dotnet");
+            File.WriteAllText(dotnet, FakeDotnet.ReplaceLineEndings("\n"));
+
+            // Not executable, bash passes it by and finds the real one further down the path.
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
             string script = Path.Combine(root, "upgrade.sh");
             File.WriteAllText(script, Script(platform));
 
