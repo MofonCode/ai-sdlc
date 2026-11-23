@@ -253,8 +253,10 @@ sdlc version
 claude plugin details sdlc@ai-sdlc
 ```
 
-**The two should report the same version.** They are fetched separately, so they can drift — and a skill
-calling a verb an older binary does not have is what that drift eventually produces. Expect
+**The two should report the same line — the first two numbers.** A plugin from the marketplace always says
+`.0` last, because the pipeline stamps the build only into the package, so `0.55.0` beside a binary's `0.55.3` is
+one release. They are fetched separately, so the line can drift — and a skill calling a verb an older binary does
+not have is what that drift eventually produces. Expect
 `Skills (29)` and `Hooks (3) SessionStart, PreToolUse, Stop`. **If `PreToolUse` or `Stop` is missing, treat
 it as a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied,
 and every cycle will still appear to work.
