@@ -324,7 +324,7 @@ sdlc constraints
 It should print the nineteen global constraints in force and say it read them from
 `global  embedded in sdlc 0.56.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
-tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (29)` and
+tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (30)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
 is simply not loaded and every cycle will still appear to work.
 
@@ -412,11 +412,11 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill, refusal and piece of data, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-nine skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the thirty skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/reference/data-views.md`](docs/reference/data-views.md) | **data views** — every piece of data, where it lives, and the command that shows it |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the twenty-nine skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the thirty skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that

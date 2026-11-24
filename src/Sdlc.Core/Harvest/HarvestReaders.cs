@@ -84,14 +84,16 @@ public static class HarvestReaders
     /// <param name="Aspect">The aspect whose sitting is read.</param>
     /// <param name="Cycles">The cycles the sitting reads, or null for every completed one still needing the aspect.</param>
     /// <param name="Timeout">How long any one reader may take.</param>
-    public sealed record Read(string Directory, HarvestAspect Aspect, IReadOnlyList<CycleId>? Cycles, TimeSpan Timeout) : IRequest<RunRound.Response>;
+    /// <param name="Readers">How the readers run on this machine, or null for the default.</param>
+    public sealed record Read(string Directory, HarvestAspect Aspect, IReadOnlyList<CycleId>? Cycles, TimeSpan Timeout, ReaderLimits? Readers = null) : IRequest<RunRound.Response>;
 
     /// <summary>Starts the two readers that review what a person approved from one aspect's sitting.</summary>
     /// <param name="Directory">Where the prompts and answers go: outside the repository.</param>
     /// <param name="Aspect">The aspect reviewed.</param>
     /// <param name="Proposals">The marked proposal file, or null for the newest one the aspect's sitting wrote.</param>
     /// <param name="Timeout">How long either reader may take.</param>
-    public sealed record Review(string Directory, HarvestAspect Aspect, string? Proposals, TimeSpan Timeout) : IRequest<RunRound.Response>;
+    /// <param name="Readers">How the readers run on this machine, or null for the default.</param>
+    public sealed record Review(string Directory, HarvestAspect Aspect, string? Proposals, TimeSpan Timeout, ReaderLimits? Readers = null) : IRequest<RunRound.Response>;
 
     /// <summary>The name a sitting's report is kept under, in the reports directory.</summary>
     /// <param name="aspect">The aspect.</param>
@@ -151,7 +153,7 @@ public static class HarvestReaders
             }
 
             return await mediator
-                .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(request.Directory, TimeSpan.Zero, request.Timeout, Text: true), cancellationToken)
+                .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(request.Directory, TimeSpan.Zero, request.Timeout, Text: true, request.Readers), cancellationToken)
                 .ConfigureAwait(false);
         }
     }
@@ -203,7 +205,7 @@ public static class HarvestReaders
             await File.WriteAllTextAsync(Path.Combine(request.Directory, "completeness" + RunRound.PromptSuffix), completeness.ToString(), cancellationToken).ConfigureAwait(false);
 
             return await mediator
-                .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(request.Directory, TimeSpan.Zero, request.Timeout, Text: true), cancellationToken)
+                .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(request.Directory, TimeSpan.Zero, request.Timeout, Text: true, request.Readers), cancellationToken)
                 .ConfigureAwait(false);
         }
 

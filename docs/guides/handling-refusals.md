@@ -803,10 +803,15 @@ judging its own work instead.
 
 ### a reader returned nothing
 
-A reader's process ended without an answer — a credential the host did not have, a stopped run. The binary names
-the reader.
+A reader's process ended without an answer — a credential the host did not have, a limit the account hit, a
+stopped run. The binary names the reader, and `run.log` in the readers' directory has a line for every reader
+that started and how it ended; a failed reader's own words are in `<reader>.err` beside it (D-214). A harvest's
+readers end the same way.
 
-**Next:** fix what the message names, and run `sdlc round run` again: it starts only the readers with no answer.
+**Next:** fix what the message names, and run the same command again (`sdlc round run`, `sdlc harvest read` or
+`sdlc harvest review`): it starts only the readers with no answer. If the message does not say enough, set
+`SDLC_TRACE=1` and run it again; each reader then writes its host's debug log to `<reader>.debug.log`. If readers
+keep failing together, set `SDLC_READERS` lower.
 
 ## `sdlc evidence` — every way a recording is refused
 

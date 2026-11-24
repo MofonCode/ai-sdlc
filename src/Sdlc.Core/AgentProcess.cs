@@ -62,12 +62,27 @@ public interface IAgentProcess
 /// </remarks>
 public sealed class CliAgentProcess : IAgentProcess
 {
+    private readonly string? _executable;
+
+    /// <summary>Starts <c>claude</c>, found on the path.</summary>
+    public CliAgentProcess()
+    {
+    }
+
+    /// <summary>Starts another program in its place, handed the same arguments, input and output.</summary>
+    /// <param name="executable">The program. The suite uses a shell, so a process can end without reading its input.</param>
+    public CliAgentProcess(string executable)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
+        _executable = executable;
+    }
+
     /// <inheritdoc />
     public async Task<AgentExit> Run(AgentLaunch launch, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(launch);
 
-        ProcessStartInfo start = new(ToolPath.Resolve("claude"))
+        ProcessStartInfo start = new(_executable ?? ToolPath.Resolve("claude"))
         {
             WorkingDirectory = launch.WorkingDirectory,
             UseShellExecute = false,
@@ -121,7 +136,7 @@ public sealed class CliAgentProcess : IAgentProcess
                 process.StandardInput.Close();
             }
 
-            Task input = launch.Input is { } inputFile ? Pipe(inputFile, process) : Task.CompletedTask;
+            Task<bool> input = launch.Input is { } inputFile ? Pipe(inputFile, process) : Task.FromResult(true);
             Task output = launch.Output is { } outputFile ? Capture(process, outputFile) : Task.CompletedTask;
             Task<string> error = launch.Output is not null ? process.StandardError.ReadToEndAsync(CancellationToken.None) : Task.FromResult(string.Empty);
             bool stopped = false;
@@ -139,10 +154,12 @@ public sealed class CliAgentProcess : IAgentProcess
             // Awaited on every path, so nothing reads or writes the process's pipes after it is disposed. A stopped
             // process closes them mid-copy, which is not a second problem to report.
             string said;
+            bool whole = true;
 
             try
             {
                 await Task.WhenAll(input, output).ConfigureAwait(false);
+                whole = await input.ConfigureAwait(false);
                 said = (await error.ConfigureAwait(false)).Trim();
             }
             catch (IOException) when (stopped)
@@ -157,11 +174,18 @@ public sealed class CliAgentProcess : IAgentProcess
                     : new AgentExit(-1, true, string.Create(CultureInfo.InvariantCulture, $"It ran past {launch.Timeout!.Value.TotalMinutes:0} minutes and was stopped."));
             }
 
-            return process.ExitCode == 0
-                ? new AgentExit(0, false, null)
-                : new AgentExit(process.ExitCode, false, said.Length > 0
-                    ? said
-                    : string.Create(CultureInfo.InvariantCulture, $"claude exited {process.ExitCode} and said nothing."));
+            // A process that ended before taking its whole prompt answered something other than what it was asked, so
+            // even a clean exit is a problem. What it said on its way out is the reason, when it said anything.
+            string unread = whole ? string.Empty : " It ended before reading all of its prompt.";
+
+            if (process.ExitCode == 0)
+            {
+                return whole ? new AgentExit(0, false, null) : new AgentExit(0, false, (said + unread).Trim());
+            }
+
+            return new AgentExit(process.ExitCode, false, (said.Length > 0
+                ? said
+                : string.Create(CultureInfo.InvariantCulture, $"claude exited {process.ExitCode} and said nothing.")) + unread);
         }
         finally
         {
@@ -169,16 +193,30 @@ public sealed class CliAgentProcess : IAgentProcess
         }
     }
 
-    private static async Task Pipe(string file, Process process)
+    /// <summary>Pipes a file to the process's input.</summary>
+    /// <returns>Whether it took all of it: false when it closed its end first, by exiting.</returns>
+    /// <remarks>
+    /// A process that exits early closes the pipe under the copy, and the write throws. Thrown on, one reader ending
+    /// early took every other reader with it, and what it said on the way out was never read (D-214).
+    /// </remarks>
+    private static async Task<bool> Pipe(string file, Process process)
     {
         FileStream source = File.OpenRead(file);
 
         await using (source.ConfigureAwait(false))
         {
-            await source.CopyToAsync(process.StandardInput.BaseStream).ConfigureAwait(false);
+            try
+            {
+                await source.CopyToAsync(process.StandardInput.BaseStream).ConfigureAwait(false);
+                process.StandardInput.Close();
+            }
+            catch (IOException)
+            {
+                return false;
+            }
         }
 
-        process.StandardInput.Close();
+        return true;
     }
 
     private static async Task Capture(Process process, string file)

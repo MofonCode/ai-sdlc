@@ -2588,10 +2588,11 @@ static async Task<int> HarvestCommand(CommandLine line)
                         Path.GetFullPath(directory),
                         aspect,
                         proposals is null ? null : Path.GetFullPath(proposals),
-                        timeout))
+                        timeout,
+                        ReaderLimits.From(Environment.GetEnvironmentVariable)))
                     .ConfigureAwait(false)
                 : await workspace
-                    .Send<HarvestReaders.Read, RunRound.Response>(new HarvestReaders.Read(Path.GetFullPath(directory), aspect, sitting, timeout))
+                    .Send<HarvestReaders.Read, RunRound.Response>(new HarvestReaders.Read(Path.GetFullPath(directory), aspect, sitting, timeout, ReaderLimits.From(Environment.GetEnvironmentVariable)))
                     .ConfigureAwait(false);
 
             if (ran.IsFailed)
@@ -3132,7 +3133,8 @@ static async Task<int> RoundRun(Workspace workspace, CommandLine line, CycleId i
         .Send<RunRound.Command, RunRound.Response>(new RunRound.Command(
             Path.GetFullPath(directory),
             TimeSpan.FromSeconds(5),
-            TimeSpan.FromMinutes(minutes)))
+            TimeSpan.FromMinutes(minutes),
+            Readers: ReaderLimits.From(Environment.GetEnvironmentVariable)))
         .ConfigureAwait(false);
 
     if (result.IsFailed)

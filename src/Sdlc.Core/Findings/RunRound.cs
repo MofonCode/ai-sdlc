@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Threading.Channels;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
@@ -52,7 +53,17 @@ public static class RunRound
     /// Whether each answer is plain text, written as <c>&lt;name&gt;.md</c>, rather than a round reader's JSON, written as
     /// <c>&lt;name&gt;.json</c>. A harvest's readers answer in prose.
     /// </param>
-    public sealed record Command(string Directory, TimeSpan Warm, TimeSpan Timeout, bool Text = false) : IRequest<Response>;
+    /// <param name="Readers">How the readers run on this machine: how many at once, and whether each keeps a trace.</param>
+    public sealed record Command(string Directory, TimeSpan Warm, TimeSpan Timeout, bool Text = false, ReaderLimits? Readers = null) : IRequest<Response>;
+
+    /// <summary>What the run's log is called, in the round's directory beside the prompts.</summary>
+    public const string LogFileName = "run.log";
+
+    /// <summary>What a failed reader's own words are written to, after its name.</summary>
+    public const string ErrorSuffix = ".err";
+
+    /// <summary>What a traced reader's host writes its debug log to, after its name.</summary>
+    public const string TraceSuffix = ".debug.log";
 
     /// <summary>How one reader went.</summary>
     /// <param name="Name">The reader: <c>rules</c>, <c>diff</c>, <c>adjudicate</c>, or a perspective.</param>
@@ -80,11 +91,18 @@ public static class RunRound
     /// <param name="shared">Whether the round's directory holds a shared block.</param>
     /// <returns>The arguments, one each.</returns>
     /// <param name="text">Whether the answer is plain text rather than JSON.</param>
-    public static IReadOnlyList<string> ArgumentsFor(string name, bool shared, bool text = false)
+    /// <param name="trace">Where the host writes its debug log, or null for no trace.</param>
+    public static IReadOnlyList<string> ArgumentsFor(string name, bool shared, bool text = false, string? trace = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         List<string> arguments = ["-p", "--output-format", text ? "text" : "json", "--tools=", "--strict-mcp-config", "--no-session-persistence"];
+
+        if (trace is not null)
+        {
+            arguments.Add("--debug-file");
+            arguments.Add(trace);
+        }
 
         // The change's reader and the adjudicator read what no other reader shares, so neither is handed the block.
         if (shared && name is not ("diff" or "adjudicate"))
@@ -124,6 +142,7 @@ public static class RunRound
         text.Append(response.AllAnswered
             ? "Every reader answered.\n"
             : "A reader returned nothing. Run it again: only the readers with no answer yet are started.\n");
+        text.Append(CultureInfo.InvariantCulture, $"How each reader went: {Path.Combine(response.Directory, LogFileName)}\n");
 
         return text.ToString();
     }
@@ -163,15 +182,29 @@ public static class RunRound
             string[] waiting = [.. names.Where(name => !kept.Any(reader => reader.Name == name))];
             string? first = waiting.Contains(FirstReader, StringComparer.Ordinal) && waiting.Length > 1 ? FirstReader : null;
 
-            Task<Reader>? warming = first is null ? null : Start(first, request, shared, cancellationToken);
+            // At most so many at once (D-214): every reader of a harvest started together is dozens of large prompts
+            // against one account in the same minute.
+            ReaderLimits limits = request.Readers ?? ReaderLimits.Default;
+            RunLog log = new(Path.Combine(request.Directory, LogFileName), time);
+            Slots slots = new(limits.Parallel);
+
+            log.Write(string.Create(
+                CultureInfo.InvariantCulture,
+                $"run       {waiting.Length} to start, {kept.Length} answered already, at most {limits.Parallel} at once, trace {(limits.Trace ? "on" : "off")}"));
+
+            Task<Reader>? warming = first is null ? null : Start(first, request, shared, limits, slots, log, cancellationToken);
 
             if (warming is not null)
             {
                 await Task.Delay(request.Warm, time, cancellationToken).ConfigureAwait(false);
             }
 
-            Task<Reader>[] rest = [.. waiting.Where(name => name != first).Select(name => Start(name, request, shared, cancellationToken))];
+            Task<Reader>[] rest = [.. waiting.Where(name => name != first).Select(name => Start(name, request, shared, limits, slots, log, cancellationToken))];
             Reader[] done = await Task.WhenAll(warming is null ? rest : [warming, .. rest]).ConfigureAwait(false);
+
+            log.Write(string.Create(
+                CultureInfo.InvariantCulture,
+                $"ended     {done.Count(reader => reader.Answered)} answered, {done.Count(reader => !reader.Answered)} failed"));
 
             if (done.FirstOrDefault(reader => reader.NoHost) is { } stranded)
             {
@@ -186,27 +219,112 @@ public static class RunRound
 
         private static bool Answered(string answer) => File.Exists(answer) && new FileInfo(answer).Length > 0;
 
-        private async Task<Reader> Start(string name, Command request, bool shared, CancellationToken cancellationToken)
+        private async Task<Reader> Start(
+            string name,
+            Command request,
+            bool shared,
+            ReaderLimits limits,
+            Slots slots,
+            RunLog log,
+            CancellationToken cancellationToken)
         {
-            string answer = AnswerOf(request, name);
-            AgentExit exit = await agents.Run(
-                new AgentLaunch(
-                    request.Directory,
-                    ArgumentsFor(name, shared, request.Text),
-                    Path.Combine(request.Directory, name + PromptSuffix),
-                    answer,
-                    Reader: true,
-                    request.Timeout),
-                cancellationToken).ConfigureAwait(false);
+            await slots.Take(cancellationToken).ConfigureAwait(false);
 
-            if (!exit.Succeeded)
+            try
             {
-                return new Reader(name, answer, exit.Problem ?? "It did not finish.", NoHost: exit.NeverStarted);
-            }
+                string answer = AnswerOf(request, name);
+                string prompt = Path.Combine(request.Directory, name + PromptSuffix);
+                string error = Path.Combine(request.Directory, name + ErrorSuffix);
+                string? trace = limits.Trace ? Path.Combine(request.Directory, name + TraceSuffix) : null;
 
-            return Answered(answer)
-                ? new Reader(name, answer, null)
-                : new Reader(name, answer, "It returned nothing.");
+                log.Write(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"started   {name,-24} prompt {Size(prompt)}{(trace is null ? string.Empty : ", trace " + trace)}"));
+
+                long began = time.GetTimestamp();
+                AgentExit exit = await agents.Run(
+                    new AgentLaunch(request.Directory, ArgumentsFor(name, shared, request.Text, trace), prompt, answer, Reader: true, request.Timeout),
+                    cancellationToken).ConfigureAwait(false);
+                string took = Took(time.GetElapsedTime(began));
+
+                Reader reader = !exit.Succeeded
+                    ? new Reader(name, answer, exit.Problem ?? "It did not finish.", NoHost: exit.NeverStarted)
+                    : Answered(answer) ? new Reader(name, answer, null) : new Reader(name, answer, "It returned nothing.");
+
+                if (reader.Problem is { } problem)
+                {
+                    // Its own words in full beside its prompt; the log keeps one line, so the run reads at a glance.
+                    await File.WriteAllTextAsync(
+                        error,
+                        string.Create(CultureInfo.InvariantCulture, $"exit {exit.ExitCode}{(exit.TimedOut ? ", timed out" : string.Empty)} after {took}\n\n{problem}\n"),
+                        CancellationToken.None).ConfigureAwait(false);
+                    log.Write(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"FAILED    {name,-24} exit {exit.ExitCode} after {took}: {FirstLine(problem)} (all of it: {error})"));
+                }
+                else
+                {
+                    File.Delete(error);
+                    log.Write(string.Create(CultureInfo.InvariantCulture, $"answered  {name,-24} after {took}, answer {Size(answer)}"));
+                }
+
+                return reader;
+            }
+            finally
+            {
+                slots.Give();
+            }
+        }
+
+        private static string Size(string path) =>
+            File.Exists(path)
+                ? string.Create(CultureInfo.InvariantCulture, $"{Math.Ceiling(new FileInfo(path).Length / 1024.0):0} KB")
+                : "none";
+
+        private static string Took(TimeSpan took) =>
+            took.TotalMinutes >= 1
+                ? string.Create(CultureInfo.InvariantCulture, $"{(int)took.TotalMinutes}m {took.Seconds:00}s")
+                : string.Create(CultureInfo.InvariantCulture, $"{took.TotalSeconds:0}s");
+
+        private static string FirstLine(string text) =>
+            text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? text;
+    }
+
+    /// <summary>
+    /// So many places to run in, each taken by a reader before it starts and given back when it ends. A channel of tokens
+    /// rather than a semaphore, because nothing in it needs disposing while a reader may still hold one.
+    /// </summary>
+    private sealed class Slots
+    {
+        private readonly Channel<bool> _free = Channel.CreateUnbounded<bool>();
+
+        public Slots(int count)
+        {
+            for (int slot = 0; slot < count; slot++)
+            {
+                _free.Writer.TryWrite(true);
+            }
+        }
+
+        public ValueTask<bool> Take(CancellationToken cancellationToken) => _free.Reader.ReadAsync(cancellationToken);
+
+        public void Give() => _free.Writer.TryWrite(true);
+    }
+
+    /// <summary>
+    /// The run's log: a line as each reader starts and ends, appended as it happens, so a run that dies partway
+    /// still says how far it got (D-214).
+    /// </summary>
+    private sealed class RunLog(string path, TimeProvider time)
+    {
+        private readonly Lock _gate = new();
+
+        public void Write(string line)
+        {
+            lock (_gate)
+            {
+                File.AppendAllText(path, string.Create(CultureInfo.InvariantCulture, $"{time.GetUtcNow():yyyy-MM-dd HH:mm:ss}Z  {line}\n"));
+            }
         }
     }
 }

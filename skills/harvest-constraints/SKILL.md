@@ -40,6 +40,10 @@ sdlc harvest read --dir <scratch>/harvest --aspect constraints
 Each reader groups one document's findings by the problem underneath and returns the groups. Read their answers,
 then read yourself each criterion that failed more than one verdict (`git show <commit>:<path>`).
 
+**If it stops before every reader answered**, `run.log` in that directory says which reader failed and why, and
+`<reader>.err` holds its own words (D-214). Tell the person what they say, then run it again: only the readers with
+no answer yet are started.
+
 ## 2. Answer every item
 
 Every rule cited across cycles, argued rule, group whose findings stood three rounds or more, perspective at the

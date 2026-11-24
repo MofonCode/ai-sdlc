@@ -10,13 +10,13 @@ louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | twenty-nine skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
+| the plugin | thirty skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
 [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
 Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
-twenty-nine skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
+thirty skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 Claude Code runs both copies, so the plugin's steps aside wherever the repository's `.claude/settings.json`
@@ -236,7 +236,9 @@ What it deliberately does **not** claim is the half a binary cannot see. Two thi
 `elsewhere` with who to ask, rather than counted as a pass:
 
 - **whether a host loaded the skills** — no binary can ask a host what it loaded, and this is the silent
-  failure of the two, because an agent with no skills behaves exactly like an agent nobody asked.
+  failure of the two, because an agent with no skills behaves exactly like an agent nobody asked. Ask for it
+  in a session instead — `/sdlc:doctor` — and the agent runs the same command and counts the skills it was
+  given against the number expected.
 - **whether branch policy requires the pipeline's check, when it cannot ask** — the policy lives on the
   platform, not in the repository. `doctor` asks through `az` or `gh`, signed in as you, and a policy that
   does not require the check is a problem. Signed out, or without permission to read the policy, it comes
@@ -257,7 +259,7 @@ claude plugin details sdlc@ai-sdlc
 `.0` last, because the pipeline stamps the build only into the package, so `0.55.0` beside a binary's `0.55.3` is
 one release. They are fetched separately, so the line can drift — and a skill calling a verb an older binary does
 not have is what that drift eventually produces. Expect
-`Skills (29)` and `Hooks (3) SessionStart, PreToolUse, Stop`. **If `PreToolUse` or `Stop` is missing, treat
+`Skills (30)` and `Hooks (3) SessionStart, PreToolUse, Stop`. **If `PreToolUse` or `Stop` is missing, treat
 it as a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied,
 and every cycle will still appear to work.
 
