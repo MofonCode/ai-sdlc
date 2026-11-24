@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
@@ -107,6 +108,16 @@ public static class ApplyUpgrade
 
             HashSet<string> carried = new(VerifyUpgrade.Paths, StringComparer.Ordinal);
             List<string> before = [.. repository.UncommittedChanges(root).Select(Slashed)];
+            string? pinnedAtHead = repository.ReadAt(root, "HEAD", PinnedRelease.ManifestPath);
+
+            // Installing the release into the manifest is how a move starts, in the pipeline and by hand: a pin moved to
+            // this release and nothing else is the move's own, committed with it rather than refused as the team's.
+            if (before.Contains(PinnedRelease.ManifestPath)
+                && await MovedToThisRelease(root, pinnedAtHead, cancellationToken).ConfigureAwait(false))
+            {
+                before.Remove(PinnedRelease.ManifestPath);
+            }
+
             string[] mixed = [.. before.Where(path => carried.Contains(path) || VerifyUpgrade.IsDependencies(path))];
 
             if (mixed.Length > 0)
@@ -116,7 +127,7 @@ public static class ApplyUpgrade
                     + string.Join(", ", mixed) + ". Commit or stash them first.");
             }
 
-            string? from = PinnedRelease.PinnedIn(repository.ReadAt(root, "HEAD", PinnedRelease.ManifestPath));
+            string? from = PinnedRelease.PinnedIn(pinnedAtHead);
 
             if (from is not null && FrameworkStamp.Compare(from, Release.Version) > 0)
             {
@@ -239,6 +250,38 @@ public static class ApplyUpgrade
             return Result.Ok(published.IsSuccess
                 ? response with { PullRequest = published.Value }
                 : response with { Unpublished = string.Join(" ", published.Errors.Select(error => error.Message)) });
+        }
+
+        /// <summary>
+        /// Whether the manifest's only change from <paramref name="head"/> is this package's entry, and it pins this
+        /// release.
+        /// </summary>
+        /// <param name="root">The solution.</param>
+        /// <param name="head">The manifest as committed, or null when there is none.</param>
+        /// <param name="cancellationToken">Cancels the read.</param>
+        /// <returns>True when the change is this move's install.</returns>
+        private static async Task<bool> MovedToThisRelease(string root, string? head, CancellationToken cancellationToken)
+        {
+            string path = Path.Combine([root, .. PinnedRelease.ManifestPath.Split('/')]);
+
+            if (head is null || !File.Exists(path))
+            {
+                return false;
+            }
+
+            string working = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+            if (!string.Equals(PinnedRelease.PinnedIn(working), Release.Version, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            // Both pinned the same way, so a tool of the team's added or changed beside it still shows as a difference.
+            Result<string> moved = PinnedRelease.Pin(working, Release.Version);
+            Result<string> committed = PinnedRelease.Pin(head, Release.Version);
+
+            return moved.IsSuccess && committed.IsSuccess
+                && JsonNode.DeepEquals(JsonNode.Parse(moved.Value), JsonNode.Parse(committed.Value));
         }
 
         private async Task<Result<string>> Publish(string root, Response move, CancellationToken cancellationToken)

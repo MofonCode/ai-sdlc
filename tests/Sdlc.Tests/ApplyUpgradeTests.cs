@@ -112,6 +112,35 @@ public sealed class ApplyUpgradeTests
     }
 
     [TestMethod]
+    public async Task The_release_installed_into_the_manifest_first_as_the_upgrade_pipeline_does_is_the_moves_own()
+    {
+        // The pipeline runs 'dotnet tool update --local' and then this, so the pin has moved before the move starts.
+        using Repo repo = await Repo.AsAnOlderReleaseLeftIt();
+        await repo.Install(Release.Version);
+        using var gate = Gate.For(repo.Root);
+
+        ApplyUpgrade.Response move = await Apply(gate);
+
+        Assert.IsTrue(move.Holds, ApplyUpgrade.Render(move));
+        CollectionAssert.Contains(move.Committed.ToList(), PinnedRelease.ManifestPath);
+        Assert.AreEqual(Release.Version, PinnedRelease.PinnedIn(repo.Git($"show HEAD:{PinnedRelease.ManifestPath}")));
+        Assert.AreEqual(string.Empty, repo.Git("status --porcelain").Trim());
+    }
+
+    [TestMethod]
+    public async Task A_manifest_changed_beyond_the_release_it_pins_is_still_refused_rather_than_mixed_in()
+    {
+        using Repo repo = await Repo.AsAnOlderReleaseLeftIt();
+        await repo.Install(Release.Version, alsoAddingTool: true);
+        using var gate = Gate.For(repo.Root);
+
+        Result<ApplyUpgrade.Response> refused = await gate.Send<ApplyUpgrade.Command, ApplyUpgrade.Response>(new ApplyUpgrade.Command());
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, PinnedRelease.ManifestPath);
+    }
+
+    [TestMethod]
     public void The_pull_request_is_opened_by_each_platforms_own_command_line_and_one_already_open_is_found_first()
     {
         ApplyUpgrade.Response move = new(
@@ -225,6 +254,21 @@ public sealed class ApplyUpgradeTests
             repo.Git("add -A");
             repo.Git("commit -q -m seed");
             return repo;
+        }
+
+        /// <summary>What <c>dotnet tool update --local</c> leaves: the pin moved in place, not committed.</summary>
+        public async Task Install(string release, bool alsoAddingTool = false)
+        {
+            string manifest = Path.Combine(Root, ".config", "dotnet-tools.json");
+            string text = (await File.ReadAllTextAsync(manifest)).Replace("\"" + Older + "\"", "\"" + release + "\"", StringComparison.Ordinal);
+
+            if (alsoAddingTool)
+            {
+                text = text.Replace("\"tools\": {", "\"tools\": {\n    \"dotnet-ef\": { \"version\": \"10.0.0\", \"commands\": [ \"dotnet-ef\" ] },", StringComparison.Ordinal);
+            }
+
+            Assert.IsTrue(PinnedRelease.PinnedIn(text) == release && (!alsoAddingTool || text.Contains("dotnet-ef", StringComparison.Ordinal)), text);
+            await File.WriteAllTextAsync(manifest, text);
         }
 
         public string Git(string arguments)
