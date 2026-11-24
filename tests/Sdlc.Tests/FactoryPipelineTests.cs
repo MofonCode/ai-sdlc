@@ -328,6 +328,86 @@ public sealed class FactoryPipelineTests
     }
 
     [TestMethod]
+    public async Task With_keep_a_step_an_older_release_wrote_is_left_out_rather_than_carried()
+    {
+        // D-212: a governed solution's 0.51 to 0.55 move carried 'build the queue', 0.51's step, which read a
+        // parameter 0.55 no longer declares, and the factory it merged could not run. A step whose name a release
+        // retired is left out, and so is one that reads a parameter this release does not declare.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            "---\norigin: adopted\nplatform: azure-devops\nintegration_branch: integration\n---\n");
+        string path = Path.Combine(workspace.Root, ".azuredevops", "sdlc-factory.yml");
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "integration");
+        int sitrep = template.IndexOf("            - script: |" + Environment.NewLine + "                git fetch origin", StringComparison.Ordinal);
+        Assert.IsTrue(sitrep > 0);
+        string retired = "            - script: echo queued" + Environment.NewLine + "              displayName: build the queue" + Environment.NewLine + Environment.NewLine;
+        string stale = "            - script: echo ${{ parameters.cycle }}" + Environment.NewLine + "              displayName: name the cycle" + Environment.NewLine + Environment.NewLine;
+        string own = "            - script: echo ${{ parameters.waves }}" + Environment.NewLine + "              displayName: say how many waves" + Environment.NewLine + Environment.NewLine;
+        string older = template[..sitrep] + retired + stale + own + template[sitrep..];
+        CycleWorkspace.WriteRaw(path, older);
+        using var gate = Gate.For(workspace.Root);
+
+        WriteFactoryPipeline.Response merged = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+        string written = await File.ReadAllTextAsync(path);
+
+        Assert.IsFalse(written.Contains("build the queue", StringComparison.Ordinal), "A retired name is left out.");
+        Assert.IsFalse(written.Contains("parameters.cycle", StringComparison.Ordinal), "A step reading a parameter this release dropped could only fail.");
+        StringAssert.Contains(written, "say how many waves", "A step reading a parameter this release declares is the team's, and carried.");
+        string report = WriteFactoryPipeline.Render(merged);
+        StringAssert.Contains(report, "'build the queue', which an older release wrote");
+        StringAssert.Contains(report, "'name the cycle', which reads 'cycle', a parameter this release does not declare");
+    }
+
+    [TestMethod]
+    public void No_template_this_release_writes_uses_a_step_name_a_release_retired()
+    {
+        // A retired name in the list and in a template would have every merge drop the release's own step.
+        string[] templates =
+        [
+            .. Templates.Hosted.SelectMany(platform => new[]
+            {
+                FactoryPipeline.Text(platform, "main"),
+                Templates.Pipeline(platform, "main"),
+            }),
+        ];
+
+        foreach (string name in VerifyUpgrade.RetiredSteps)
+        {
+            Assert.IsFalse(
+                templates.Any(text => text.Split('\n').Any(line => line.Trim() == "displayName: " + name || line.Trim() == "- name: " + name)),
+                name);
+        }
+    }
+
+    [TestMethod]
+    public async Task With_keep_an_action_named_by_its_first_line_is_the_same_step_at_another_version()
+    {
+        // A release that moves checkout@v4 to @v5 replaces the step rather than carrying the older beside it.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            "---\norigin: adopted\nplatform: github\nintegration_branch: main\n---\n");
+        string path = Path.Combine(workspace.Root, ".github", "workflows", "sdlc-factory.yml");
+        string template = FactoryPipeline.Text(Platform.GitHub, "main");
+        Assert.IsTrue(template.Contains("actions/checkout@v5", StringComparison.Ordinal));
+        string own = "      - run: echo the team's own" + Environment.NewLine;
+        int checkout = template.IndexOf("      - uses: actions/checkout@v5", StringComparison.Ordinal);
+        Assert.IsTrue(checkout > 0);
+        string older = (template[..checkout] + own + template[checkout..]).Replace("actions/checkout@v5", "actions/checkout@v4", StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(path, older);
+        using var gate = Gate.For(workspace.Root);
+
+        WriteFactoryPipeline.Response merged = (await gate.Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command(Keep: true))).Value;
+        string written = await File.ReadAllTextAsync(path);
+
+        Assert.IsNotNull(merged.Carried, "Merged, not rewritten.");
+        Assert.IsFalse(written.Contains("checkout@v4", StringComparison.Ordinal));
+        StringAssert.Contains(written, "echo the team's own");
+        Assert.AreEqual(1, merged.Carried.Count, string.Join(", ", merged.Carried));
+    }
+
+    [TestMethod]
     public async Task A_factory_an_older_release_wrote_at_the_root_moves_into_the_azuredevops_folder_as_it_was()
     {
         // D-203: the team's pool and steps travel with it, and it is judged where it now lives.

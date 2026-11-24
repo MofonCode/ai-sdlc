@@ -91,6 +91,13 @@ as before. And taking an intent to plan is a *go*: `to-plan` no longer stops on 
 adopts each as written and names it when it hands back, for a person to correct any afterwards (D-211). Nothing a
 cycle is judged on changes.
 
+**From 0.55.4 a version move writes both pipelines.** The merge no longer carries a step an older release wrote: one
+whose name a release dropped, or one reading a parameter this release no longer declares, is left out and named,
+and an action at an older version is replaced rather than kept beside the new one (D-212). On Azure DevOps `sdlc
+init` merges the chain check, `.azuredevops/sdlc-verify.yml`, the same way rather than printing this release's steps
+for a person to bring in. Run against a governed solution's 0.51 to 0.55 move, both pipelines came out identical to
+the copies a person had made by hand. Nothing a cycle is judged on changes.
+
 ## 0.54
 
 **A harvest keeps what it found about the framework** (D-204). Notes under `## For the framework` were written into a

@@ -468,8 +468,8 @@ public static class Initialise
             // framework-named file is the framework's to rewrite. `sdlc-verify.yml` is owned on GitHub.
             // On Azure DevOps it is written once and kept while it carries this release's steps, because a
             // team adds steps of its own there -- a feed sign-in, a browser install -- that a rewrite would
-            // drop; one that lacks a step this release writes is printed for a person to bring up to date.
-            // D-40, D-203.
+            // drop; one that lacks a step this release writes is merged with them, and printed for a person to
+            // bring up to date only when it cannot be. D-40, D-203, D-212.
             // Local writes none, and that is the choice rather than an omission. A pipeline for a service
             // this repository has no remote on would be a file that looks like a gate and is reachable by
             // nothing -- which is the exact failure D-32 names about an unrun pipeline. What replaces it
@@ -493,7 +493,7 @@ public static class Initialise
                 await Introduced(
                     PipelinePath(wantedPlatform),
                     Templates.Pipeline(wantedPlatform, integration),
-                    "it lacks a step this release writes, and steps of the team's own may sit beside them, so it is not rewritten. Bring this release's steps into it; the pull-request check refuses an upgrade until they are there",
+                    "it lacks a step this release writes and could not be merged with them, and steps of the team's own may sit beside them, so it is not rewritten. Bring this release's steps into it; the pull-request check refuses an upgrade until they are there",
                     actions,
                     printed,
                     cancellationToken).ConfigureAwait(false);
@@ -831,11 +831,27 @@ public static class Initialise
             {
                 string existing = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
 
+                string slashed = relative.Replace('\\', '/');
+                VerifyUpgrade.Merged? merged = VerifyUpgrade.Merge(slashed, contents, existing);
+
                 // The file as its own base, as 'sdlc factory --keep' reads the factory's: every step that is not the
                 // release's is the team's, so it holds exactly when none of the release's is missing or out of order.
-                if (VerifyUpgrade.Shaped(relative.Replace('\\', '/'), contents, existing, existing).Passed)
+                // One that also carries an older release's step is merged instead, which leaves that step out.
+                if (merged is not { Dropped.Count: > 0 } && VerifyUpgrade.Shaped(slashed, contents, existing, existing).Passed)
                 {
                     actions.Add(new InitAction(relative, InitChange.Kept, "already carries every step this release writes"));
+                    return;
+                }
+
+                // Merged as 'sdlc factory --keep' merges the factory's: this release's steps, with the team's pool and
+                // own steps carried into them and an older release's left out (D-212). Printed only when that fails.
+                if (merged is not null)
+                {
+                    await Write(path, merged.Text, cancellationToken).ConfigureAwait(false);
+                    actions.Add(new InitAction(
+                        relative,
+                        InitChange.Updated,
+                        VerifyUpgrade.Describe(slashed, merged.Carried, merged.Dropped, merged.Replaced).TrimEnd().ReplaceLineEndings(" ")));
                     return;
                 }
 

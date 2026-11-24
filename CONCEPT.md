@@ -1507,8 +1507,9 @@ pins (D-131). **The plugin's own hooks step aside for the ones adoption wrote** 
 `--source plugin`, `sdlc hook` answers with silence where the solution's settings file runs the same hook, so
 each check speaks once. Every pipeline it writes is framework-named, on Azure DevOps in `.azuredevops/`, so a
 repository's own `azure-pipelines.yml` is never in the line of fire; the Azure DevOps chain check is written once
-and kept while it carries the release's steps, and printed when it lacks one, because a team's own steps sit
-beside them (D-203).
+and kept while it carries the release's steps, and merged when it lacks one, because a team's own steps sit
+beside them: this release's steps, with the team's pool and own steps carried in and an older release's left out,
+or printed when it cannot be read that way (D-203, D-212).
 
 **Update stamps what it wrote, and is run after every upgrade** (D-93). `.sdlc/README.md` carries the
 release that last wrote the framework's files, and `doctor` compares it with the binary — older or
@@ -4109,7 +4110,7 @@ and prints them.
 | | Adoption's claim | How |
 |---|---|---|
 | `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml`, the upgrade pipeline | the whole file | rewritten on every run |
-| `.azuredevops/sdlc-verify.yml` | the whole file | written once, kept while it carries the release's steps, otherwise printed (D-203) |
+| `.azuredevops/sdlc-verify.yml` | the whole file | written once, kept while it carries the release's steps, otherwise merged with the team's own, or printed when it cannot be (D-203, D-212) |
 | `.claude/settings.json` | two hook entries | merged; every other key and sibling hook kept |
 | `AGENTS.md` | nothing, once one exists | printed for a person to place |
 | `.gitattributes` | nothing, once one exists | kept if it normalises line endings, otherwise the one line printed |
@@ -7732,6 +7733,39 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-212 — A merge leaves out an older release's steps, and adoption merges the Azure DevOps chain check the same way
+
+**Governs:** §9, §10.5
+
+**Revises D-210**, whose merge carried every step the release wrote nothing of the same name for, and **amends
+D-203**, whose chain check on Azure DevOps was printed when it lacked a step of the release's.
+
+**Decision.** A merged pipeline leaves out two kinds of step rather than carrying them as the team's: one whose
+name a release of the framework once wrote and a later one dropped or renamed, from a list the binary carries and
+each such change adds to; and one that reads a parameter, `parameters.x` or `inputs.x`, the release no longer
+declares. Each is named in the report as an older release's. A file that carries every step of the release keeps
+being left alone only when nothing in it would be left out. An action or a task with no display name is the same
+step at any version, so `checkout@v4` is replaced by `@v5` rather than carried beside it. The report also names
+each section besides the pool where the release's replaced the file's. `sdlc init` merges the Azure DevOps chain
+check the same way, so a version move writes both pipelines rather than printing one, and prints it only when it
+cannot be merged, as a file with no steps cannot.
+
+**Why.** D-210's first real move proved its gap: a governed solution's 0.51 to 0.55 factory carried 0.51's *build
+the queue*, which read a parameter 0.55 had replaced, so the merged pipeline could not run, and the report's line
+asking a person to check was the only thing between it and the factory. The same move printed the chain check's
+new steps and left two of the solution's own tests failing until a person merged them by hand, which is the work
+D-210 had just taken off the factory's file. With both, the move's two pipelines came out identical to the copies
+a person had made by hand, comments aside.
+
+**Rejected.**
+
+- *Shipping every older release's template* (as D-210 rejected): the names alone tell an older release's step from
+  the team's, at a few lines rather than every template ever written.
+- *Leaving the parameter guard out and trusting the list.* A list is kept by people and misses one in time; a step
+  reading a parameter nothing declares fails whoever wrote it, so dropping it loses nothing that ran.
+- *Keeping the chain check printed.* It is the file every pull request runs, so a person merging it by hand at
+  every release is the step most likely to be skipped, and the upgrade check refuses the move until it is done.
 
 ### D-211 — Taking an intent to plan is a *go*: the readings still marked are adopted, and named in the hand-back
 

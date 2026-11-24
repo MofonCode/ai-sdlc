@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Artifacts;
+using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
@@ -429,21 +430,48 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task An_azure_pipeline_missing_a_step_of_the_release_is_printed_rather_than_rewritten()
+    public async Task An_azure_pipeline_an_older_release_wrote_is_merged_keeping_the_teams_own_and_leaving_out_the_older_releases()
     {
-        // A team's own steps sit beside the framework's, so a rewrite would drop them.
+        // D-212: a version move used to print this release's steps for a person to merge by hand. Now the older
+        // release's version of a step is replaced by its name, a step it wrote and this one dropped is left out, and
+        // the team's pool and own step are carried, held to the upgrade check's own measure.
         using var solution = Scratch.Create();
         string path = Path.Combine(solution.Root, ".azuredevops", "sdlc-verify.yml");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        string stale = Templates.Pipeline(Platform.AzureDevOps).Replace("sdlc verify-chain", "sdlc verify-chain --old", StringComparison.Ordinal);
+        string template = Templates.Pipeline(Platform.AzureDevOps);
+        string nl = Environment.NewLine;
+        string own = "  - script: echo the team's own" + nl + "    displayName: the team's own" + nl;
+        string retired = "  - script: echo gone" + nl + "    displayName: install the gate" + nl;
+        string stale = template
+            .Replace("sdlc verify-chain", "sdlc verify-chain --old", StringComparison.Ordinal)
+            .Replace("vmImage: ubuntu-latest", "name: Team-Pool", StringComparison.Ordinal)
+            .Replace("steps:" + nl, "steps:" + nl + own + retired, StringComparison.Ordinal);
+        Assert.AreNotEqual(template, stale);
         await File.WriteAllTextAsync(path, stale);
 
         Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"], platform: Platform.AzureDevOps);
+        string written = await File.ReadAllTextAsync(path);
+        Initialise.InitAction action = report.Actions.Single(action => action.Path.Replace('\\', '/') == ".azuredevops/sdlc-verify.yml");
 
-        Assert.AreEqual(stale, await File.ReadAllTextAsync(path));
+        Assert.AreEqual(Initialise.InitChange.Updated, action.Change);
+        Assert.IsFalse(written.Contains("--old", StringComparison.Ordinal), "The older release's version of a step is replaced.");
+        Assert.IsFalse(written.Contains("echo gone", StringComparison.Ordinal), "A step an older release wrote and this one dropped is left out.");
+        StringAssert.Contains(written, "echo the team's own");
+        StringAssert.Contains(written, "name: Team-Pool");
+        Assert.IsTrue(VerifyUpgrade.Shaped(".azuredevops/sdlc-verify.yml", template, stale, written).Passed, "The upgrade check accepts what it wrote.");
+        StringAssert.Contains(action.Why!, "'the team's own'");
+        StringAssert.Contains(action.Why!, "'install the gate', which an older release wrote");
+        CollectionAssert.Contains(report.Written.Select(file => file.Replace('\\', '/')).ToArray(), ".azuredevops/sdlc-verify.yml", "Committed with the rest.");
+
+        // A file with no steps at all is not one a release wrote, so it is printed rather than merged.
+        await File.WriteAllTextAsync(path, "not a pipeline\n");
+
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs"], platform: Platform.AzureDevOps);
+
+        Assert.AreEqual("not a pipeline\n", await File.ReadAllTextAsync(path));
         Assert.AreEqual(
             Initialise.InitChange.Printed,
-            report.Actions.Single(action => action.Path.Replace('\\', '/') == ".azuredevops/sdlc-verify.yml").Change);
+            again.Actions.Single(action => action.Path.Replace('\\', '/') == ".azuredevops/sdlc-verify.yml").Change);
     }
 
     [TestMethod]

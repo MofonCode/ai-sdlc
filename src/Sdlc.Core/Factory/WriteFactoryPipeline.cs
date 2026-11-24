@@ -22,7 +22,8 @@ namespace Sdlc.Core.Factory;
 /// beside the framework's, and a rewrite drops them. With <c>--keep</c>, as the upgrade pipeline runs it, a file that
 /// already carries every step this release writes, by the upgrade check's own measure, is left as it is. One that
 /// does not is merged: written as this release writes it, with the team's pool and every step the release writes
-/// nothing of the same name for carried into it, each named for a person to check. Only a file that cannot be read
+/// nothing of the same name for carried into it, each named for a person to check, and an older release's step left
+/// out (D-212). Only a file that cannot be read
 /// that way is rewritten, and what of the team's that loses is named.</para>
 /// </remarks>
 public static class WriteFactoryPipeline
@@ -49,7 +50,18 @@ public static class WriteFactoryPipeline
     /// <param name="Lost">Each pool of the team's own the rewrite replaced; empty when there was none.</param>
     /// <param name="MovedFrom">Where an older release had written it, when it was moved from there first (D-203).</param>
     /// <param name="Carried">What of the team's was carried into this release's file, when it was merged; null when it was not.</param>
-    public sealed record Response(string Path, bool Rewritten, Platform Platform, bool Kept = false, IReadOnlyList<string>? Lost = null, string? MovedFrom = null, IReadOnlyList<string>? Carried = null);
+    /// <param name="Dropped">Each older release's step the merge left out, with why; null when it was not merged.</param>
+    /// <param name="Replaced">Each section, besides the pool, where this release's replaced the file's; null when it was not merged.</param>
+    public sealed record Response(
+        string Path,
+        bool Rewritten,
+        Platform Platform,
+        bool Kept = false,
+        IReadOnlyList<string>? Lost = null,
+        string? MovedFrom = null,
+        IReadOnlyList<string>? Carried = null,
+        IReadOnlyList<string>? Dropped = null,
+        IReadOnlyList<string>? Replaced = null);
 
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, Response>
     {
@@ -91,16 +103,19 @@ public static class WriteFactoryPipeline
             }
 
             // The file as its own base: every step that is not the release's is the team's, carried unchanged, so it
-            // passes exactly when no step this release writes is missing, changed or out of order.
-            if (request.Keep && existing is not null && VerifyUpgrade.Shaped(slashed, template, existing, existing).Passed)
+            // passes exactly when no step this release writes is missing, changed or out of order. One that also
+            // carries an older release's step is merged instead, which leaves that step out (D-212).
+            VerifyUpgrade.Merged? merged = request.Keep && existing is not null ? VerifyUpgrade.Merge(slashed, template, existing) : null;
+
+            if (request.Keep && existing is not null && merged is not { Dropped.Count: > 0 } && VerifyUpgrade.Shaped(slashed, template, existing, existing).Passed)
             {
                 return Result.Ok(new Response(slashed, false, document.Platform, Kept: true, MovedFrom: moved));
             }
 
-            if (request.Keep && existing is not null && VerifyUpgrade.Merge(slashed, template, existing) is { Carried.Count: > 0 } merged)
+            if (merged is { Changed: true })
             {
                 await File.WriteAllTextAsync(path, merged.Text, cancellationToken).ConfigureAwait(false);
-                return Result.Ok(new Response(slashed, true, document.Platform, MovedFrom: moved, Carried: merged.Carried));
+                return Result.Ok(new Response(slashed, true, document.Platform, MovedFrom: moved, Carried: merged.Carried, Dropped: merged.Dropped, Replaced: merged.Replaced));
             }
 
             IReadOnlyList<string> lost = existing is null ? [] : VerifyUpgrade.OwnPools(template, existing);
@@ -128,11 +143,11 @@ public static class WriteFactoryPipeline
             return $"Kept {written.Path} as it is: it already carries every step this release writes, beside the team's own.\n{moved}";
         }
 
-        if (written.Carried is { Count: > 0 } carried)
+        if (written.Carried is not null)
         {
             return string.Create(
                 CultureInfo.InvariantCulture,
-                $"Merged {written.Path}: this release's steps, with the team's own carried into it -- {string.Join(", ", carried)}.\nA step is carried when this release writes none of the same name: check none of them is an older release's step this one dropped.\n{moved}");
+                $"{VerifyUpgrade.Describe(written.Path, written.Carried, written.Dropped ?? [], written.Replaced ?? [])}{moved}");
         }
 
         string lost = written.Lost is { Count: > 0 } pools

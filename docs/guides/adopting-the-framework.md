@@ -100,7 +100,9 @@ permissions and your own hooks. If that file is not valid JSON — a comment, a 
 is written to it and the entries are printed for you to place. On Azure DevOps the framework's
 pipelines live in `.azuredevops/`, named as on GitHub, so your own `azure-pipelines.yml` is never touched
 (D-203). The chain check there is written once and kept while it carries every step the release writes,
-because your own steps may sit beside them; one missing a step is printed for you to bring up to date.
+because your own steps may sit beside them. One missing a step is merged: this release's steps, with your pool and
+your own steps carried in and any step an older release wrote left out, each named in the report (D-212). Only a
+file it cannot read that way is printed for you to bring up to date.
 Nothing verifies a chain until it is in a pipeline that runs, and `init` says so.
 
 **Where there was code first, adding the line-endings rule shows files as changed** that were committed
