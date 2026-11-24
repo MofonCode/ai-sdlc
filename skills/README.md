@@ -1,4 +1,4 @@
-# The twenty-nine skills
+# The thirty skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -46,7 +46,7 @@ repository, so a push needs a person's word — *build it*, which the plan's han
 request (D-178), or the question `pr` asks when started by hand — but no hook blocks a push, and what stops an
 unready cycle from merging is the pull-request check.
 
-**All twenty-nine are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+**All thirty are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the seven protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
@@ -118,6 +118,7 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`harvest-areas`](#harvest-areas) | single | — |
 | [`close-cycle`](#close-cycle) | single | — |
 | [`upgrade`](#upgrade) | single | — |
+| [`doctor`](#doctor) | single | — |
 
 The suite holds that every skill on disk is in this table with a kind; that a playbook runs at least one skill;
 that what a playbook's text says it runs and its row here name the same skills, in both directions; that a single
@@ -2388,6 +2389,63 @@ pipeline opens. No local command starts that pipeline: taking a release is done 
 #### See also
 
 - [`init`](#init), [`status`](#status)
+
+---
+
+### `doctor`
+
+Checks this install and this repository — the binary, the plugin, the solution's files, its branches and its
+pipeline — and says what is wrong and whose it is to fix. Reports and never repairs (D-215).
+
+| | |
+|---|---|
+| Kind | single — one job, and it starts no other skill |
+| Stage | any |
+| Started by | a person who thinks something about ai-sdlc is broken, or has just installed or upgraded it |
+| Reads | `sdlc doctor`, and the skills this session was given |
+| Writes | nothing |
+
+#### Syntax
+
+```
+/sdlc:doctor
+```
+
+#### Parameters
+
+None.
+
+#### Output
+
+`sdlc doctor` verbatim — each check sound, a problem, or elsewhere, and before the first cycle every draft left to
+place with its rename — then one line of its own: how many of the plugin's skills this session has against the
+number the `the skills` check expects.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| — | none; a problem the doctor finds is its report, and it exits 1 | do what each problem line says, or the step it names |
+
+#### Example
+
+```
+/sdlc:doctor
+```
+
+#### Remarks
+
+**A skill around a command, for the one check the command cannot make.** `sdlc doctor` marks whether a host loaded
+the skills as elsewhere, because a binary cannot ask. The session running this skill is in the host, so it counts
+them; a count that differs from the expected one is a plugin and a binary from different releases.
+
+**It never repairs**, as the command never does: several fixes are a person's alone, and the rest are steps a
+person chooses. It names `upgrade` for a count that differs, and runs nothing.
+
+#### See also
+
+- [`upgrade`](#upgrade), [`init`](#init)
+- [Installing the plugin](../docs/guides/installing-the-plugin.md)
 
 ---
 

@@ -269,14 +269,109 @@ public sealed class AgentProcessTests
         return id.Value;
     }
 
+    [TestMethod]
+    public async Task No_more_readers_run_at_once_than_the_machine_allows()
+    {
+        // D-214: a harvest's readers all started together is dozens of large prompts against one account.
+        using TempDirectory round = new();
+
+        foreach (int reader in Enumerable.Range(1, 6))
+        {
+            round.Write($"r{reader}.prompt.md", "prompt");
+        }
+
+        FakeAgentProcess agents = new() { Hold = TimeSpan.FromMilliseconds(50) };
+
+        RunRound.Response ran = await Run(round.Root, agents, new ReaderLimits(2, Trace: false));
+
+        Assert.IsTrue(ran.AllAnswered);
+        Assert.AreEqual(6, agents.Launches.Count);
+        Assert.AreEqual(2, agents.MostAtOnce);
+    }
+
+    [TestMethod]
+    public async Task A_run_logs_each_reader_and_keeps_a_failed_readers_own_words()
+    {
+        // D-214: a run that stops partway says how far it got, and why the reader that stopped did.
+        using TempDirectory round = new();
+        round.Write("rules.prompt.md", "rules");
+        round.Write("security.prompt.md", "security");
+        FakeAgentProcess agents = new() { Failing = ["security"] };
+
+        RunRound.Response ran = await Run(round.Root, agents);
+
+        Assert.IsFalse(ran.AllAnswered);
+        string log = await File.ReadAllTextAsync(Path.Combine(round.Root, RunRound.LogFileName));
+        StringAssert.Contains(log, "2 to start, 0 answered already, at most 8 at once, trace off");
+        StringAssert.Matches(log, new System.Text.RegularExpressions.Regex(@"started   rules\s+prompt 1 KB"));
+        StringAssert.Matches(log, new System.Text.RegularExpressions.Regex(@"answered  rules\s+after"));
+        StringAssert.Matches(log, new System.Text.RegularExpressions.Regex(@"FAILED    security\s+exit 1 after \d+s: API Error: 429 rate_limit_error"));
+        StringAssert.Contains(log, "ended     1 answered, 1 failed");
+        StringAssert.Contains(await File.ReadAllTextAsync(Path.Combine(round.Root, "security" + RunRound.ErrorSuffix)), "Retry later.");
+        Assert.IsFalse(File.Exists(Path.Combine(round.Root, "rules" + RunRound.ErrorSuffix)));
+        StringAssert.Contains(RunRound.Render(ran), RunRound.LogFileName);
+    }
+
+    [TestMethod]
+    public async Task A_traced_reader_writes_its_hosts_debug_log_beside_its_prompt()
+    {
+        using TempDirectory round = new();
+        round.Write("rules.prompt.md", "rules");
+        FakeAgentProcess agents = new();
+
+        await Run(round.Root, agents, new ReaderLimits(8, Trace: true));
+
+        List<string> arguments = [.. agents.Launches.Single().Arguments];
+        int at = arguments.IndexOf("--debug-file");
+        Assert.IsGreaterThanOrEqualTo(0, at, "A traced reader is handed a debug file.");
+        Assert.AreEqual(Path.Combine(round.Root, "rules" + RunRound.TraceSuffix), arguments[at + 1]);
+        CollectionAssert.Contains(arguments, "--no-session-persistence", "A trace keeps no session: the debug log is the trace.");
+    }
+
+    [TestMethod]
+    public void The_reader_limits_come_from_the_environment_and_fall_back_to_the_default()
+    {
+        Dictionary<string, string> set = new() { [ReaderLimits.ParallelVariable] = "3", [ReaderLimits.TraceVariable] = "1" };
+
+        Assert.AreEqual(new ReaderLimits(3, Trace: true), ReaderLimits.From(name => set.GetValueOrDefault(name)));
+        Assert.AreEqual(ReaderLimits.Default, ReaderLimits.From(_ => null));
+        Assert.AreEqual(ReaderLimits.Default, ReaderLimits.From(name => name == ReaderLimits.ParallelVariable ? "0" : "0"));
+        Assert.AreEqual(ReaderLimits.DefaultParallel, ReaderLimits.From(_ => "many").Parallel);
+    }
+
+    [TestMethod]
+    public async Task A_process_that_exits_before_reading_its_prompt_is_a_failure_and_not_a_crash()
+    {
+        // D-214: the pipe closing under the copy threw out of the run, took every other reader with it, and printed
+        // only "The pipe is being closed."
+        using TempDirectory round = new();
+        round.Write("big.prompt.md", new string('x', 4 * 1024 * 1024));
+        bool windows = OperatingSystem.IsWindows();
+        CliAgentProcess shell = new(windows ? "cmd.exe" : "/bin/sh");
+
+        AgentExit exit = await shell.Run(
+            new AgentLaunch(
+                round.Root,
+                windows ? ["/c", "exit 3"] : ["-c", "exit 3"],
+                Path.Combine(round.Root, "big.prompt.md"),
+                Path.Combine(round.Root, "big.md"),
+                Reader: true,
+                TimeSpan.FromMinutes(1)),
+            CancellationToken.None);
+
+        Assert.IsFalse(exit.Succeeded);
+        Assert.AreEqual(3, exit.ExitCode);
+        StringAssert.Contains(exit.Problem, "ended before reading all of its prompt");
+    }
+
     private static string Name(AgentLaunch launch) =>
         Path.GetFileName(launch.Input!)[..^RunRound.PromptSuffix.Length];
 
-    private static async Task<RunRound.Response> Run(string directory, FakeAgentProcess agents)
+    private static async Task<RunRound.Response> Run(string directory, FakeAgentProcess agents, ReaderLimits? readers = null)
     {
         using var gate = Gate.For(directory, services => services.AddSingleton<IAgentProcess>(agents));
         Result<RunRound.Response> ran = await gate.Send<RunRound.Command, RunRound.Response>(
-            new RunRound.Command(directory, TimeSpan.Zero, TimeSpan.FromMinutes(1)));
+            new RunRound.Command(directory, TimeSpan.Zero, TimeSpan.FromMinutes(1), Readers: readers));
 
         Assert.IsTrue(ran.IsSuccess, string.Join("; ", ran.Errors.Select(error => error.Message)));
         return ran.Value;
@@ -304,12 +399,42 @@ public sealed class AgentProcessTests
         /// <summary>Whether there is no host to start.</summary>
         public bool NoHost { get; init; }
 
-        public Task<AgentExit> Run(AgentLaunch launch, CancellationToken cancellationToken)
+        /// <summary>Readers that exit 1, saying why.</summary>
+        public HashSet<string> Failing { get; init; } = [];
+
+        /// <summary>How long each reader runs, so readers overlap.</summary>
+        public TimeSpan Hold { get; init; }
+
+        /// <summary>The most readers that were running at once.</summary>
+        public int MostAtOnce { get; private set; }
+
+        private int _running;
+
+        public async Task<AgentExit> Run(AgentLaunch launch, CancellationToken cancellationToken)
         {
             lock (_gate)
             {
                 Launches.Add(launch);
+                _running++;
+                MostAtOnce = Math.Max(MostAtOnce, _running);
             }
+
+            try
+            {
+                await Task.Delay(Hold, cancellationToken);
+                return await Exit(launch, cancellationToken);
+            }
+            finally
+            {
+                lock (_gate)
+                {
+                    _running--;
+                }
+            }
+        }
+
+        private Task<AgentExit> Exit(AgentLaunch launch, CancellationToken cancellationToken)
+        {
 
             if (NoHost)
             {
@@ -317,6 +442,11 @@ public sealed class AgentProcessTests
             }
 
             string? name = launch.Input is null ? null : Name(launch);
+
+            if (name is not null && Failing.Contains(name))
+            {
+                return Task.FromResult(new AgentExit(1, false, "API Error: 429 rate_limit_error\nRetry later."));
+            }
 
             if (launch.Output is not null && (name is null || !Silent.Contains(name)))
             {

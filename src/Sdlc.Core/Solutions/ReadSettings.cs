@@ -133,6 +133,25 @@ public static class ReadSettings
                     ? "the library this release carries binds"
                     : "replaces the library this release carries, on this machine only"));
 
+            // Always listed, set or not: how many readers run at once is bounded by this machine's account, and the
+            // trace is the switch a person looks for when a run stopped and nobody knows why (D-214).
+            var readers = ReaderLimits.From(Environment.GetEnvironmentVariable);
+            bool parallelSet = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(ReaderLimits.ParallelVariable));
+            settings.Add(new Setting(
+                SettingGroup.Machine,
+                ReaderLimits.ParallelVariable,
+                readers.Parallel.ToString(CultureInfo.InvariantCulture),
+                parallelSet ? SettingSource.Environment : SettingSource.NotDeclared,
+                "the most readers a round or a harvest runs at once"));
+            settings.Add(new Setting(
+                SettingGroup.Machine,
+                ReaderLimits.TraceVariable,
+                readers.Trace ? "on" : "(unset)",
+                readers.Trace ? SettingSource.Environment : SettingSource.NotDeclared,
+                readers.Trace
+                    ? "every reader writes its host's debug log beside its prompt"
+                    : "set it to have every reader write its host's debug log beside its prompt"));
+
             if (PinnedRelease.DevBuild() is { } devBuild)
             {
                 settings.Add(new Setting(

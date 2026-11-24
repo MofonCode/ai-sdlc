@@ -63,7 +63,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the build ended without a report](../guides/handling-refusals.md#the-build-ended-without-a-report) | fix what it printed, and say *build it* again |
 | **Starting readers — `sdlc round run`** | |
 | [no host to start a reader with](../guides/handling-refusals.md#no-host-to-start-a-reader-with) | install the host's command line, and run the round again |
-| [a reader returned nothing](../guides/handling-refusals.md#a-reader-returned-nothing) | fix what the message names; `sdlc round run` again starts only the readers with no answer |
+| [a reader returned nothing](../guides/handling-refusals.md#a-reader-returned-nothing) | fix what the message names, reading `run.log` beside the prompts; the same command again starts only the readers with no answer |
 | **Successors — `sdlc successor`, `sdlc lead show successor:`** | |
 | [a successor that is not ready](../guides/handling-refusals.md#a-successor-that-is-not-ready) | wait until `sdlc successors` says `ready`; for a stuck one, correct `succeeds:` or delete the file |
 | [a loop through succeeds](../guides/handling-refusals.md#a-loop-through-succeeds) | correct one file's `succeeds:` so the loop opens |

@@ -27,6 +27,15 @@ manifest on the integration branch, then `dotnet sdlc upgrade apply --push`. The
 after that. Nothing a cycle is judged on changes; it is a minor because the upgrade pipeline's shape and what
 `sdlc upgrade` tells a person to do both changed.
 
+**From 0.56.1 a reader that stops says why, and takes no other reader with it** (D-214). A reader that exited before
+reading its whole prompt used to end the whole run with *The pipe is being closed.* and nothing else, and every
+reader still running left an empty answer. Now it fails alone, with what it said, and the rest carry on. At most
+`SDLC_READERS` readers run at once, 8 unless set on the machine, so a harvest no longer starts every reader
+together. Every run writes `run.log` beside its prompts, a line as each reader starts and ends, and a failed reader's
+own words to `<reader>.err`; with `SDLC_TRACE` set, each reader's host writes its debug log there too. `sdlc settings`
+shows both variables. **A `doctor` skill** runs `sdlc doctor` and answers the one check the binary cannot, whether
+this session has the whole plugin (D-215): the plugin has thirty skills. Nothing a cycle is judged on changes.
+
 ## 0.55
 
 **Three sizes of run, each ending in one pull request** (D-205). A cycle is `/sdlc:build`, as before. A **wave** is

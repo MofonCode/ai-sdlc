@@ -56,6 +56,9 @@ What `round run` does for you, so you know what you are waiting on and never try
   reader that could open a file could read past what the round allows.
 - **Every reader is marked** `SDLC_READER=1` (D-109), so a red build's turn-end hook lets its turn end with its
   answer. The mark stands down only that hook; a reader still may not write a protected file.
+- **No more than `SDLC_READERS` at once, and every start and end logged** (D-214) in `run.log` beside the
+  prompts. When a reader fails, its line there and its own words in `<reader>.err` say why: tell the person
+  that, then run `round run` again, which starts only the readers with no answer.
 
 **Never edit a prompt, and never add to it.** Each is what the round is judged from, the same bytes in
 every session, and the material a reader may read is decided by the binary rather than by what this

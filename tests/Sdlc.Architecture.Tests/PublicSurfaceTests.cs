@@ -92,6 +92,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Evidence.TimedTest",
         "Sdlc.Core.Evidence.CoverageSummary",
         "Sdlc.Core.Findings.RecordRound",
+        "Sdlc.Core.Findings.ReaderLimits",
         "Sdlc.Core.Findings.RunRound",
         "Sdlc.Core.Findings.RunRound+Command",
         "Sdlc.Core.Findings.RunRound+Reader",

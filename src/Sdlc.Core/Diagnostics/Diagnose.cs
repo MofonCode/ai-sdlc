@@ -955,6 +955,6 @@ public static class Diagnose
             "the skills",
             CheckOutcome.Elsewhere,
             "a host loads these, and a binary cannot ask it what it loaded",
-            "on Claude Code: 'claude plugin details sdlc@ai-sdlc'. Expect Skills (29) and Hooks (3). 'sdlc claude' starts a session with the skills this binary carries");
+            "on Claude Code: 'claude plugin details sdlc@ai-sdlc'. Expect Skills (30) and Hooks (3). 'sdlc claude' starts a session with the skills this binary carries");
     }
 }

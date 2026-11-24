@@ -132,7 +132,9 @@ files, in which order, under which headings is deterministic, so `sdlc round pro
 reader's prompt and `sdlc round collect` validates every answer into a draft round. A reader is started
 with no tools, because everything it may read is in its prompt (D-118). **The binary starts it too**: `sdlc round
 run` launches every reader, a harvest's readers and the build's own process are started the same way, and no skill
-types a launch line or runs with the host's permission checks switched off (D-183).
+types a launch line or runs with the host's permission checks switched off (D-183). **No more run at once than
+the machine allows, and every run keeps a log**: each reader's start and end in `run.log` beside the prompts, and a
+failed reader's own words beside its answer, so a run that stops partway says where and why (D-214).
 
 ### 2.6 Flexibility comes from making compliance cheap
 
@@ -2500,6 +2502,7 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `constraints` | single | renders the effective constraint set, all tiers |
 | `suggestions` | single | lists accumulated non-blocking findings |
 | `upgrade` | single | moves this machine's binary and installed plugin to a release and checks they agree; changes no repository — D-201 |
+| `doctor` | single | runs `sdlc doctor` and answers the one check it marks elsewhere: how many of the plugin's skills this session has. Never repairs — D-215 |
 
 **Six of them keep a task list where the host has one.** `init`, `intent`, `spec` and `plan` each list their own
 steps and nothing past the hand-back; `build` and `to-plan` list one line per cycle. `implement` keeps none: it
@@ -2553,6 +2556,7 @@ mechanical rather than promised.
 | `close-cycle` | every aspect answered for a cycle, every draft placed or refused, the integration branch checked out | any of those missing — `sdlc harvest close` names what (D-192) | the harvest ledger, a `harvest/<date>` commit removing the closed folders, a push and a pull request |
 | `theme` | nothing | nothing; an unreadable theme is reported | nothing; it prints |
 | `upgrade` | nothing; a release, or the newest on nuget.org | `SDLC_DEV_BUILD` is set; asked to move a solution, which its upgrade pipeline does | this machine's global tool and installed plugin; nothing in any repository |
+| `doctor` | nothing | nothing; what is wrong is its report | nothing; it prints |
 
 **Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row
 saying `nothing` are not the same claim, and the first is what lets a skill quietly check the wrong
@@ -2588,7 +2592,7 @@ they print verbatim.
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, a new blocker without a one-line gist (D-110), a new blocker citing a rule its reader was not handed (D-174), and a new finding quoting its rule in other words (D-177). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session decides the dispositions of earlier findings (D-49), and `--answered`/`--withdrawn` copy the ones it settles in from the ledger word for word — D-117, D-121, D-162 |
-| `round run <id> <artifact> --dir <directory> [--timeout <minutes>]` | starts every reader whose prompt `round prompt` wrote there and that has no answer yet — the rules reader first and alone, then the rest — each a fresh process from that directory with no tools and no MCP servers, marked as a reader, its answer written beside its prompt. The adjudicator the same way; run again for the reconciler, or for a reader that returned nothing. Refuses with no host to start a reader with — D-183 |
+| `round run <id> <artifact> --dir <directory> [--timeout <minutes>]` | starts every reader whose prompt `round prompt` wrote there and that has no answer yet — the rules reader first and alone, then the rest — each a fresh process from that directory with no tools and no MCP servers, marked as a reader, its answer written beside its prompt. The adjudicator the same way; run again for the reconciler, or for a reader that returned nothing. Refuses with no host to start a reader with. At most `SDLC_READERS` at once, each start and end logged to `run.log` in the directory — D-183, D-214 |
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|solution\|techstack\|harvest` | prints or writes what belongs in a file only a person writes — §5.3. `abandon --series <id>` prints one abandonment for a whole series, placed beside its record, which every cycle that exists only in the series reads as its own (D-208) |
@@ -2598,7 +2602,7 @@ they print verbatim.
 | `harvest record <aspect> <file>` | once the aspect's draft is placed, records in `.sdlc/harvested.json` that the sitting's cycles answered it, with the concerns watched and ignored tallied, each with its reason, the suggestions declined and covered kept, a concern a covered line names taken out of the tallies, and each note for the framework kept in `.sdlc/framework-harvest.json`. Closes nothing; refuses while the draft is still beside its file, a note names no surface or no kind, or a covered line names no rule, decision, successor or file that exists — D-152, D-153, D-191, D-194, D-204, D-209 |
 | `harvest framework [--out <file>]` | what of the harvests may be handed to the framework: the notes without their evidence, and each closed cycle's releases, rounds, verdicts, reader yield and cost without its id, files or commits; `--out` writes it as JSON. Sends nothing — D-204 |
 | `harvest close` | closes every completed cycle whose five aspects are answered: records what later harvests read, and on `harvest/<date>` commits the removal of their folders with the ledger and the records placed. Pushes nothing; refuses while a draft is beside its file, while nothing can close, or off the integration branch — D-192 |
-| `harvest read --dir <directory> [--aspect <aspect>] [--cycles <id>,<id>]` | writes one prompt per completed cycle and document with findings in the aspect's sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt — D-183 |
+| `harvest read --dir <directory> [--aspect <aspect>] [--cycles <id>,<id>]` | writes one prompt per completed cycle and document with findings in the aspect's sitting — that document's findings and the question that groups them — and starts one fresh reader for each, its answer beside its prompt, as `round run` starts them — D-183, D-214 |
 | `harvest review <aspect> --dir <directory> [--proposals <file>]` | writes and starts the two readers that review an aspect's sitting: one handed the marked proposal file, the aspect's draft and the solution document, one handed the aspect's report and the proposal file — D-183 |
 | `harvest --history` | the harvest ledger: every closed cycle, every sitting with its aspect and what it accepted, declined and found covered, the concerns watched below the bar, and the concerns ignored with the cycles they were ignored in, each with its reason, and every rule, decision and successor with its text — D-152, D-153, D-194, D-209 |
 | `harvest summary <proposal file>` | what one proposal file asks of a person, in a few lines: the proposals to mark, each answer — declined, covered, ignored — counted by the themes the sitting grouped it under, and every rule, decision and successor it names with its text. Every harvest skill hands back through it. Reads; writes nothing — D-209 |
@@ -7736,6 +7740,68 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-215 — `doctor` is a skill too, for the one check the command cannot make
+
+**Governs:** §15
+
+**Decision.** A `doctor` skill runs `sdlc doctor`, shows what it prints verbatim, and adds one line: how many of
+the plugin's skills the session running it has, against the number the command's `the skills` check expects. It is
+single-responsibility and repairs nothing, as the command repairs nothing; where a count differs it names `upgrade`
+and runs nothing.
+
+**Why.** The command marks whether a host loaded the skills as *elsewhere*, because a binary cannot ask a host what
+it loaded. An agent in the session can see what it was given, so the one check the command hands to somebody else
+is answered by the skill without asking the person to run a host command. And a person in a session who thinks
+something is broken reaches for a skill, not a shell: `status`, `constraints`, `theme` and `suggestions` already
+wrap a command for the same reason.
+
+**Rejected.**
+
+- *Leaving it a command, by the rule that what a file listing can decide the binary owns.* The command still owns
+  everything it decides; the skill adds only what the binary cannot see.
+- *A skill that fixes what the doctor finds.* Several fixes are a person's alone — a protected file placed, a branch
+  policy set — and the rest are steps with their own skills. A doctor that repaired would be a second, partial copy
+  of each.
+
+### D-214 — Readers run a few at a time, each run keeps a log, and one reader ending early fails only itself
+
+**Governs:** §2.5, §15.2
+
+**Decision.** Three changes to how the binary runs readers, for a round and a harvest alike:
+
+- **A reader that ends before reading its whole prompt fails alone.** The prompt is piped in; a reader that exits
+  early closes the pipe under the copy. That is now that reader's failure, carrying what it said on its way out,
+  and the other readers carry on.
+- **At most so many at once**, `SDLC_READERS` on the machine, 8 unless set: every reader of a round, never all of a
+  harvest. The machine's rather than the solution's, because what can run at once is bounded by the account it runs
+  on.
+- **A log of every run**, `run.log` beside the prompts: a line when the run starts, when each reader starts and how
+  it ended — its time, its answer's size, or its exit and the first line of what it said — and when the run ends,
+  appended as it happens. A failed reader's own words go in full to `<reader>.err` beside its answer. With
+  `SDLC_TRACE` set, each reader's host also writes its debug log to `<reader>.debug.log`.
+
+The directory is the one the skill already passes, outside the repository, so the log is temporary by construction
+and nothing is committed.
+
+**Why.** A governed solution's first harvest started 68 readers at once, with prompts up to 960 KB. Twice the run
+stopped with nothing but *The pipe is being closed.* and exit 3: one reader had exited early, the write to it threw,
+and the throw took every reader still running with it — their answers left empty — while the reason that reader
+gave was never read. Readers keep no session, so nothing else recorded it. A rerun did resume, taking 23 answers to
+44, but nobody could say where it had stopped or why without watching the processes from outside.
+
+**Rejected.**
+
+- *Retrying a failed reader automatically.* A run starts only the readers with no answer, so running it again is
+  the retry; one that retried by itself would spend tokens on a failure that is not transient and hide a limit
+  being hit.
+- *A progress document the agent keeps.* The agent cannot see inside the binary's readers, and `sdlc harvest`
+  already says which aspects are left; it would be a second record that drifts from the first.
+- *The cap in `solution.md`.* A team would share one number across accounts that differ.
+- *Keeping each reader's session for the trace.* The host's debug log names an API error and a retry where a
+  transcript does not, and it lands beside the prompt rather than in the host's own store.
+- *A tracing framework such as OpenTelemetry.* It needs a collector nobody runs; a file beside the prompts needs
+  nothing.
 
 ### D-213 — The release being moved to makes the move: the upgrade pipeline installs it and hands over to `sdlc upgrade apply`
 

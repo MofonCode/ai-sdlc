@@ -417,7 +417,9 @@ internal static class Usage
                                      same way. Run it again to start a reader that returned
                                      nothing, or the reconciler once its prompt is written. Exits
                                      1 while a reader returned nothing; refuses with no host to
-                                     start a reader with.
+                                     start a reader with. At most SDLC_READERS run at
+                                     once; each start and end goes to run.log in that directory,
+                                     and a failed reader's own words to <reader>.err (D-214).
             round collect <id> <artifact> --dir <directory>
                                      Read every reader's answer from that directory and draft
                                      round.json beside them: new ids numbered past the ledgers,
@@ -507,7 +509,9 @@ internal static class Usage
                                      in the aspect's sitting, constraints unless given, each that
                                      document's findings and the question that groups them, and
                                      start one fresh reader for each, its answer written beside its
-                                     prompt (D-183).
+                                     prompt (D-183). Run it again after a reader failed: only the
+                                     readers with no answer yet are started. run.log in that
+                                     directory says how each one went (D-214).
             harvest review <aspect> --dir <directory> [--proposals <file>]
                                      Write and start the two readers that review one aspect's
                                      sitting: one handed the marked proposal file, the aspect's
@@ -561,6 +565,11 @@ internal static class Usage
                                      command is handed to it instead of the pinned release, it
                                      calls itself <release>-local, and no cycle it judged opens a
                                      pull request. For testing a change to the framework.
+            SDLC_READERS             The most readers a round or a harvest runs at once on this
+                                     machine. Defaults to 8.
+            SDLC_TRACE               Set, and every reader writes its host's debug log beside its
+                                     prompt as <reader>.debug.log: for finding out why a reader
+                                     stopped. Large; unset it once you know.
 
         Options for draft techstack
             --empty                  Write the draft with nothing in it. Renamed into place, it
