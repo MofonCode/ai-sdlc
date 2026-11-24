@@ -219,6 +219,13 @@ internal static class Usage
                                      Without a release, the one this machine runs.
                                      Always answered by this machine's release, never the pinned
                                      one. Runs nothing.
+            upgrade apply [--push]   Move the solution to this machine's release, from its
+                                     integration branch: adoption, the factory's merge, and what
+                                     an upgrade may carry committed on upgrade/sdlc-<release>,
+                                     checked as the pull request will check it. --push pushes it
+                                     and opens the pull request, only when the check holds. The
+                                     upgrade pipeline runs this as the release it installs. Never
+                                     moves a solution back: revert the upgrade's pull request.
             park <id>                Compare a cycle's plan with every plan not yet built. A file
                                      only another creates parks it: writes parked.md with what it
                                      waits on, keeping its spec and plan. A file two plans both

@@ -367,7 +367,7 @@ never decides a gate.
 | `status` | shows where a cycle has got to, and the next command |
 | `suggestions` | lists the open non-blocking findings a solution has accumulated, each concern once, and with `--all` whether each was accepted, declined or answered |
 | `theme` | shows the roles the solution's surfaces use and their values, or a skeleton of roles to fill; never a value |
-| `upgrade` | moves this machine's binary and installed plugin to a release and checks they agree. A solution moves by its upgrade pipeline, never from here |
+| `upgrade` | moves this machine's binary and installed plugin to a release and checks they agree. A solution moves by its upgrade pipeline or `sdlc upgrade apply`, never from here |
 
 **For what each one refuses, who starts it, and what it reads and writes, go to
 [`../skills/README.md`](../skills/README.md);** [`reference/skills.md`](reference/skills.md) adds what

@@ -14,8 +14,10 @@ public sealed class UpgradePipelineTests
     [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
-    public void It_is_valid_yaml_and_moves_the_pin_before_adoption_runs_as_that_release(Platform platform)
+    public void It_is_valid_yaml_installs_the_release_and_hands_the_move_to_it(Platform platform)
     {
+        // D-213: the file is the one part of a move an older release writes, so it carries nothing that could go
+        // stale. Everything after the install is the new release's.
         string pipeline = UpgradePipeline.Text(platform, "development");
 
         YamlDotNet.RepresentationModel.YamlStream stream = [];
@@ -23,15 +25,16 @@ public sealed class UpgradePipelineTests
         Assert.AreEqual(1, stream.Documents.Count);
 
         int pin = pipeline.IndexOf("dotnet tool update --local", StringComparison.Ordinal);
-        int init = pipeline.IndexOf("sdlc init" + Environment.NewLine, StringComparison.Ordinal);
-        int commit = pipeline.IndexOf("git commit", StringComparison.Ordinal);
+        int apply = pipeline.IndexOf("dotnet sdlc upgrade apply --push", StringComparison.Ordinal);
 
-        Assert.IsTrue(pin > 0 && init > pin, "Adoption runs as the release the manifest now pins.");
-        Assert.IsTrue(commit > init, "What adoption wrote is what is committed.");
-        StringAssert.Contains(pipeline, "sdlc factory --keep", "The factory's pipeline moves with the release when it must, and keeps the team's pool and steps when it need not.");
-        StringAssert.Contains(pipeline, "$factory_note", "A rewrite is said in the pull request, so what the team added is put back before it merges.");
+        Assert.IsTrue(pin > 0 && apply > pin, "The move runs as the release the manifest now pins.");
+
+        foreach (string stale in (string[])["dotnet sdlc init", "sdlc factory --keep", "git add", "git commit", "git push", "pr create"])
+        {
+            Assert.IsFalse(pipeline.Contains(stale, StringComparison.Ordinal), stale + " is the release's to run, not the file's.");
+        }
+
         StringAssert.Contains(pipeline, "never run", "D-32: a pipeline nobody has run says so.");
-        StringAssert.Contains(pipeline, "upgrade/sdlc-$release");
     }
 
     [TestMethod]
@@ -61,19 +64,10 @@ public sealed class UpgradePipelineTests
     [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
-    public void It_stages_only_what_the_upgrade_check_accepts(Platform platform)
+    public void The_pipeline_itself_is_a_file_an_upgrade_may_change(Platform platform)
     {
-        // Anything else in the pull request and the check refuses it as a change with no chain.
-        string staging = UpgradePipeline.Text(platform, "development")
-            .ReplaceLineEndings("\n")
-            .Split('\n')
-            .Single(line => line.Contains("git add", StringComparison.Ordinal));
-
-        string[] listed = staging.Split(" in ")[1].Split(';')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        CollectionAssert.AreEquivalent(VerifyUpgrade.Paths.ToList(), listed, "Each path an upgrade may carry is staged when it changed, and nothing else.");
-
-        Assert.IsFalse(staging.Contains("-A", StringComparison.Ordinal), "Nothing is staged wholesale.");
-        Assert.IsTrue(VerifyUpgrade.Carries([UpgradePipeline.PathOf(platform)]), "The pipeline itself is a file an upgrade may change.");
+        // What the move stages is held in ApplyUpgradeTests, against a real repository.
+        Assert.IsTrue(VerifyUpgrade.Carries([UpgradePipeline.PathOf(platform)]));
     }
 
     [TestMethod]

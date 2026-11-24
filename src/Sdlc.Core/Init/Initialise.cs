@@ -66,12 +66,7 @@ public static class Initialise
     /// upgrade are the framework's by their names; <c>azure-pipelines.yml</c> is the framework's only when
     /// <see cref="WroteRootPipeline"/> says so, because it is the name a team's own CI takes too.
     /// </remarks>
-    public static IReadOnlyList<(string Retired, string Current)> RetiredPipelines { get; } =
-    [
-        ("azure-pipelines.yml", PipelinePath(Platform.AzureDevOps).Replace('\\', '/')),
-        ("azure-pipelines.factory.yml", FactoryPipeline.PathOf(Platform.AzureDevOps).Replace('\\', '/')),
-        ("azure-pipelines.upgrade.yml", UpgradePipeline.PathOf(Platform.AzureDevOps).Replace('\\', '/')),
-    ];
+    public static IReadOnlyList<(string Retired, string Current)> RetiredPipelines => ReleaseChanges.MovedPipelines;
 
     /// <summary>Where an Azure DevOps pipeline lived before 0.53, or null when it has always lived where it does.</summary>
     /// <param name="current">The path it lives at now, with either separator.</param>

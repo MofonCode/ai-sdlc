@@ -1395,6 +1395,36 @@ static async Task<int> DiscardCommand(Workspace workspace)
 // A view: it prints the commands and runs none.
 static async Task<int> UpgradeCommand(Workspace workspace, CommandLine line)
 {
+    // The move itself, done by this release rather than described: the upgrade pipeline installs a release and runs
+    // this as it, and a person runs it on the integration branch (D-213).
+    if (line.Arguments is ["apply", ..])
+    {
+        IReadOnlyList<string> unknown = line.OptionsOtherThan("push", "solution");
+
+        if (unknown.Count > 0 || line.Arguments.Count > 1)
+        {
+            await Console.Error.WriteLineAsync(
+                "'sdlc upgrade apply' moves the solution to this machine's release and takes only --push. To move to another release, install it first: 'dotnet tool update --local MofonCode.Sdlc.Cli --version <release>', then 'dotnet sdlc upgrade apply'.")
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        Result<ApplyUpgrade.Response> applied = await workspace
+            .Send<ApplyUpgrade.Command, ApplyUpgrade.Response>(new ApplyUpgrade.Command(line.HasOption("push")))
+            .ConfigureAwait(false);
+
+        if (applied.IsFailed)
+        {
+            return await Report(applied, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(ApplyUpgrade.Render(applied.Value)).ConfigureAwait(false);
+
+        return applied.Value.Branch is null || (applied.Value.Holds && applied.Value.Unpublished is null)
+            ? ExitCode.Ok
+            : ExitCode.Refused;
+    }
+
     Result<UpgradeChecklist.Response> result = await workspace
         .Send<UpgradeChecklist.Query, UpgradeChecklist.Response>(new UpgradeChecklist.Query(line.Arguments.Count > 0 ? line.Arguments[0] : null, Release.Version))
         .ConfigureAwait(false);

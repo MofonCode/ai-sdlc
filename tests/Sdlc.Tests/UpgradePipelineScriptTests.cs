@@ -5,14 +5,13 @@ using Sdlc.Core.Init;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// The upgrade pipeline's script, run rather than read: the steps that move the pin, run adoption and commit, under
-/// bash, in a clone of a throwaway remote, on an agent with no git identity of its own.
+/// The upgrade pipeline's script, run rather than read: it installs the release asked for and hands the move to it,
+/// under bash, in a clone of a throwaway remote.
 /// </summary>
 /// <remarks>
-/// The other upgrade tests assert strings in the template, and every one of them passed while the script could not
-/// open a pull request on any agent: adoption committed before the script set an identity, and had it not, its commit
-/// would have left nothing staged for the script's own. <c>dotnet</c> is a stand-in that moves the pin and does what
-/// adoption does to git -- writes, then commits -- so what is tested is the script around it, not the binary.
+/// The script is what an older release leaves in a solution, so it is held to doing only that (D-213). <c>dotnet</c>
+/// is a stand-in that moves the pin and records what it was asked to run, so what is tested is the script, not the
+/// binary: <c>ApplyUpgradeTests</c> holds the move.
 /// </remarks>
 [TestClass]
 public sealed class UpgradePipelineScriptTests
@@ -21,8 +20,7 @@ public sealed class UpgradePipelineScriptTests
     private const string From = "0.1.0";
     private const string To = "0.2.0";
 
-    // Moves the pin, lists it, and stands in for adoption: it changes a file an upgrade carries and writes one it may
-    // not, and commits both as 'sdlc init' does, failing as it fails when git has no identity to commit with.
+    // Moves the pin, lists it, and records the hand-over with the release the manifest pinned when it was asked.
     private const string FakeDotnet = """
         #!/usr/bin/env bash
         manifest=.config/dotnet-tools.json
@@ -31,12 +29,8 @@ public sealed class UpgradePipelineScriptTests
             printf 'Package Id  Version  Commands  Manifest\n---\nmofoncode.sdlc.cli  %s  sdlc  %s\n' "$(sed -n 's/.*"version": "\(.*\)".*/\1/p' $manifest)" "$manifest" ;;
           "tool update --local MofonCode.Sdlc.Cli --version "*)
             sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$6\"/" $manifest ;;
-          "sdlc init")
-            echo "written by the new release" >> .sdlc/README.md
-            echo "an instruction file nobody had" > AGENTS.md
-            git add -- .sdlc/README.md AGENTS.md $manifest && git commit -q -m "Update the ai-sdlc scaffolding" || exit 3 ;;
-          "sdlc factory --keep")
-            echo "Kept" ;;
+          "sdlc upgrade apply --push")
+            echo "handed over as $(sed -n 's/.*"version": "\(.*\)".*/\1/p' $manifest)" ;;
           *)
             echo "unexpected: dotnet $*" >&2; exit 9 ;;
         esac
@@ -44,9 +38,11 @@ public sealed class UpgradePipelineScriptTests
         """;
 
     [TestMethod]
-    [DataRow(Platform.GitHub)]
-    [DataRow(Platform.AzureDevOps)]
-    public void It_pushes_an_upgrade_branch_carrying_what_adoption_wrote_and_only_what_an_upgrade_may(Platform platform)
+    [DataRow(Platform.GitHub, To, true)]
+    [DataRow(Platform.AzureDevOps, To, true)]
+    [DataRow(Platform.GitHub, From, false)]
+    [DataRow(Platform.AzureDevOps, From, false)]
+    public void It_installs_the_release_asked_for_and_hands_the_move_to_it(Platform platform, string release, bool moves)
     {
         string root = Path.Combine(Path.GetTempPath(), "sdlc-upgrade-script", Guid.NewGuid().ToString("N"));
         string remote = Path.Combine(root, "remote.git");
@@ -64,7 +60,7 @@ public sealed class UpgradePipelineScriptTests
             {
                 ["GIT_CONFIG_GLOBAL"] = noIdentity,
                 ["GIT_CONFIG_NOSYSTEM"] = "1",
-                ["RELEASE"] = To,
+                ["RELEASE"] = release,
                 ["PATH"] = bin + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH"),
             };
 
@@ -93,18 +89,18 @@ public sealed class UpgradePipelineScriptTests
             (int exit, string output) = Run(Bash(), $"\"{script.Replace('\\', '/')}\"", work, environment);
 
             Assert.AreEqual(0, exit, output);
-            string branch = $"upgrade/sdlc-{To}";
-            string changed = Git(work, environment, $"--git-dir=\"{remote}\" diff --name-only {Integration} {branch}");
 
-            CollectionAssert.AreEquivalent(
-                new[] { PinnedRelease.ManifestPath, ".sdlc/README.md" },
-                changed.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-                "The pin and what adoption wrote reach the pull request's branch, and AGENTS.md, which an upgrade may not carry, does not.\n" + output);
-            StringAssert.Contains(output, "AGENTS.md", "What was left out is said.");
-            StringAssert.Contains(
-                Git(work, environment, $"--git-dir=\"{remote}\" log -1 --format=%s {branch}"),
-                $"Move to sdlc {To}",
-                "One commit, the script's own, rather than adoption's beside it.");
+            if (moves)
+            {
+                StringAssert.Contains(output, "handed over as " + To, "The move runs as the release just installed.\n" + output);
+            }
+            else
+            {
+                StringAssert.Contains(output, "Nothing to upgrade", output);
+                Assert.IsFalse(output.Contains("handed over", StringComparison.Ordinal), "A solution on the release already stops cleanly.");
+            }
+
+            Assert.AreEqual("seed", Git(work, environment, "log -1 --format=%s").Trim(), "The script commits nothing itself: the release it hands to does.");
         }
         finally
         {
@@ -123,13 +119,15 @@ public sealed class UpgradePipelineScriptTests
         }
     }
 
-    /// <summary>The step's script, from the first line after its block opens up to the pull request's platform call.</summary>
+    /// <summary>The step's script, from the first line after its block opens to the hand-over, which is its last.</summary>
     private static string Script(Platform platform)
     {
         string[] lines = UpgradePipeline.Text(platform, Integration).ReplaceLineEndings("\n").Split('\n');
         int identity = Array.FindIndex(lines, line => line.Contains("git config user.name 'sdlc upgrade'", StringComparison.Ordinal));
         int start = Array.FindLastIndex(lines, identity, line => line.TrimEnd().EndsWith('|')) + 1;
-        int end = Array.FindIndex(lines, start, line => line.Contains("gh pr view", StringComparison.Ordinal) || line.Contains("az extension add", StringComparison.Ordinal));
+        int end = Array.FindIndex(lines, start, line => line.Contains("dotnet sdlc upgrade apply", StringComparison.Ordinal)) + 1;
+        Assert.IsTrue(end > start);
+        Assert.IsFalse(lines[end].StartsWith(new string(' ', lines[start].Length - lines[start].TrimStart().Length), StringComparison.Ordinal) && lines[end].Trim().Length > 0, "The hand-over is the script's last line.");
         int indent = lines[start].Length - lines[start].TrimStart().Length;
 
         return string.Join('\n', lines[start..end].Select(line => line.Length >= indent ? line[indent..] : line.TrimStart())) + "\n";

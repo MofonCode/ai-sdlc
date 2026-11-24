@@ -2337,7 +2337,7 @@ branch for deletion once the pull request merges (D-190).
 
 Moves this machine's sdlc to a release — the binary and the installed plugin, together — and checks the two agree.
 It changes no repository: a solution's pin moves by a run of its upgrade pipeline, which a person starts on the
-platform (D-201).
+platform, or by `sdlc upgrade apply` on its integration branch (D-201, D-213).
 
 | | |
 |---|---|
@@ -2369,7 +2369,7 @@ a new session starts. In a governed solution it hands back to `sdlc upgrade`, wh
 | Condition | Result | What to do |
 |---|---|---|
 | `SDLC_DEV_BUILD` is set | stops: this machine runs a local build, and the global tool is not what answers | [testing a local build](../docs/guides/testing-a-local-build.md) is how to leave one |
-| asked to move a solution | does not: a solution moves by its upgrade pipeline | run the pipeline on the platform; `sdlc upgrade` there says what applies |
+| asked to move a solution | does not: a solution moves by its upgrade pipeline or `sdlc upgrade apply` | run the pipeline on the platform, or `sdlc upgrade apply` on the integration branch; `sdlc upgrade` there says what applies |
 
 #### Example
 

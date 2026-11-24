@@ -56,7 +56,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`harvest-areas`](../../skills/README.md#harvest-areas) | `[--cycles <id>,<id>]` | proposes the areas to add, rename, merge, remove, re-glob or tag | `harvest` |
 | [`close-cycle`](../../skills/README.md#close-cycle) | `` | once every aspect is answered, commits the closed cycles' removal on a branch of its own and opens its pull request | `harvest`, or a person |
 | **This machine** | | | |
-| [`upgrade`](../../skills/README.md#upgrade) | `[<release>]` | moves this machine's binary and installed plugin to a release and checks they agree; a solution moves by its upgrade pipeline | a person |
+| [`upgrade`](../../skills/README.md#upgrade) | `[<release>]` | moves this machine's binary and installed plugin to a release and checks they agree; a solution moves by its upgrade pipeline or `sdlc upgrade apply` | a person |
 
 \* **A person must start these two.** Every other skill may be started by an agent as well — nothing in
 the plugin stops one — so *started by* there is who normally decides. These two are different, because

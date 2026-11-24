@@ -5,7 +5,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.55** · .NET 10 · [changelog](CHANGELOG.md)
+**Version 0.56** · .NET 10 · [changelog](CHANGELOG.md)
 
 **ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
@@ -322,7 +322,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.55.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.56.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (29)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -486,7 +486,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Amending a plan after admission** | the suite | an amended plan through a real pull request |
 | **The rebuilt patch** | a real git repository in the suite | a pull-request check rebuilding one |
 | **The upgrade check** | a refused real upgrade, replayed and passing in a copy of the repository | a real upgrade pull request passing it |
-| **The upgrade pipeline** | the suite: both templates parse, stage only what the upgrade check accepts, and are what adoption writes. On a real Azure DevOps server, its pool resolving from `SDLC_AGENT_POOL` to a self-hosted pool and to a Microsoft-hosted one | a run on either platform, and its pull request passing the upgrade check (D-201) |
+| **The upgrade pipeline** | the suite: both templates parse, install the release and hand the move to it, and are what adoption writes; `sdlc upgrade apply` moves a repository as an older release left it, pipelines at the root and a team's pool and steps beside the framework's, into a commit the upgrade check accepts. Run against a governed solution's 0.51 pipelines, its merges matched the copies a person made by hand. On a real Azure DevOps server, its pool resolving from `SDLC_AGENT_POOL` to a self-hosted pool and to a Microsoft-hosted one | a run on either platform, and its pull request passing the upgrade check (D-201) |
 | **Dependency moves without a cycle** | the suite, and a real security fix checked locally | one merged that way |
 | **A test run on a local build** | the suite | a whole test run through `SDLC_DEV_BUILD` |
 | **Running without approvals** | the suite | a real cycle. Under it nothing local anchors a findings ledger; git history and the pull request are what remain (`CONCEPT.md` D-137) |

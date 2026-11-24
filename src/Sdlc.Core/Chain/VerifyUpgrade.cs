@@ -583,18 +583,10 @@ public static class VerifyUpgrade
     /// merge drops it rather than carrying it as the team's (D-212).
     /// </summary>
     /// <remarks>
-    /// A name joins this list in the change that stops writing it. A test holds that no template this release writes
-    /// still uses one; nothing can hold that a dropped name was added, which is a reviewer's question.
+    /// Kept in <see cref="ReleaseChanges"/>, with the release that dropped each. A test holds that no template this
+    /// release writes still uses one; nothing can hold that a dropped name was added, which is a reviewer's question.
     /// </remarks>
-    public static IReadOnlyList<string> RetiredSteps { get; } =
-    [
-        "build the queue",
-        "install sdlc, the agent and the plugin",
-        "install the gate and the agent",
-        "install the gate",
-        "prove the agent signs in and the gate refuses",
-        "prove the gate refuses",
-    ];
+    public static IReadOnlyList<string> RetiredSteps => ReleaseChanges.RetiredSteps;
 
     /// <summary>What a merge wrote, and what of the file it carried, dropped and replaced.</summary>
     /// <param name="Text">The merged pipeline.</param>

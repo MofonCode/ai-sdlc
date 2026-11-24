@@ -1,5 +1,3 @@
-using Sdlc.Core.Chain;
-using Sdlc.Core.Factory;
 
 namespace Sdlc.Core.Init;
 
@@ -11,13 +9,15 @@ namespace Sdlc.Core.Init;
 /// <para><strong>Commands only, no agent.</strong> Moving the pin, running adoption as the new release and
 /// rewriting the factory's pipeline are all the binary's, so the run needs no credential for a model and decides
 /// nothing. The pull request is the decision, and a person makes it.</para>
+/// <para><strong>It installs the release and hands over to it</strong> (D-213). Everything after the install is
+/// <see cref="ApplyUpgrade"/>, run as the release being moved to, so this file carries nothing that could go stale.</para>
 /// <para><strong>Never on a schedule.</strong> Taking a release is done on purpose, as starting the factory is
 /// (D-143). Nothing here watches nuget.org.</para>
 /// <para><strong>It moves the repository and nothing else.</strong> An agent that runs the solution's pipelines
 /// needs no rebuild for a new release: every run restores the release its branch pins. What lives in an agent's
 /// image is the solution's, and the <c>agent-image</c> guidance says how to move it.</para>
-/// <para><strong>It stages only what an upgrade may carry</strong>, the paths <see cref="VerifyUpgrade"/> reads as
-/// one, so the pull request it opens is one the check accepts or names the file it refuses.</para>
+/// <para><strong>It stages only what an upgrade may carry</strong>, the paths <see cref="Chain.VerifyUpgrade"/> reads
+/// as one, and opens the pull request only when that check holds.</para>
 /// <para><strong>The agent is the platform's to name</strong>: <c>SDLC_AGENT_POOL</c> on Azure DevOps, resolved when the
 /// run is queued, and <c>SDLC_RUNNER</c> on GitHub, a hosted runner when unset. The file is compared exactly and
 /// rewritten every run, so it can hold no team's pool. Azure DevOps cannot default the variable: a template expression
@@ -49,8 +49,8 @@ public static class UpgradePipeline
                 "# on syntax or on an action's version, that is why. Watch the first run.",
                 "#",
                 "# The upgrade (CONCEPT.md D-201). A person starts it, from the Actions tab or with",
-                "# 'gh workflow run sdlc-upgrade.yml'. It moves the sdlc release this solution pins, runs adoption as",
-                $"# that release, rewrites the factory's pipeline when there is one, and opens a pull request into {integrationBranch}.",
+                "# 'gh workflow run sdlc-upgrade.yml'. It installs the sdlc release asked for and runs 'sdlc upgrade apply' as it,",
+                $"# which moves the solution, checks the move as the pull request will, and opens one into {integrationBranch}.",
                 "# The pull-request check reads it as an upgrade (D-133). It merges nothing, and it never runs on a",
                 "# schedule, because a release is taken on purpose.",
                 "#",
@@ -103,9 +103,6 @@ public static class UpgradePipeline
                 "          git config user.name 'sdlc upgrade'",
                 "          git config user.email 'sdlc-upgrade@users.noreply.github.com'",
                 .. Move("          "),
-                .. Commit("          "),
-                $"          if url=\"$(gh pr view \"$branch\" --json url --jq .url 2>/dev/null)\"; then echo \"The pull request is open already, and now carries sdlc $release: $url\"; exit 0; fi",
-                $"          gh pr create --base {integrationBranch} --head \"$branch\" --title \"$title\" --body \"$body\"",
                 string.Empty,
             ]),
 
@@ -117,8 +114,8 @@ public static class UpgradePipeline
                 "# first run.",
                 "#",
                 "# The upgrade (CONCEPT.md D-201). A person starts it, from Pipelines > Run pipeline or with",
-                "# 'az pipelines run'. It moves the sdlc release this solution pins, runs adoption as that release,",
-                $"# rewrites the factory's pipeline when there is one, and opens a pull request into {integrationBranch}.",
+                "# 'az pipelines run'. It installs the sdlc release asked for and runs 'sdlc upgrade apply' as it, which",
+                $"# moves the solution, checks the move as the pull request will, and opens one into {integrationBranch}.",
                 "# The pull-request check reads it as an upgrade (D-133). It merges nothing, and it never runs on a",
                 "# schedule, because a release is taken on purpose.",
                 "#",
@@ -160,12 +157,6 @@ public static class UpgradePipeline
                 "          git config user.name 'sdlc upgrade'",
                 "          git config user.email 'sdlc-upgrade@localhost'",
                 .. Move("          "),
-                .. Commit("          "),
-                "          az extension add --name azure-devops --only-show-errors",
-                "          az devops configure --defaults organization=\"$(System.CollectionUri)\" project=\"$(System.TeamProject)\"",
-                "          open=\"$(az repos pr list --repository \"$(Build.Repository.Name)\" --source-branch \"$branch\" --status active --query '[0].pullRequestId' -o tsv)\"",
-                "          if [ -n \"$open\" ]; then echo \"Pull request $open is open already, and now carries sdlc $release.\"; exit 0; fi",
-                $"          az repos pr create --repository \"$(Build.Repository.Name)\" --source-branch \"$branch\" --target-branch {integrationBranch} --title \"$title\" --description \"$body\" --output none",
                 "        displayName: move to the release and open the pull request",
                 "        env:",
                 "          RELEASE: ${{ parameters.release }}",
@@ -177,25 +168,24 @@ public static class UpgradePipeline
     };
 
     /// <summary>
-    /// The lines that settle the release, move the pin, and run what the release writes as that release.
+    /// The lines that settle the release, install it, and hand the move to it (D-213).
     /// </summary>
     /// <remarks>
+    /// <para><strong>As few lines as can do it, because they stay.</strong> This file is the one part of a move the
+    /// older release writes, so everything that could be wrong lives in the release being moved to:
+    /// <c>sdlc upgrade apply --push</c> runs adoption and the factory's merge, commits what an upgrade may carry, holds
+    /// it to the upgrade check, and pushes the branch and opens the pull request only when the check holds. A fix to any
+    /// of that reaches a solution on its next move rather than after a person moves it by hand.</para>
     /// <para><strong>The release is named or the newest on nuget.org</strong>, never a preview. Azure DevOps will
-    /// not take an empty string as a parameter's default, so the default is a space, trimmed here.</para>
-    /// <para><strong>A solution already on the release stops cleanly</strong>, as success: there is nothing to
-    /// propose.</para>
-    /// <para><strong>Adoption runs as the new release</strong>, through the tool manifest that now pins it, so
-    /// <c>sdlc init</c> writes what that release writes and the pull-request check compares against the same release.
-    /// <c>dotnet sdlc</c> rather than a global install: an agent's image may carry an older global binary in a lower
-    /// layer, which <c>dotnet tool uninstall</c> cannot remove there ("Invalid cross-device link"), and a hosted agent
-    /// carries none.</para>
-    /// <para><strong>Adoption's own commit is undone into the working tree</strong>, after the git identity it needs is
-    /// set. Left in place, it would put on the upgrade's branch whatever adoption wrote, including files an upgrade may
-    /// not carry, and leave nothing staged, so the run would end saying the release writes nothing new.</para>
+    /// not take an empty string as a parameter's default, so the default is a space, trimmed here. A solution already
+    /// on it stops cleanly, as success.</para>
+    /// <para><strong><c>dotnet sdlc</c> rather than a global install</strong>: an agent's image may carry an older
+    /// global binary in a lower layer, which <c>dotnet tool uninstall</c> cannot remove there ("Invalid cross-device
+    /// link"), and a hosted agent carries none.</para>
     /// </remarks>
     private static IEnumerable<string> Move(string indent)
     {
-        yield return indent + "# Stop at the first command that fails, on either platform, so nothing half-moved is committed.";
+        yield return indent + "# Stop at the first command that fails, on either platform.";
         yield return indent + "set -e";
         yield return indent + "release=\"$(printf '%s' \"${RELEASE:-}\" | tr -d '[:space:]')\"";
         yield return indent + "if [ -z \"$release\" ]; then release=\"$(curl -fsSL https://api.nuget.org/v3-flatcontainer/mofoncode.sdlc.cli/index.json | jq -r '[.versions[] | select(contains(\"-\") | not)] | last // empty')\"; fi";
@@ -204,41 +194,7 @@ public static class UpgradePipeline
         yield return indent + "pinned=\"$(dotnet tool list --local | awk 'tolower($1) == \"mofoncode.sdlc.cli\" { print $2 }')\"";
         yield return indent + "if [ \"$pinned\" = \"$release\" ]; then echo \"This solution pins sdlc $release already. Nothing to upgrade.\"; exit 0; fi";
         yield return indent + $"dotnet tool update --local {PinnedRelease.PackageId} --version \"$release\"";
-        yield return indent + "# Adoption commits what it writes. Taken back into the working tree, so only what an upgrade may carry is staged.";
-        yield return indent + "base=\"$(git rev-parse HEAD)\"";
-        yield return indent + "dotnet sdlc init";
-        yield return indent + "git reset -q \"$base\"";
-        yield return indent + "# The factory's pipeline is kept while it carries every step this release writes, and otherwise takes this release's";
-        yield return indent + "# steps with the team's pool and steps carried in. Only one that cannot is rewritten, and the pull request says what to put back.";
-        yield return indent + "factory_note=\"\"";
-        yield return indent + $"if [ -f {Slashed(FactoryPipeline.PathOf(Platform.GitHub))} ] || [ -f {Slashed(FactoryPipeline.PathOf(Platform.AzureDevOps))} ]; then";
-        yield return indent + "  factory=\"$(dotnet sdlc factory --keep)\"";
-        yield return indent + "  echo \"$factory\"";
-        yield return indent + "  case \"$factory\" in Kept*) ;; Merged*) factory_note=\" sdlc $release rewrote the factory's steps and carried the team's pool and steps into it: check none it carried is an older release's step.\" ;; *) factory_note=\" sdlc $release rewrote the factory's pipeline: put back any pool or step of the team's own from the diff before merging.\" ;; esac";
-        yield return indent + "fi";
+        yield return indent + "# Everything after the install is the new release's: it moves the solution, checks the move, and opens the pull request.";
+        yield return indent + "dotnet sdlc upgrade apply --push";
     }
-
-    /// <summary>
-    /// The lines that commit what an upgrade may carry on the upgrade's own branch and push it, setting the pull
-    /// request's branch, title and body.
-    /// </summary>
-    /// <remarks>
-    /// A path the release moved is staged as gone, so the move lands whole (D-203). A run asked again for the same
-    /// release pushes over its own branch, so an open pull request takes the
-    /// refreshed files rather than a second one opening beside it.
-    /// </remarks>
-    private static IEnumerable<string> Commit(string indent)
-    {
-        yield return indent + "branch=\"upgrade/sdlc-$release\"";
-        yield return indent + "title=\"Move to sdlc $release\"";
-        yield return indent + "body=\"Moves this solution from sdlc $pinned to $release: the pin, and what adoption and 'sdlc factory' wrote as $release. The pull-request check reads it as an upgrade. What the release asks of a solution: https://github.com/MofonCode/ai-sdlc/blob/main/CHANGELOG.md.$factory_note Open cycles keep the release their branch pins.\"";
-        yield return indent + "git switch -c \"$branch\"";
-        yield return indent + "for path in " + string.Join(' ', VerifyUpgrade.Paths) + "; do if [ -e \"$path\" ] || git ls-files --error-unmatch -- \"$path\" >/dev/null 2>&1; then git add -- \"$path\"; fi; done";
-        yield return indent + "if left=\"$(git status --porcelain --untracked-files=all | grep -v '^[AMD] ')\"; then echo \"Left out, because an upgrade may not carry it:\"; echo \"$left\"; fi";
-        yield return indent + "if git diff --cached --quiet; then echo \"sdlc $release writes nothing new here.\"; exit 0; fi";
-        yield return indent + "git commit -m \"$title\"";
-        yield return indent + "git push --force origin \"$branch\"";
-    }
-
-    private static string Slashed(string path) => path.Replace('\\', '/');
 }

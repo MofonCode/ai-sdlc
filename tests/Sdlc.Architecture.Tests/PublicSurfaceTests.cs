@@ -592,6 +592,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.TurnEndGate",
         "Sdlc.Core.Hooks.TurnEndGate+Query",
         // D-136: the branch policy adoption sets as its default, printed by 'sdlc branch-policy'.
+        "Sdlc.Core.Init.ApplyUpgrade",
+        "Sdlc.Core.Init.ApplyUpgrade+Command",
+        "Sdlc.Core.Init.ApplyUpgrade+Response",
         "Sdlc.Core.Init.BranchPolicyScript",
         // D-136: who must approve a pull request, the options 'sdlc branch-policy' takes.
         "Sdlc.Core.Init.BranchReviews",
@@ -605,6 +608,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Init.Initialise+InitMode",
         "Sdlc.Core.Init.Initialise+Response",
         "Sdlc.Core.Init.Platform",
+        "Sdlc.Core.Init.ReleaseChanges",
+        "Sdlc.Core.Init.ReleaseChanges+Change",
+        "Sdlc.Core.Init.ReleaseChanges+Kind",
         "Sdlc.Core.Init.Scaffold",
         "Sdlc.Core.Init.ScaffoldSolution",
         "Sdlc.Core.Init.ScaffoldSolution+Command",
