@@ -579,23 +579,54 @@ public static class VerifyUpgrade
     }
 
     /// <summary>
+    /// Every step name a release of the framework wrote into a pipeline and a later one dropped or renamed, so a
+    /// merge drops it rather than carrying it as the team's (D-212).
+    /// </summary>
+    /// <remarks>
+    /// A name joins this list in the change that stops writing it. A test holds that no template this release writes
+    /// still uses one; nothing can hold that a dropped name was added, which is a reviewer's question.
+    /// </remarks>
+    public static IReadOnlyList<string> RetiredSteps { get; } =
+    [
+        "build the queue",
+        "install sdlc, the agent and the plugin",
+        "install the gate and the agent",
+        "install the gate",
+        "prove the agent signs in and the gate refuses",
+        "prove the gate refuses",
+    ];
+
+    /// <summary>What a merge wrote, and what of the file it carried, dropped and replaced.</summary>
+    /// <param name="Text">The merged pipeline.</param>
+    /// <param name="Carried">The team's pool and each step carried into it, by name.</param>
+    /// <param name="Dropped">Each step left out because an older release wrote it, with why, by name.</param>
+    /// <param name="Replaced">Each section outside the steps, besides the pool, where this release's replaced the file's.</param>
+    internal sealed record Merged(string Text, IReadOnlyList<string> Carried, IReadOnlyList<string> Dropped, IReadOnlyList<string> Replaced)
+    {
+        /// <summary>Whether the merge kept or dropped anything of the file's, rather than being the template alone.</summary>
+        public bool Changed => Carried.Count > 0 || Dropped.Count > 0;
+    }
+
+    /// <summary>
     /// A pipeline as this release writes it, with the team's own carried into it: the pool it runs on, and each step
     /// this release writes nothing of the same name for, after the step of the release's it followed.
     /// </summary>
     /// <remarks>
-    /// <para><strong>Merged rather than replaced</strong>, so <c>sdlc factory --keep</c> keeps what a team added to a
-    /// file the release changed, not only to one it left alone. A step is the release's when the release writes one
-    /// of the same name, whatever its text, so an older release's version of it is replaced. One the release does not
-    /// write is carried as it was: the team's own, or a step an older release wrote and this one dropped, which nothing
-    /// here can tell apart, so each carried step is named for a person to check.</para>
+    /// <para><strong>Merged rather than replaced</strong>, so <c>sdlc factory --keep</c> and <c>sdlc init</c> keep what
+    /// a team added to a file the release changed, not only to one it left alone. A step is the release's when the
+    /// release writes one of the same name, whatever its text, so an older release's version of it is replaced; an
+    /// action or task with no name is the same step at any version.</para>
+    /// <para><strong>An older release's step is dropped, not carried</strong> (D-212): one whose name is in
+    /// <see cref="RetiredSteps"/>, and one that reads a parameter this release no longer declares, which could only
+    /// fail. Every other step is carried as it was, and named for a person to check.</para>
     /// <para><strong>Held to the upgrade check's own measure.</strong> What it returns passes <see cref="Shaped"/>
-    /// with the file as its base, or it returns nothing and the file is rewritten as before.</para>
+    /// with the file as its base, or it returns nothing and the file is rewritten or printed as before.</para>
     /// </remarks>
     /// <param name="path">The path, as the check names it.</param>
     /// <param name="template">What this release writes.</param>
     /// <param name="file">The file as it is.</param>
-    /// <returns>The merged text and what of the team's it carried, or null when it cannot be merged.</returns>
-    internal static (string Text, IReadOnlyList<string> Carried)? Merge(string path, string template, string file)
+    /// <returns>The merge, or null when it cannot be merged.</returns>
+    internal static Merged? Merge(string path, string template, string file)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(template);
@@ -605,9 +636,18 @@ public static class VerifyUpgrade
         List<string> lines = [.. template.ReplaceLineEndings("\n").Split('\n')];
         string[] had = file.ReplaceLineEndings("\n").Split('\n');
         List<string> carried = [];
+        List<string> dropped = [];
 
         var want = Shape.Of(template);
         var has = Shape.Of(file);
+
+        // A file with no steps is not a pipeline this could have written, so there is nothing to merge it by.
+        if (has.Steps.Count == 0)
+        {
+            return null;
+        }
+
+        HashSet<string> declared = Declared(want.Frame);
         // Two steps may share a name, as the two SDK selections do: the file's second of a name is the release's second.
         Dictionary<string, Queue<int>> release = new(StringComparer.Ordinal);
 
@@ -645,6 +685,20 @@ public static class VerifyUpgrade
                 continue;
             }
 
+            string name = Shape.Name(step);
+
+            if (RetiredSteps.Contains(name, StringComparer.Ordinal))
+            {
+                dropped.Add("the step '" + name + "', which an older release wrote");
+                continue;
+            }
+
+            if (Referenced(step).FirstOrDefault(parameter => !declared.Contains(parameter)) is { } gone)
+            {
+                dropped.Add("the step '" + name + "', which reads '" + gone + "', a parameter this release does not declare");
+                continue;
+            }
+
             string[] block = had[has.Spans[i].Start..has.Spans[i].End];
 
             if (after is { } anchor)
@@ -665,7 +719,7 @@ public static class VerifyUpgrade
                 inserts.Add((want.Spans[first].Start, i, [.. block, string.Empty]));
             }
 
-            carried.Add("the step '" + Shape.Name(step) + "'");
+            carried.Add("the step '" + name + "'");
         }
 
         foreach ((int at, _, string[] block) in inserts.OrderByDescending(insert => insert.At).ThenByDescending(insert => insert.Order))
@@ -674,14 +728,28 @@ public static class VerifyUpgrade
         }
 
         // The pool goes back in place of the release's, wherever the release writes one under the same name.
+        // Every other section the file had differently is the release's now, and is named.
         Dictionary<string, string> wanted = Sections(want.Frame);
+        List<string> replaced = [];
 
         foreach (KeyValuePair<string, string> section in Sections(has.Frame))
         {
-            if (section.Key.Split(" > ")[^1] is not ("pool" or "runs-on")
-                || !wanted.TryGetValue(section.Key, out string? theirs)
-                || string.Equals(section.Value, theirs, StringComparison.Ordinal))
+            string named = section.Key.Split(" > ")[^1];
+
+            if (!wanted.TryGetValue(section.Key, out string? theirs))
             {
+                replaced.Add("'" + named.TrimEnd(':') + "', which this release does not write");
+                continue;
+            }
+
+            if (string.Equals(section.Value, theirs, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (named is not ("pool" or "runs-on"))
+            {
+                replaced.Add("'" + named.TrimEnd(':') + "'");
                 continue;
             }
 
@@ -704,7 +772,114 @@ public static class VerifyUpgrade
 
         string merged = string.Join(newline, lines);
 
-        return Shaped(path, template, file, merged).Passed ? (merged, carried) : null;
+        return Shaped(path, template, file, merged).Passed
+            ? new Merged(merged, carried, dropped, [.. replaced.Distinct(StringComparer.Ordinal)])
+            : null;
+    }
+
+    /// <summary>What a merge did, for a person to read: what it kept, what it left out, and what to check.</summary>
+    /// <param name="path">The file.</param>
+    /// <param name="carried">What of the team's it carried.</param>
+    /// <param name="dropped">Each older release's step it left out.</param>
+    /// <param name="replaced">Each section where this release's replaced the file's.</param>
+    /// <returns>The lines, each ending in a newline.</returns>
+    internal static string Describe(string path, IReadOnlyList<string> carried, IReadOnlyList<string> dropped, IReadOnlyList<string> replaced)
+    {
+        StringBuilder text = new();
+        text.Append(CultureInfo.InvariantCulture, $"Merged {path}: this release's steps");
+        text.AppendLine(carried.Count == 0 ? "." : ", with the team's own carried into it -- " + string.Join(", ", carried) + ".");
+
+        if (dropped.Count > 0)
+        {
+            text.AppendLine("Left out, as an older release's: " + string.Join("; ", dropped) + ".");
+        }
+
+        if (replaced.Count > 0)
+        {
+            text.AppendLine("This release's version replaced the file's " + string.Join(", ", replaced) + ": put back from 'git diff' anything there that was the team's.");
+        }
+
+        if (carried.Any(item => item.StartsWith("the step", StringComparison.Ordinal)))
+        {
+            text.AppendLine("A step is carried when this release writes none of the same name: check none is an older release's step this one dropped.");
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>The parameters a pipeline declares: Azure DevOps's <c>parameters</c>, a workflow's <c>inputs</c>.</summary>
+    /// <param name="frame">The lines outside the step lists.</param>
+    /// <returns>Each name.</returns>
+    private static HashSet<string> Declared(IReadOnlyList<string> frame)
+    {
+        HashSet<string> names = new(StringComparer.Ordinal);
+        int? under = null;
+        int? child = null;
+
+        foreach (string line in frame)
+        {
+            string trimmed = line.Trim();
+            int indent = line.Length - line.TrimStart().Length;
+
+            if (under is { } key && indent <= key)
+            {
+                under = null;
+                child = null;
+            }
+
+            if (under is null)
+            {
+                if (trimmed is "parameters:" or "inputs:")
+                {
+                    under = indent;
+                }
+
+                continue;
+            }
+
+            child ??= indent;
+
+            if (trimmed.StartsWith("- name:", StringComparison.Ordinal))
+            {
+                names.Add(trimmed["- name:".Length..].Trim().Trim('\'', '"'));
+            }
+            else if (indent == child && trimmed.IndexOf(':', StringComparison.Ordinal) is > 0 and int colon)
+            {
+                names.Add(trimmed[..colon].Trim());
+            }
+        }
+
+        return names;
+    }
+
+    /// <summary>Every parameter a step reads, as <c>parameters.x</c> or <c>inputs.x</c>.</summary>
+    /// <param name="step">The step.</param>
+    /// <returns>Each name, in order.</returns>
+    private static IEnumerable<string> Referenced(string step)
+    {
+        foreach (string prefix in (string[])["parameters.", "inputs."])
+        {
+            for (int at = step.IndexOf(prefix, StringComparison.Ordinal); at >= 0; at = step.IndexOf(prefix, at + 1, StringComparison.Ordinal))
+            {
+                if (at > 0 && (char.IsLetterOrDigit(step[at - 1]) || step[at - 1] == '_'))
+                {
+                    continue;
+                }
+
+                int start = at + prefix.Length;
+                int end = start;
+
+                while (end < step.Length && (char.IsLetterOrDigit(step[end]) || step[end] is '_' or '-'))
+                {
+                    end++;
+                }
+
+                if (end > start)
+                {
+                    yield return step[start..end];
+                }
+            }
+        }
     }
 
     /// <summary>What lies outside a pipeline's step lists, as its sections, each named by where it sits.</summary>
@@ -898,7 +1073,9 @@ public static class VerifyUpgrade
 
         /// <summary>
         /// What makes a step the same step from one release to the next: its step list and its display name, or its
-        /// first line when it has none. A script's first line says nothing about it; its name says what it does.
+        /// first line when it has none. A script's first line says nothing about it; its name says what it does. An
+        /// action or a task named by its first line is the same step at any version, so a release that moves
+        /// <c>checkout@v4</c> to <c>@v5</c> replaces it rather than carrying both.
         /// </summary>
         public static string Identity(string step)
         {
@@ -908,14 +1085,23 @@ public static class VerifyUpgrade
                 line.Length - line.TrimStart().Length == indent
                 && line.TrimStart().StartsWith("displayName:", StringComparison.Ordinal));
 
-            return lines[0] + "\n" + (named ?? lines[1]).Trim();
+            string first = lines[1].Trim();
+
+            if (named is null
+                && (first.StartsWith("- uses:", StringComparison.Ordinal) || first.StartsWith("- task:", StringComparison.Ordinal))
+                && first.LastIndexOf('@') is > 0 and int at)
+            {
+                first = first[..at];
+            }
+
+            return lines[0] + "\n" + (named ?? first).Trim();
         }
 
         /// <summary>A step's name, to report it by: its display name, or its first line when it has none.</summary>
         public static string Name(string step)
         {
             string named = Identity(step).Split('\n')[1];
-            return named.StartsWith("displayName:", StringComparison.Ordinal) ? named["displayName:".Length..].Trim() : named;
+            return named.StartsWith("displayName:", StringComparison.Ordinal) ? named["displayName:".Length..].Trim().Trim('\'', '"') : Opening(step);
         }
     }
 

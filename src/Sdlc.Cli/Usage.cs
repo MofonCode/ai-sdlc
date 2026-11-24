@@ -174,8 +174,8 @@ internal static class Usage
                                      merges. Refuses on a local solution. --keep leaves a file
                                      that already carries every step this release writes as it
                                      is, and otherwise writes this release's steps with the
-                                     team's pool and steps carried in, naming each; the upgrade
-                                     pipeline runs it that way.
+                                     team's pool and steps carried in and an older release's left
+                                     out, naming each; the upgrade pipeline runs it that way.
             lead show <reference> [--onto <branch>]
                                      Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
