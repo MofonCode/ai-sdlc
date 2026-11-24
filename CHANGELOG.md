@@ -36,6 +36,12 @@ own words to `<reader>.err`; with `SDLC_TRACE` set, each reader's host writes it
 shows both variables. **A `doctor` skill** runs `sdlc doctor` and answers the one check the binary cannot, whether
 this session has the whole plugin (D-215): the plugin has thirty skills. Nothing a cycle is judged on changes.
 
+**From 0.56.2 the upgrade pipeline can make the move it was written for** (D-213). It installs the release into the
+tool manifest and then runs `sdlc upgrade apply`, which refused the manifest it had just changed as a change of the
+team's not yet committed, so every run of the 0.56 pipeline stopped there. The same refusal met a person moving by
+hand as above. A manifest whose only change is pinning the release being moved to is now the move's own and
+committed with it; one changed in anything else is still refused. Nothing a cycle is judged on changes.
+
 ## 0.55
 
 **Three sizes of run, each ending in one pull request** (D-205). A cycle is `/sdlc:build`, as before. A **wave** is

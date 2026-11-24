@@ -224,7 +224,9 @@ internal static class Usage
                                      an upgrade may carry committed on upgrade/sdlc-<release>,
                                      checked as the pull request will check it. --push pushes it
                                      and opens the pull request, only when the check holds. The
-                                     upgrade pipeline runs this as the release it installs. Never
+                                     upgrade pipeline runs this as the release it installs. A
+                                     manifest already pinning this release, and changed in nothing
+                                     else, is the move's own and goes in its commit. Never
                                      moves a solution back: revert the upgrade's pull request.
             park <id>                Compare a cycle's plan with every plan not yet built. A file
                                      only another creates parks it: writes parked.md with what it
