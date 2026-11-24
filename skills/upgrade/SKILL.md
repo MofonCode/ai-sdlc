@@ -1,6 +1,6 @@
 ---
 name: upgrade
-description: Move this machine's sdlc to a release -- the binary and the installed plugin, together -- and check the two agree. This machine only; a solution moves by its upgrade pipeline, never from here. Use when someone asks to update or upgrade their local ai-sdlc, or a session says the plugin and the binary disagree.
+description: Move this machine's sdlc to a release -- the binary and the installed plugin, together -- and check the two agree. This machine only; a solution moves by its upgrade pipeline or `sdlc upgrade apply`, never from here. Use when someone asks to update or upgrade their local ai-sdlc, or a session says the plugin and the binary disagree.
 compatibility: Requires the dotnet SDK, and the sdlc binary on PATH from the MofonCode.Sdlc.Cli dotnet tool. The plugin step is written for Claude Code; another host follows the install guide, The plugin.
 argument-hint: "[<release>]"
 allowed-tools: Bash(sdlc *), Bash(dotnet tool *)
@@ -10,7 +10,7 @@ allowed-tools: Bash(sdlc *), Bash(dotnet tool *)
 
 **One job: this machine's two halves, the binary and the plugin, on one release.** It changes no repository. A
 solution's pin moves by a run of its upgrade pipeline, which a person starts on the platform and which opens the pull
-request; `sdlc upgrade` inside the solution says what applies there. Do not run or edit a solution's pipeline, pin or
+request, or by `sdlc upgrade apply` on its integration branch; `sdlc upgrade` inside the solution says what applies there. Do not run or edit a solution's pipeline, pin or
 files from here.
 
 ## The release

@@ -9,6 +9,24 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.56
+
+**The release being moved to makes the move** (D-213). `sdlc upgrade apply` moves a solution to the release that
+runs it: adoption, the factory's merge, what an upgrade may carry committed on `upgrade/sdlc-<release>`, and that
+commit held to the same upgrade check its pull request will run. With `--push` it then pushes the branch and opens
+the pull request, and only when the check holds. The upgrade pipeline shrinks to settling the release, installing it
+and running that command as it, so a fix to how a move is made reaches a solution on its next move rather than after
+a person moves it by hand. A person may run it too, from the integration branch: one command where `sdlc upgrade`
+used to print four. What each release changed that a later one undoes — the pipelines 0.53 moved, the steps
+templates stopped writing — is one list the binary carries, read from the files, so a solution any number of releases
+behind takes what it still needs. It moves up only; to go back, revert the upgrade's pull request.
+
+**What moving to it asks.** The first move to 0.56 is made by the solution's current upgrade pipeline, as before, or
+by hand where that pipeline cannot open a pull request (any written before 0.55.1): install 0.56 into the tool
+manifest on the integration branch, then `dotnet sdlc upgrade apply --push`. The pipeline it writes makes every move
+after that. Nothing a cycle is judged on changes; it is a minor because the upgrade pipeline's shape and what
+`sdlc upgrade` tells a person to do both changed.
+
 ## 0.55
 
 **Three sizes of run, each ending in one pull request** (D-205). A cycle is `/sdlc:build`, as before. A **wave** is

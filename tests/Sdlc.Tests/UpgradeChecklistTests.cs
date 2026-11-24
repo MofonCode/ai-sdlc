@@ -45,9 +45,10 @@ public sealed class UpgradeChecklistTests
 
         Assert.AreEqual("0.46.0", upgrade.Target, "Without a release, the one this machine runs.");
         StringAssert.Contains(printed, "Moving to sdlc 0.46.0 from 0.45.0");
-        StringAssert.Contains(printed, "git switch -c upgrade/sdlc-0.46.0 development");
-        StringAssert.Contains(printed, "dotnet tool update --local MofonCode.Sdlc.Cli --version 0.46.0");
-        StringAssert.Contains(printed, "sdlc factory");
+        // D-213: the release being moved to does the move, so the person runs one command rather than four.
+        StringAssert.Contains(printed, "git switch development");
+        StringAssert.Contains(printed, "sdlc upgrade apply --push");
+        Assert.IsFalse(printed.Contains("sdlc init", StringComparison.Ordinal), "Adoption is the move's to run.");
         StringAssert.Contains(printed, "The factory's agent needs nothing: every run installs the release development pins");
         CollectionAssert.AreEqual(new[] { $"cycle/{Open}/build" }, upgrade.Cycles.Select(cycle => cycle.Branch).ToArray(), "A cycle whose work is on development is tidy's.");
         StringAssert.Contains(printed, $"cycle/{Open}/build  pins 0.44.0");

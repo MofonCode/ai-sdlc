@@ -112,6 +112,7 @@ public static class SdlcServices
         services.AddDiscardSandboxRequestHandler();
         services.AddTidyCyclesRequestHandler();
         services.AddUpgradeChecklistRequestHandler();
+        services.AddApplyUpgradeRequestHandler();
         services.AddRenumberSuggestionsRequestHandler();
         services.AddParkCycleRequestHandler();
         services.AddUnparkCycleRequestHandler();

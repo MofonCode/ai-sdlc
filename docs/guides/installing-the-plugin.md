@@ -340,10 +340,12 @@ release rather than the one the solution pins (D-170). The rest of this section 
 
 **A solution moves by a run of its upgrade pipeline** (D-201). Adoption writes it beside the pull-request check —
 `.github/workflows/sdlc-upgrade.yml` on GitHub, `.azuredevops/sdlc-upgrade.yml` on Azure DevOps — and a person starts
-it on the platform, naming a release or leaving it empty for the newest. It moves the pin, runs adoption and
-`sdlc factory --keep` as that release, commits only what an upgrade may carry on `upgrade/sdlc-<release>`, and opens the
-pull request into the integration branch. You review and merge. It never runs on a schedule, and nothing on your
-machine starts it. Set up once:
+it on the platform, naming a release or leaving it empty for the newest. It installs that release and hands the move
+to it: `sdlc upgrade apply --push`, run as the release being moved to, runs adoption and `sdlc factory --keep`,
+commits only what an upgrade may carry on `upgrade/sdlc-<release>`, checks the commit as the pull request will, and
+only then pushes it and opens the pull request into the integration branch (D-213). You review and merge. Because
+the release being moved to does the moving, a fix to how a move is made reaches your solution on its next move. It
+never runs on a schedule. Set up once:
 
 | Platform | What it needs |
 |---|---|
@@ -354,28 +356,16 @@ machine starts it. Set up once:
 the release writes exactly, and every run rewrites it, so a pool typed into it would be refused at the pull request
 and lost on the next run.
 
-**The first move to a release that writes the pipeline is by hand**, since the solution has none yet; every move
-after it is a run.
+**Or move it from your machine, in one command.** On the integration branch, up to date, `sdlc upgrade apply` moves
+the solution to the release this machine runs and commits the move on its own branch; with `--push` it pushes the
+branch and opens the pull request with `gh` or `az`, signed in as you. Either way it is checked first, and a move the
+pull request would refuse is never pushed. It never moves a solution back: to go back, revert the upgrade's pull
+request.
 
 **Reinstalling updates this machine and no repository on it.** Every governed solution still pins the
 release it pinned, and has the hook configuration, the pipelines and the `.sdlc/README.md` that release wrote.
-Without the upgrade pipeline, a person moves the pin on a branch from the integration branch and then runs
-adoption again. Adoption picks update mode by itself, refreshes only what the framework owns, and touches none of
-the seven files only a person writes:
-
-```pwsh
-dotnet tool update --local MofonCode.Sdlc.Cli --version <release>
-```
-
-```pwsh
-sdlc init
-```
-
-```pwsh
-sdlc doctor
-```
-
-Commit what both change together. A cycle already open keeps its own pin until its branch takes that commit:
+`sdlc upgrade apply` moves one, from the integration branch. Adoption, which it runs, picks update mode by itself,
+refreshes only what the framework owns, and touches none of the seven files only a person writes. A cycle already open keeps its own pin until its branch takes that commit:
 whoever works it moves it, or leaves it on the release it opened on.
 
 **An upgrade needs no cycle** (D-133). Do it on a branch of any name and open a pull request into the

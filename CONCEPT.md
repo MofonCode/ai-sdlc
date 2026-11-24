@@ -248,7 +248,9 @@ wants a class of branch to merge anyway says so in branch policy by not requirin
 which is a decision somebody can read; deleting the step is a different decision that reads as
 nothing. **A cycle is for a decision, so two changes need no chain** (D-133, D-134). Moving to another release: a pull
 request carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
-is checked by writing those files again and comparing. A run of the solution's upgrade pipeline opens it (D-201), and
+is checked by writing those files again and comparing. A run of the solution's upgrade pipeline opens it (D-201), by
+installing the release and handing the move to it, `sdlc upgrade apply`, which a person may run from the integration
+branch too (D-213); and
 `sdlc upgrade` prints everything that moves with it, in order, from this machine's release (D-170). Moving dependency versions: a pull request whose only
 change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
 checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
@@ -2620,6 +2622,7 @@ they print verbatim.
 | `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
 | `tidy` | the worktrees and local branches the framework opened whose work has reached the integration branch — a plan branch once its plan is there, any other cycle branch once its verification passes there, a slicing or sandbox once every cycle it carries is, every branch of an abandoned cycle, and every branch of a cycle the harvest ledger there records closed — and the commands that remove them, for a person to run. Deletes nothing; leaves remote branches alone (D-162) |
 | `upgrade [<release>]` | everything that moves to take a release, in the order it moves, with the release each piece is on now — this machine's tool, the plugin, the solution's pin and what adoption writes -- a run of its upgrade pipeline when it has one -- the factory, the open cycles still pinning an older release. Answered by this machine's release and never handed on. Runs nothing (D-170, D-201) |
+| `upgrade apply [--push]` | moves the solution to this machine's release from its integration branch: adoption, the factory's merge, what an upgrade may carry committed on its own branch and held to the upgrade check; `--push` pushes it and opens the pull request only when the check holds. The upgrade pipeline runs it as the release it installs (D-213) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `guidance [show <name> \| <id>]` | the guidance a plan is handed: every entry in force, the framework's and the solution's own under `.sdlc/guidance/`, which win by name, with the files that switch each on; one entry in full; or the entries a cycle's plan switches on by its declared files, in full. Advises; never blocks (D-195) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
@@ -7733,6 +7736,44 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-213 — The release being moved to makes the move: the upgrade pipeline installs it and hands over to `sdlc upgrade apply`
+
+**Governs:** §3.1, §9, §10.5
+
+**Amends D-201**, whose pipeline ran every step of a move as a script the older release wrote, and which no local
+command started.
+
+**Decision.** The upgrade pipeline does three things and no more: settles the release asked for, installs it into the
+tool manifest, and runs `dotnet sdlc upgrade apply --push` as it. Everything else a move is lives in the binary, so it
+is always the release being moved to that makes it: adoption, `sdlc factory --keep` when there is a factory, what an
+upgrade may carry staged and committed on `upgrade/sdlc-<release>`, that commit held to the upgrade check the pull
+request will run, and, only when it holds, the branch pushed and the pull request opened with the platform's own
+command line. A person may run the same command from the integration branch, where it moves the solution to the
+release the machine runs; without `--push` it stops at the commit.
+
+What a release changes that a later one must undo — a pipeline moved, a step a template stopped writing — is one
+list the binary carries, each change with the release that made it. Each is read from the files rather than the
+version, so a solution any number of releases behind, or moved partly by hand, takes what it still needs and a second
+run takes nothing. A test holds every path the list touches to the paths an upgrade may carry.
+
+**Up only.** A release older than the pin is refused, and the way back is reverting the upgrade's pull request, which
+restores every file exactly as the older release wrote it.
+
+**Why.** The pipeline was the one part of a move the older release wrote, so its faults outlived their fixes: a
+governed solution's 0.51 pipeline could never open its pull request, 0.55.1 fixed the script, and the solution still
+ran 0.51's until a person moved it by hand. With the work in the binary, a fix reaches a solution on its next move,
+and the commit is checked by the same release, as the same code, that the pull request's check will run.
+
+**Rejected.**
+
+- *A down step for every up step.* It would need every older release's templates to write their files, which D-210
+  rejected carrying, and it would be the least run code in the binary; a revert is exact and costs nothing.
+- *Keeping the steps in the pipeline and fixing the script.* Every fix would still wait a manual move per solution.
+- *The older release fetching and running the newer one itself.* That is the pipeline's job, done in three lines that
+  have no reason to change; doing it in the binary would put the hand-over in the code that goes stale.
+- *A solution's own code fixed in the same move.* It is a decision the release cannot make, and the upgrade check
+  refuses it; whether an upgrade may carry one is a separate question.
 
 ### D-212 — A merge leaves out an older release's steps, and adoption merges the Azure DevOps chain check the same way
 

@@ -59,19 +59,12 @@ public static class UpgradeRenderer
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{++step}. This solution {(upgrade.Pinned is { } from ? "pins " + from : "pins no release")}. On a branch from {upgrade.Integration}, into it by pull request; an upgrade needs no cycle:"));
-            Commands(
-                output,
-                [
-                    $"git switch -c upgrade/sdlc-{upgrade.Target} {upgrade.Integration}",
-                    $"dotnet tool update --local {PinnedRelease.PackageId} --version {upgrade.Target}",
-                    "sdlc init",
-                    .. upgrade.Factory is { } pipeline ? [$"sdlc factory --keep   (if it rewrites {pipeline}, put back any step you added)"] : Array.Empty<string>(),
-                    "sdlc doctor",
-                ]);
-            output.AppendLine(Indent + "Commit what they changed and open the pull request. If 'sdlc stack' lists rows");
-            output.AppendLine(Indent + "under Not mentioned, '/sdlc:init' walks each one; that pull request may answer them.");
-            output.AppendLine(Indent + "Adoption writes the upgrade pipeline as well, so the next release is a run of it.");
+                $"{++step}. This solution {(upgrade.Pinned is { } from ? "pins " + from : "pins no release")}. On {upgrade.Integration}, up to date, this release moves it; an upgrade needs no cycle:"));
+            Commands(output, $"git switch {upgrade.Integration}", "sdlc upgrade apply --push");
+            output.AppendLine(Indent + "It commits the move on its own branch, checks it as the pull request will, and opens the");
+            output.AppendLine(Indent + "pull request. Without --push it stops at the commit. If 'sdlc stack' lists rows under");
+            output.AppendLine(Indent + "Not mentioned, '/sdlc:init' walks each one; that pull request may answer them.");
+            output.AppendLine(Indent + "It writes the upgrade pipeline as well, so the next release is a run of it.");
         }
         else
         {
