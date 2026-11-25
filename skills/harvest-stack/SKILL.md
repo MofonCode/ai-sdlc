@@ -53,7 +53,7 @@ At the path the report names:
 ## 4. Hand back, short
 
 Run `sdlc harvest summary <the proposal file>` and show it: each row, the concern and the choice. Add why in a
-sentence if it is not plain, and that they mark `[x]` on what they accept. Then stop.
+sentence if it is not plain, and that they mark `[x]` on what they accept. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
 
 ## 5. Once they have marked it
 

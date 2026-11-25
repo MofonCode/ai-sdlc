@@ -17,6 +17,9 @@ namespace Sdlc.Core.Harvest;
 /// the <c>### &lt;theme&gt;</c> each line stands under, so a person reads a handful of groups rather than a line per
 /// suggestion; this counts what each group holds and resolves each id, so a group cannot claim more than it holds and
 /// nobody retypes a rule.</para>
+/// <para><strong>Each proposal is numbered, in the file's order</strong>, so a person can answer one by its number --
+/// <em>accept all but 11</em> -- rather than retyping its heading. The number is the summary's, never written into
+/// the file: the headings keep the shape drafting and recording read, and a rerun renumbers after an edit.</para>
 /// </remarks>
 public static class HarvestSummary
 {
@@ -141,9 +144,12 @@ public static class HarvestSummary
                 CultureInfo.InvariantCulture,
                 $"Proposals: {response.Proposals.Count}, {response.Proposals.Count(proposal => proposal.Marked)} marked -- what you approve is each [x]"));
 
-            foreach (Proposal proposal in response.Proposals)
+            for (int index = 0; index < response.Proposals.Count; index++)
             {
-                text.AppendLine((proposal.Marked ? "  [x] " : "  [ ] ") + proposal.Heading);
+                Proposal proposal = response.Proposals[index];
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {index + 1}. {(proposal.Marked ? "[x]" : "[ ]")} {proposal.Heading}"));
             }
         }
 

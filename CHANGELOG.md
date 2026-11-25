@@ -42,6 +42,10 @@ team's not yet committed, so every run of the 0.56 pipeline stopped there. The s
 hand as above. A manifest whose only change is pinning the release being moved to is now the move's own and
 committed with it; one changed in anything else is still refused. Nothing a cycle is judged on changes.
 
+**A harvest's proposals are numbered.** `sdlc harvest summary` numbers each proposal in the file's order, and every
+harvest skill hands back with it, so a person answers by number (*accept all but 11*) and the skill marks the file.
+The file's headings are unchanged. Nothing a cycle is judged on changes.
+
 ## 0.55
 
 **Three sizes of run, each ending in one pull request** (D-205). A cycle is `/sdlc:build`, as before. A **wave** is

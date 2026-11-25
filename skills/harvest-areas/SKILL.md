@@ -68,7 +68,7 @@ At the path the report names:
 ## 4. Hand back, short
 
 Run `sdlc harvest summary <the proposal file>` and show it: each proposal, one line each. Then say they mark `[x]` on
-what they accept, and stop.
+what they accept, and stop. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said.
 
 ## 5. Once they have marked it
 

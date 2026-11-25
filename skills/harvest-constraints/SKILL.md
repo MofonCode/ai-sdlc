@@ -139,7 +139,7 @@ the drafter numbers what is accepted. A title takes at most 15 words and a claus
 
 Run `sdlc harvest summary <the proposal file>` and show it: each proposal, and every rule it names with what it says.
 Add a line on why, if one is needed, how many items were answered without a proposal, and that they mark `[x]` on what
-they accept. Then stop.
+they accept. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
 
 ## 5. Once they have marked it
 

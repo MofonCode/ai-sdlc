@@ -114,7 +114,7 @@ shorter wording, never reworded in place.
 
 Run `sdlc harvest summary <the proposal file>` and show it: each proposal, and every decision it names with what it
 says. Add whose words each came from, how many items were answered without one, and that they mark `[x]` on what they
-accept. Then stop.
+accept. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
 
 ## 5. Once they have marked it
 

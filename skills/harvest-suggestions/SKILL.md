@@ -114,7 +114,7 @@ sdlc harvest summary <the proposal file>
 
 Show its output: the successors to mark, each answer counted by theme, and every rule, decision and successor the
 file names, with what it says. Add at most two sentences of your own; never one line per suggestion. They mark `[x]`
-on the successors they want and may move any line between sections. Then stop.
+on the successors they want and may move any line between sections. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
 
 ## 5. Once they have marked it
 
