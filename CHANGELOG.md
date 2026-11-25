@@ -9,6 +9,30 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.57
+
+**What a harvest found the framework should hold, it now holds** (D-216 – D-219). One governed solution's decisions
+harvest proposed choices any solution meets, and four come into the framework:
+
+- **A failure that comes and goes is fixed in a cycle of its own** (D-216). The build process never runs the suite
+  again until a run misses it: it fixes the cause if the change made it, and otherwise hands back as not finished,
+  naming the test and the runs. **The pipeline's platform decides a pass**: a failure seen only on a machine the
+  pipeline does not test on is not chased unless it reproduces there.
+- **Work done to find something out states its aim** (D-217). The intent skill suggests a fixed decision naming the
+  aim, and that a build missing it is abandoned with its code.
+- **A check that reads the repository is seen to fail** (D-218): a new guidance entry, `repository-checks`, switched
+  on by architecture and fitness tests. The `pipeline` entry adds that a step's settings live where its tool reads
+  them by itself — on .NET, coverage settings in `testconfig.json`.
+- **What the framework already holds is already recorded** (D-219). The decisions and constraints harvests answer an
+  item the framework already settles by naming its rule, guidance entry or setting, rather than proposing a copy.
+
+**A harvest's proposals are numbered.** `sdlc harvest summary` numbers each proposal in the file's order, and every
+harvest skill hands back with it, so a person answers by number (*accept all but 11*) and the skill marks the file.
+The file's headings are unchanged.
+
+**What moving to it asks.** Nothing to write. It is a minor because a build can now stop where it used to rerun the
+suite until it passed: a team whose suite has a test that fails only sometimes will meet that test as a hand-back.
+
 ## 0.56
 
 **The release being moved to makes the move** (D-213). `sdlc upgrade apply` moves a solution to the release that

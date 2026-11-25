@@ -35,6 +35,10 @@ the gate. A plan may move them, never remove or weaken them.
   re-running its tests finds nothing new; where the default branch carries a change of its own, it runs everything.
 - **New steps go where the template puts its own**, with the same skip conditions, and a comment saying why the
   step exists. The template's comments are part of the pipeline.
+- **A step's settings live where its tool reads them by itself**, not on the template's command line, so the step
+  stays the template's and the build process runs the same command. On .NET, the test platform reads
+  `testconfig.json` from each test project's output: coverage settings there need no `--coverage-settings`, and a
+  governed solution found the file and that option together refuse the run (D-218).
 
 ## One branch or two
 

@@ -52,7 +52,7 @@ Each writes its proposal file, hands back a short report, and waits for the pers
 same skill drafts, reviews and records it. **Only then start the next.** Never hand the person two aspects at
 once: one aspect's report is what a person can sort through, and five together is not.
 
-**Keep every hand-back short**: each skill shows `sdlc harvest summary` of its proposal file — the proposals, the
+**Keep every hand-back short**: each skill shows `sdlc harvest summary` of its proposal file — the proposals, numbered so a person can answer by number, the
 answers counted by theme, and each id with what it says — and the one thing needed from the person. The reports are kept under `.sdlc/reports/` for anyone who wants the detail.
 
 A person may stop after any aspect. Nothing is lost: the ledger keeps which aspects each cycle has answered, and the

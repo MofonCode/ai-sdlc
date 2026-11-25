@@ -66,7 +66,8 @@ public static class HarvestReaders
             ? "Name each concern the report marks at the bar that is ignored again, each `## Ignored` gist that rewords one the report already lists, "
                 + "and each `## Covered` line whose rule, decision, successor or file does not in fact handle the suggestion. "
             : string.Empty)
-        + "Then name each `no proposal, because` whose reason the report contradicts. Answer **complete**, or list the "
+        + "Then name each `no proposal, because` whose reason the report contradicts, and each `already recorded as` whose "
+        + "entry does not in fact say it. Answer **complete**, or list the "
         + "gaps. Do not propose anything yourself.";
 
     private static string Items(HarvestAspect aspect) => aspect switch

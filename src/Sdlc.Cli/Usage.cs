@@ -522,7 +522,7 @@ internal static class Usage
                                      --proposals names the file.
             harvest summary <proposal file>
                                      What one proposal file asks of a person, in a few lines: each
-                                     proposal with its mark; the Declined, Covered and Ignored
+                                     proposal numbered, with its mark; the Declined, Covered and Ignored
                                      answers counted by the '### <theme>' each stands under, with
                                      what each Covered theme relies on; and every rule, decision
                                      and successor:<slug> the file names, with what it says or

@@ -29,6 +29,11 @@ public sealed class GuidanceTests
         Assert.IsTrue(image.Matches(".github/workflows/sdlc-factory.yml"));
         Assert.IsTrue(image.Matches("agent-image/Dockerfile"));
         Assert.IsFalse(image.Matches("src/Orders/Dockerfile"), "An application's own image is not the agent's.");
+
+        // D-218: a check that reads the repository, switched on by the architecture tests that hold one.
+        GuidanceEntry checks = all.Value.Single(entry => entry.Name == "repository-checks");
+        Assert.IsTrue(checks.Matches("tests/Demo.Architecture.Tests/LayeringTests.cs"));
+        Assert.IsFalse(checks.Matches("src/Orders/OrderService.cs"));
     }
 
     [TestMethod]

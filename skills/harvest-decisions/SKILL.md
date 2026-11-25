@@ -55,6 +55,12 @@ architecture test — two artifacts of one choice, the decision saying why. Say 
 Every item gets a proposal, *already recorded* naming the entry, *a note for the framework*, or *no proposal,
 because* with a real reason — *a local choice, said in one cycle only* is one.
 
+**What the framework already holds is already recorded** (D-219): a global or stack rule (`CON_22`, `PRO_05`), a
+guidance entry (`guidance:pipeline`), or a setting the solution has chosen (`solution.md: branch-policy`). Each binds
+every cycle without a decision, so restating one here adds no force and leaves a second copy to drift. Name it as
+the entry. Only what the solution chose beyond it is a decision: a value the framework left open, or a narrower
+form of what it says.
+
 **A note for the framework is written for somebody who has never seen this solution** (D-204): a choice every cycle
 had to make again because the framework left it open, or a step that cost more than it gave. Its heading names the
 part of the framework — a rule's id, `stage:plan`, `document:intent`, `command:draft` — and what fell short, with
@@ -99,7 +105,7 @@ Measure: <the numbers: cycles, findings, rounds, tokens>
 
 ## Not proposed
 
-- <the item> — <already recorded as DEC_04 | no proposal, because ...>
+- <the item> — <already recorded as DEC_04, CON_22, PRO_05, guidance:pipeline or solution.md: branch-policy | no proposal, because ...>
 
 ## Cycles
 
@@ -114,7 +120,7 @@ shorter wording, never reworded in place.
 
 Run `sdlc harvest summary <the proposal file>` and show it: each proposal, and every decision it names with what it
 says. Add whose words each came from, how many items were answered without one, and that they mark `[x]` on what they
-accept. Then stop.
+accept. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
 
 ## 5. Once they have marked it
 

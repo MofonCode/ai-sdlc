@@ -55,10 +55,11 @@ ledger remembers which aspects each cycle has answered.
 **Every aspect runs the same way:**
 
 1. The skill writes a proposal file under `.sdlc/reports/` and hands back what `sdlc harvest summary <file>` prints:
-   each proposal with its mark, the other answers counted by theme, and every rule, decision and successor the file
+   each proposal numbered, with its mark, the other answers counted by theme, and every rule, decision and successor the file
    names with what it says — then what it needs from you. The skill chooses the themes; the binary counts and quotes,
    so a group cannot claim more than it holds. It places nothing.
-2. You open the file, mark `[x]` on each proposal you accept, and edit its wording to yours.
+2. You open the file, mark `[x]` on each proposal you accept, and edit its wording to yours — or answer by number
+   (*accept all but 11*) and the skill marks the file for you.
 3. The skill runs `sdlc draft harvest <file>`, which writes the draft beside the real file — a copy with only your
    accepted lines applied — and two fresh processes review it: whether what you approved still serves its evidence
    and `solution.md`, and whether any item was left without an answer. A gap goes back to the skill first.

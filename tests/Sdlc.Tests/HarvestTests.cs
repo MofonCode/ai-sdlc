@@ -587,7 +587,8 @@ public sealed class HarvestTests
 
         string rendered = HarvestSummary.Render(summary);
         StringAssert.Contains(rendered, "Proposals: 2, 1 marked");
-        StringAssert.Contains(rendered, "  [x] add keyboard-chart — a keyboard path");
+        StringAssert.Contains(rendered, "  1. [x] add keyboard-chart — a keyboard path", "Each proposal is numbered, so a person can answer it by number.");
+        StringAssert.Contains(rendered, "  2. [ ] add export-csv — an export");
         StringAssert.Contains(rendered, "Covered: 4 suggestions");
         StringAssert.Contains(rendered, "  Already handled by a rule — 3 (by LOC_01, docs/checklist.md)");
         StringAssert.Contains(rendered, "Ignored: 2 concerns");
