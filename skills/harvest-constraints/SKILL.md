@@ -51,7 +51,8 @@ bar, rule behind deviations in more than one cycle, criterion that failed more t
 budget gets **one** answer:
 
 - a proposal, by the heading it will have in the file
-- *already recorded*, naming the entry — `LOC_02`
+- *already recorded*, naming the entry — `LOC_02`, or a global or stack rule that already forbids it, `CON_22` or
+  `PRO_05`, which binds every cycle without a copy here (D-219)
 - *a note for the framework* — `cost`: a framework rule, reader or step costing more here than it caught, which no
   local rule can change; `missing`: a rule any solution would need, not this one alone; `defect`: something the
   framework did wrong

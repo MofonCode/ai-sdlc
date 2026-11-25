@@ -306,6 +306,11 @@ sdlc draft approval <id> --reopen
 A change that needs the intent changed, a wider scope, or a file another cycle claims is never a
 deviation. The stage stops and hands back, and the choice is a successor or a reopen.
 
+**A test that fails only sometimes stops the build too** (D-216). The build never runs the suite again until a run
+misses it. If its own change caused the failure it fixes the cause; if not, it hands back naming the test and the
+runs, and you have the fault fixed in a cycle of its own before this one records evidence. A failure seen only on a
+machine your pipeline does not test on is not chased unless it reproduces on the pipeline's platform.
+
 ### Escalated
 
 **A remediation loop that stops making progress, even after its one deviation, sets the verify outcome to

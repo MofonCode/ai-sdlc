@@ -229,6 +229,15 @@ without running anything. If the test count is zero or absent, that is a failure
 count rather than the exit code. (`dotnet test --nologo` is one cause on the .NET 10 SDK: the Microsoft.Testing
 Platform runner passes it through, and every project reports "Zero tests ran". Drop the flag.)
 
+**A test that fails only sometimes is a fault, never a run to repeat** (D-216). Do not run the suite again until a
+run misses it: a green run got that way hides a fault that can stop any cycle's evidence. If this change caused
+it, fix the cause. If it did not, hand back as not finished, naming the test and the runs that failed: the report
+carries it to the person, who has it fixed in a cycle of its own before this one records evidence again.
+
+**The platform the pipeline tests on decides whether a test passes** (D-216). Where this machine is not that
+platform, a failure seen only here is not chased unless it reproduces there; say so in the hand-back, and never
+change the code to suit a platform the pipeline does not run.
+
 **The turn end is checked.** A hook asks the gate before you finish, and sends the turn back while the recorded
 evidence shows a failing suite, there are changes and no evidence, or the working tree has moved since the
 evidence was recorded.

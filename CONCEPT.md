@@ -1045,8 +1045,9 @@ binary decides which a plan gets from its `Files` section — `sdlc guidance <id
 Advice that keeps proving right reaches the rules through a harvest, never by itself.
 
 **What is built.** The document format, `sdlc guidance`, `sdlc guidance show` and `sdlc guidance <id>`; the
-`plan` skill reading them; and two entries: **pipeline**, the shape the framework would give a solution's pipeline
-where the solution has not chosen one, and **agent-image**, how a self-hosted agent's image is kept current (D-201).
+`plan` skill reading them; and three entries: **pipeline**, the shape the framework would give a solution's pipeline
+where the solution has not chosen one, **agent-image**, how a self-hosted agent's image is kept current (D-201), and
+**repository-checks**, how a test that holds a property of the repository is shown to fail (D-218).
 
 ---
 
@@ -7740,6 +7741,84 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-219 — What the framework already holds is already recorded, in a harvest of a solution's decisions and rules
+
+**Governs:** §8.1.1, §15
+
+**Decision.** A harvest's *already recorded* answer may name the framework's own entry as well as the solution's: a
+global or stack rule, a guidance entry, or a setting the solution has chosen. The decisions harvest proposes only what
+the solution chose beyond it — a value the framework left open, or a narrower form of what it says. The completeness
+reviewer is asked to name an *already recorded* whose entry does not in fact say it.
+
+**Why.** One decisions harvest of 31 proposals carried nine that restated what the framework already decides — the
+pipeline built from its template, an upgrade made as a plain pull request, a profile's stack rule, slicing an intent
+with several outcomes. The skill's only *already recorded* answer named a `DEC_` entry, so an agent that found the
+framework already settled a choice could only propose it again or invent a reason not to. A restated rule adds no
+force, since the framework's binds every cycle, and leaves a second copy that drifts when the framework moves.
+
+**Rejected.** *Proposing it and letting the person decline it*: it spends the person's attention on nine lines whose
+answer is always the same. *A separate `## Covered` section, as the suggestions harvest has*: suggestions need one
+because each is a reader's line with a concern to tally; a decision item needs only to say where it is settled, which
+*already recorded* already does.
+
+### D-218 — A check that reads the repository is seen to fail, and a step's settings stay off the template's command line
+
+**Governs:** §6.6
+
+**Decision.** Two pieces of guidance. A new entry, **repository-checks**, switched on by architecture and fitness
+tests: a check that holds a property of the repository takes what it reads and returns each failure, and is run on
+altered copies that must fail as well as on the repository. And a line in **pipeline**: a step's settings live where
+its tool reads them by itself, so the step stays the template's — on .NET, coverage settings in `testconfig.json`.
+
+**Why.** Six cycles of one governed solution wrote the same shape into their plans unprompted, because a check over a
+repository that already holds the property passes whether it works or not: only a copy that must fail shows it can.
+The same solution moved its coverage settings off the test command after the template's step and its own diverged,
+and a probe found the settings file and the command-line option together refuse the run.
+
+**Rejected.** *A rule that a check be shown to fail.* It forbids a test nobody could tell from a sound one without
+running it on a copy, which is what the guidance asks anyway, and a plan that has a better way to show it should not
+be blocked. *Shipping a `testconfig.json` in the scaffold*: a solution that needs no coverage settings would carry an
+empty file, and the line in the pipeline guidance reaches the one that does when it touches the step.
+
+### D-217 — Work done to find something out states its aim, and a build that misses it is abandoned with its code
+
+**Governs:** §4.2, §15
+
+**Decision.** When a request is to find out whether something can be done, the intent skill suggests a fixed
+decision stating the aim the build must reach, and that a build missing it is abandoned with its code. It is marked
+inferred like any other reading. Missing the aim is then an abandonment whose reason was agreed up front.
+
+**Why.** D-167 set aside a spike type until a harvest showed it recurring. Two cycles of one governed solution have
+now each written the same thing into their fixed decisions by hand, in the person's words: *if we are not able to do
+that we can simply throw away the built code along with the intent*. Without it the code that missed is kept for a
+later cycle to rework, which is the cost a spike exists to avoid.
+
+**Rejected.** *A spike intent type*, still: both cases were met with a fixed decision and the abandonment that
+already exists, so a type adds a field and a branch in every stage for what one line does. Revisit when a harvest
+shows a stage treating such a cycle wrongly. *Waiting for a second solution*: the suggestion costs a marked line a
+person can strike, and it changes no stage's behaviour.
+
+### D-216 — A failure that comes and goes is fixed in a cycle of its own, and the pipeline's platform decides a pass
+
+**Governs:** §4.5, §10.1
+
+**Decision.** The build process never runs the suite again until a run misses a failure that comes and goes. If the
+change caused it, it fixes the cause; if not, it hands back as not finished, naming the test and the runs, and the
+fault is fixed in a cycle of its own before this one records evidence again. Where the machine running the build is
+not the platform the pipeline tests on, a failure seen only there is not chased unless it reproduces on the
+pipeline's, and the code is never changed to suit a platform the pipeline does not run.
+
+**Why.** The implement skill already forbade a sleep or a retry in a test, because a flaky proof gets rerun until
+green; it said nothing of rerunning the whole suite, which is the same thing one level up. A governed solution's
+person fixed exactly this into an intent: a green run got that way hides a fault that can stop any cycle's evidence.
+The same solution found that a cycle chasing failures on a desktop platform its pipeline never ran mostly found
+problems only that platform had.
+
+**Rejected.** *A constraint on the verify document.* The evidence records one run and cannot show the runs before
+it, so a reader could not tell a rerun green from a first one; the rule has to bind the process that runs the suite.
+*Requiring evidence from the pipeline's platform*: a person building on another machine without a factory could
+then record no evidence at all, for a difference that matters only when the two disagree.
 
 ### D-215 — `doctor` is a skill too, for the one check the command cannot make
 

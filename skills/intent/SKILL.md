@@ -359,6 +359,13 @@ a file with no mark and nothing in conflict is shown and handed back. **Say that
 they disagree with**, and that *go* takes the rest as written — as does taking it to plan, which adopts every line
 still marked and names each one when it hands back (D-211).
 
+### Work done to find something out
+
+When the request is to find out whether something can be done — a suite made faster, an approach tried — suggest
+a fixed decision stating the aim the build must reach, and that a build missing it is abandoned with its code
+(D-217). Mark it inferred like any other. Missing the aim is then an abandonment whose reason was agreed up front,
+rather than code kept for a later cycle to rework.
+
 ### As the conversation goes
 
 Edit the file with each answer, and never start it again:

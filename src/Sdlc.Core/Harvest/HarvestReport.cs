@@ -509,7 +509,7 @@ public static class HarvestReport
         text.AppendLine("                  Kind: cost | missing | defect     Cycles: <cycle>, <cycle>     Measure: <cycles, findings, rounds>");
         text.AppendLine("                  > <the evidence: cycles, finding ids, rounds -- kept here, never sent>");
         text.AppendLine("                  surface: " + FrameworkHarvest.Surfaces);
-        text.AppendLine("  ## Not proposed - <the item> — <already recorded as ... | no proposal, because ...>");
+        text.AppendLine("  ## Not proposed - <the item> — <already recorded as LOC_02, DEC_04, CON_22, PRO_05, guidance:<name> ... | no proposal, because ...>");
         text.AppendLine("  ## Cycles       copied as written: the answers are recorded for these cycles and no others");
 
         foreach (CycleId cycle in sitting)
