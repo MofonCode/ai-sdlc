@@ -1490,7 +1490,7 @@ every key's value, whether it was declared or defaulted, and how to change it (D
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
 | `approval` | the gate, which under `none` asks for no ledger and keeps every other check; `verify-chain`, the status panel and the sitrep, which say no person approved. `required` or `none`; absent, and a document that cannot be read, read as `required` (D-137) |
 | `coverage_floor` | `verify-chain` and `evidence`: at or above it the whole codebase need not hold its coverage baseline, and the baseline follows the rate; under it the codebase may not fall. A whole percentage; absent reads as 80%, and a document that cannot be read as no floor at all (D-157) |
-| `build_tools` | `sdlc build`, which allows the build's own process each command it names, as that command and nothing wider, beyond the ones every build is given. Bare command names, comma-separated; optional and written only when set, and a document that cannot be read starts no build (D-202) |
+| `build_tools` | `sdlc build`, which allows the build's own process each command it names, as that command and nothing wider, beyond the ones every build is given. Commands, comma-separated, each a bare name or one command line that starts with one, which allows that line and nothing else (D-224); optional and written only when set, and a document that cannot be read starts no build (D-202) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -1644,6 +1644,9 @@ after another into it (D-205, §10.6).
 not allowed is refused with nobody to ask. `sdlc build` names the skills the playbook reaches, `sdlc`, `git`,
 `dotnet`, `gh`, `az` and the file tools, and then each command the solution's `build_tools` names (§8.3). Its
 permission checks stay on: a command outside the list is a refusal the report names, never a reason to switch them off.
+**It says what it was given and what it was refused** (D-224): before the process starts, the grant and any shell rule
+this machine's own settings add that the factory would refuse; when it ends, each tool use the host refused, read
+from the host's own answer, so a refusal never reads as a failing test.
 
 **The graph is computed by the binary, not derived by the skill.** It is a set intersection over a file
 table, so the binary does it the same way every time — and a graph a session worked out by reading plans
@@ -2446,7 +2449,9 @@ there has a default (D-136): only `development` or a `release/*` branch may open
 default branch, which `sdlc promotion` decides inside the same `verify` job, and the chain is not asked of a
 promotion, which has no cycle. A release branch's own policy is the team's. **A promotion always builds, and
 skips the tests when the integration branch already passed on exactly what it merges** (D-196): `sdlc tested`
-reads the platform's runs the pipeline hands it, and anything else runs everything.
+reads the platform's runs the pipeline hands it, and anything else runs everything. **What skips a step is set by a
+step** (D-224): a step's output on GitHub, a variable the file declares on Azure DevOps, so nobody queuing a run can
+give it a value, and the skip passes over the tests alone, never the build, the chain or a team's own step.
 
 **A trunk is a setting** (D-198). Where the integration branch is the default branch, there is one branch, one
 policy and no promotion: every pull request into it is judged by the chain, and the guarantee covers what ships.
@@ -2711,7 +2716,7 @@ they print verbatim.
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the two versions and which is which — the binary and the plugin — D-160 |
-| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong — a missing integration branch and a placeholder paragraph included. Before the first cycle it ends with every draft left to place and its rename — §9 |
+| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong — a missing integration branch, a placeholder paragraph and a retired command a file only a person writes still names included (D-224). Says which `build_tools` a build is granted and what this machine adds. Before the first cycle it ends with every draft left to place and its rename — §9 |
 
 **One more verb is answered before this table is consulted.** `sdlc claude [args]` starts Claude Code with the
 skills this release carries — in a solution that pins a release, that release's — passing every argument on
@@ -8110,6 +8115,63 @@ the framework sends, and numbering the diff removes the cause; the list is enoug
 evidence could settle it stays a reader's question. *Recording an audit result as evidence*: the build already ran it,
 and a second file proves what a green build of those settings does. *Telling only the security perspective about the
 audit*: the fact is about the build, and the shared block keeps the readers' prefix one.
+
+### D-224 — A build names what it was refused and what it may run, a grant may be one command line, nobody queuing a run can skip its tests, and a retired command is found where only a person can change it
+
+**Governs:** §8.3, §10.1, §13, §15.2
+
+**Amends D-202**, whose `build_tools` held bare command names alone, **and D-196**, whose skip of a promotion's tests
+the Azure DevOps pipeline read from a variable anybody queuing a run could set. **Extends D-148 and D-191**, whose
+renamed commands the binary answers: the list it answers from is read by `doctor` too.
+
+**Decision.**
+
+1. **A build says what it was refused.** The build's and the series' own processes answer in the host's JSON format,
+   and `sdlc build` and `sdlc series run` print the hand-back it carries, then each tool use the host refused, as
+   `tool: command`, once each, under *no test failed for it*, with the `build_tools` entry that would grant it. An
+   answer that is not that object is printed as written and refuses nothing.
+2. **A build says what it may run before it starts.** It names what `build_tools` granted, and each shell rule this
+   machine's own host settings add beyond every build's tools and that grant -- the user's settings and the
+   worktree's local file, both this machine's alone -- because a build here may use them and the factory is refused
+   them. `doctor` says the same as a sound check.
+3. **A grant may be one command line.** A `build_tools` entry is a bare command name, as before, or a command line
+   that starts with one: `docker build`, `pwsh -File scripts/evidence.ps1`. A line is allowed as itself and with more
+   words after it, and nothing else. Its later words may hold an option, a value or a relative path; a wildcard, a
+   quote, a variable, a redirection, `..` or a second command fails the document as before.
+4. **What skips the tests is set by a step, never by whoever queues the run.** The Azure DevOps verify pipeline
+   declares `admission`, `promotion` and `tested` as `false`, which Azure Pipelines does not let a run override at
+   queue time, and each step sets exactly `true` or `false`. On GitHub the skip is already a step's output. Both
+   templates say the skip passes over the tests and their publishing, never the build or the chain, and never a
+   team's own step, which carries no condition on them when it must run on every pull request. The `pipeline`
+   guidance says a team's own skip takes the same shape.
+5. **A retired command is found where only a person can change it.** The commands a release renamed are one list in
+   the binary, which answers them; `doctor` reads every file only a person writes outside a cycle for a command in
+   backticks on that list, and names its line and what to write instead. The constraints draft names no command:
+   `.sdlc/README.md`, which every upgrade rewrites, names the ones it used to.
+
+**Why.** One governed solution's harvest, over 23 cycles, handed the framework four notes on these surfaces. A build
+stopped by a refused tool looked the same as a failing test: the output never named the command, and nothing said
+which tools were in effect, so an allowance in a person's own settings let builds pass on a grant that was broken
+and would fail in the factory. A grant was the tool whole -- a shell, a container runtime -- when the need was one
+command. The verify pipeline's skip had no account of what stops a person queuing a run from setting it, and on
+Azure DevOps nothing did: `tested`, `admission` and `promotion` were ordinary variables, so a value given at queue
+time skipped the tests, the build or the chain. And a scaffolded constraints header still told people to run a
+command two releases had renamed, which no upgrade could change because only a person writes that file.
+
+**Rejected.**
+
+- *Starting the build with the user's settings left out*, so a machine's allowance could not mask anything. Those
+  settings also hold how a person signs in and which model they use, and a build that could not start for that is
+  worse than one that says what it was given.
+- *A refusal read from the build's own report.* The playbook already says to name it, and the note is that it did
+  not; the host's record of what it refused is a fact the binary can read, where the report is a sentence.
+- *A wildcard grant, `docker build *`, written by the person.* A wildcard is what `build_tools` refuses, because a
+  person writing one cannot see what else it matches; the binary adds the one it means.
+- *Output variables named by step on Azure DevOps.* A queue-time variable can be given a dotted name too; a
+  variable the file declares cannot be given at all.
+- *Rewriting the stale header on upgrade.* The file is a person's, and a tool that edits it once edits it again.
+- *Flagging every command a person's file names that this release does not answer.* A typo or a stage typed at the
+  binary is not something a release took away, and the binary answers a stage by naming its skill.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

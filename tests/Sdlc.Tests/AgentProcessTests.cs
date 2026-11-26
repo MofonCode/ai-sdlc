@@ -6,6 +6,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Harvest;
+using Sdlc.Core.Series;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
@@ -156,6 +157,105 @@ public sealed class AgentProcessTests
 
         Assert.IsTrue(exit.IsSuccess, string.Join("; ", exit.Errors.Select(error => error.Message)));
         CollectionAssert.Contains(agents.Launches.Single().Arguments.ToList(), "Bash(docker *)");
+    }
+
+    [TestMethod]
+    public void A_command_line_in_build_tools_allows_that_line_and_no_other()
+    {
+        // D-224: 'docker build' is that command line, with or without more words, and never the runtime whole.
+        CollectionAssert.AreEqual(new[] { "Bash(docker build)", "Bash(docker build *)" }, BuildRun.RulesFor("docker build").ToList());
+        CollectionAssert.AreEqual(new[] { "Bash(pwsh *)" }, BuildRun.RulesFor("pwsh").ToList());
+
+        IReadOnlyList<string> series = SeriesRun.ArgumentsFor("s1", "/plugin", ["docker build"]);
+        CollectionAssert.Contains(series.ToList(), "Bash(docker build *)");
+        Assert.IsFalse(series.Contains("Bash(docker *)"));
+    }
+
+    [TestMethod]
+    public void A_build_and_a_series_answer_in_json_named_before_their_tools()
+    {
+        // D-224: the answer carries what the host refused; the tools stay last, because the option takes every word after it.
+        foreach (IReadOnlyList<string> arguments in new[] { BuildRun.ArgumentsFor(Cycle(), "/plugin"), SeriesRun.ArgumentsFor("s1", "/plugin") })
+        {
+            int format = arguments.ToList().IndexOf("--output-format");
+            Assert.IsTrue(format > 0);
+            Assert.AreEqual("json", arguments[format + 1]);
+            Assert.IsTrue(format < arguments.ToList().IndexOf("--allowedTools"));
+        }
+    }
+
+    [TestMethod]
+    public async Task A_build_refused_a_command_hands_back_what_it_said_and_names_the_command()
+    {
+        // D-224: a refusal read from the host's own record, so the build's end never reads like a failing test.
+        using TempDirectory worktree = new();
+        CycleWorkspace.WriteRaw(SolutionDocument.PathIn(worktree.Root), "---\norigin: adopted\n---\n\n# a solution\n");
+        FakeAgentProcess agents = new()
+        {
+            Answers = """
+                {"type":"result","result":"Not finished: the evidence script could not run.","permission_denials":[
+                  {"tool_name":"Bash","tool_use_id":"t1","tool_input":{"command":"pwsh -File scripts/evidence.ps1"}},
+                  {"tool_name":"Bash","tool_use_id":"t2","tool_input":{"command":"pwsh -File scripts/evidence.ps1"}}]}
+                """,
+        };
+
+        using var gate = Gate.For(worktree.Root, services => services.AddSingleton<IAgentProcess>(agents));
+        Result<AgentExit> exit = await gate.Send<BuildRun.Launch, AgentExit>(new BuildRun.Launch(Cycle(), worktree.Root, "/plugin"));
+
+        Assert.IsTrue(exit.IsSuccess, string.Join("; ", exit.Errors.Select(error => error.Message)));
+        Assert.AreEqual("Not finished: the evidence script could not run.", exit.Value.Said);
+        CollectionAssert.AreEqual(new[] { "Bash: pwsh -File scripts/evidence.ps1" }, exit.Value.Refused.ToList(), "Each refusal once.");
+        Assert.IsFalse(File.Exists(agents.Launches.Single().Output!), "The answer is read and removed.");
+
+        string rendered = BuildRun.RenderRefused(exit.Value.Refused);
+        StringAssert.Contains(rendered, "no test failed");
+        StringAssert.Contains(rendered, "pwsh -File scripts/evidence.ps1");
+        StringAssert.Contains(rendered, "build_tools");
+        StringAssert.Contains(rendered, "'pwsh'");
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow("claude crashed")]
+    [DataRow("[1,2]")]
+    [DataRow("{\"result\":\"done\"}")]
+    public void An_answer_that_is_not_the_hosts_object_refuses_nothing_and_is_handed_back_as_written(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        (string? said, IReadOnlyList<string> refused) = BuildRun.ReadAnswer(text);
+
+        Assert.AreEqual(0, refused.Count);
+        Assert.AreEqual(text.Length == 0 ? null : text.StartsWith('{') ? "done" : text, said);
+        Assert.AreEqual(string.Empty, BuildRun.RenderRefused(refused));
+    }
+
+    [TestMethod]
+    public void The_tools_in_effect_name_the_grant_and_every_shell_rule_this_machine_adds_beyond_it()
+    {
+        // D-224: a user-level allowance lets a build pass here that the factory refuses, so it is named.
+        using TempDirectory home = new();
+        using TempDirectory worktree = new();
+        home.Write(".claude/settings.json", """{"permissions":{"allow":["Bash(pwsh *)","Bash(git *)","Read","Bash(docker build *)"]}}""");
+        worktree.Write(".claude/settings.local.json", """{"permissions":{"allow":["Bash(make *)"]}}""");
+
+        BuildRun.Tools tools = BuildRun.ToolsIn(worktree.Root, ["docker build"], home.Root);
+
+        CollectionAssert.AreEqual(new[] { "Bash(pwsh *)", "Bash(make *)" }, tools.MachineOnly.ToList(), "Every build's own and the grant are not counted, nor a tool that is not a shell command.");
+        StringAssert.Contains(tools.Render(), "build_tools: docker build");
+        StringAssert.Contains(tools.Render(), "the factory");
+    }
+
+    [TestMethod]
+    public void A_machine_with_no_settings_or_unreadable_ones_adds_nothing()
+    {
+        using TempDirectory home = new();
+        using TempDirectory worktree = new();
+        worktree.Write(".claude/settings.local.json", "{ not json");
+
+        BuildRun.Tools tools = BuildRun.ToolsIn(worktree.Root, [], home.Root);
+
+        Assert.AreEqual(0, tools.MachineOnly.Count);
+        StringAssert.Contains(tools.Render(), "nothing from solution.md's build_tools");
     }
 
     [TestMethod]
@@ -396,6 +496,9 @@ public sealed class AgentProcessTests
         /// <summary>Readers that exit cleanly and write nothing.</summary>
         public HashSet<string> Silent { get; init; } = [];
 
+        /// <summary>What every process writes to its output, or null for an empty object.</summary>
+        public string? Answers { get; init; }
+
         /// <summary>Whether there is no host to start.</summary>
         public bool NoHost { get; init; }
 
@@ -456,9 +559,9 @@ public sealed class AgentProcessTests
             return Task.FromResult(new AgentExit(0, false, null));
         }
 
-        private static async Task<AgentExit> Answer(string output, CancellationToken cancellationToken)
+        private async Task<AgentExit> Answer(string output, CancellationToken cancellationToken)
         {
-            await File.WriteAllTextAsync(output, "{}", cancellationToken);
+            await File.WriteAllTextAsync(output, Answers ?? "{}", cancellationToken);
             return new AgentExit(0, false, null);
         }
     }
@@ -468,7 +571,12 @@ public sealed class AgentProcessTests
     {
         public string Root { get; } = Directory.CreateTempSubdirectory("sdlc-agents-").FullName;
 
-        public void Write(string name, string text) => File.WriteAllText(Path.Combine(Root, name), text);
+        public void Write(string name, string text)
+        {
+            string path = Path.Combine(Root, name);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, text);
+        }
 
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }

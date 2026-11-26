@@ -236,6 +236,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.BuildRun+Launch",
         "Sdlc.Core.Cycles.BuildRun+Place",
         "Sdlc.Core.Cycles.BuildRun+Prepare",
+        "Sdlc.Core.Cycles.BuildRun+Tools",
         "Sdlc.Core.Cycles.ComposeAdmission",
         "Sdlc.Core.Cycles.ComposeAdmission+Query",
         "Sdlc.Core.Cycles.ComposeAdmission+Response",
@@ -649,6 +650,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.AgentExit",
         "Sdlc.Core.AgentLaunch",
         "Sdlc.Core.CliAgentProcess",
+        // The commands this release answers and the ones it retired: the CLI answers a retired one from it, and doctor
+        // reads it for a retired command a file only a person writes still names (D-224).
+        "Sdlc.Core.CommandNames",
+        "Sdlc.Core.CommandNames+Retirement",
+        "Sdlc.Core.CommandNames+Stale",
         "Sdlc.Core.IAgentProcess",
         "Sdlc.Core.PinnedRelease",
         "Sdlc.Core.Release",

@@ -227,7 +227,8 @@ sdlc doctor
 ```
 
 It checks the rules, git, adoption, whether the framework's files were written by this release of the
-binary, whether `.gitattributes` normalises line endings, every host's hook
+binary, whether a file only you write still names a command a later release retired, which build tools a build is
+granted and what this machine adds, whether `.gitattributes` normalises line endings, every host's hook
 configuration and whether a pipeline here runs `sdlc verify-chain`, and it exits 1 if anything is wrong. Each problem names the command that fixes it.
 In a repository that has not opened its first cycle it ends with what is still yours to place and the
 one command that is next.

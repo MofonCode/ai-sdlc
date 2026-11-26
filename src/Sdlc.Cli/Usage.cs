@@ -134,9 +134,14 @@ internal static class Usage
                                      (the skills it runs, sdlc, git, dotnet, gh, az, and each
                                      command solution.md's build_tools names; D-202), never with
                                      permission checks off, never marked as a reader --
-                                     waits, and prints the report. Exits 0 on a pass, 1 on blocked
-                                     or escalated. With no id, every queued cycle in one process
-                                     started from here, each in a worktree of its own; a plan only
+                                     says first which build_tools it was granted and any shell
+                                     rule this machine's own settings add that the factory would
+                                     refuse, waits, prints what the process handed back and names
+                                     each command it was refused, so a refusal never reads as a
+                                     failing test (D-224), and prints the report. Exits 0 on a
+                                     pass, 1 on blocked or escalated. With no id, every queued
+                                     cycle in one process started from here, each in a worktree
+                                     of its own; a plan only
                                      in a sandbox is queued only when named. Refuses when the
                                      build's process cannot start, or ends without a report. The
                                      one stage this binary runs rather than names a skill for.
@@ -551,7 +556,10 @@ internal static class Usage
                                      ignored with the cycles each was ignored in, and every rule,
                                      decision and successor the answers name, with what it says.
             doctor                   Check this installation and this repository: the rules, git,
-                                     how many decisions every reader is handed,
+                                     how many decisions every reader is handed, any command a
+                                     file only a person writes names that this release retired --
+                                     its line and what to write instead (D-224) -- the build
+                                     tools solution.md grants and what this machine adds,
                                      adoption, which release wrote adoption's files against this
                                      binary, line endings, every host's hook config, and the
                                      pipeline that is the guarantee, and asks the platform

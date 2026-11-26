@@ -54,8 +54,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |
 | **The build's own process — `sdlc build`** | |
-| [a solution document the build cannot read](../guides/handling-refusals.md#a-solution-document-the-build-cannot-read) | `sdlc draft solution`; `build_tools` takes bare command names, comma-separated |
-| [a tool the build's process was not given](../guides/handling-refusals.md#a-tool-the-builds-process-was-not-given) | add the command to `build_tools` with `sdlc draft solution`; a local settings rule never reaches the build |
+| [a solution document the build cannot read](../guides/handling-refusals.md#a-solution-document-the-build-cannot-read) | `sdlc draft solution`; `build_tools` takes commands, comma-separated, each a bare name or one command line |
+| [a tool the build's process was not given](../guides/handling-refusals.md#a-tool-the-builds-process-was-not-given) | `sdlc build` names the refused command; add it to `build_tools` with `sdlc draft solution`; a local settings rule never reaches the build |
 | **Amending an admitted plan — `sdlc draft approval --reopen`, `sdlc branch`** | |
 | [a reopen on the build branch](../guides/handling-refusals.md#a-reopen-on-the-build-branch) | `sdlc branch <id> plan`, reopen and approve there, `/sdlc:pr <id> --plan`; then keep or delete the build branch |
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |

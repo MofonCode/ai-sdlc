@@ -103,6 +103,25 @@ is refused a round for a citation to nothing; a cycle opened before is not held 
 before it refuses: every machine and pipeline reading a solution's successors moves together. An adjudicator's verdict
 with a reasonless Not met, or an `## Open` entry bounding no met criterion, is now refused and adjudicated again.
 
+**A build says what it was refused, and what it may run** (D-224):
+
+- `sdlc build` and `sdlc series run` print the process's hand-back and then each command the host refused it, under
+  *no test failed for it*, with the `build_tools` entry that would grant it. Before starting they say what
+  `build_tools` granted and any shell rule this machine's own settings add that the factory would refuse; `sdlc
+  doctor` says the same.
+- **A `build_tools` entry may be one command line**: `docker build` grants that line and never `docker run`. Bare
+  names grant the tool whole, as before.
+- **Nobody queuing a run can skip its tests.** The Azure DevOps verify pipeline declares `admission`, `promotion` and
+  `tested`, which a run cannot override at queue time; both templates say the skip passes over the tests alone.
+- **`sdlc doctor` names a retired command a file only a person writes still mentions** — an older constraints header
+  naming `sdlc propose constraints` — with its line and what to write instead. New constraints drafts name no command.
+
+**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
+before it refuses: every machine and pipeline reading a solution's successors moves together. The upgrade rewrites
+the verify pipeline with its declared variables; a pipeline of your own that already declares a `variables:` block
+has it replaced, and the merge names it, so carry your variables back into the new block. `sdlc doctor` may now
+fail on an older `constraints.md` header: change the line it names by hand.
+
 ## 0.57
 
 **What a harvest found the framework should hold, it now holds** (D-216 – D-219). One governed solution's decisions
