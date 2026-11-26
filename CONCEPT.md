@@ -339,7 +339,8 @@ can park a sibling a wave later — and a series' report shows it beside what ra
 marked `[h]` to hold it when it is wanted and not now (D-220),
 **declined** with a person's reason, **covered** by the rule, decision, successor or file that already handles it,
 which `harvest record` checks is real, or **ignored** and tallied by concern, with a bar at three. A covered line
-may close a tallied concern. Each step hands back through `sdlc harvest summary`: its answers counted by the themes
+may close a tallied concern. A reader raising an answered concern again in a later cycle is recorded as recurring
+rather than as a new suggestion, and counts toward that concern's bar (D-221). Each step hands back through `sdlc harvest summary`: its answers counted by the themes
 the sitting grouped them under, and every rule, decision and successor named with its text.
 
 **Operate files work items; it writes no artifact of its own.** A person runs it — no pipeline does since D-143 —
@@ -887,6 +888,12 @@ same concern found again rather than a new id. What became of one — `accepted`
 leads and abandonments, never stored. Two branches each raising a suggestion can merge with one `S_nn` recorded
 twice; the round refuses that and names `sdlc suggestions <id> --renumber`, which gives each duplicate the next
 free id (D-171).
+
+**A concern a harvest already answered is not asked again** (D-221). The reconciler is also shown, by key, what the
+solution's harvests ignored, watched, declined and covered and every successor waiting, and a suggestion it names as
+restating one of them goes to the ledger's `recurred` list rather than among the suggestions, so no person answers it
+twice. A finding restating another of the same round is one finding. `harvest close` folds the recurrences into
+`harvested.json`; no round writes that file, so two branches can never count one twice.
 
 ### 6.2 A round records what it judged, and what against
 
@@ -2722,7 +2729,9 @@ rides into it.
   areas.md                  names for sets of its files, carried by rules and decisions, so a
                             reader is handed in full only what its change reaches (D-150)
   harvested.json            the harvest ledger: which aspects each completed cycle has answered,
-                            every sitting, every closed cycle, the concerns ignored (D-152, D-192)
+                            every sitting, every closed cycle, the concerns ignored, and each
+                            time a closed cycle's reader raised an answered concern again
+                            (D-152, D-192, D-221)
   framework-harvest.json    the notes for the framework every sitting wrote, with the evidence
                             that stays here (D-204)
   coverage.json             the codebase's coverage baseline, held under coverage_floor (D-157)
@@ -7864,6 +7873,61 @@ question about one proof and its criterion, judged per criterion with the rest o
 judged over the same rows would split one answer between two readers' rows. *Forbidding every literal a proof
 asserts that the criterion lacks.* A proof may assert an identifier the plan chose or a value the criterion implies;
 the harm is wording a person reads, which the spec is where a person approves.
+
+### D-221 — A concern a harvest already answered, raised again, is recorded as recurring and counted, never asked again
+
+**Governs:** §6.1, §6.5, §15
+
+**Extends D-108 and D-115:** the reconciling reader is also shown the concerns the solution answered in its harvests,
+and a finding of the round may restate another finding of the same round. **Extends D-153:** an ignored concern's
+count toward the bar includes the cycles whose readers raised it again. **D-27 and D-49 are unchanged**: a blocker is
+never set aside, and where a suggestion stands on a document is still not the author's to move.
+
+**Decision.**
+
+- **The reconciler is shown what the solution already answered**, one line each with a key: every concern a harvest
+  ignored or watched, each reason a sitting declined suggestions for, each thing a sitting covered suggestions with,
+  and every successor waiting. A key is the kind and eight hex digits of the line's text (`ignored:3fa1c2d0`), or
+  `successor:<slug>`, so the same answer has the same key on every branch. Declines and covers are shown once per
+  answer, not once per suggestion: the concern is what is matched, and the ids are the cycles' own.
+- **A suggestion the reconciler names as restating one of them is recurring, not new.** `round collect` leaves it out of
+  the round's findings and carries it in the draft; `sdlc round` records it in the cycle's own
+  `findings/suggestions.json`, under `recurred`, with the key, the document and the round. It is not one of the cycle's
+  suggestions, so the panel, `sdlc suggestions` and the next harvest never ask anybody to answer it. A blocker naming a
+  key stays a new blocker.
+- **No round writes `harvested.json`.** `sdlc harvest close` folds each closing cycle's `recurred` into the ledger's own
+  `recurred` list, each (key, cycle, document, round) once, so folding a cycle twice, recording one draft twice, or a
+  merge carrying one entry twice adds nothing, and every read drops a duplicate. A person's own `cycles` and `why` on
+  a concern are never touched.
+- **An ignored or watched concern counts its distinct cycles: those a person answered it for, and those whose readers
+  raised it again**, folded or still in an open cycle. One ignored in two cycles and raised again in a third reaches the
+  bar in the sitting that sees it, and is listed with how many of its cycles are a reader raising it again.
+- **A finding may restate another of the same round.** One reader raising one gap three times, or two readers the same
+  gap, is one finding: the reconciler names the duplicate, and the round keeps one — the blocker, when only one of the
+  two blocks. Two blockers citing different rules are two blockers.
+- **Unsure is still new** (D-108): a key or an id the reconciler is not sure of leaves the finding where it was.
+
+**Why.** One governed solution's 23 cycles came to 2,869 open suggestions at one harvest. The readers raised about 40
+suggestions a cycle each for maintainability, security and operability, and less than 2% of them ever blocked. Much of
+it was the same concern in every cycle — an area proposal until a harvest placed one, the dependency audit every
+verify, the wording of Met lines that rest on an approved proof — and the reconciler, shown only its own cycle's
+suggestions, called each one new. Each then cost a disposition in the cycle and an answer in the harvest, though a
+person had already answered it once. One spec's reader raised past F_1800 and one verify raised reduced motion three
+times, because the reconciler matched against what stood before the round and never within it. The harvest ledger
+already kept every answer a person gave; nothing read it during a round.
+
+Recording the recurrence rather than suppressing it makes the repeat evidence: an ignored concern that keeps coming
+back is what the bar of three is for, and until now only a sitting could feed that tally.
+
+**Rejected.** *Telling the readers what was already answered*: they run blind by design (D-108), and a reader shown a
+list judges the list. *Writing the recurrence into `harvested.json` from the round*: every cycle branch would write the
+one file every other branch writes, and a merge would count one concern twice or lose one; the person asked for a
+guardrail against exactly that. *Adding the reader's cycles to the concern's `cycles`*: what a person answered and
+what readers kept noticing afterwards would read the same, and a later sitting could not tell which it was weighing.
+*Matching the open suggestions of other live cycles too*: it catches the repeats before a first harvest, but it is a
+second shared state across branches, and nothing yet shows the repeats it would catch are not the ones a harvest
+answers once. *Keying by position in the ledger*: a sitting covering a watched concern removes it, and every key after
+it would point at its neighbour.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

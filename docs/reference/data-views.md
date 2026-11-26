@@ -26,7 +26,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [the approvals](../mechanisms/protected-files.md) | `.sdlc/cycles/<id>/approval.md` | `sdlc status <id>`, `sdlc gate <id>` | a person |
 | [why a cycle stopped](../mechanisms/protected-files.md) | `.sdlc/cycles/<id>/abandoned.md` | `sdlc cycles` | a person |
 | [what each round found](../guides/handling-blockers.md) | `.sdlc/cycles/<id>/findings/<artifact>.json` | `sdlc findings <id> --stage <artifact>` | the binary, through `sdlc round` |
-| [its suggestions, and what became of each](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/findings/suggestions.json` | `sdlc suggestions <id>`; every status: `--all` | the binary, through `sdlc round` |
+| [its suggestions, and what became of each, and what its readers raised again of concerns a harvest already answered](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/findings/suggestions.json` | `sdlc suggestions <id>`; every status: `--all` | the binary, through `sdlc round` |
 | [what its readers cost](../../tools/README.md) | `.sdlc/cycles/<id>/findings/usage.json` | `sdlc status <id>` | the binary |
 | [the build's evidence](../guides/running-a-cycle.md) | `.sdlc/cycles/<id>/evidence/` | `sdlc evidence check <id>` | the binary, through `sdlc evidence` |
 | [where the build bent the approved documents, and what it chose where they were silent](../guides/handling-blockers.md) | `.sdlc/cycles/<id>/deviations.md` — each a deviation or a `choice`, with any change a person asked for recorded on it | `sdlc deviations <id>` | the build and remediate stages |
@@ -45,7 +45,7 @@ writing it directly); or *a stage* (the skill that runs that stage writes it as 
 | [why a series stopped, which stops every cycle that exists only in the series](../mechanisms/protected-files.md) | `.sdlc/series/<id>/abandoned.md` | `sdlc series status <id>` | a person, from `sdlc draft abandon --series <id>` |
 | [the report a wave or a series hands back](commands.md) | worked out from each cycle the run's branch carries and the series' record; never a file of its own | `sdlc report --run` | nobody: the binary renders it |
 | **Harvest** | | | |
-| [the aspects each completed cycle has answered, the closed cycles, each sitting with what it declined and covered, what is watched and what was ignored, each concern with its reason](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
+| [the aspects each completed cycle has answered, the closed cycles, each sitting with what it declined and covered, what is watched and what was ignored, each concern with its reason, and each time a closed cycle's reader raised an answered concern again](../../skills/README.md#harvest) | `.sdlc/harvested.json` | `sdlc harvest --history` | the binary, through `sdlc harvest record` and `sdlc harvest close` |
 | [the notes for the framework every sitting wrote, with the evidence that stays here](../guides/harvesting-the-cycles.md) | `.sdlc/framework-harvest.json` | `sdlc harvest framework`, which prints them without their evidence | the binary, through `sdlc harvest record` |
 | [a closed cycle's contents, once its folder is gone](../../skills/README.md#harvest) | git, at the merge commit the ledger names | `git show <merge>:.sdlc/cycles/<id>/<file>` | — |
 | [a report a command kept](../guides/running-a-cycle.md) | `.sdlc/reports/` — ignored by git, read back by nothing | the file itself | the binary |

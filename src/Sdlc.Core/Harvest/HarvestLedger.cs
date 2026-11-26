@@ -122,11 +122,18 @@ public sealed record HarvestSitting(
 /// ignored one is the only kind that leaves nothing behind once its folder goes, so this tally is what lets the
 /// same concern ignored cycle after cycle reach the bar (D-153).
 /// </param>
+/// <param name="Recurred">
+/// Each time a closed cycle's reader raised again a concern already answered here, folded in by
+/// <c>sdlc harvest close</c> from the cycle's own suggestions ledger, each (concern, cycle, document, round) once
+/// (D-221). Kept apart from <see cref="Watched.Cycles"/>, so what a person answered and what readers kept noticing
+/// afterwards stay told apart. Absent from ledgers written before, and from one with nothing recurred.
+/// </param>
 public sealed record HarvestLedger(
     IReadOnlyList<HarvestedCycle> Cycles,
     IReadOnlyList<Watched> Watch,
     IReadOnlyList<HarvestSitting> Sittings,
-    IReadOnlyList<Watched>? Ignored = null)
+    IReadOnlyList<Watched>? Ignored = null,
+    IReadOnlyList<HarvestedRecurrence>? Recurred = null)
 {
     /// <summary>The ledger's file name, in the framework's directory.</summary>
     public const string FileName = "harvested.json";
@@ -181,7 +188,16 @@ public sealed record HarvestLedger(
 
             return read is null
                 ? Result.Fail<HarvestLedger>(source + ": the harvest ledger is empty.")
-                : Result.Ok(read with { Cycles = read.Cycles ?? [], Watch = read.Watch ?? [], Sittings = read.Sittings ?? [], Ignored = read.Ignored ?? [] });
+                : Result.Ok(read with
+                {
+                    Cycles = read.Cycles ?? [],
+                    Watch = read.Watch ?? [],
+                    Sittings = read.Sittings ?? [],
+                    Ignored = read.Ignored ?? [],
+
+                    // Two close branches merged by hand can both carry one recurrence; it is one (D-221).
+                    Recurred = read.Recurred is { Count: > 0 } recurred ? Distinct(recurred) : null,
+                });
         }
         catch (JsonException error)
         {
@@ -244,6 +260,50 @@ public sealed record HarvestLedger(
 
         return this with { Cycles = [.. Cycles, .. cycles.Where(cycle => Find(cycle.Cycle) is null)] };
     }
+
+    /// <summary>
+    /// The ledger with what closing cycles' readers raised again folded in (D-221): each (concern, cycle, document,
+    /// round) once, so folding the same cycle twice, or a merge carrying one recurrence twice, changes nothing.
+    /// </summary>
+    /// <param name="recurrences">The recurrences the closing cycles recorded.</param>
+    /// <returns>The new ledger.</returns>
+    public HarvestLedger Recurring(IEnumerable<HarvestedRecurrence> recurrences)
+    {
+        ArgumentNullException.ThrowIfNull(recurrences);
+
+        List<HarvestedRecurrence> all = Distinct([.. Recurred ?? [], .. recurrences]);
+
+        return this with { Recurred = all.Count == 0 ? null : all };
+    }
+
+    /// <summary>
+    /// Every cycle a watched or ignored concern was seen in: those a person answered it for, and those whose readers
+    /// raised it again after (D-221). What the bar of three counts.
+    /// </summary>
+    /// <param name="kind"><see cref="HarvestedConcerns.Ignored"/> or <see cref="HarvestedConcerns.Watch"/>.</param>
+    /// <param name="concern">The concern.</param>
+    /// <param name="pending">Recurrences not yet folded in: the open cycles' own, which a sitting counts before they close.</param>
+    /// <returns>The cycles, each once, a person's first.</returns>
+    public IReadOnlyList<string> SeenIn(string kind, Watched concern, IEnumerable<HarvestedRecurrence>? pending = null)
+    {
+        ArgumentNullException.ThrowIfNull(concern);
+
+        string key = HarvestedConcerns.KeyOf(kind, concern);
+
+        return
+        [
+            .. concern.Cycles
+                .Concat((Recurred ?? []).Concat(pending ?? []).Where(recurrence => string.Equals(recurrence.Key, key, StringComparison.Ordinal)).Select(recurrence => recurrence.Cycle))
+                .Distinct(StringComparer.Ordinal),
+        ];
+    }
+
+    private static List<HarvestedRecurrence> Distinct(IEnumerable<HarvestedRecurrence> recurrences) =>
+    [
+        .. recurrences
+            .GroupBy(recurrence => (recurrence.Key, recurrence.Cycle, recurrence.Document, recurrence.Round))
+            .Select(group => group.First()),
+    ];
 
     private static List<Watched> Merged(IReadOnlyList<Watched> held, IReadOnlyList<Watched> added)
     {

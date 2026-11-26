@@ -675,13 +675,23 @@ public static class RecordRound
                 return Result.Fail<Response>(recorded.Errors);
             }
 
+            // What the reconciler matched to a concern a harvest already answered goes to this cycle's ledger as
+            // recurring, never to harvested.json: a cycle branch writing that file is two branches' counts colliding
+            // at merge, so it is folded in once, when the cycle closes (D-221).
+            IReadOnlyList<RecurredSuggestion> recurring = CollectRound.RecurredIn(json);
+
+            if (recurring.Count > 0)
+            {
+                recorded = Result.Ok(recorded.Value.Recurring(request.Artifact, written.Round, recurring));
+            }
+
             // The document's ledger first: a suggestion naming a round its ledger does not hold is refused
             // on read, so the order that can be interrupted safely is this one.
             string path = onDisk.Value.Path;
             Directory.CreateDirectory(cycle.FindingsDirectory);
             await File.WriteAllTextAsync(path, FindingsReader.Write(appended.Value), cancellationToken).ConfigureAwait(false);
 
-            if (toSuggestions.Count > 0)
+            if (toSuggestions.Count > 0 || recurring.Count > 0)
             {
                 await File.WriteAllTextAsync(cycle.SuggestionsLedgerPath, FindingsReader.Write(recorded.Value), cancellationToken).ConfigureAwait(false);
             }

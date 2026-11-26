@@ -126,7 +126,10 @@ under ids of its own. The reconciling reader is shown what stands and names each
 round carries it under the id it already has, which records nothing new. Only a genuinely new objection
 gets a new id (D-108). **A suggestion is the cycle's, not the document's**, so the reconciler is shown
 every document's open suggestions: the plan's reader raising what the intent's raised is the same concern,
-recorded against the plan under the intent's `S_` id, and listed once (D-115).
+recorded against the plan under the intent's `S_` id, and listed once (D-115). **A concern the solution already
+answered is not raised again as new**: the reconciler is also shown, by key, what its harvests ignored, watched,
+declined and covered and every successor waiting, and a suggestion restating one of them is recorded as recurring —
+counted toward that concern's bar, asked of nobody. One gap raised twice in the same round is one finding (D-221).
 
 **When two perspectives disagree**, the reconciling reader settles it by rule, not by preference:
 

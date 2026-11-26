@@ -312,6 +312,12 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Harvest.HarvestDecline",
         "Sdlc.Core.Harvest.HarvestedArea",
         "Sdlc.Core.Harvest.HarvestedCycle",
+
+        // A concern a harvest already answered, its key and what recurred against it (D-221). Public because the
+        // reconciler's prompt and the harvest ledger carry them, and the suite reads the keys.
+        "Sdlc.Core.Harvest.HarvestedConcern",
+        "Sdlc.Core.Harvest.HarvestedConcerns",
+        "Sdlc.Core.Harvest.HarvestedRecurrence",
         "Sdlc.Core.Harvest.HarvestLedger",
         "Sdlc.Core.Harvest.HarvestReaders",
         "Sdlc.Core.Harvest.HarvestReaders+Read",
@@ -436,6 +442,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.SuggestionEventKind",
         // An id a merge recorded twice, renumbered by the binary (D-171).
         "Sdlc.Core.Findings.RenumberedSuggestion",
+
+        // A suggestion that restates a harvested concern, kept in the cycle's ledger apart from its suggestions
+        // (D-221). Public because SuggestionLedger carries it.
+        "Sdlc.Core.Findings.RecurredSuggestion",
         "Sdlc.Core.Findings.RenumberSuggestions",
         "Sdlc.Core.Findings.RenumberSuggestions+Command",
         "Sdlc.Core.Findings.RenumberSuggestions+Response",

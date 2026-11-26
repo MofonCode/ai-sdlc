@@ -40,6 +40,18 @@ saying so, and a plan whose proof quotes a message its criterion never fixed. A 
 next round of that document; the fix is a figure or an open question, and an assertion about what the person is
 told rather than its sentence.
 
+**A concern a harvest already answered is not asked again** (D-221). The reconciling reader is shown, by key, what
+the solution's harvests ignored, watched, declined and covered and every successor waiting. A suggestion restating one
+of them is recorded in the cycle's `suggestions.json` under `recurred` instead of among the suggestions, so no panel,
+`sdlc suggestions` or harvest asks about it again, and `sdlc harvest close` folds it into `harvested.json`, each concern,
+cycle, document and round once. No round writes `harvested.json`, so two branches merged can never count one recurrence
+twice. An ignored concern counts the cycles whose readers raised it again toward its bar of three. And one gap raised
+several times in one round — by one reader or by two — is one finding, the blocker kept when only one blocks.
+
+**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
+before it refuses: every machine and pipeline reading a solution's successors moves together. `suggestions.json` and
+`harvested.json` gained a `recurred` key, which a binary before 0.58 ignores.
+
 ## 0.57
 
 **What a harvest found the framework should hold, it now holds** (D-216 – D-219). One governed solution's decisions
