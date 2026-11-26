@@ -25,6 +25,7 @@ public sealed class FrameworkHarvestTests
 
         ### perspective:security — asks for vulnerable-package evidence every round though the build enforces the audit
         Kind: cost
+        Cycles: all
         Measure: 6 cycles, 14 findings, longest 26 rounds
         > 20261021_0118_04 plan group 58, security.F_08, 26 rounds
 
@@ -47,7 +48,7 @@ public sealed class FrameworkHarvestTests
         Assert.AreEqual(FrameworkNoteKind.Cost, note.Kind);
         StringAssert.StartsWith(note.Statement, "asks for vulnerable-package evidence");
         Assert.AreEqual("6 cycles, 14 findings, longest 26 rounds", note.Measure);
-        CollectionAssert.AreEqual(new[] { workspace.Cycle.Id.ToString() }, note.Cycles.ToArray(), "A note naming no cycles was seen in the sitting's.");
+        CollectionAssert.AreEqual(new[] { workspace.Cycle.Id.ToString() }, note.Cycles.ToArray(), "'Cycles: all' names every cycle of the sitting.");
         CollectionAssert.AreEqual(new[] { "0.39.2" }, note.Releases.ToArray(), "The release its cycle's rounds recorded.");
         CollectionAssert.AreEqual(new[] { "20261021_0118_04 plan group 58, security.F_08, 26 rounds" }, note.Evidence.ToArray());
     }
@@ -57,6 +58,8 @@ public sealed class FrameworkHarvestTests
     [DataRow("### stage:verify — says Not met for unproven\n", "needs a 'Kind:' line")]
     [DataRow("### stage:verify — says Not met for unproven\nKind: annoying\n", "needs a 'Kind:' line")]
     [DataRow("### stage:verify\nKind: defect\n", "says nothing after its surface")]
+    [DataRow("### stage:verify — says Not met for unproven\nKind: defect\n", "needs a 'Cycles:' line")]
+    [DataRow("### stage:verify — says Not met for unproven\nKind: defect\nCycles: all 23 of this sitting\n", "'all 23 of this sitting', which is not a cycle id")]
     public async Task A_note_that_does_not_read_refuses_the_whole_sitting(string entry, string refusal)
     {
         using CycleWorkspace workspace = Completed();
@@ -168,6 +171,39 @@ public sealed class FrameworkHarvestTests
         Assert.AreEqual(1, read.Notes.Single().Cycles);
         Assert.AreEqual(40, read.Cycles.Single().Readers.Single().Raised);
         StringAssert.Contains(ExportFramework.Render(read, null), "stage:verify [missing] has no word for unproven");
+    }
+
+    [TestMethod]
+    public void A_note_whose_cycles_are_prose_exports_no_count_rather_than_one()
+    {
+        FrameworkHarvest notes = FrameworkHarvest.Empty.Adding([
+            new FrameworkNote(DateTimeOffset.UnixEpoch, HarvestAspect.Constraints, "command:harvest read", FrameworkNoteKind.Defect, "dies partway",
+                null, ["all 23 of this sitting"], [], []),
+            new FrameworkNote(DateTimeOffset.UnixEpoch, HarvestAspect.Constraints, "stage:verify", FrameworkNoteKind.Defect, "says Not met",
+                null, ["20261021_0118_04", "20261024_1205_42", "20261021_0118_04"], [], []),
+        ]);
+
+        FrameworkExport export = ExportFramework.Of(notes, HarvestLedger.Empty, "0.58.0");
+
+        Assert.IsNull(export.Notes[0].Cycles, "A line of prose where the cycles belong is no count, not one.");
+        Assert.AreEqual(2, export.Notes[1].Cycles, "Each cycle once.");
+        StringAssert.Contains(ExportFramework.Render(export, null), "cycles not named");
+        Assert.IsNull(FrameworkExport.Parse(export.Write(), "x").Value.Notes[0].Cycles, "It reads back as no count.");
+    }
+
+    [TestMethod]
+    public void A_solutions_own_notes_handed_over_in_place_of_an_export_say_so_and_name_the_command()
+    {
+        FrameworkHarvest notes = FrameworkHarvest.Empty.Adding([
+            new FrameworkNote(DateTimeOffset.UnixEpoch, HarvestAspect.Constraints, "stage:verify", FrameworkNoteKind.Defect, "says Not met",
+                null, ["20261021_0118_04"], [], ["the solution's own evidence"]),
+        ]);
+
+        Result<FrameworkExport> read = FrameworkExport.Parse(notes.Write(), "framework-harvest.json");
+
+        Assert.IsTrue(read.IsFailed);
+        StringAssert.Contains(read.Errors[0].Message, "not an export of it");
+        StringAssert.Contains(read.Errors[0].Message, "sdlc harvest framework --out <file>");
     }
 
     [TestMethod]

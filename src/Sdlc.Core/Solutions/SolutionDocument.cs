@@ -102,8 +102,8 @@ public enum ApprovalRequirement
 /// (D-157). Absent reads as <see cref="DefaultCoverageFloor"/>. Below it, the codebase may not fall at all.
 /// </param>
 /// <param name="BuildTools">
-/// The commands the build's own process may run beyond the ones every build is given, as bare command names
-/// (D-202). Absent reads as none, which is what every build had before the key existed.
+/// The commands the build's own process may run beyond the ones every build is given, each a bare command name or
+/// one command line that starts with one (D-202, D-224). Absent reads as none, which is what every build had before the key existed.
 /// </param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
@@ -284,16 +284,19 @@ public sealed record SolutionDocument(
                 $"{source}: coverage_floor is '{shape?.CoverageFloor}'. Expected a whole percentage from 0 to 100, such as 80%.")));
         }
 
-        // Absent is none. Each name is a bare command, because the binary allows `Bash(<name> *)` for it: a space, a
-        // wildcard or a path would allow something other than the command the person named.
+        // Absent is none. Each entry is a bare command, or one command line that starts with one (D-224), because the
+        // binary allows `Bash(<entry> *)` for it: a wildcard, a path in place of the command or anything a shell reads
+        // as more than one command would allow something other than what the person named.
         List<string> tools = [];
-        foreach (string tool in (shape?.BuildTools ?? string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        foreach (string written in (shape?.BuildTools ?? string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            if (!IsCommandName(tool))
+            string tool = string.Join(' ', written.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            if (!IsCommandLine(tool))
             {
                 errors.Add(new Error(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: build_tools names '{tool}'. Expected bare command names separated by commas, such as pwsh, docker.")));
+                    $"{source}: build_tools names '{written}'. Expected commands separated by commas, each a bare command name or one command line that starts with one, such as pwsh, docker build -- no wildcard, path in place of the command, quote, variable or second command.")));
             }
             else if (!tools.Contains(tool, StringComparer.Ordinal))
             {
@@ -321,6 +324,32 @@ public sealed record SolutionDocument(
         !string.IsNullOrEmpty(name)
         && char.IsAsciiLetterOrDigit(name[0])
         && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_');
+
+    /// <summary>
+    /// Whether a build tool entry is one command: a bare command name, then any words that fix the command line it
+    /// starts, such as <c>docker build</c> or <c>pwsh -File scripts/evidence.ps1</c> (D-224).
+    /// </summary>
+    /// <remarks>
+    /// The words after the command may hold a relative path, an option or a value, and nothing a shell reads as
+    /// something else: no wildcard, quote, variable, redirection, escape or second command. Each word is checked
+    /// apart, so a line that reads as one command to a person reads as one to the host's permission rule.
+    /// </remarks>
+    /// <param name="entry">The entry, its words separated by single spaces.</param>
+    /// <returns>True when the binary may allow <c>Bash(&lt;entry&gt; *)</c> for it.</returns>
+    public static bool IsCommandLine(string entry)
+    {
+        if (string.IsNullOrEmpty(entry))
+        {
+            return false;
+        }
+
+        string[] words = entry.Split(' ');
+
+        return IsCommandName(words[0])
+            && words.Skip(1).All(word => word.Length > 0
+                && !word.Contains("..", StringComparison.Ordinal)
+                && word.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_' or '/' or ':' or '=' or '@' or '+' or '%'));
+    }
 
     /// <summary>
     /// Reads the solution document of a solution on disk.

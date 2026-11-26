@@ -128,7 +128,7 @@ public sealed class ShippedLibraryTests
     public void The_library_holds_the_entries_iteration_four_carries()
     {
         Assert.AreEqual(
-            27,
+            29,
             Library.Count,
             "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
             + "CON_12, CON_13 and CON_14 were added in iteration 4. Two supersessions followed, each "
@@ -142,7 +142,8 @@ public sealed class ShippedLibraryTests
             + "to list them, so the cases a proof is held to end somewhere (D-132). CON_24 superseded CON_19, carrying a "
             + "departure from a recorded decision through the intent, the spec, the plan and the change (D-139). CON_25, "
             + "CON_26 and CON_27 then superseded CON_07.2, CON_05 and CON_24, each forbidding what its reader was "
-            + "already applying it to (D-176). A deliberate addition updates this number; an accident fails here.");
+            + "already applying it to (D-176). CON_28 and CON_29 superseded CON_02 and CON_21: an intent may not leave its "
+            + "spec to guess either, and a proof may not pin words its criterion left free (D-226). A deliberate addition updates this number; an accident fails here.");
 
         Assert.AreEqual(
             19,
@@ -167,7 +168,7 @@ public sealed class ShippedLibraryTests
             .Order(StringComparer.Ordinal)];
 
         CollectionAssert.AreEqual(
-            new[] { "CON_04 -> CON_16", "CON_05 -> CON_26", "CON_06 -> CON_21", "CON_07.2 -> CON_25", "CON_08 -> CON_22", "CON_13 -> CON_15", "CON_19 -> CON_24", "CON_24 -> CON_27" },
+            new[] { "CON_02 -> CON_28", "CON_04 -> CON_16", "CON_05 -> CON_26", "CON_06 -> CON_21", "CON_07.2 -> CON_25", "CON_08 -> CON_22", "CON_13 -> CON_15", "CON_19 -> CON_24", "CON_21 -> CON_29", "CON_24 -> CON_27" },
             pairs,
             "Every superseded rule names its replacement, and a new supersession is added here "
             + "deliberately. A rule that stopped binding without naming what replaced it would leave "

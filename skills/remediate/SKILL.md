@@ -16,7 +16,7 @@ itself. Four ways in (D-185, D-186):
 | **a verification found a criterion unmet** — `blocked` | usually inside the build's own process, where the `build` playbook runs this with nobody watching | the unmet criteria and open findings |
 | **the build escalated**, and the person has said what to do — the panel offered *say what to do, then fix it* | a person's session | their instruction |
 | **the cycle passed, its pull request is open, and a person reviewing it says what to change** — *change deviation 2: use X instead*, *revert that choice* | a person's session | their instruction, on the same pull request (D-181) |
-| **its pull request conflicts with the integration branch, or went red after another merge** | a person's session | nothing at first: **`resolve-conflict`** brings the integration branch in and records fresh evidence, and the loop starts at step 2. A conflict it hands back as a change of plan, or two plans disagreeing about one setting, stops here: say what it said |
+| **its pull request conflicts with the integration branch, or went red after another merge** — or, before it opens, `sdlc up-to-date` finds the branch behind (D-227) | a person's session; for the last, also the build's or the series' own process when the merge is clean | nothing at first: **`resolve-conflict`** brings the integration branch in and records fresh evidence, and the loop starts at step 2. A conflict it hands back as a change of plan, or two plans disagreeing about one setting, stops here: say what it said |
 
 ## Which cycle
 

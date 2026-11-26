@@ -306,7 +306,9 @@ A suggestion lead is also the record that the suggestion was accepted, and by wh
 **A successor is a lead too** (D-125): `successor:<slug>` names `.sdlc/successors/<slug>.md`, the piece of a
 slicing that waits on another's code. Its `succeeds:` lists what it waits for, as cycle ids or
 `successor:<slug>`, and its readiness — `waiting`, `ready`, `stuck`, `unresolved` — is worked out from the
-record on every read. `sdlc successors` lists them. `intent --from successor:<slug>` starts a ready one: the
+record on every read. A person may hold one they want and not now: `held: <day>` reads `held` in place of waiting
+or ready, so nothing unattended starts it, and starting it lifts the hold (D-220). `sdlc successors` lists them.
+`intent --from successor:<slug>` starts a ready one: the
 interview resumes against the code that merged, the new intent records `lead: successor:<slug>`, which is what
 resolves every other reference to the slug, and the file is deleted on the new cycle's plan branch. A
 successor whose work exists because the framework fell short may carry `framework:` and one line saying what;
@@ -315,7 +317,8 @@ a harvest lists it to be carried to ai-sdlc, and nothing about it blocks (D-173)
 **A harvest has two outputs: the solution's records, and notes for the framework** (D-204). What a sitting finds
 about the framework — a rule, reader or step that cost more than it caught, a rule any solution would need, or a
 defect — goes under `## For the framework`, worded for somebody who has never seen the solution, headed by the
-surface it is about, with a kind, and with its evidence beneath. `harvest record` keeps each note in
+surface it is about, with a kind, the cycles whose record shows it named by id (or `all`, when every cycle of the
+sitting does; D-225), and with its evidence beneath. `harvest record` keeps each note in
 `.sdlc/framework-harvest.json` with the releases its cycles ran on, and `harvest close` keeps each closed cycle's
 releases, reader yield and cost in the ledger. `harvest framework` prints what of both may leave the solution —
 the notes without their evidence, the cycles' numbers without their ids, files, commits or the solution's own rules
@@ -334,10 +337,14 @@ stored in a successor would go stale the moment one is added or declined. The pr
 can park a sibling a wave later — and a series' report shows it beside what ran.
 
 **A harvest answers every open suggestion one of four ways** (D-153, D-209): **taken further** as a successor,
+marked `[h]` to hold it when it is wanted and not now (D-220),
 **declined** with a person's reason, **covered** by the rule, decision, successor or file that already handles it,
 which `harvest record` checks is real, or **ignored** and tallied by concern, with a bar at three. A covered line
-may close a tallied concern. Each step hands back through `sdlc harvest summary`: its answers counted by the themes
-the sitting grouped them under, and every rule, decision and successor named with its text.
+may close a tallied concern. A reader raising an answered concern again in a later cycle is recorded as recurring
+rather than as a new suggestion, and counts toward that concern's bar (D-221). An abandoned cycle's open suggestions
+may be covered together, `<cycle>/*`, by the successor that takes its work up (D-225). Each step hands back through
+`sdlc harvest summary`: its answers counted by the themes the sitting grouped them under, the eight largest to an
+answer and the rest on one line, and every rule, decision and successor named with its text.
 
 **Operate files work items; it writes no artifact of its own.** A person runs it — no pipeline does since D-143 —
 and it reads the solution's
@@ -403,12 +410,12 @@ separating "the part that is judged".
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here, and `CON_27` a departure from a recorded one; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_26`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_26`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_29`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
 | | `Out of scope` | `CON_26`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_27` |
 | | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
-| | `Proof` | `CON_21`, and `verify`'s criterion table |
+| | `Proof` | `CON_29`, and `verify`'s criterion table |
 | | `Risk` | the person at the gate |
 | | `tier` | the blast radius: `local`, `contract`, `data`, chosen by reversibility |
 | `verify` | `Criteria` | the criterion-by-criterion adjudication; `CON_22` binds every claim the verdict relies on |
@@ -425,6 +432,10 @@ that are not; prose belongs in `Shape and departures` and `Risk`. **A verify is 
 the second adjudication on, the fresh adjudicator starts from the verdict before it and changes only the
 entries a finding or the evidence moved. The status panel prints each document's size, and refuses
 nothing for it (D-130).
+
+**A criterion is cited by a number the spec has.** A spec numbers its criteria in ascending order, and a spec,
+plan or verify citing a criterion the spec does not have — a proof row, an adjudication, *criterion 4* in prose — is
+refused before a reader is started; a reference to another cycle's criterion names that cycle (D-223).
 
 ### 4.3 `## Open` — what an artifact deliberately does not assert
 
@@ -454,6 +465,11 @@ criterion is adjudicated* is presence — which D-05 already establishes a parse
 `verify-chain` rather than the body schema because a schema validates one document and has no access to
 the spec, while correlating two documents is what that layer already does for the proof entries. §13
 carries the check.
+
+**On a verify an entry bounds a criterion that was met, and names it** (D-222): `Criterion 2: nothing beyond
+10,000 draws`. `sdlc round verdict` refuses an entry naming no criterion, one the verdict does not adjudicate,
+or one it marks Not met, whose reason belongs in that criterion's entry. Whether the evidence could settle an
+entry stays a reader's question.
 
 ### 4.4 The plan holds two kinds of claim
 
@@ -514,6 +530,12 @@ other verdict refuses it.
 the names `verify.md` cites that appear in none of the evidence — `tests.json`, `diff.patch`, `proof-sources.txt` where there is one, `coverage.json`, and the build log where there is one — and the tests it
 claims passed that `tests.json` does not record as passed. Whether a claim rests on its evidence stays
 the reader's judgement, so it never refuses. `tests.json` records the platform the tests ran on.
+
+**A verify round reads the diff numbered, and a line slip is listed** (D-222). Every verify reader gets each
+hunk line's number in a margin, so a verdict copies the line it cites rather than counting it. A citation whose
+quote is in the diff on other lines is reported by `sdlc evidence check`, handed to the round's readers as not
+theirs to raise, and handed to a rewrite to correct. **A Not met says why**: `Not met (contradicted).` when the
+evidence shows the criterion failing, `Not met (unproven).` when it does not show it either way. Both block.
 
 ---
 
@@ -706,7 +728,7 @@ Three mechanical checks need no reading comprehension:
    signal, not a gate (§7.7)
 
 With every intent item disposed, anything still open at plan time is by construction out of scope or
-explicitly deferred: anything in scope got a criterion, and `CON_21` and `CON_12` require every
+explicitly deferred: anything in scope got a criterion, and `CON_29` and `CON_12` require every
 criterion to have a proof that can run. **So the gate before build is about dependency, not the
 absence of open items** (D-04).
 
@@ -885,6 +907,16 @@ leads and abandonments, never stored. Two branches each raising a suggestion can
 twice; the round refuses that and names `sdlc suggestions <id> --renumber`, which gives each duplicate the next
 free id (D-171).
 
+**A concern a harvest already answered is not asked again** (D-221). The reconciler is also shown, by key, what the
+solution's harvests ignored, watched, declined and covered and every successor waiting, and a suggestion it names as
+restating one of them goes to the ledger's `recurred` list rather than among the suggestions, so no person answers it
+twice. A finding restating another of the same round is one finding. `harvest close` folds the recurrences into
+`harvested.json`; no round writes that file, so two branches can never count one twice.
+
+**A suggestion in the same words is the same concern.** `round collect` carries one worded as an earlier one of the
+round, or as one the ledger holds, under that one's id whatever the reconciler named, and `sdlc round` refuses a new
+suggestion with no statement, an empty gist, or another's words (D-223).
+
 ### 6.2 A round records what it judged, and what against
 
 `upstream_sha256` is the hash of the artifact above, as the round saw it. A round is clean **as of**
@@ -999,7 +1031,13 @@ wants, never to add or widen one (D-128). `interrogate` runs one fresh
 process per active perspective, handed that perspective's full method and rules, then **one reconciling
 reader** over the round's findings and the artifact's standing ones, which names a finding that restates
 one still open so the round carries it under the id it has (D-108). `verify` asks each perspective's questions of the evidence,
-in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164).
+in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164). **At verify a
+suggestion is about the built change or its evidence** (D-222): not how a Met is worded, and not whether the
+plan chose the right proof, since the plan was approved with it and no stage acts on either.
+
+**A perspective's evidence may already be the build.** Where a solution's build settings fail the build on a
+vulnerable package, every round's shared block says so, and the security perspective takes a passing build as
+its dependency audit rather than asking for a scan beside it (D-222).
 
 **Which apply.** Security, operability and maintainability always. The intent names any others, seen in
 the interview and covered by the approval's hash; at plan, the declared files add any the intent missed,
@@ -1024,7 +1062,11 @@ records another target. **Operability's reader may block on `CON_20`** (D-99), t
 lists, and only at a spec, the one document it binds; the others have none of their own, so everything they find is a suggestion until rules are adopted. The
 other five are not written. A perspective's reader is handed the decisions and the solution's own rules as every
 reader is: where the solution names areas, in full only those in the areas its stage touches, and the rest by
-headline (§8.1.1, D-151). The fixtures that prove a perspective catches its planted
+headline (§8.1.1, D-151). **What a standing decision settles, a perspective does not raise again**: where its
+method would ask something the decisions answer — who may start or merge work, what stands in for a person's
+approval when the solution runs without one, what an unattended identity may do — it raises nothing, unless the
+document departs from the decision or reaches past it, and then it names the decision. Asking a solution to settle
+something is a suggestion only while no decision does (D-226). The fixtures that prove a perspective catches its planted
 defect need a model to run, so they are an evaluation outside the suite and are not built.
 
 ### 6.6 Guidance
@@ -1178,7 +1220,6 @@ nobody.
 | Id | Rule | Applies to |
 |---|---|---|
 | `CON_01` | an intent states the problem, not the solution | intent |
-| `CON_02` | an intent's unknowns are recorded as open questions, not answered by guess | intent |
 | `CON_03` | a criterion states an observable outcome and how it is checked | spec |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
 | `CON_10.3` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
@@ -1190,14 +1231,15 @@ nobody.
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
 | `CON_20` | a spec says what is recorded when the action fails | spec |
-| `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
 | `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
 | `CON_23` | a criterion that ranges over cases lists them | spec |
 | `CON_25` | a change does only what its plan, or a deviation in force, describes — wherever it lands | diff |
 | `CON_26` | a spec introduces no scope its intent did not ask for, beyond what a rule in force requires | spec |
 | `CON_27` | a departure from a recorded decision is declared where it arises, or recorded as a deviation, and later stages rely on it | intent, spec, plan, diff |
+| `CON_28` | an intent's unknowns are recorded as open questions, neither answered by guess nor left for its spec to guess | intent |
+| `CON_29` | a plan's proof reaches the criterion it claims to prove, and holds the change to nothing its criterion did not fix | plan |
 
-**Eight ids are absent because they no longer bind**, and each is explained once below.
+**Ten ids are absent because they no longer bind**, and each is explained once below.
 
 `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -1235,7 +1277,15 @@ list is not a finding; `CON_25` forbids a change no plan or deviation in force d
 is one too; `CON_27` names it (D-176). In force means recorded by the build and not asked to change: a person accepts
 it by merging, after the verification that reads it (D-181).
 
-`CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
+`CON_02` and `CON_21` each forbade one way to miss and left its neighbour unforbidden, and a reader judges the
+rule's words. `CON_02` forbade an intent stating a guess as fact, not leaving the guess to the spec: an outcome
+asking for something "clearly shorter" with no measure had no rule to cite, so readers raised it as a suggestion that
+stood while the spec invented the figure. `CON_28` forbids both. `CON_21` forbade a proof too weak for its criterion,
+not one pinning words the criterion left free, which fails a build that meets the criterion and settles wording
+nobody approved. `CON_29` forbids both. Each new half is read off the documents — an outcome with no measure and no
+open question, a literal in a proof that its criterion does not hold — so neither reopens what D-127 closed (D-226).
+
+`CON_06`, later `CON_21` and now `CON_29`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
 reading rather than re-running.
 
@@ -1249,9 +1299,9 @@ Four constraints, one per artifact, each naming what becomes illegal in that pla
 
 | Artifact | Constraint | Forbids |
 |---|---|---|
-| intent | `CON_02` | stating as settled fact a figure nobody measured |
+| intent | `CON_28` | stating as settled fact a figure nobody measured, or leaving its spec to choose one |
 | spec | `CON_03` | a criterion that cannot fail, or an outcome with no way to observe it |
-| plan | `CON_21` | a proof that never runs a stated case, asserts the wrong outcome, or cannot fail on a named defect |
+| plan | `CON_29` | a proof that never runs a stated case, asserts the wrong outcome, cannot fail on a named defect, or pins words its criterion left free |
 | verify | `CON_22` | a claim the verdict relies on with no evidence, or evidence showing something else |
 
 Each forbids what is wrong, never what a reader can imagine going wrong (D-127). What a criterion covers is
@@ -1361,6 +1411,11 @@ in the approval draft, in `sdlc status`, in the pull request — and `harvest de
 completed cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
 supersedes the plan-only rule of D-72).
 
+**A decision is cited once it is placed, on the branch the cycle is planned from.** An intent, spec or plan citing
+a `DEC_nn` the checkout's record does not hold is refused before any reader is started, and a sandbox or worktree
+opened while this checkout's record differs from the integration branch's says so: a decision placed in one checkout
+and not committed is not in the record a cycle planned elsewhere is judged by (D-223).
+
 **An entry's title is its headline**, at most fifteen words, and each clause at most sixty: a harvest's drafter
 refuses a new entry past either, and an entry already on the page is named and proposed for rewording, never
 refused (D-149). **An entry may carry an `Areas:` line** naming the parts of the code it applies to, which
@@ -1435,7 +1490,7 @@ every key's value, whether it was declared or defaulted, and how to change it (D
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
 | `approval` | the gate, which under `none` asks for no ledger and keeps every other check; `verify-chain`, the status panel and the sitrep, which say no person approved. `required` or `none`; absent, and a document that cannot be read, read as `required` (D-137) |
 | `coverage_floor` | `verify-chain` and `evidence`: at or above it the whole codebase need not hold its coverage baseline, and the baseline follows the rate; under it the codebase may not fall. A whole percentage; absent reads as 80%, and a document that cannot be read as no floor at all (D-157) |
-| `build_tools` | `sdlc build`, which allows the build's own process each command it names, as that command and nothing wider, beyond the ones every build is given. Bare command names, comma-separated; optional and written only when set, and a document that cannot be read starts no build (D-202) |
+| `build_tools` | `sdlc build`, which allows the build's own process each command it names, as that command and nothing wider, beyond the ones every build is given. Commands, comma-separated, each a bare name or one command line that starts with one, which allows that line and nothing else (D-224); optional and written only when set, and a document that cannot be read starts no build (D-202) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -1589,6 +1644,9 @@ after another into it (D-205, §10.6).
 not allowed is refused with nobody to ask. `sdlc build` names the skills the playbook reaches, `sdlc`, `git`,
 `dotnet`, `gh`, `az` and the file tools, and then each command the solution's `build_tools` names (§8.3). Its
 permission checks stay on: a command outside the list is a refusal the report names, never a reason to switch them off.
+**It says what it was given and what it was refused** (D-224): before the process starts, the grant and any shell rule
+this machine's own settings add that the factory would refuse; when it ends, each tool use the host refused, read
+from the host's own answer, so a refusal never reads as a failing test.
 
 **The graph is computed by the binary, not derived by the skill.** It is a set intersection over a file
 table, so the binary does it the same way every time — and a graph a session worked out by reading plans
@@ -1726,6 +1784,12 @@ integration branch, and only a merged cycle is read (D-190). The question D-111 
 rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
 cycle's own branch and targets the integration branch, or the default branch while there is none.
 
+**No pull request is opened from a branch that has not taken its target's latest** (D-227). Before every push —
+a plan, a slicing, a sandbox's admission, a build, a draft, a run, a harvest's close — `sdlc up-to-date` fetches the
+target from origin and refuses a branch that does not hold its head, or a target it could not fetch. A branch of
+records alone takes the merge and is checked again; built code is brought up to date by `remediate`, whose fresh
+verify is the one judged against the new base, and unattended only when the merge is clean (D-86).
+
 **No cycle a local build judged opens a pull request, in any form** (D-135). A build of the framework nobody
 published calls itself `<release>-local`, and every round records the release that wrote it, so the chain check
 fails a cycle with any such round, or a solution that pins one. A cycle run on a local build is a test run: it
@@ -1825,8 +1889,10 @@ recorded change, and nothing changed after the last cycle's head but what a merg
 **A series asks nobody.** It suggests each successor's intent and keeps it, leaving what it inferred marked
 `(inferred)` — the one place the schema allows a mark to stay — and plans each cycle with its full loop. **It stops
 at the number of waves a person set or an empty backlog**, whichever comes first: an open-ended run is spend nobody
-chose. Its record, `.sdlc/series/<id>/series.json`, is written only by the binary — `sdlc series start` and `sdlc
-series wave` — and says what each wave took; membership in a series lives there and nowhere else.
+chose. **A wave takes a few items, never the whole backlog** — three unless the person names a wave size — and a
+series runs them one after another, never at once, so a usage limit reached mid-wave leaves the finished items
+finished (D-228). Its record, `.sdlc/series/<id>/series.json`, is written only by the binary — `sdlc series
+start` and `sdlc series wave` — and says what each wave took; membership in a series lives there and nowhere else.
 
 **The series is the unit a person accepts or rejects**, at its one pull request, and the report names what depends
 on what so the cost of reverting part of it can be seen. A rejected series is abandoned in one step:
@@ -2385,7 +2451,9 @@ there has a default (D-136): only `development` or a `release/*` branch may open
 default branch, which `sdlc promotion` decides inside the same `verify` job, and the chain is not asked of a
 promotion, which has no cycle. A release branch's own policy is the team's. **A promotion always builds, and
 skips the tests when the integration branch already passed on exactly what it merges** (D-196): `sdlc tested`
-reads the platform's runs the pipeline hands it, and anything else runs everything.
+reads the platform's runs the pipeline hands it, and anything else runs everything. **What skips a step is set by a
+step** (D-224): a step's output on GitHub, a variable the file declares on Azure DevOps, so nobody queuing a run can
+give it a value, and the skip passes over the tests alone, never the build, the chain or a team's own step.
 
 **A trunk is a setting** (D-198). Where the integration branch is the default branch, there is one branch, one
 policy and no promotion: every pull request into it is judged by the chain, and the guarantee covers what ships.
@@ -2493,8 +2561,8 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `draft` | single | prints a protected file's entry for a person to place — §5.3 |
 | `harvest` | playbook | takes back what the completed cycles settled, one aspect at a time — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`, `harvest-stack`, `harvest-areas`, each answered with the person before the next — then `close-cycle` — D-189, D-190, D-191 |
 | `harvest-constraints` | single | proposes the rules the completed cycles' findings argued, each with its evidence — D-69, D-191 |
-| `harvest-decisions` | single | proposes the decisions the completed cycles settled, a person's words once and a plan's only when it recurs — D-70, D-189 |
-| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor, declined, covered by what already handles it, or ignored, grouped by theme — D-153, D-191, D-209 |
+| `harvest-decisions` | single | proposes the decisions the completed cycles settled, a person's words once and a plan's only when it recurs — D-70, D-189, D-225 |
+| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor (held when wanted and not now), declined, covered by what already handles it, or ignored, grouped by theme — D-153, D-191, D-209, D-220, D-225 |
 | `harvest-stack` | single | proposes the `techstack.md` rows the record asks for — D-191 |
 | `harvest-areas` | single | proposes the areas the plans named, and their renames, merges, removals and tags — D-150, D-191 |
 | `close-cycle` | single | closes the cycles every aspect has answered: `sdlc harvest close`, then the push and the pull request that removes their folders — D-192 |
@@ -2589,7 +2657,7 @@ they print verbatim.
 | `build [<id>]` | *build it*, the one stage the binary runs rather than names a skill for (D-187): commits the approval a person placed in the sandbox when it is uncommitted, admits the plan when it is only in a sandbox, opens the build's worktree beside the repository on `cycle/<id>/build-unattended`, starts the build's own process there — headless, its tools named, never with permission checks off, never marked as a reader — waits, and prints the report. With no id, every queued cycle in one process started from the checkout, each in a worktree of its own; a plan only in a sandbox is queued only when named. With `--run`, on a run's branch — `wave/<id>` or `series/<id>` — its process builds every cycle the branch carries into that branch, with no branch or worktree of a cycle's own, and opens the run's one pull request; refused anywhere else. Refuses when the build's process cannot start or ends without a report — D-178, D-183, D-184, D-187, D-205 |
 | `report <id>` | the report a build ends on and the pull request leads with: deviations, choices, what was changed at the person's request, and the verification's open suggestions as concerns, in markdown. Merging the pull request accepts it (D-181) |
 | `report --run` | on a run's branch, the one report the run ends on and its pull request leads with, never one per cycle: a section per wave of a series, a short entry per cycle the branch carries — its outcome and its own report's facts, and for a series every intent line marked `(inferred)` as confirmed by nobody — what stopped with the successors and parked cycles it held back, and every rule, decision and successor it names with its text. Keeps a copy under `.sdlc/reports/`; exits 1 when a cycle's deviations are unsound — D-207 |
-| `series start --waves <n>\|wave\|status [<id>]\|run [<id>]` | a series: wave after wave into one branch, `series/<id>`, ending in one pull request. `start` opens its worktree beside the repository from the integration branch and commits its record, `.sdlc/series/<id>/series.json`, with the wave limit and the approval setting, printing the worktree; `wave`, on the series' branch, records the next wave — every successor and parked cycle ready against the branch under `approval: none`, every approved cycle nothing has built under `approval: required` — with what starts each, refusing once the limit is reached and recording nothing when nothing is ready; `status` the waves, each item's cycle and where it stands, and the backlog judged against the branch; `run` starts the series' own process in its worktree, as `build` starts a build's — D-205 |
+| `series start --waves <n> [--wave-size <n>]\|wave\|status [<id>]\|run [<id>]` | a series: wave after wave into one branch, `series/<id>`, ending in one pull request. `start` opens its worktree beside the repository from the integration branch and commits its record, `.sdlc/series/<id>/series.json`, with the wave limit, the wave size (3 unless named) and the approval setting, printing the worktree; `wave`, on the series' branch, records the next wave — at most the wave size of the successors and parked cycles ready against the branch under `approval: none`, of the approved cycles nothing has built under `approval: required`, parked or approved cycles first — with what starts each, refusing once the limit is reached and recording nothing when nothing is ready; `status` the waves, each item's cycle and where it stands, and the backlog judged against the branch; `run` starts the series' own process in its worktree, as `build` starts a build's — D-205, D-228 |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, a new blocker without a one-line gist (D-110), a new blocker citing a rule its reader was not handed (D-174), and a new finding quoting its rule in other words (D-177). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session decides the dispositions of earlier findings (D-49), and `--answered`/`--withdrawn` copy the ones it settles in from the ledger word for word — D-117, D-121, D-162 |
@@ -2616,7 +2684,7 @@ they print verbatim.
 | `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162). `remediate` prints the path of a worktree on the cycle's build branch, opening it from the local or the remote branch when absent (D-185). `wave`, given a sandbox's first cycle, prints the command that opens `wave/<id>` from `sandbox/<id>` in a worktree beside the repository, where the wave is built |
 | `factory` | writes the factory's pipeline for the recorded platform: one series from the integration branch — `series start` with the number of waves a person asks for, then `series run` in the worktree it printed — started by a person and never on a schedule, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84, D-143, D-205) |
 | `lead show <reference> [--onto <branch>]` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89). `--onto` judges a successor's readiness against the branch a run builds onto (D-206) |
-| `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
+| `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved`, or `held` by a person — worked out from the record and never stored (D-125, D-220) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id> [--onto <branch>]` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125). `--onto`, or a run's branch, judges readiness against that branch (D-206) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
@@ -2641,6 +2709,7 @@ they print verbatim.
 | `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
+| `up-to-date [--base <branch>]` | whether what is checked out has taken the latest of its pull request's target, fetched from origin first; refuses a branch behind it, saying how far, whether the merge is clean and how to bring it in, and a target it could not fetch. Every pull request asks it first (D-227) |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125). Given `wave/<id>` or `series/<id>`, every cycle the pull request changes gets the whole chain, and every test named in every built cycle's plan must have passed at the run's last recorded run (D-206) |
 | `tested <branch>` | `true` when a promotion merges exactly that branch's tip and the platform's runs, piped to standard input, list a green one of it, so a pipeline builds and skips the tests; `false` for anything else, including what it cannot read. Holds no token: the pipeline fetches the runs. Always exits 0 (D-196) |
 | `admission <branch> --base <branch>` | `true` when everything a pull request changes is under `.sdlc/`, so a pipeline skips the build and the tests; `false` when one path is outside. Always exits 0 (D-87, D-125, D-193) |
@@ -2649,7 +2718,7 @@ they print verbatim.
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the two versions and which is which — the binary and the plugin — D-160 |
-| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong — a missing integration branch and a placeholder paragraph included. Before the first cycle it ends with every draft left to place and its rename — §9 |
+| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong — a missing integration branch, a placeholder paragraph and a retired command a file only a person writes still names included (D-224). Says which `build_tools` a build is granted and what this machine adds. Before the first cycle it ends with every draft left to place and its rename — §9 |
 
 **One more verb is answered before this table is consulted.** `sdlc claude [args]` starts Claude Code with the
 skills this release carries — in a solution that pins a release, that release's — passing every argument on
@@ -2682,7 +2751,8 @@ repository, so the person's own checkout is never switched (D-144); a person run
 refusal of uncommitted work is `sdlc branch <id> plan`'s**, for a person who asked for one working copy rather
 than a sandbox, because that switch is the only step that would carry it into the cycle as work no plan
 declared (D-94, D-144). A sandbox starts from what the integration branch committed, so nothing uncommitted
-rides into it.
+rides into it — and `sdlc branch` says which of the files only a person writes differ here from there, so a decision
+placed in this checkout and not yet committed is not cited by a cycle planned where it is missing (D-223).
 
 ---
 
@@ -2700,7 +2770,9 @@ rides into it.
   areas.md                  names for sets of its files, carried by rules and decisions, so a
                             reader is handed in full only what its change reaches (D-150)
   harvested.json            the harvest ledger: which aspects each completed cycle has answered,
-                            every sitting, every closed cycle, the concerns ignored (D-152, D-192)
+                            every sitting, every closed cycle, the concerns ignored, and each
+                            time a closed cycle's reader raised an answered concern again
+                            (D-152, D-192, D-221)
   framework-harvest.json    the notes for the framework every sitting wrote, with the evidence
                             that stays here (D-204)
   coverage.json             the codebase's coverage baseline, held under coverage_floor (D-157)
@@ -7741,6 +7813,428 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-228 — A series' wave takes a few items, three unless a person says, and a series runs them one after another
+
+**Governs:** §10.6
+
+**Amends D-205**, whose wave took everything ready against the series branch.
+
+**Decision.** `sdlc series start --waves <n> [--wave-size <n>]` records how many items one wave may take beside its
+wave limit, 3 when no size is named, and refuses a size below one. `sdlc series wave` takes no more than that: parked
+cycles first under `approval: none`, since each was planned once already, approved cycles first under `approval:
+required`, then successors. What is ready past the size stays ready for a later wave, and the wave says how many wait.
+A record written before the key existed reads as the default, so a series already running takes its next wave at
+three. The waves times the wave size is the most a series can take on, and both numbers are the person's.
+
+**A series runs its items one after another, in its own process, never handed to subagents or background tasks at
+once.** `series` says so for every skill it runs, `to-plan` for every cycle it takes, and `sdlc series wave` prints it
+under each wave.
+
+**Why.** A real series under `approval: none` took its first wave from a backlog of twenty-five ready successors, and
+its process opened every cycle and handed them to planning agents running at once. Eleven minutes later it had spent
+about six million weighted tokens — four and a half in orchestration, each agent rebuilding the same 100–180k of
+context, one and a third in reader panels — reached the person's usage limit, and stopped with five cycles partly
+planned, two of them to a plan, twenty untouched and nothing built. Planning the whole wave would have cost about
+fifteen million before a line was built. The wave limit bounded how many waves, not what one wave could take, so the
+spend a series could reach was the backlog's size, which nobody chose. Run at once, the items cost no less in total
+and the whole spend lands inside one usage window; a limit reached mid-wave leaves every item half done, where one at
+a time leaves the finished ones finished.
+
+**Rejected.** *Requiring the size, as the wave limit is required*: a small default is safe to leave unsaid, and one
+more number asked at every start is one more decision the person did not want. *Capping the whole series' items
+rather than each wave's*: a wave is planned and built before the next, so the wave is what one stretch of spend and
+one failure can reach. *Taking successors before parked cycles*: a parked cycle's plan exists already and waits only
+on code that has now landed. *Leaving parallelism to the agent and capping only the size*: the size bounds the total;
+the timing is what met the usage window, and nothing in the skill had told the agent which way to run.
+
+### D-227 — No pull request is opened from a branch that has not taken its target's latest, fetched rather than assumed
+
+**Governs:** §10.3
+
+**Amends D-86:** a build whose target moved while it ran is brought up to date before its pull request opens, rather
+than at merge; a conflict is still a person's, and the factory still never resolves one.
+
+**Decision.** `sdlc up-to-date [--base <branch>]` fetches the target from origin — the integration branch unless
+`--base` names another, a release branch for a cycle carrying a fix to one — by an explicit refspec, so a clone
+following one branch alone still learns its head. It exits 0 when what is checked out holds that head, and refuses
+otherwise, saying how many commits behind, whether a merge would be clean or where it stops, and how to bring the
+branch up to date. It refuses a target it could not fetch as well, since nothing was compared.
+
+- **Every pull request the skills open asks it first**, on the branch pushed: `pr` in every form — a plan, a
+  slicing, a sandbox's admission, a verified build, a draft, a run, and an update to one already open — and
+  `close-cycle` before a harvest's close; `sdlc upgrade apply` asks the same before it pushes a move. First, because a merge it asks for changes what `pr-ready`, the gate and
+  `verify-chain` then read.
+- **A branch of records alone** — everything it changes under `.sdlc/`, as `admission` decides (D-193) — takes the
+  merge and is asked again. Nothing was built, so nothing is judged again; the chain check that follows reads the
+  merged branch. A merge that stops on a conflict is aborted and handed back: a conflict in a record is a person's.
+- **A branch of built code** is handed back, because the merge changes the code its verification judged and that
+  verification goes with it. `remediate`, through `resolve-conflict`, merges, builds, records fresh evidence and
+  verifies again in a fresh process, and that verdict is the one judged against the new base. **Unattended** — the
+  build's process, a run, a series — it does so only when the merge is clean, then asks for the pull request again;
+  a merge that stops on a conflict opens nothing, and the report names the files. On a run's branch it is the run's
+  last cycle that is remediated: its fresh run is the one the run's check reads (D-206).
+- **Merge, never rebase**: the branch may already be pushed, and the pull request is squashed when it lands, so a
+  merge rewrites nothing (D-197).
+
+**Why.** A person asked for a check that nothing is pushed for review from a branch that has not pulled the latest,
+when records were starting to be written by more than one branch at once: a record two branches each add to, merged
+by the platform's text merge, can count one thing twice or lose a line, and nobody sees the merge that did it. D-86
+left a stale base to the pull request's re-check, which judges the merge only after a reviewer has started on a diff
+that is not the one that will land, and a record merged clean by text passes that check while being wrong. The local
+copy of the target is as old as the last fetch, so a check that did not fetch would pass exactly when it mattered.
+
+**Rejected.** *Folding the check into `pr-ready`, `admit` or `verify-chain`.* Each answers for some forms of pull
+request and not others, and none fetches; one command every form asks is one place, and a check that writes nothing
+but a fetch. *Refusing only when a merge would conflict*: a clean text merge of a record is the case that miscounts.
+*Merging built code without verifying again*: the verdict would describe code that no longer exists. *Rebasing*:
+it rewrites a pushed branch, and the squash makes a merge free. *Leaving `sdlc upgrade apply` out*, as made from the
+integration branch's head: it is made from whatever is checked out, which a person's clone can hold stale, so it asks
+too before it pushes, and a move found behind is made again from the latest rather than merged. *Passing when the
+fetch fails*: offline is when a stale copy is likeliest, and a pull request needs the remote anyway.
+
+### D-226 — A perspective does not re-raise what a decision settles, and two rules forbid the miss beside the one they named
+
+**Governs:** §6.5, §7.5, §7.6
+
+**Revisits D-90, D-127 and D-151.** **Supersedes `CON_02` and `CON_21`** with `CON_28` and `CON_29`. The old entries
+stay on the page verbatim, so the findings that cited them stay readable.
+
+**Decision.**
+
+- **A perspective's reader is told that a standing decision settles what it states.** Where the method would ask
+  what a decision answers, the reader raises nothing; where the document departs from the decision or goes past
+  what it settles, the suggestion names the decision's id; and a suggestion that the solution should settle
+  something is raised only while no decision does. The perspective prompt says it once, for every perspective.
+  Security's method names the case that showed it: who may start work that reaches the main branch, what review
+  stands in for approval under `approval: none`, and what an unattended identity may do, are the solution's to
+  settle once, in its decisions.
+- **`CON_28`** is `CON_02` with the silent guess beside the stated one: an intent may not leave a wanted outcome its
+  spec cannot test without choosing a measure or a reading the intent leaves unsaid, unless an open question or an
+  unconfirmed assumption records that it is unsettled.
+- **`CON_29`** is `CON_21` with the other way a proof misses: it may not assert exact words a person is shown — a
+  message, a label, a heading, a title — where its criterion does not fix those words. Still judged per criterion.
+
+**Why.** One governed solution's harvest of 23 cycles found the security reader raising, in every cycle, who may
+open a cycle and what the factory's identity may do, under `approval: none`. Its readers are already handed the
+decisions (D-151), and a solution can settle exactly this in one — the pull request is the review, the platform's
+permissions bound the identity — but nothing told a perspective that a decision closes a question rather than being
+one more thing to read. Every cycle paid a suggestion and a disposition for it. Saying so in the prompt every
+perspective shares fixes it for every perspective and every settled question, rather than one at a time.
+
+The same harvest found three cycles' rules readers raising "the spec will have to guess" — a threshold "clearly
+shorter" never set, a scope left between two readings — as suggestions resting on no rule, one standing six rounds
+at the spec that settled what the intent had left open. `CON_02`'s title asked for unknowns as open questions;
+its `Forbids` named only the guess stated as fact, and a reader judges the rule's words (D-176). And seven cycles
+found proofs asserting a sentence the criterion never fixed. Such a proof is not weak in the sense D-127 bounded —
+it reaches its criterion — but it fails a build that meets the criterion in other words, so the build writes the
+test's sentence and the plan has settled user-facing wording nobody approved at the spec. Each is a change to
+what is forbidden, so §7.4 makes each a new rule.
+
+**Why neither reopens D-127.** D-127 removed the rules that blocked on what a reader could imagine, because for any
+test there is a defect it would miss and the loop never ended. Both new halves are read off the documents: an
+outcome with no measure and no open question recording it, a literal in a proof that its criterion does not hold.
+Neither asks a reader to imagine; each forbids something a person can point at, and each rule's `Why` keeps D-127's
+line — what a reader can imagine left open, or imagine fooling a proof, is a suggestion.
+
+**Rejected.** *A place of its own to record that the security question is settled*, which the harvest asked for.
+The decisions record is that place; what was missing was the reader honouring it. *A rule in each perspective
+forbidding the question once settled.* A perspective's rules are what it may block on (D-175); this is about what
+it should not raise at all. *Showing a perspective the harvest's ignored and declined concerns too.* That is the
+reconciler's to match (D-221), and a perspective reader stays blind to the record
+by design (D-108). *Revising `CON_02` and `CON_21` in place.* Each widens what is illegal, and a revision that does
+that loses the old rule for real (§7.4). *A rule of its own for pinned wording*, as the harvest proposed. It is a
+question about one proof and its criterion, judged per criterion with the rest of proof adequacy; a second rule
+judged over the same rows would split one answer between two readers' rows. *Forbidding every literal a proof
+asserts that the criterion lacks.* A proof may assert an identifier the plan chose or a value the criterion implies;
+the harm is wording a person reads, which the spec is where a person approves.
+
+### D-225 — A harvest is read by groups and counted by ids: an abandoned cycle's suggestions in one answer, a plan's shape whole, a note's cycles named
+
+**Governs:** §3.4, §15
+
+**Amends D-204:** a note's `Cycles:` line is required, and holds cycle ids or `all`. **Amends D-189:** a plan's
+shape is one passage. **Extends D-153:** a covered line may answer an abandoned cycle's suggestions together.
+
+**Decision.**
+
+- **An abandoned cycle's open suggestions go to its successor in one answer.** A `## Covered` line
+  `- <cycle>/*: successor:<slug> — <how>` answers every open suggestion of that cycle. `harvest record` refuses it
+  for a cycle of the sitting that is not abandoned, and when anything but a successor answers it. The report says
+  how many each abandoned cycle holds, and the reviewer counts the line as answering them.
+- **The summary stays a few lines however large the sitting.** Past eight themes to an answer, `sdlc harvest summary`
+  shows the eight largest and counts the rest on one line; `--all` shows every one. The suggestions skill aims for no
+  more than eight themes to a section.
+- **A plan's shape is one passage**, its bullets kept, in `harvest decisions`. An intent's fixed decisions are still
+  one passage a bullet.
+- **A bound on one piece of work is not a fixed decision.** The intent skill writes *not in this piece* into the
+  outcome it limits, and a bound every slice of a slicing shares into one slice, or into the solution's decisions
+  when it reaches past the slicing — never word for word into each.
+- **A note names the cycles whose record shows it.** `Cycles:` is required, by id or `all`; a line of prose there is
+  refused. The export counts the distinct cycle ids a note names and sends no count when it names none, rather than
+  one. `framework-harvest` heads a surface with the most cycles any one note names, never their sum, and says it is
+  a most.
+- **`framework-harvest` handed a solution's own `framework-harvest.json`** says so and names
+  `sdlc harvest framework --out <file>`.
+
+**Why.** One governed solution's sitting over 23 cycles. Its decisions reading held 600 passages, 497 of them
+fragments of plan shapes — 305 for the first six cycles alone — so an approach two plans shared read as forty bullets
+and never as one choice. Its suggestions sitting held 2,869 open suggestions in 235 answer groups, which the summary
+printed one line each; an abandoned cycle's had to be answered one by one though its successor replanned the work.
+15 of the later cycles' 95 fixed decisions were scope statements, and three batched intents repeated the same five
+word for word, each one a passage for the harvest. And its framework notes misled the reading they were for: twelve
+notes from the suggestions sitting named no cycles and were each stamped with all 23, one note's cycles were the words
+*all 23 of this sitting* and counted as 1, and the reading summed them into "48 cycles" for a surface of a 23-cycle
+solution. The first attempt to read it at all handed the tool the solution's file rather than an export, and got a
+JSON conversion error.
+
+**Rejected.** *Counting an abandoned cycle's suggestions as answered by abandoning it*: a suggestion may still be
+worth taking further, and naming the successor is what says which work carries it. *Allowing `<cycle>/*` for a passed
+cycle*: its suggestions were raised against code that shipped, and each is still a question about that code.
+*Capping themes in the file*: the themes are the sitting's choice and recording reads every line; the cap is in what
+a person is shown. *A plan's shape split by sub-heading*: plans carry none, and a reader compares approaches whole.
+*An intent section for scope*: the spec's `Out of scope` already names what an intent did not ask for, and a section
+would be one more shape every stage reads. *Keeping the sitting as a note's default cycles*: the default is what
+stamped notes about one cycle with twenty-three. *Recounting notes already recorded*: the ledger is the binary's
+record of what a sitting answered and is never rewritten; a note recorded before this release keeps its cycles, and
+exports what its ids give. *Deduplicating cycles across notes in the reading*: an export carries counts, not ids, by
+design (D-204).
+
+### D-224 — A build names what it was refused and what it may run, a grant may be one command line, nobody queuing a run can skip its tests, and a retired command is found where only a person can change it
+
+**Governs:** §8.3, §10.1, §13, §15.2
+
+**Amends D-202**, whose `build_tools` held bare command names alone, **and D-196**, whose skip of a promotion's tests
+the Azure DevOps pipeline read from a variable anybody queuing a run could set. **Extends D-148 and D-191**, whose
+renamed commands the binary answers: the list it answers from is read by `doctor` too.
+
+**Decision.**
+
+1. **A build says what it was refused.** The build's and the series' own processes answer in the host's JSON format,
+   and `sdlc build` and `sdlc series run` print the hand-back it carries, then each tool use the host refused, as
+   `tool: command`, once each, under *no test failed for it*, with the `build_tools` entry that would grant it. An
+   answer that is not that object is printed as written and refuses nothing.
+2. **A build says what it may run before it starts.** It names what `build_tools` granted, and each shell rule this
+   machine's own host settings add beyond every build's tools and that grant -- the user's settings and the
+   worktree's local file, both this machine's alone -- because a build here may use them and the factory is refused
+   them. `doctor` says the same as a sound check.
+3. **A grant may be one command line.** A `build_tools` entry is a bare command name, as before, or a command line
+   that starts with one: `docker build`, `pwsh -File scripts/evidence.ps1`. A line is allowed as itself and with more
+   words after it, and nothing else. Its later words may hold an option, a value or a relative path; a wildcard, a
+   quote, a variable, a redirection, `..` or a second command fails the document as before.
+4. **What skips the tests is set by a step, never by whoever queues the run.** The Azure DevOps verify pipeline
+   declares `admission`, `promotion` and `tested` as `false`, which Azure Pipelines does not let a run override at
+   queue time, and each step sets exactly `true` or `false`. On GitHub the skip is already a step's output. Both
+   templates say the skip passes over the tests and their publishing, never the build or the chain, and never a
+   team's own step, which carries no condition on them when it must run on every pull request. The `pipeline`
+   guidance says a team's own skip takes the same shape.
+5. **A retired command is found where only a person can change it.** The commands a release renamed are one list in
+   the binary, which answers them; `doctor` reads every file only a person writes outside a cycle for a command in
+   backticks on that list, and names its line and what to write instead. The constraints draft names no command:
+   `.sdlc/README.md`, which every upgrade rewrites, names the ones it used to.
+
+**Why.** One governed solution's harvest, over 23 cycles, handed the framework four notes on these surfaces. A build
+stopped by a refused tool looked the same as a failing test: the output never named the command, and nothing said
+which tools were in effect, so an allowance in a person's own settings let builds pass on a grant that was broken
+and would fail in the factory. A grant was the tool whole -- a shell, a container runtime -- when the need was one
+command. The verify pipeline's skip had no account of what stops a person queuing a run from setting it, and on
+Azure DevOps nothing did: `tested`, `admission` and `promotion` were ordinary variables, so a value given at queue
+time skipped the tests, the build or the chain. And a scaffolded constraints header still told people to run a
+command two releases had renamed, which no upgrade could change because only a person writes that file.
+
+**Rejected.**
+
+- *Starting the build with the user's settings left out*, so a machine's allowance could not mask anything. Those
+  settings also hold how a person signs in and which model they use, and a build that could not start for that is
+  worse than one that says what it was given.
+- *A refusal read from the build's own report.* The playbook already says to name it, and the note is that it did
+  not; the host's record of what it refused is a fact the binary can read, where the report is a sentence.
+- *A wildcard grant, `docker build *`, written by the person.* A wildcard is what `build_tools` refuses, because a
+  person writing one cannot see what else it matches; the binary adds the one it means.
+- *Output variables named by step on Azure DevOps.* A queue-time variable can be given a dotted name too; a
+  variable the file declares cannot be given at all.
+- *Rewriting the stale header on upgrade.* The file is a person's, and a tool that edits it once edits it again.
+- *Flagging every command a person's file names that this release does not answer.* A typo or a stage typed at the
+  binary is not something a release took away, and the binary answers a stage by naming its skill.
+
+### D-223 — What a document cites by number points at something, and a suggestion in another's words is that one
+
+**Governs:** §4.2, §6.1, §8.1.1, §15.2
+
+**Extends D-139**, whose departure check already refused a `Departs from` naming a decision the record does not hold,
+**and D-115**, whose ledger holds each concern once. **Leaves D-108 unchanged**: whether two statements in different
+words are one concern is still the reconciler's judgement.
+
+**Decision.**
+
+- **A decision cited is a decision placed.** An intent, a spec or a plan citing a `DEC_nn` the solution's
+  `decisions.md` does not hold — anywhere, not only on a departure line — is refused: `sdlc round prompt` composes no
+  reader for it, `sdlc round` records no round of it, and `sdlc status` and `verify-chain` report it as a shape problem.
+  A superseded decision is accepted, as a departure from one is; a fenced block quotes rather than cites; a record that
+  does not parse is `sdlc decisions`' to report, not a reason to refuse the document.
+- **A criterion cited is a criterion the spec has.** A spec, a plan or a verify citing a criterion by number the spec
+  does not have — a plan's proof entry or row, a verify's adjudication, or prose such as *criterion 4* or *criteria
+  2-4* — is refused the same way, and a spec numbering its criteria out of ascending order is too. A reference that
+  names another cycle beside it — its id, a `successor:`, *another cycle* — is left alone.
+- **Both hold only cycles opened on 0.58 or later**, so no document an approval already covers is refused for them.
+- **A suggestion is something to read, once.** `round collect` sends back a reader that raised a finding with no
+  statement, makes an empty gist no gist, and carries a suggestion in the same words — past spacing and case — as one
+  earlier in the round, or as one the cycle's ledger holds, under that one's id, whatever the reconciler named.
+  `sdlc round` refuses a new suggestion with no statement, an empty gist, or another's words.
+- **A new working copy says what of this checkout's record it will not hold.** `sdlc branch <id> sandbox`, and a plan
+  worktree, name each file only a person writes under `.sdlc/` whose text differs from the integration branch's they
+  start from, and say to commit and push it first if it is meant to bind the work.
+
+**Why.** One governed solution's harvest of 23 cycles found readers doing lookups. In six suggestions of one cycle
+and three of two others, readers reported an intent or plan citing `DEC_25` or `DEC_30` while the record they were
+handed held `DEC_01` to `DEC_15`. The cause was not stale readers: the person had placed decisions 16 to 44 in their
+own checkout days earlier and committed them only at the harvest's close, while the cycles were planned in sandboxes
+cut from the committed integration branch, as D-144 has them. The authors read the record in the person's checkout;
+the readers read the sandbox's. Nothing said the two differed, and by the time the decisions were committed `DEC_25`
+named a different choice. In three more cycles readers caught a criterion number left behind by a renumbering, and
+criteria out of order. In two cycles of that solution a suggestion stood with an empty gist, and a verify suggestion
+was recorded again word for word under a new id the next round because the reconciler missed its own ledger's entry —
+each one an item a person had to answer twice. Every one of these is a lookup a reader paid a round to do.
+
+**Rejected.** *Handing readers the person's record rather than the checkout's*: a cycle is judged by what its branch
+holds, which is what reaches the pull request; a record nobody committed binds nothing yet. *Refusing a sandbox while
+the record differs*: D-144 rejected refusing a cycle over work that cannot reach it, and what differs may be meant for
+other work. *Recording on each round the decisions hash it handed readers*: it would say afterwards that the record
+moved, where the refusal says it before a reader is paid. *Matching statements loosely — by gist, or by most words*: two
+concerns phrased alike would merge, and D-108 has a distinct concern merged into another as the failure to avoid; only
+the same words are a lookup. *Holding the framework's own `D-nn` ids too*: a solution's documents cite its own record,
+and a framework decision is cited by a person reading this repository, not by a cycle's reader. *Applying the checks to
+cycles in flight*: an approved plan citing a number would need a reopen to say what it already said.
+
+### D-222 — A verdict says why a criterion is not met, bounds only met criteria in `## Open`, and reads a numbered diff; verify readers leave what no stage acts on
+
+**Governs:** §4.3, §4.5, §6.5
+
+**Amends D-120**, whose evidence check also reports a cited diff line where its quote is not, **D-130**, whose rewrite
+in place also corrects those lines, **and D-90**, whose security perspective takes a build that fails on a vulnerable
+package as its dependency audit.
+
+**Decision.**
+
+- **A Not met says which of two it is.** Each opens `Not met (contradicted).` when the evidence shows the criterion
+  failing, or `Not met (unproven).` when it does not show it either way. Both block alike: unproven is still unmet.
+  `sdlc round verdict` refuses one that says neither.
+- **An entry under a verify's `## Open` names the met criterion it bounds**, as `Criterion 2: …`. `sdlc round verdict`
+  refuses an entry naming no criterion, one the verdict does not adjudicate, or one it marks Not met. A section that
+  says nothing is open, with no list, is left as it is.
+- **A verify round reads the diff numbered.** Every verify reader, the adjudicator and the diff reader get each hunk
+  line's number in a margin, the new file's for an added or unchanged line and the old file's for a removed one. The
+  patch on disk is unchanged.
+- **A citation whose quote is in the diff on other lines is listed, never refused.** `sdlc evidence check` reports it,
+  the round's readers are handed the list and told it is not a finding, and an adjudication that rewrites in place is
+  handed it to correct.
+- **A verify reader raises a suggestion about the built change or its evidence, and nothing else.** Not how a Met is
+  worded, and not whether the plan chose the right proof: the plan was approved with it. A Met claiming more than its
+  quote shows still breaks `CON_22`. The rules reader and every perspective at verify are told so.
+- **Every reader is told when the build is the dependency audit.** When `Directory.Build.props` sets `NuGetAudit` and
+  treats warnings as errors, with no audit warning let through, the round's shared block says a passing build is the
+  audit's clean result, and the security perspective asks for no scan beside it.
+
+**Why.** One governed solution's harvest of 23 cycles found each of these standing in every cycle. One verdict marked
+four criteria Not met on coverage gaps with no evidence the behaviour failed, and an unproven credentials criterion read
+as a leak; remediate cannot tell code to fix from a proof to strengthen when both read alike. One verdict kept three
+`## Open` entries the evidence settled or no criterion asked, and a reader stood on them for nine rounds: §4.3 said what
+the section is for on a verify, and nothing read it. Readers' verify findings were again and again a line reference off
+by one beside a quote that was right, because a unified diff never says which line is 41 and the adjudicator counted.
+Verify readers raised the wording of Met lines resting on the plan's approved proof in every cycle, where a suggestion
+can only become a successor (D-164) and no successor is about a verdict's words. And the security reader asked for a
+vulnerable-package scan at every stage of every cycle while the scaffolded build (§11.4) already failed on one.
+
+**Rejected.** *A third outcome per criterion, `Not proven`*: it changes the verify document's shape and every reader of
+it, for a difference two words carry, and unproven must block as unmet does. *Refusing a verdict with a line slip*:
+which file a sentence means is read from prose, a refusal resting on that reading costs a rerun of the largest prompt
+the framework sends, and numbering the diff removes the cause; the list is enough for what remains. *A rule for what
+`## Open` may hold on a verify*: which criterion an entry bounds is presence, which §7.2 routes to a check; whether the
+evidence could settle it stays a reader's question. *Recording an audit result as evidence*: the build already ran it,
+and a second file proves what a green build of those settings does. *Telling only the security perspective about the
+audit*: the fact is about the build, and the shared block keeps the readers' prefix one.
+
+### D-221 — A concern a harvest already answered, raised again, is recorded as recurring and counted, never asked again
+
+**Governs:** §6.1, §6.5, §15
+
+**Extends D-108 and D-115:** the reconciling reader is also shown the concerns the solution answered in its harvests,
+and a finding of the round may restate another finding of the same round. **Extends D-153:** an ignored concern's
+count toward the bar includes the cycles whose readers raised it again. **D-27 and D-49 are unchanged**: a blocker is
+never set aside, and where a suggestion stands on a document is still not the author's to move.
+
+**Decision.**
+
+- **The reconciler is shown what the solution already answered**, one line each with a key: every concern a harvest
+  ignored or watched, each reason a sitting declined suggestions for, each thing a sitting covered suggestions with,
+  and every successor waiting. A key is the kind and eight hex digits of the line's text (`ignored:3fa1c2d0`), or
+  `successor:<slug>`, so the same answer has the same key on every branch. Declines and covers are shown once per
+  answer, not once per suggestion: the concern is what is matched, and the ids are the cycles' own.
+- **A suggestion the reconciler names as restating one of them is recurring, not new.** `round collect` leaves it out of
+  the round's findings and carries it in the draft; `sdlc round` records it in the cycle's own
+  `findings/suggestions.json`, under `recurred`, with the key, the document and the round. It is not one of the cycle's
+  suggestions, so the panel, `sdlc suggestions` and the next harvest never ask anybody to answer it. A blocker naming a
+  key stays a new blocker.
+- **No round writes `harvested.json`.** `sdlc harvest close` folds each closing cycle's `recurred` into the ledger's own
+  `recurred` list, each (key, cycle, document, round) once, so folding a cycle twice, recording one draft twice, or a
+  merge carrying one entry twice adds nothing, and every read drops a duplicate. A person's own `cycles` and `why` on
+  a concern are never touched.
+- **An ignored or watched concern counts its distinct cycles: those a person answered it for, and those whose readers
+  raised it again**, folded or still in an open cycle. One ignored in two cycles and raised again in a third reaches the
+  bar in the sitting that sees it, and is listed with how many of its cycles are a reader raising it again.
+- **A finding may restate another of the same round.** One reader raising one gap three times, or two readers the same
+  gap, is one finding: the reconciler names the duplicate, and the round keeps one — the blocker, when only one of the
+  two blocks. Two blockers citing different rules are two blockers.
+- **Unsure is still new** (D-108): a key or an id the reconciler is not sure of leaves the finding where it was.
+
+**Why.** One governed solution's 23 cycles came to 2,869 open suggestions at one harvest. The readers raised about 40
+suggestions a cycle each for maintainability, security and operability, and less than 2% of them ever blocked. Much of
+it was the same concern in every cycle — an area proposal until a harvest placed one, the dependency audit every
+verify, the wording of Met lines that rest on an approved proof — and the reconciler, shown only its own cycle's
+suggestions, called each one new. Each then cost a disposition in the cycle and an answer in the harvest, though a
+person had already answered it once. One spec's reader raised past F_1800 and one verify raised reduced motion three
+times, because the reconciler matched against what stood before the round and never within it. The harvest ledger
+already kept every answer a person gave; nothing read it during a round.
+
+Recording the recurrence rather than suppressing it makes the repeat evidence: an ignored concern that keeps coming
+back is what the bar of three is for, and until now only a sitting could feed that tally.
+
+**Rejected.** *Telling the readers what was already answered*: they run blind by design (D-108), and a reader shown a
+list judges the list. *Writing the recurrence into `harvested.json` from the round*: every cycle branch would write the
+one file every other branch writes, and a merge would count one concern twice or lose one; the person asked for a
+guardrail against exactly that. *Adding the reader's cycles to the concern's `cycles`*: what a person answered and
+what readers kept noticing afterwards would read the same, and a later sitting could not tell which it was weighing.
+*Matching the open suggestions of other live cycles too*: it catches the repeats before a first harvest, but it is a
+second shared state across branches, and nothing yet shows the repeats it would catch are not the ones a harvest
+answers once. *Keying by position in the ledger*: a sitting covering a watched concern removes it, and every key after
+it would point at its neighbour.
+
+### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
+
+**Governs:** §3.4, §15
+
+**Extends D-125**, whose readiness gains a fifth state, **and D-153**, whose taken-further answer may now be held.
+
+**Decision.** A successor may carry `held: <yyyy-mm-dd>`, the day a person put it on hold. Where it would read
+`waiting` or `ready` it reads `held` instead, so no wave and no series takes it, and `sdlc successors`, `sdlc backlog`
+and the sitrep list it apart with that day. One that names nothing or waits on an abandoned cycle still reads
+`unresolved` or `stuck`, because those need correcting either way. A person starting it with `intent --from
+successor:<slug>` is what lifts the hold: it starts once what it waits on has merged, as a ready one does, and the file
+goes with the hold on it. In a harvest, `[h]` beside a proposed successor accepts it and drafts it held; only a
+successor can be held. A later suggestion raising the same concern is covered by the held successor, as by any other.
+
+**Why.** A person asked, of two proposed successors, to put them on hold: not wanted yet. A harvest had two places for
+them and both were wrong. Accepted, a successor comes ready and an unattended series builds it. Declined, the work
+became one line of a sitting with nothing to start it from, read as decided against when it was not, and it came back
+for an answer every time a reader raised the concern again — the opposite of waiting quietly.
+
+**Rejected.** *A fifth answer to a suggestion, beside the four*: what is held is the work, and the work's place is the
+successor file, which keeps its text and is started by name; a hold on the answer would still leave nothing to start.
+*Decline worded "not yet"*: what the person met, and the reasons above. *Holding by a key the agent may not write*: a
+successor is a planning file a pull request carries and a person reviews, as its `succeeds:` already is; a protected
+file for one flag would be an eighth file only a person writes. *A date or a condition that lifts the hold by itself*:
+nobody can say when "later" is, and a hold that lapses unseen is the unattended start it exists to prevent. *Holding
+a parked cycle or one in flight*: a cycle is abandoned and its piece written as a successor; nothing has asked for more.
 
 ### D-219 — What the framework already holds is already recorded, in a harvest of a solution's decisions and rules
 

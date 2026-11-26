@@ -13,14 +13,17 @@ using Sdlc.Core.Successors;
 namespace Sdlc.Core.Series;
 
 /// <summary>
-/// Takes a series' next wave: everything ready against the series branch, recorded in its record, each item with what
-/// starts it.
+/// Takes a series' next wave: what is ready against the series branch, up to the series' wave size, recorded in its
+/// record, each item with what starts it.
 /// </summary>
 /// <remarks>
 /// <para><strong>Ready is judged against the series branch</strong>, where a predecessor is ready once its passing
 /// verify is committed there: under <c>approval: none</c>, every ready successor and every ready parked cycle; under
 /// <c>approval: required</c>, every approved cycle nothing has built that no earlier wave took, and every approved
 /// parked cycle whose predecessors are ready there, to be taken back with <c>sdlc unpark</c> and built.</para>
+/// <para><strong>A wave takes no more than the series' wave size</strong> (D-228): parked or approved cycles first,
+/// then successors, and what is past the size stays ready for a later wave. A wave of every ready successor was a
+/// backlog of twenty-five planned at once, a session's limit spent in minutes with nothing built.</para>
 /// <para><strong>It records and never commits.</strong> The series playbook commits the record with what the wave did,
 /// so a wave that started nothing leaves no commit behind.</para>
 /// </remarks>
@@ -43,7 +46,8 @@ public static class NextWave
     /// <param name="Record">The record, as written.</param>
     /// <param name="Branch">The series' branch.</param>
     /// <param name="Wave">The wave taken, or null when nothing was ready and the series is finished early.</param>
-    public sealed record Response(SeriesRecord Record, string Branch, SeriesWave? Wave);
+    /// <param name="Left">How many more were ready than the wave size let it take, for a later wave.</param>
+    public sealed record Response(SeriesRecord Record, string Branch, SeriesWave? Wave, int Left = 0);
 
     /// <summary>What starts one item of a wave.</summary>
     /// <param name="item">The item.</param>
@@ -100,6 +104,15 @@ public static class NextWave
             text.AppendLine("  " + what + " -- " + StartOf(item, taken.Branch, taken.Record.Approval));
         }
 
+        if (taken.Left > 0)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{taken.Left} more {(taken.Left == 1 ? "is" : "are")} ready, past this series' wave size of {taken.Record.WaveSize}: {(taken.Left == 1 ? "it waits" : "they wait")} for a later wave."));
+        }
+
+        text.AppendLine("Plan and build these one after another, never in parallel: one item finished before the next starts.");
+
         return text.ToString();
     }
 
@@ -150,13 +163,14 @@ public static class NextWave
                     return ready.ToResult<Response>();
                 }
 
-                items.AddRange(ready.Value.Successors
-                    .Where(standing => standing.State == SuccessorState.Ready && !taken.Contains(standing.Successor.Slug))
-                    .Select(standing => new SeriesItem(SeriesItemKind.Successor, standing.Successor.Slug, null)));
-
+                // A parked cycle first: it was planned once already, so it is the nearer to done.
                 items.AddRange(ready.Value.Waiting
                     .Where(parked => parked.State == SuccessorState.Ready && !taken.Contains(parked.Cycle.ToString()))
                     .Select(parked => new SeriesItem(SeriesItemKind.Parked, parked.Cycle.ToString(), parked.Cycle.ToString())));
+
+                items.AddRange(ready.Value.Successors
+                    .Where(standing => standing.State == SuccessorState.Ready && !taken.Contains(standing.Successor.Slug))
+                    .Select(standing => new SeriesItem(SeriesItemKind.Successor, standing.Successor.Slug, null)));
             }
             else
             {
@@ -201,11 +215,13 @@ public static class NextWave
                     .Select(parked => new SeriesItem(SeriesItemKind.Parked, parked.Cycle.ToString(), parked.Cycle.ToString())));
             }
 
+            // What is ready past the wave size waits for the next wave, still ready then (D-228).
+            int left = Math.Max(0, items.Count - record.WaveSize);
             SeriesWave? wave = null;
 
             if (items.Count > 0)
             {
-                record = record.WithWave(clock.GetUtcNow(), items);
+                record = record.WithWave(clock.GetUtcNow(), [.. items.Take(record.WaveSize)]);
                 wave = record.Waves[^1];
             }
 
@@ -215,7 +231,7 @@ public static class NextWave
                 await File.WriteAllTextAsync(SeriesRecord.PathIn(root, id), record.Write(), cancellationToken).ConfigureAwait(false);
             }
 
-            return Result.Ok(new Response(record, branch, wave));
+            return Result.Ok(new Response(record, branch, wave, left));
         }
     }
 }

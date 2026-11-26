@@ -297,9 +297,10 @@ what the codebase already does. A probe is for the question the plan cannot answ
 
 ## Make the proof adequate
 
-This is the constraint to watch. `CON_21` forbids a proof that never runs a case its criterion
+This is the constraint to watch. `CON_29` forbids a proof that never runs a case its criterion
 states, asserts something other than the outcome its criterion names, or cannot fail when that outcome
-is absent. A schema can require that every criterion has *some* proof; only judgement can tell whether
+is absent — and one that asserts exact words a person is shown where its criterion does not fix those
+words. Assert that the person is told, and what about; quote a sentence only when the spec does. A schema can require that every criterion has *some* proof; only judgement can tell whether
 "add a unit test" proves "returns within 200ms over 50,000 rows".
 
 **An inadequate proof is worse than none**, because it produces a green verification instead of an
@@ -368,7 +369,7 @@ reported as absent rather than as proven. Do not collapse cases into a loop insi
 name match; that costs the per-case result your own verify document would otherwise cite.
 
 **If a criterion cannot be proven by anything the testing layers can run, say so in `## Open`.** That
-satisfies `CON_21`, because you named no inadequate check. It does not launder the problem: the
+satisfies `CON_29`, because you named no inadequate check. It does not launder the problem: the
 criterion is then unproven, and verify will block on it. The exit moves *where* the problem is caught,
 never *whether*.
 

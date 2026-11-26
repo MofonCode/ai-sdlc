@@ -40,7 +40,8 @@ public static class CheckEvidence
     /// <param name="Cited">How many distinct names the verify cites in backticks.</param>
     /// <param name="Unfound">Each one that appears in neither the test summary nor the diff.</param>
     /// <param name="NotPassed">Each test the verify says passed that the summary does not record as passed.</param>
-    public sealed record Response(Cycle Cycle, int Cited, IReadOnlyList<string> Unfound, IReadOnlyList<string> NotPassed);
+    /// <param name="Slipped">Each diff line it cites whose quote is in the diff on other lines (D-222).</param>
+    public sealed record Response(Cycle Cycle, int Cited, IReadOnlyList<string> Unfound, IReadOnlyList<string> NotPassed, IReadOnlyList<string>? Slipped = null);
 
     /// <summary>Checks one cycle's verify document.</summary>
     /// <param name="Id">The cycle.</param>
@@ -135,10 +136,23 @@ public static class CheckEvidence
             CultureInfo.InvariantCulture,
             $"verify.md cites {response.Cited} name{(response.Cited == 1 ? string.Empty : "s")} in backticks. This reports; it refuses nothing, and the reader still judges CON_22."));
 
-        if (response.Unfound.Count == 0 && response.NotPassed.Count == 0)
+        IReadOnlyList<string> slipped = response.Slipped ?? [];
+
+        if (response.Unfound.Count == 0 && response.NotPassed.Count == 0 && slipped.Count == 0)
         {
-            text.AppendLine("Every one is in the recorded evidence, and every test it says passed is recorded as passed.");
+            text.AppendLine("Every one is in the recorded evidence, every test it says passed is recorded as passed, and every diff line it cites holds its quote.");
             return text.ToString();
+        }
+
+        if (slipped.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine("Cites a diff line where its quote is not; the quote is in the diff on another line:");
+
+            foreach (string slip in slipped)
+            {
+                text.AppendLine("  " + slip);
+            }
         }
 
         if (response.Unfound.Count > 0)
@@ -193,6 +207,8 @@ public static class CheckEvidence
                 : null;
 
             string diff = File.Exists(diffPath) ? await File.ReadAllTextAsync(diffPath, cancellationToken).ConfigureAwait(false) : string.Empty;
+            string text = await File.ReadAllTextAsync(verify, cancellationToken).ConfigureAwait(false);
+            List<string> slipped = [.. DiffLines.Slips(text, diff).Select(slip => slip.ToString())];
 
             // The coverage summary and the build log are evidence too, which a verdict may cite for what only
             // they hold. The log is not committed, so in a pipeline it is simply not searched. The summary and
@@ -208,12 +224,9 @@ public static class CheckEvidence
                 }
             }
 
-            (int cited, IReadOnlyList<string> unfound, IReadOnlyList<string> notPassed) = Check(
-                await File.ReadAllTextAsync(verify, cancellationToken).ConfigureAwait(false),
-                summary,
-                diff);
+            (int cited, IReadOnlyList<string> unfound, IReadOnlyList<string> notPassed) = Check(text, summary, diff);
 
-            return Result.Ok(new Response(cycle, cited, unfound, notPassed));
+            return Result.Ok(new Response(cycle, cited, unfound, notPassed, slipped));
         }
     }
 }

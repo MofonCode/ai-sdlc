@@ -71,6 +71,9 @@ public sealed record FrameworkHarvest(IReadOnlyList<FrameworkNote> Notes)
     /// <summary>The section of a proposal file the notes are read from.</summary>
     public const string Section = "For the framework";
 
+    /// <summary>What a note's <c>Cycles:</c> line says when every cycle of the sitting shows it.</summary>
+    public const string AllCycles = "all";
+
     private static readonly JsonSerializerOptions _options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -151,13 +154,13 @@ public sealed record FrameworkHarvest(IReadOnlyList<FrameworkNote> Notes)
 
     /// <summary>
     /// Reads a proposal file's <c>## For the framework</c>: one <c>### &lt;surface&gt; — &lt;statement&gt;</c> heading
-    /// each, then a <c>Kind:</c> line, optional <c>Cycles:</c> and <c>Measure:</c> lines, and the evidence quoted
-    /// beneath with <c>&gt;</c>.
+    /// each, then a <c>Kind:</c> line, a <c>Cycles:</c> line of cycle ids or <c>all</c>, an optional <c>Measure:</c>
+    /// line, and the evidence quoted beneath with <c>&gt;</c>.
     /// </summary>
     /// <param name="markdown">The proposal file.</param>
     /// <param name="aspect">The aspect the sitting answered.</param>
     /// <param name="recorded">When it is recorded.</param>
-    /// <param name="sitting">The cycles the sitting read: a note naming none was seen in these.</param>
+    /// <param name="sitting">The cycles the sitting read: what <c>Cycles: all</c> names.</param>
     /// <param name="releases">The releases each cycle's rounds recorded.</param>
     /// <returns>The notes, or every heading that does not read as one and why.</returns>
     public static Result<IReadOnlyList<FrameworkNote>> ReadNotes(
@@ -221,9 +224,24 @@ public sealed record FrameworkHarvest(IReadOnlyList<FrameworkNote> Notes)
                 continue;
             }
 
-            List<string> cycles = Field(entry, "Cycles") is { } named
-                ? [.. named.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(id => id.Trim('`'))]
-                : [.. sitting];
+            // The cycles it was seen in are named, never assumed (D-225): a note left to take the whole sitting read as
+            // seen in every cycle, and a line of prose in place of ids counted as one cycle.
+            if (Field(entry, "Cycles") is not { } named)
+            {
+                refused.Add(string.Create(CultureInfo.InvariantCulture, $"'{heading}' needs a 'Cycles:' line beneath it: the cycle ids whose record shows it, or 'all' when every cycle of this sitting does."));
+                continue;
+            }
+
+            List<string> cycles = named.Trim().Equals(AllCycles, StringComparison.OrdinalIgnoreCase)
+                ? [.. sitting]
+                : [.. named.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(id => id.Trim('`'))];
+            List<string> unread = [.. cycles.Where(id => !CycleId.TryParse(id, out _))];
+
+            if (unread.Count > 0)
+            {
+                refused.Add(string.Create(CultureInfo.InvariantCulture, $"'{heading}': 'Cycles:' names {string.Join(", ", unread.Select(id => "'" + id + "'"))}, which is not a cycle id. Name the cycles by id, comma-separated, or write 'all' when every cycle of this sitting shows it; put the words under 'Measure:'."));
+                continue;
+            }
 
             notes.Add(new FrameworkNote(
                 recorded,

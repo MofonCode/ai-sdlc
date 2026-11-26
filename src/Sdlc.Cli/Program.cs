@@ -14,6 +14,7 @@ using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Harvest;
@@ -113,10 +114,11 @@ try
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
+        "up-to-date" => await UpToDateCommand(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
         "harvest" => await HarvestCommand(line).ConfigureAwait(false),
-        "mine" => await Renamed("mine", "harvest", "A harvest reads the completed cycles one aspect at a time; 'sdlc harvest' shows what each still needs.").ConfigureAwait(false),
+        "mine" => await Renamed("mine").ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "deviations" => await WithCycle(line, "deviations", DeviationsCommand).ConfigureAwait(false),
@@ -483,6 +485,23 @@ static async Task<int> AskPrReady(CommandLine line)
             return result.Value.MayOpen ? ExitCode.Ok : ExitCode.Refused;
         }).ConfigureAwait(false);
 }
+
+// Whether what is checked out has taken the latest of the branch its pull request goes into (D-227): fetched, never
+// assumed, and refused when behind or when the fetch fails. Every pull request the skills open asks this first, so a
+// branch is never reviewed or checked against a target it has not seen. --base names the target; the integration
+// branch otherwise.
+static async Task<int> UpToDateCommand(CommandLine line) =>
+    await Workspace.Run(line, async workspace =>
+    {
+        string target = line.TryOption("base", out string? named)
+            ? named
+            : await SolutionDocument.IntegrationBranchOf(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+
+        FreshnessCheck check = TargetFreshness.Check(workspace.Repository, workspace.SolutionRoot, target);
+        bool current = check.Standing == Freshness.UpToDate;
+        await (current ? Console.Out : Console.Error).WriteAsync(TargetFreshness.Render(check)).ConfigureAwait(false);
+        return current ? ExitCode.Ok : ExitCode.Refused;
+    }).ConfigureAwait(false);
 
 // Whether a run may open its one pull request: the run's check, against --base or else the integration branch.
 static async Task<int> RunPrReady(Workspace workspace, CommandLine line, RunKind kind, string run)
@@ -1523,6 +1542,7 @@ static async Task<int> BuildRunCommand(Workspace workspace)
         CultureInfo.InvariantCulture,
         $"Building every cycle {RunBranch.NameOf(kind, run)} carries, in {workspace.SolutionRoot}, one after another into that branch. Its own process implements, verifies and fixes what it can, and opens the run's one pull request; it asks nothing, and this waits for it."))
         .ConfigureAwait(false);
+    await ToolsInEffect(workspace.SolutionRoot).ConfigureAwait(false);
 
     return await Launched(await workspace
         .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(null, workspace.SolutionRoot, plugin, Run: true))
@@ -1543,6 +1563,8 @@ static async Task<int> Launched(Result<Sdlc.Core.AgentExit> exit, string where)
         return ExitCode.Failed;
     }
 
+    await HandedBack(exit.Value).ConfigureAwait(false);
+
     if (!exit.Value.Succeeded)
     {
         await Console.Error.WriteLineAsync("The process ended badly: " + exit.Value.Problem + " " + where).ConfigureAwait(false);
@@ -1550,6 +1572,34 @@ static async Task<int> Launched(Result<Sdlc.Core.AgentExit> exit, string where)
     }
 
     return ExitCode.Ok;
+}
+
+// What a build's or a series' process handed back, and each command it was refused, named so a refusal never reads
+// as a failing test (D-224).
+static async Task HandedBack(Sdlc.Core.AgentExit exit)
+{
+    if (exit.Said is { } said)
+    {
+        await Console.Out.WriteLineAsync(said).ConfigureAwait(false);
+    }
+
+    if (exit.Refused.Count > 0)
+    {
+        await Console.Error.WriteAsync(BuildRun.RenderRefused(exit.Refused)).ConfigureAwait(false);
+    }
+}
+
+// The commands a build's process starts with beyond every build's own, and any this machine allows that solution.md
+// never granted, said before it starts, so a local allowance cannot hide a grant that is missing (D-224). A solution
+// document that cannot be read says nothing here: the launch refuses it, naming why.
+static async Task ToolsInEffect(string worktree)
+{
+    Result<SolutionDocument> solution = await SolutionDocument.ReadFile(worktree, CancellationToken.None).ConfigureAwait(false);
+
+    if (solution.IsSuccess)
+    {
+        await Console.Error.WriteAsync(BuildRun.ToolsIn(worktree, solution.Value.ExtraBuildTools).Render()).ConfigureAwait(false);
+    }
 }
 
 // A series: wave after wave of successors planned and built into series/<id>, ending in one pull request. 'start'
@@ -1569,10 +1619,18 @@ static async Task<int> SeriesCommand(CommandLine line)
                 return ExitCode.Usage;
             }
 
+            int waveSize = SeriesRecord.DefaultWaveSize;
+
+            if (line.TryOption("wave-size", out string? size) && !int.TryParse(size, NumberStyles.Integer, CultureInfo.InvariantCulture, out waveSize))
+            {
+                await Console.Error.WriteLineAsync($"How many items may one wave take? As in 'sdlc series start --waves 3 --wave-size 2'; left out, it is {SeriesRecord.DefaultWaveSize}.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
             return await Workspace.Run(rest, async workspace =>
             {
                 Result<StartSeries.Response> started = await workspace
-                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves))
+                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves, waveSize))
                     .ConfigureAwait(false);
 
                 if (started.IsFailed)
@@ -1663,6 +1721,7 @@ static async Task<int> SeriesRunCommand(Workspace workspace, CommandLine rest)
         CultureInfo.InvariantCulture,
         $"Running series {id} in {workspace.SolutionRoot}. Its own process takes each wave, plans and builds it into series/{id}, and opens one pull request; it asks nothing, and this waits for it."))
         .ConfigureAwait(false);
+    await ToolsInEffect(workspace.SolutionRoot).ConfigureAwait(false);
 
     return await Launched(await workspace
         .Send<SeriesRun.Launch, Sdlc.Core.AgentExit>(new SeriesRun.Launch(id, workspace.SolutionRoot, plugin))
@@ -1699,6 +1758,7 @@ static async Task<int> BuildEveryQueuedCommand(Workspace workspace)
         CultureInfo.InvariantCulture,
         $"Building every queued cycle from {workspace.SolutionRoot}, each in a worktree of its own. The build's process implements, verifies, fixes what it can and opens each pull request; it asks nothing, and this waits for it. A plan only in a sandbox is not queued: 'sdlc build <id>' admits it first."))
         .ConfigureAwait(false);
+    await ToolsInEffect(workspace.SolutionRoot).ConfigureAwait(false);
 
     Result<Sdlc.Core.AgentExit> exit = await workspace
         .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(null, workspace.SolutionRoot, plugin))
@@ -1714,6 +1774,8 @@ static async Task<int> BuildEveryQueuedCommand(Workspace workspace)
         await Console.Error.WriteLineAsync("The build's process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
         return ExitCode.Failed;
     }
+
+    await HandedBack(exit.Value).ConfigureAwait(false);
 
     if (!exit.Value.Succeeded)
     {
@@ -1771,6 +1833,7 @@ static async Task<int> BuildCommand(Workspace workspace, CycleId id)
         CultureInfo.InvariantCulture,
         $"Building {id} in {worktree}, on {place.Value.Branch}. Its own process implements, verifies, fixes what it can and opens the pull request; it asks nothing, and this waits for it."))
         .ConfigureAwait(false);
+    await ToolsInEffect(worktree).ConfigureAwait(false);
 
     Result<Sdlc.Core.AgentExit> exit = await workspace
         .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(id, worktree, plugin))
@@ -1786,6 +1849,8 @@ static async Task<int> BuildCommand(Workspace workspace, CycleId id)
         await Console.Error.WriteLineAsync("The build's process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
         return ExitCode.Failed;
     }
+
+    await HandedBack(exit.Value).ConfigureAwait(false);
 
     if (!exit.Value.Succeeded)
     {
@@ -2310,8 +2375,8 @@ static async Task<int> Draft(CommandLine line)
         "solution" => await DraftSolution(rest).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
         "harvest" => await Workspace.Run(rest, w => DraftHarvested(w, rest)).ConfigureAwait(false),
-        "mining" => await Renamed("draft mining", "draft harvest <file>").ConfigureAwait(false),
-        "convergence" => await Renamed("draft convergence", "draft harvest <file>").ConfigureAwait(false),
+        "mining" => await Renamed("draft mining").ConfigureAwait(false),
+        "convergence" => await Renamed("draft convergence").ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -2628,7 +2693,7 @@ static async Task<int> HarvestCommand(CommandLine line)
                 return await Report(summary, ExitCode.Refused).ConfigureAwait(false);
             }
 
-            await Console.Out.WriteAsync(HarvestSummary.Render(summary.Value)).ConfigureAwait(false);
+            await Console.Out.WriteAsync(HarvestSummary.Render(summary.Value, rest.HasOption("all"))).ConfigureAwait(false);
             return ExitCode.Ok;
         }).ConfigureAwait(false);
     }
@@ -2760,18 +2825,19 @@ static async Task<int> Propose(CommandLine line)
 
     return what switch
     {
-        "constraints" or "constraint" => await Renamed("propose constraints", "harvest constraints", "For a rule you have in mind, 'sdlc constraints --new' prints an empty entry at the next free id.").ConfigureAwait(false),
-        "decisions" or "decision" => await Renamed("propose decisions", "harvest decisions").ConfigureAwait(false),
-        "theme" => await Renamed("propose theme", "theme").ConfigureAwait(false),
-        _ => await Renamed("propose", "harvest").ConfigureAwait(false),
+        "constraints" or "constraint" => await Renamed("propose constraints").ConfigureAwait(false),
+        "decisions" or "decision" => await Renamed("propose decisions").ConfigureAwait(false),
+        "theme" => await Renamed("propose theme").ConfigureAwait(false),
+        _ => await Renamed("propose").ConfigureAwait(false),
     };
 }
 
 // A command renamed rather than removed is answered with the name it now has, the way a stage typed at the binary
-// is answered with its skill: what somebody typed from memory still gets them there (D-148, D-191).
-static async Task<int> Renamed(string was, string now, string? more = null)
+// is answered with its skill: what somebody typed from memory still gets them there (D-148, D-191). The list is
+// Core's, because doctor reads it too, for a retired command a file only a person writes still names (D-224).
+static async Task<int> Renamed(string was)
 {
-    await Console.Error.WriteLineAsync($"'sdlc {was}' is now 'sdlc {now}'.{(more is null ? string.Empty : " " + more)}").ConfigureAwait(false);
+    await Console.Error.WriteLineAsync(Sdlc.Core.CommandNames.RetirementOf(was)!.Answer()).ConfigureAwait(false);
     return ExitCode.Usage;
 }
 
@@ -3396,10 +3462,14 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         : null;
     ArtifactValidation? shape = text is null
         ? null
-        : Departures.Checked(
-            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false), status.Cycle.InSeries),
+        : await Citations.Checked(
+            status.Cycle,
+            Departures.Checked(
+                ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false), status.Cycle.InSeries),
+                text,
+                recorded),
             text,
-            recorded);
+            CancellationToken.None).ConfigureAwait(false);
 
     StagePanel panel = new(state, outline, shape, text is null ? null : ArtifactSize.Describe(kind, text));
     SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);

@@ -133,6 +133,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Artifacts.ArtifactSections",
         "Sdlc.Core.Artifacts.ArtifactSize",
         "Sdlc.Core.Artifacts.ArtifactValidation",
+        "Sdlc.Core.Artifacts.Citations",
         "Sdlc.Core.Artifacts.ContentHash",
         "Sdlc.Core.Artifacts.Frontmatter",
         "Sdlc.Core.Artifacts.FrontmatterDocument",
@@ -235,6 +236,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.BuildRun+Launch",
         "Sdlc.Core.Cycles.BuildRun+Place",
         "Sdlc.Core.Cycles.BuildRun+Prepare",
+        "Sdlc.Core.Cycles.BuildRun+Tools",
         "Sdlc.Core.Cycles.ComposeAdmission",
         "Sdlc.Core.Cycles.ComposeAdmission+Query",
         "Sdlc.Core.Cycles.ComposeAdmission+Response",
@@ -312,6 +314,12 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Harvest.HarvestDecline",
         "Sdlc.Core.Harvest.HarvestedArea",
         "Sdlc.Core.Harvest.HarvestedCycle",
+
+        // A concern a harvest already answered, its key and what recurred against it (D-221). Public because the
+        // reconciler's prompt and the harvest ledger carry them, and the suite reads the keys.
+        "Sdlc.Core.Harvest.HarvestedConcern",
+        "Sdlc.Core.Harvest.HarvestedConcerns",
+        "Sdlc.Core.Harvest.HarvestedRecurrence",
         "Sdlc.Core.Harvest.HarvestLedger",
         "Sdlc.Core.Harvest.HarvestReaders",
         "Sdlc.Core.Harvest.HarvestReaders+Read",
@@ -401,6 +409,11 @@ public sealed class PublicSurfaceTests
         // is public for the same reason Claim and Collision are.
         "Sdlc.Core.Evidence.ComputeClaimGraph+Skipped",
         "Sdlc.Core.Evidence.DeclaredFiles",
+
+        // D-222: the diff a verify round reads, numbered, and the line citations whose quote is on other lines. A
+        // Slip is part of what the evidence check renders.
+        "Sdlc.Core.Evidence.DiffLines",
+        "Sdlc.Core.Evidence.DiffLines+Slip",
         "Sdlc.Core.Evidence.EvidenceRenderer",
         "Sdlc.Core.Evidence.FileComparison",
         "Sdlc.Core.Evidence.RecordEvidence",
@@ -436,6 +449,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.SuggestionEventKind",
         // An id a merge recorded twice, renumbered by the binary (D-171).
         "Sdlc.Core.Findings.RenumberedSuggestion",
+
+        // A suggestion that restates a harvested concern, kept in the cycle's ledger apart from its suggestions
+        // (D-221). Public because SuggestionLedger carries it.
+        "Sdlc.Core.Findings.RecurredSuggestion",
         "Sdlc.Core.Findings.RenumberSuggestions",
         "Sdlc.Core.Findings.RenumberSuggestions+Command",
         "Sdlc.Core.Findings.RenumberSuggestions+Response",
@@ -568,6 +585,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Themes.Slot",
         "Sdlc.Core.Git.GitRepository",
         "Sdlc.Core.Git.IRepository",
+        // D-227: 'sdlc up-to-date', whether a branch has taken the latest of its pull request's target.
+        "Sdlc.Core.Git.Freshness",
+        "Sdlc.Core.Git.FreshnessCheck",
+        "Sdlc.Core.Git.TargetFreshness",
         // The four added with D-46. Each host's facts are one row in a table rather than a switch
         // arm in each of four files, and the row is public because `Templates` and `Initialise`
         // read it and the conformance suite enumerates it. ConfigOwnership and HookEntryShape are
@@ -629,6 +650,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.AgentExit",
         "Sdlc.Core.AgentLaunch",
         "Sdlc.Core.CliAgentProcess",
+        // The commands this release answers and the ones it retired: the CLI answers a retired one from it, and doctor
+        // reads it for a retired command a file only a person writes still names (D-224).
+        "Sdlc.Core.CommandNames",
+        "Sdlc.Core.CommandNames+Retirement",
+        "Sdlc.Core.CommandNames+Stale",
         "Sdlc.Core.IAgentProcess",
         "Sdlc.Core.PinnedRelease",
         "Sdlc.Core.Release",

@@ -88,9 +88,9 @@ removes the problem from the page while leaving the belief in it:
 
 | Finding | Not a fix | A fix |
 |---|---|---|
-| `CON_02`: "fourteen seconds" is unmeasured | change it to "slow" | record it as an unconfirmed assumption, or ask |
+| `CON_28`: "fourteen seconds" is unmeasured | change it to "slow" | record it as an unconfirmed assumption, or ask |
 | `CON_03`: "handles large files" cannot fail | add "reliably" | name a size and an observable |
-| `CON_21`: a unit test cannot prove a latency claim | add "and integration tests" | name the test and what it measures |
+| `CON_29`: a unit test cannot prove a latency claim | add "and integration tests" | name the test and what it measures |
 | `CON_23`: "told when it fails" names no failures | add "all failures" | list the failures the intent names under `Cases:` |
 
 If a finding is wrong, say so in your report with the reason, and leave the artifact alone. Do not

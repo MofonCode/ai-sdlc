@@ -32,6 +32,18 @@ public sealed record AgentExit(int ExitCode, bool TimedOut, string? Problem, boo
 {
     /// <summary>Whether it ran to the end and said it succeeded.</summary>
     public bool Succeeded => ExitCode == 0 && !TimedOut && Problem is null;
+
+    /// <summary>What a build's or a series' process handed back as it ended, or null when it said nothing readable.</summary>
+    public string? Said { get; init; }
+
+    /// <summary>
+    /// Each tool use the host refused a build's or a series' process, as <c>tool: command</c>, oldest first (D-224).
+    /// </summary>
+    /// <remarks>
+    /// A refusal stops a headless build at the step that needed the command, and its hand-back then reads like a
+    /// failing test. Named here, from the host's own record, so the person reads which command and why.
+    /// </remarks>
+    public IReadOnlyList<string> Refused { get; init; } = [];
 }
 
 /// <summary>

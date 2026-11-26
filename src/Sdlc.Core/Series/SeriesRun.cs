@@ -74,8 +74,9 @@ public static class SeriesRun
             pluginDirectory,
             "-p",
             PromptFor(id),
+            .. BuildRun.OutputFormat,
             "--allowedTools",
-            .. AllowedTools.Concat((buildTools ?? []).Select(tool => "Bash(" + tool + " *)")).Distinct(StringComparer.Ordinal),
+            .. AllowedTools.Concat((buildTools ?? []).SelectMany(BuildRun.RulesFor)).Distinct(StringComparer.Ordinal),
         ];
     }
 

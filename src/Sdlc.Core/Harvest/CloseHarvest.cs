@@ -112,6 +112,22 @@ public static class CloseHarvest
                 return Result.Fail<Response>(string.Create(CultureInfo.InvariantCulture, $"Close from {integration}, where the cycles merged and the drafts were placed; this checkout is on {repository.CurrentBranch(solution.Path) ?? "no branch"}."));
             }
 
+            // What each closing cycle's readers raised again of concerns already answered here is folded in now, once,
+            // from the cycle's own ledger: no cycle branch writes this file, so no merge can count one twice (D-221).
+            List<HarvestedRecurrence> recurred = [];
+
+            foreach (HarvestReport.OpenCycle open in closing)
+            {
+                Result<IReadOnlyList<HarvestedRecurrence>> of = await Recurrences.Of(new Cycle(open.Cycle, solution.Path), cancellationToken).ConfigureAwait(false);
+
+                if (of.IsFailed)
+                {
+                    return of.ToResult<Response>();
+                }
+
+                recurred.AddRange(of.Value);
+            }
+
             DateTimeOffset now = clock.GetUtcNow();
             string branch = BranchPrefix + now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture);
             Result switched = repository.SwitchToNewBranch(solution.Path, branch);
@@ -128,7 +144,7 @@ public static class CloseHarvest
                 closed.Add(await Husk(new Cycle(open.Cycle, solution.Path), open.Branch, integration, now, report.Value, cancellationToken).ConfigureAwait(false));
             }
 
-            HarvestLedger written = report.Value.Ledger.Closing(closed);
+            HarvestLedger written = report.Value.Ledger.Closing(closed).Recurring(recurred);
             await File.WriteAllTextAsync(HarvestLedger.PathIn(solution.Path), written.Write(), cancellationToken).ConfigureAwait(false);
 
             // A series' folder goes with the last of its cycles: read before any cycle's folder goes, because a

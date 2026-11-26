@@ -136,6 +136,10 @@ public static class HarvestReport
     /// <param name="Open">Every completed cycle not closed yet, with the aspects it still needs.</param>
     /// <param name="Unmerged">Cycles that passed verify whose pull requests have not merged yet: they wait.</param>
     /// <param name="IntegrationBranch">The integration branch.</param>
+    /// <param name="Pending">
+    /// What the open cycles' readers raised again of concerns already answered, not folded into the ledger until they
+    /// close (D-221): counted toward the bar now, so a concern ignored before reaches it in the sitting that sees it recur.
+    /// </param>
     public sealed record Response(
         HarvestAspect? Aspect,
         ProposeConstraints.Response Rules,
@@ -152,7 +156,8 @@ public static class HarvestReport
         IReadOnlyList<Successors.Successor> FrameworkGaps,
         IReadOnlyList<OpenCycle> Open,
         IReadOnlyList<CycleId> Unmerged,
-        string IntegrationBranch);
+        string IntegrationBranch,
+        IReadOnlyList<HarvestedRecurrence>? Pending = null);
 
     /// <summary>Asks for the report.</summary>
     /// <param name="Aspect">The aspect to read, or null for the overview.</param>
@@ -239,7 +244,7 @@ public static class HarvestReport
                 Decisions(text, response);
                 break;
             case HarvestAspect.Suggestions:
-                Suggested(text, response.Suggestions, response.Ledger.Ignored ?? []);
+                Suggested(text, response.Suggestions, response.Ledger, response.Pending ?? [], [.. response.Open.Where(open => open.Abandoned).Select(open => open.Cycle)]);
                 Gaps(text, response.FrameworkGaps);
                 break;
             case HarvestAspect.Stack:
@@ -350,7 +355,8 @@ public static class HarvestReport
 
             foreach (Watched watched in response.Ledger.Watch)
             {
-                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {watched.Cycles.Count} of {ProposeConstraints.Bar} cycles: {watched.Gist} ({string.Join(", ", watched.Cycles)})"));
+                IReadOnlyList<string> seen = response.Ledger.SeenIn(HarvestedConcerns.Watch, watched, response.Pending);
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {seen.Count} of {ProposeConstraints.Bar} cycles: {watched.Gist} ({string.Join(", ", seen)}){HarvestRenderer.Recurring(watched, seen)}"));
                 HarvestRenderer.Why(text, watched, "    ");
             }
         }
@@ -533,12 +539,26 @@ public static class HarvestReport
     /// The earlier ignored concerns are listed in their own words so an ignored suggestion is worded the same way
     /// and counted with them, and one at the bar is not ignored again.
     /// </remarks>
-    private static void Suggested(StringBuilder text, IReadOnlyList<Suggestion> suggestions, IReadOnlyList<Watched> ignored)
+    private static void Suggested(StringBuilder text, IReadOnlyList<Suggestion> suggestions, HarvestLedger ledger, IReadOnlyList<HarvestedRecurrence> pending, IReadOnlyList<CycleId> abandoned)
     {
+        IReadOnlyList<Watched> ignored = ledger.Ignored ?? [];
+
         text.AppendLine();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"Suggestions   {suggestions.Count} open -- take each further, decline it with why, cover it with what already handles it, or ignore it"));
+
+        // An abandoned cycle's suggestions are against an approach a person refused; the successor that replans the
+        // work takes them up in one answer rather than one by one (D-225).
+        foreach (IGrouping<CycleId, Suggestion> stopped in suggestions
+            .Where(suggestion => abandoned.Contains(suggestion.Cycle))
+            .GroupBy(suggestion => suggestion.Cycle)
+            .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal))
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {stopped.Key} was abandoned, with {stopped.Count()} open: answer them together as '- {stopped.Key}{RecordHarvest.WholeCycle}: successor:<slug> — <how it takes the work up>' under ## Covered, or one by one"));
+        }
 
         foreach (Suggestion suggestion in suggestions
             .OrderBy(suggestion => suggestion.Cycle.ToString(), StringComparer.Ordinal)
@@ -550,14 +570,17 @@ public static class HarvestReport
                 $"  {suggestion.Cycle}/{suggestion.Finding.Id}{raiser} on the {string.Join(", ", suggestion.Documents.Select(Cycle.NameOf))}: {suggestion.Finding.Headline}"));
         }
 
-        foreach (Watched concern in ignored.OrderByDescending(concern => concern.Cycles.Count))
+        // A concern's cycles are those a person ignored it in and those whose readers raised it again after (D-221).
+        foreach ((Watched concern, IReadOnlyList<string> seen) in ignored
+            .Select(concern => (concern, ledger.SeenIn(HarvestedConcerns.Ignored, concern, pending)))
+            .OrderByDescending(pair => pair.Item2.Count))
         {
-            string bar = concern.Cycles.Count >= ProposeConstraints.Bar
+            string bar = seen.Count >= ProposeConstraints.Bar
                 ? " -- at the bar: make it a successor, decline it, or cover it, and do not ignore it again"
                 : string.Empty;
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  ignored before, {concern.Cycles.Count} of {ProposeConstraints.Bar} cycles: {concern.Gist} ({string.Join(", ", concern.Cycles)}){bar}"));
+                $"  ignored before, {seen.Count} of {ProposeConstraints.Bar} cycles: {concern.Gist} ({string.Join(", ", seen)}){HarvestRenderer.Recurring(concern, seen)}{bar}"));
             HarvestRenderer.Why(text, concern, "    ");
         }
     }
@@ -840,7 +863,27 @@ public static class HarvestReport
                 await FrameworkGaps(cancellationToken).ConfigureAwait(false),
                 open,
                 unmerged,
-                integration));
+                integration,
+                await Pending(open, cancellationToken).ConfigureAwait(false)));
+        }
+
+        // The open cycles' restatements of harvested concerns (D-221). A cycle whose ledger does not read is the
+        // suggestions command's to report; here it simply recurs nothing.
+        private async Task<IReadOnlyList<HarvestedRecurrence>> Pending(IReadOnlyList<OpenCycle> open, CancellationToken cancellationToken)
+        {
+            List<HarvestedRecurrence> pending = [];
+
+            foreach (OpenCycle cycle in open)
+            {
+                Result<IReadOnlyList<HarvestedRecurrence>> of = await Recurrences.Of(new Cycle(cycle.Cycle, solution.Path), cancellationToken).ConfigureAwait(false);
+
+                if (of.IsSuccess)
+                {
+                    pending.AddRange(of.Value);
+                }
+            }
+
+            return pending;
         }
 
         // Read whatever else is wrong with the successors: a malformed one is the successors command's to report.

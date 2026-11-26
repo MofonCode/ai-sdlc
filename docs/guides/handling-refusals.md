@@ -201,17 +201,19 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. *Take it to plan* (`/sdlc:to-plan`) does this for you, after `steer` when you said what
 should change, which is the reason to use it rather than editing documents by hand.
 
-## `sdlc round` — the nine ways a round is refused
+## `sdlc round` — the twelve ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
 words, the third when a reader raised a blocker without saying in a sentence what set it off, the
 fourth when a blocker cites a rule its reader was not handed (D-174), the fifth when a new finding quotes its
-rule in words other than the rule's own (D-177), and the sixth when a suggestion's id or its move does not fit
-the cycle's suggestions. The next two are about areas (D-150):
-a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
-that could not change where the cycle goes (D-165).
+rule in words other than the rule's own (D-177), the sixth when a suggestion's id or its move does not fit
+the cycle's suggestions, and the seventh when a suggestion has nothing to read or says what another already
+says (D-223). The next is a document citing a decision or a criterion that does not exist (D-223). The next two
+are about areas (D-150): a plan that leaves a declared file without one, and an area whose files have moved. Then
+a verify round that could not change where the cycle goes (D-165), and last a verdict whose Not met or open entry
+does not say what it is about (D-222).
 
 ### something above it is unsettled
 
@@ -283,6 +285,31 @@ usual cause is a perspective reader numbering from `F_01`.
 every document's open suggestions. Answer a suggestion only on the documents that raised it. A suggestion
 that has become a blocker is handed back `withdrawn`, and the blocker takes a new `F_` id of its own.
 
+### a suggestion with nothing to read, or in another's words
+
+A new suggestion is refused when its statement is empty, when it carries a gist that is blank, or when its
+statement is word for word — past spacing and case — what another suggestion of the round or of the cycle's
+ledger says. Each would stand as an item somebody must answer: one with nothing in it, or one answered twice
+(D-223). `sdlc round collect` already sends back a reader that raised a finding with no statement, drops a blank
+gist, and carries a copy under the first one's id; this refusal meets a draft edited after that.
+
+**Next:** carry the copy under the id the refusal names, and leave out a gist you have no sentence for. A finding
+with no statement is its reader's to write: start that reader again rather than writing it in this session.
+
+### a document cites what does not exist
+
+Writing a round's prompts, and recording the round, are refused when the document cites a number that points at
+nothing: an intent, spec or plan naming a `DEC_nn` the solution's `decisions.md` does not hold, or a spec, plan or
+verify naming a criterion the spec does not have — a proof row, an adjudication, *criterion 4* in prose — or a spec
+whose criteria are out of order (D-223). A reader would spend the round on the number. The usual causes are a
+decision proposed by a harvest and not yet placed, a decision placed in another checkout and not committed to the
+integration branch — a sandbox starts from what that branch committed — and a spec renumbered under its references.
+A cycle opened before 0.58 is not held to it.
+
+**Next:** place the decision and bring it onto this branch, or cite what `sdlc decisions` lists; give a criterion
+reference the number the spec has now. A reference to another cycle's criterion names that cycle beside it. On a
+verify, run the adjudicator again: it wrote the number.
+
 ### a declared file with no area
 
 A plan round is refused when the plan declares a file that no area in `.sdlc/areas.md` covers and its
@@ -313,6 +340,18 @@ remediate whatever the readers say, so a round there pays for every reader to co
 pass on that evidence is judged as before, and the run remediate records gets a full round.
 
 **Next:** `/sdlc:remediate <id>`.
+
+### a verdict that does not say why, or bounds nothing
+
+`sdlc round verdict` refuses the adjudicator's answer when a criterion is marked Not met without saying which kind
+— `Not met (contradicted).` when the evidence shows it failing, `Not met (unproven).` when it does not show it
+either way — or when an entry under `## Open` names no criterion, one the verdict does not adjudicate, or one it
+marks Not met. Both kinds block alike, but they tell remediate different things: the code to fix, or the proof to
+strengthen. An open entry bounds a criterion that was met; one bounding nothing stood nine rounds in one cycle
+(D-222).
+
+**Next:** `sdlc round run <id> verify` again for a new adjudication. Never repair the answer in the session:
+the repair is this session writing the verdict.
 
 ## `sdlc scaffold` — the two ways it is refused
 
@@ -348,23 +387,31 @@ headless: it asks nobody anything, so whatever it is not allowed is refused and 
 ### a solution document the build cannot read
 
 The worktree's `.sdlc/solution.md` would not read, so the build was never started. Its own message says which key,
-and the usual one is `build_tools` naming something that is not a bare command: `docker *`, a path, two words.
-Each name is allowed as `Bash(<name> *)`, so a name with a space or a wildcard in it would allow more than the
-command you meant.
+and the usual one is `build_tools` naming something that is not one command: `docker *`, a path in place of the
+command, a quote, a variable, `;` or `&&`. Each entry is allowed as `Bash(<entry> *)`, so any of those would allow
+more than the command you meant. A command line is fine: `docker build` grants that line and never `docker run`
+(D-224).
 
-**Next:** `sdlc draft solution`, correct the line to bare names separated by commas — `build_tools: pwsh, docker`
-— rename the draft into place, commit it, and build again.
+**Next:** `sdlc draft solution`, correct the line to commands separated by commas — `build_tools: pwsh, docker
+build` — rename the draft into place, commit it, and build again.
 
 ### a tool the build's process was not given
 
-The build stopped as not finished, and its report names a command that was refused. The process is allowed the
-skills its playbook runs, `sdlc`, `git`, `dotnet`, `gh`, `az`, the file tools, and each command `build_tools`
-names (D-202) — **and nothing from a checkout's personal settings**. The worktree is a fresh checkout, so a rule
-you added to `.claude/settings.local.json` in your own checkout never reaches it, and in a headless process there
-is no prompt to approve it either.
+The build stopped as not finished, and `sdlc build` printed *The build's process was refused … no test failed for
+it*, with each refused command under it, read from the host's own record of what it refused (D-224). The process
+is allowed the skills its playbook runs, `sdlc`, `git`, `dotnet`, `gh`, `az`, the file tools, and each command
+`build_tools` names (D-202) — **and nothing from a checkout's personal settings**. The worktree is a fresh
+checkout, so a rule you added to `.claude/settings.local.json` in your own checkout never reaches it, and in a
+headless process there is no prompt to approve it either.
+
+**The other way round.** A rule in your user-level host settings does reach a build on your machine, so a build
+here can pass on a command `build_tools` never granted, and the factory is then refused it. `sdlc build` says so
+before it starts — *This machine's own host settings also allow …* — and `sdlc doctor` says it too. Grant what the
+build needs in `build_tools`, so it holds wherever the build runs.
 
 **Next:** when the refused command is one the solution's own build needs — an evidence script's shell, a
-container — add it to `build_tools` with `sdlc draft solution` and a rename, commit it, and build again. When it
+container — add it to `build_tools` with `sdlc draft solution` and a rename, commit it, and build again: the bare
+name grants the tool whole, a command line such as `docker build` only that line. When it
 is a command a skill should not have needed, such as a pipe into `tail`, build again: the playbook writes its
 commands one at a time, and a refusal of one is not a missing tool. A refusal of `sdlc build` itself, **in your
 own session**, is your host's permission check rather than the framework: allow `Bash(sdlc *)` in your host's
@@ -544,9 +591,10 @@ A series runs wave after wave into `series/<id>`, in a worktree of its own; `sdl
 ### fewer than one wave
 
 `sdlc series start --waves <n>` was given a number below one. A series stops at its number of waves or an empty
-backlog, whichever comes first, and the number is the person's: an open-ended run is spend nobody chose.
+backlog, whichever comes first, and the number is the person's: an open-ended run is spend nobody chose. A
+`--wave-size` below one is refused the same way: a wave takes at least one item, and 3 when no size is named.
 
-**Next:** start it again with the number of waves it may run.
+**Next:** start it again with the number of waves it may run, and leave `--wave-size` out or give it a number.
 
 ### not on a series' branch
 
@@ -688,12 +736,13 @@ report as written.
 
 `sdlc harvest record <aspect>` is refused when a heading under `## For the framework` names no surface of the
 framework — a rule's id such as `CON_06`, `evidence`, or a kind and a name such as `perspective:security` or
-`stage:verify` — says nothing after it, or has no `Kind:` line of `cost`, `missing` or `defect` beneath it (D-204).
-Nothing is recorded, so the sitting is never half answered. The notes are what a solution may hand the framework,
-and one that cannot be grouped by what it is about cannot be read across solutions.
+`stage:verify` — says nothing after it, has no `Kind:` line of `cost`, `missing` or `defect` beneath it (D-204), or
+has no `Cycles:` line of cycle ids, or `all` (D-225). Nothing is recorded, so the sitting is never half answered. The
+notes are what a solution may hand the framework, and one that cannot be grouped by what it is about cannot be read
+across solutions; one whose cycles are words, or left to default to the whole sitting, is counted wrongly there.
 
-**Next:** fix each heading the refusal names — `### stage:verify — <what fell short>` and a `Kind:` line under it
-— and record again.
+**Next:** fix each heading the refusal names — `### stage:verify — <what fell short>`, a `Kind:` line, and a
+`Cycles:` line naming the cycles whose record shows it — and record again.
 
 ### a covered answer that names nothing real
 
@@ -701,12 +750,15 @@ and one that cannot be grouped by what it is about cannot be read across solutio
 covers it> — <how>`, or names something that is not here: a rule not in force, a decision not standing, a
 `successor:<slug>` with no file under `.sdlc/successors/` and no cycle started from it, or a path that is not a file
 or directory in the solution; or when a line's `Concern:` matches no concern the ledger or the sitting tallies, word for
-word. It lists every such line at once and records nothing, so the sitting is never half
-answered. *Covered* says something already handles the suggestion; one naming nothing real would be a decline
-nobody gave a reason for.
+word; or when a line answers a whole cycle, `<cycle>/*`, for a cycle that is not an abandoned one of this sitting, or
+names anything but a successor for it (D-225). It lists every such line at once and records nothing, so the sitting
+is never half answered. *Covered* says something already handles the suggestion; one naming nothing real would be a
+decline nobody gave a reason for. A whole cycle is answered at once only when a person refused its approach and a
+successor replans the work; a passed cycle's suggestions are each about code that shipped.
 
 **Next:** name what really covers each line the refusal lists — `sdlc constraints` and `sdlc decisions` list what
-stands — or move it to `## Declined` with the reason, then record again.
+stands — or move it to `## Declined` with the reason, or answer a passed cycle's suggestions one by one, then record
+again.
 
 ### an aspect is still unanswered
 
@@ -998,6 +1050,45 @@ run, and the refusal is final.
 **Next:** finish with the test run: `sdlc draft abandon <id>`. Publish the framework change as a preview, pin the
 integration branch to it by a pull request that changes only the pin, unset `SDLC_DEV_BUILD`, and run the work as
 a new cycle. [Testing a local build](testing-a-local-build.md) is the whole loop.
+
+---
+
+## `sdlc up-to-date` — the two ways a branch is not ready to push
+
+The `pr` skill and `close-cycle` ask it before every pull request they open (D-227). It fetches the target from
+origin — the integration branch, or `--base` — and refuses a branch that does not hold the target's head.
+
+### behind its target
+
+The target took commits the branch does not have, so the pull request would be reviewed and checked without
+them, and anything both sides wrote — a record two cycles each added to, a file the target changed under the
+cycle — would be merged by the platform's text merge rather than seen. The refusal says how many commits, and
+whether the merge would be clean or where it stops.
+
+**Next,** for a branch that changes only the record under `.sdlc/` — a plan, a slicing, a sandbox's admission, a
+harvest's close: nothing is built again, so bring the target in and ask again:
+
+```
+git merge origin/<target>
+sdlc up-to-date
+```
+
+**Merge, never rebase**: the branch may already be pushed, and the pull request is squashed when it lands, so a
+merge rewrites nothing.
+
+**Next,** for a branch carrying built code: bringing the target in changes the code the verification judged, so
+the verification goes with it. `/sdlc:remediate <id>` merges the target in through `resolve-conflict`, builds,
+records fresh evidence and verifies again in a fresh process, which is then judged against the new base. On a
+run's branch, remediate the run's last cycle: its fresh run is the one the run's check reads. Inside the build's
+own process this happens without asking when the merge is clean; when it stops on a conflict, the build opens no
+pull request and its report names the cycle and the files, for a person to remediate.
+
+### the target could not be fetched
+
+Offline, no remote called `origin`, or a target the remote does not have. Nothing was compared, so passing would be
+a guess.
+
+**Next:** `git fetch origin <target>` once the remote answers, then `sdlc up-to-date` again.
 
 ---
 

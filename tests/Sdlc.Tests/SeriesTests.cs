@@ -49,6 +49,8 @@ public sealed class SeriesTests
         Assert.IsTrue(old.IsSuccess, string.Join("; ", old.Errors.Select(e => e.Message)));
         Assert.AreEqual(0, old.Value.Waves.Count);
         Assert.AreEqual(ApprovalRequirement.Required, old.Value.Approval);
+        Assert.AreEqual(SeriesRecord.DefaultWaveSize, old.Value.WaveSize, "A record from before the wave size reads as the default (D-228).");
+        StringAssert.Contains(json, "\"wave_size\": 3");
 
         Assert.IsTrue(SeriesRecord.Parse("{ not json", "series.json").IsFailed);
     }
@@ -79,6 +81,56 @@ public sealed class SeriesTests
 
         SeriesRecord written = (await SeriesRecord.Read(workspace.Root, Run, CancellationToken.None)).Value;
         Assert.AreEqual(1, written.Waves.Count, "The wave is recorded.");
+    }
+
+    [TestMethod]
+    public async Task A_wave_takes_no_more_than_the_wave_size_parked_cycles_first_and_leaves_the_rest_ready()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        SuccessorTests.Write(workspace, "totals", First);
+        SuccessorTests.Write(workspace, "chart", First);
+        Opened(workspace, Second);
+        Park(workspace, Second, First);
+        Record(workspace, SeriesRecord.Start(Run, _now, 3, ApprovalRequirement.None, waveSize: 2));
+        FakeRepository git = OnSeries();
+        git.Files[Branch + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        NextWave.Response taken = await Wave(workspace, git);
+
+        Assert.IsNotNull(taken.Wave);
+        Assert.AreEqual(2, taken.Wave.Items.Count, "Three were ready; the wave size is two (D-228).");
+        Assert.AreEqual(Second, taken.Wave.Items[0].Ref, "The parked cycle was planned once already, so it goes first.");
+        Assert.AreEqual(1, taken.Left);
+
+        string text = NextWave.Render(taken);
+        StringAssert.Contains(text, "1 more is ready, past this series' wave size of 2");
+        StringAssert.Contains(text, "one after another, never in parallel");
+
+        NextWave.Response next = await Wave(workspace, git);
+
+        Assert.IsNotNull(next.Wave);
+        Assert.AreEqual(2, next.Wave.Number);
+        Assert.AreEqual(1, next.Wave.Items.Count, "What the first wave left is still ready for the second.");
+        Assert.AreEqual(0, next.Left);
+        Assert.IsFalse(taken.Wave.Items.Any(item => item.Ref == next.Wave.Items[0].Ref));
+    }
+
+    [TestMethod]
+    public async Task A_wave_never_takes_a_held_successor_even_once_what_it_waits_on_merged()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        SuccessorTests.Write(workspace, "totals", First);
+        await File.WriteAllTextAsync(Path.Combine(Successor.DirectoryOf(workspace.Root), "pause.md"), SuccessorTests.File(First, "held: 2026-11-26\n"));
+        Record(workspace, SeriesRecord.Start(Run, _now, 3, ApprovalRequirement.None));
+        FakeRepository git = OnSeries();
+        git.Files[Branch + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        NextWave.Response taken = await Wave(workspace, git);
+
+        Assert.IsNotNull(taken.Wave);
+        CollectionAssert.AreEqual(new[] { "totals" }, taken.Wave.Items.Select(item => item.Ref).ToArray(), "The held one is a person's to start (D-220).");
     }
 
     [TestMethod]
@@ -234,6 +286,12 @@ public sealed class SeriesTests
         StringAssert.Contains(none.Errors[0].Message, "at least one wave");
         Assert.AreEqual(0, git.Ran.Count, "Nothing was opened.");
 
+        Result<StartSeries.Response> empty = await gate.Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(2, 0));
+
+        Assert.IsTrue(empty.IsFailed);
+        StringAssert.Contains(empty.Errors[0].Message, "at least one item");
+        Assert.AreEqual(0, git.Ran.Count, "Nothing was opened.");
+
         Result<StartSeries.Response> started = await gate.Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(2));
 
         Assert.IsTrue(started.IsSuccess, string.Join("; ", started.Errors.Select(e => e.Message)));
@@ -245,7 +303,9 @@ public sealed class SeriesTests
 
         SeriesRecord record = (await SeriesRecord.Read(started.Value.Worktree, Run, CancellationToken.None)).Value;
         Assert.AreEqual(2, record.Limit);
+        Assert.AreEqual(SeriesRecord.DefaultWaveSize, record.WaveSize, "Given no size, a wave takes the default.");
         Assert.AreEqual(ApprovalRequirement.Required, record.Approval, "Read from solution.md, whose default is required.");
+        StringAssert.Contains(StartSeries.Render(started.Value), "of at most 3 items each, one after another");
         StringAssert.Contains(StartSeries.Render(started.Value), "builds only cycles a person has already approved");
 
         // The worktree's folder beside the scratch solution, <root>.series, and nothing above it.

@@ -44,15 +44,18 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a new blocker cites a rule not in force for it](../guides/handling-refusals.md#a-new-blocker-cites-a-rule-not-in-force-for-it) | make it a suggestion, or cite the rule in force it breaks: `sdlc constraints --for <artifact>` |
 | [a new finding quotes its rule in other words](../guides/handling-refusals.md#a-new-finding-quotes-its-rule-in-other-words) | put the rule's own line back, which the refusal prints, or collect the round again |
 | [a suggestion does not fit the cycle's suggestions](../guides/handling-refusals.md#a-suggestion-does-not-fit-the-cycles-suggestions) | number a new one past the cycle's `S_` ids, carry a restated one under its id, answer it only where it was raised |
+| [a suggestion with nothing to read, or in another's words](../guides/handling-refusals.md#a-suggestion-with-nothing-to-read-or-in-anothers-words) | carry the copy under the id it names; a finding with no statement goes back to its reader |
+| [a document cites what does not exist](../guides/handling-refusals.md#a-document-cites-what-does-not-exist) | place and commit the decision on this branch, or cite a recorded one; give a criterion the spec's number now |
 | [a declared file with no area](../guides/handling-refusals.md#a-declared-file-with-no-area) | name its area in the plan's `## Areas`: `- new <name>: <files>`, or `- none: <files>` |
 | [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:harvest-areas` for new globs, or correct the `Files:` line by hand |
 | [a blocked verdict on evidence a round already judged](../guides/handling-refusals.md#a-blocked-verdict-on-evidence-a-round-already-judged) | `/sdlc:remediate <id>`; the run it records gets a full round |
+| [a verdict that does not say why, or bounds nothing](../guides/handling-refusals.md#a-verdict-that-does-not-say-why-or-bounds-nothing) | `sdlc round run <id> verify` again for a new adjudication; never repair the answer |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |
 | **The build's own process — `sdlc build`** | |
-| [a solution document the build cannot read](../guides/handling-refusals.md#a-solution-document-the-build-cannot-read) | `sdlc draft solution`; `build_tools` takes bare command names, comma-separated |
-| [a tool the build's process was not given](../guides/handling-refusals.md#a-tool-the-builds-process-was-not-given) | add the command to `build_tools` with `sdlc draft solution`; a local settings rule never reaches the build |
+| [a solution document the build cannot read](../guides/handling-refusals.md#a-solution-document-the-build-cannot-read) | `sdlc draft solution`; `build_tools` takes commands, comma-separated, each a bare name or one command line |
+| [a tool the build's process was not given](../guides/handling-refusals.md#a-tool-the-builds-process-was-not-given) | `sdlc build` names the refused command; add it to `build_tools` with `sdlc draft solution`; a local settings rule never reaches the build |
 | **Amending an admitted plan — `sdlc draft approval --reopen`, `sdlc branch`** | |
 | [a reopen on the build branch](../guides/handling-refusals.md#a-reopen-on-the-build-branch) | `sdlc branch <id> plan`, reopen and approve there, `/sdlc:pr <id> --plan`; then keep or delete the build branch |
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
@@ -94,8 +97,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **A harvest — `sdlc harvest record`, `sdlc harvest close`, and its pull request** | |
 | [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename the draft into place or delete it, then run the command again |
 | [nothing left to record](../guides/handling-refusals.md#nothing-left-to-record) | `sdlc harvest` shows what each cycle still needs; copy `## Cycles` as the report wrote it |
-| [a note for the framework that does not read](../guides/handling-refusals.md#a-note-for-the-framework-that-does-not-read) | name a surface and a `Kind:` under each `## For the framework` heading, then record again |
-| [a covered answer that names nothing real](../guides/handling-refusals.md#a-covered-answer-that-names-nothing-real) | name the rule, decision, successor or file that really covers each listed line, or decline it with why, then record again |
+| [a note for the framework that does not read](../guides/handling-refusals.md#a-note-for-the-framework-that-does-not-read) | name a surface, a `Kind:` and a `Cycles:` line under each `## For the framework` heading, then record again |
+| [a covered answer that names nothing real](../guides/handling-refusals.md#a-covered-answer-that-names-nothing-real) | name the rule, decision, successor or file that really covers each listed line, or decline it with why, or answer a passed cycle's suggestions one by one, then record again |
 | [an aspect is still unanswered](../guides/handling-refusals.md#an-aspect-is-still-unanswered) | run that aspect's skill, or `/sdlc:harvest`, then close again |
 | [not on the integration branch](../guides/handling-refusals.md#not-on-the-integration-branch) | switch to the integration branch and close again |
 | [a harvest pull request carries something that is not a harvest's](../guides/handling-refusals.md#a-harvest-pull-request-carries-something-that-is-not-a-harvests) | take out what is not a closed cycle's or a closed series' deletion, and fix the record the check names |
@@ -115,6 +118,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [escalated](../guides/handling-refusals.md#escalated) | a person decides: reopen the approval, or abandon the cycle |
 | [the chain does not hold](../guides/handling-refusals.md#the-chain-does-not-hold) | `sdlc verify-chain <id>` prints every check |
 | [a test run](../guides/handling-refusals.md#a-test-run) | abandon it; publish a preview, pin the integration branch to it, and run the work again |
+| **Before any pull request — `sdlc up-to-date`** | |
+| [behind its target](../guides/handling-refusals.md#behind-its-target) | records alone: `git merge origin/<target>` and ask again. Built code: `/sdlc:remediate <id>`, which merges, builds and verifies again |
+| [the target could not be fetched](../guides/handling-refusals.md#the-target-could-not-be-fetched) | `git fetch origin <target>` once the remote answers, and ask again |
 | **Denied to an agent — the pre-tool hook\*** | |
 | writing `approval.md` | `sdlc draft approval <id>`, then rename |
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |

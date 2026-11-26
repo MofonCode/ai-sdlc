@@ -110,6 +110,24 @@ public sealed record LedgerSuggestion(
 }
 
 /// <summary>
+/// A suggestion a reader raised that restates a concern the solution already answered in a harvest (D-221): kept in
+/// the cycle's own ledger, never as an open suggestion, and folded into <c>harvested.json</c> when the cycle closes.
+/// </summary>
+/// <param name="Restates">The harvested concern's key: <c>ignored:…</c>, <c>watch:…</c>, <c>declined:…</c>, <c>covered:…</c> or <c>successor:&lt;slug&gt;</c>.</param>
+/// <param name="Artifact">The document the round judged.</param>
+/// <param name="Round">That document's round.</param>
+/// <param name="Perspective">The perspective whose reader raised it, if one did.</param>
+/// <param name="Statement">What the reader said, as it said it.</param>
+/// <param name="Gist">The reader's one sentence, when it gave one.</param>
+public sealed record RecurredSuggestion(
+    string Restates,
+    string Artifact,
+    int Round,
+    string? Perspective,
+    string Statement,
+    string? Gist = null);
+
+/// <summary>
 /// Every suggestion one cycle's readers raised, against any of its documents, each concern once (D-115).
 /// </summary>
 /// <remarks>
@@ -126,7 +144,11 @@ public sealed record LedgerSuggestion(
 /// </remarks>
 /// <param name="Cycle">The cycle's id.</param>
 /// <param name="Suggestions">Each concern once, in the order first raised.</param>
-public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<LedgerSuggestion> Suggestions)
+/// <param name="Recurred">
+/// What its readers raised that restates a concern a harvest already answered (D-221): no person is asked about these
+/// again, so they are not <paramref name="Suggestions"/>. Absent while there are none.
+/// </param>
+public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<LedgerSuggestion> Suggestions, IReadOnlyList<RecurredSuggestion>? Recurred = null)
 {
     /// <summary>The file's name in a cycle's <c>findings</c> directory.</summary>
     public const string FileName = "suggestions.json";
@@ -283,6 +305,23 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
                     return Refuse($"{finding.Id} is new, and says it is {Name(line.Event)}. A suggestion is raised before anything can answer or withdraw it.");
                 }
 
+                // A suggestion with nothing to read stands as an item somebody must answer, and one saying word for
+                // word what another says is the same concern answered twice (D-223).
+                if (string.IsNullOrWhiteSpace(finding.Statement))
+                {
+                    return Refuse($"{finding.Id} has no statement. A suggestion says what is wrong, or it is nothing anybody can answer: start its reader again.");
+                }
+
+                if (finding.Gist is { } gist && string.IsNullOrWhiteSpace(gist))
+                {
+                    return Refuse($"{finding.Id} has an empty gist, and the gist is the line a person reads it by. Leave the gist out, or write it.");
+                }
+
+                if (suggestions.FirstOrDefault(other => SameWords(other.Statement, finding.Statement)) is { } same)
+                {
+                    return Refuse($"{finding.Id} says word for word what {same.Id} says. One concern is one id: carry it as {same.Id}, which records it raised again where it is not already standing.");
+                }
+
                 suggestions.Add(new LedgerSuggestion(
                     finding.Id,
                     finding.Cites,
@@ -321,6 +360,35 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
 
         return Result.Ok(this with { Suggestions = suggestions });
     }
+
+    /// <summary>
+    /// The ledger with one round's restatements of harvested concerns added (D-221), each concern once per document
+    /// and round: a session recording the same draft twice, or two branches of the cycle merged, adds nothing.
+    /// </summary>
+    /// <param name="kind">The document the round judged.</param>
+    /// <param name="round">The round's number.</param>
+    /// <param name="recurred">What the round's reconciler matched to a harvested concern.</param>
+    /// <returns>The new ledger.</returns>
+    public SuggestionLedger Recurring(ArtifactKind kind, int round, IEnumerable<RecurredSuggestion> recurred)
+    {
+        ArgumentNullException.ThrowIfNull(recurred);
+
+        string artifact = CycleFile.NameOf(kind);
+        List<RecurredSuggestion> all = RecurredOnce([.. Recurred ?? [], .. recurred.Select(item => item with { Artifact = artifact, Round = round })]);
+
+        return this with { Recurred = all.Count == 0 ? null : all };
+    }
+
+    /// <summary>What its readers restated of harvested concerns, each concern once per document and round.</summary>
+    /// <returns>The restatements, in the order recorded.</returns>
+    public IReadOnlyList<RecurredSuggestion> RecurredOnce() => RecurredOnce(Recurred ?? []);
+
+    private static List<RecurredSuggestion> RecurredOnce(IEnumerable<RecurredSuggestion> recurred) =>
+    [
+        .. recurred
+            .GroupBy(item => (item.Restates, item.Artifact, item.Round))
+            .Select(group => group.First()),
+    ];
 
     /// <summary>
     /// Gives every id recorded more than once, after its first, the next free id under its prefix (D-171).
@@ -374,6 +442,21 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
 
         return string.Create(CultureInfo.InvariantCulture, $"{prefix}S_{highest + 1:D2}");
     }
+
+    /// <summary>
+    /// Whether two statements are the same words, read past spacing and case: what one reader copying another, or a
+    /// reconciler missing a restatement of its own ledger, produces (D-223).
+    /// </summary>
+    /// <param name="first">One statement.</param>
+    /// <param name="second">The other.</param>
+    /// <returns>True when they say the same thing word for word.</returns>
+    internal static bool SameWords(string? first, string? second) =>
+        !string.IsNullOrWhiteSpace(first)
+        && !string.IsNullOrWhiteSpace(second)
+        && string.Equals(Words(first), Words(second), StringComparison.OrdinalIgnoreCase);
+
+    private static string Words(string statement) =>
+        string.Join(' ', statement.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static bool SameConcern(LedgerSuggestion known, Finding finding) =>
         string.Equals(known.Statement, finding.Statement, StringComparison.Ordinal)

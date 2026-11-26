@@ -74,7 +74,7 @@ public static class HarvestReaders
     {
         HarvestAspect.Constraints => "rule cited across cycles, argued rule, group of findings that rested on no rule, perspective at the bar, rule behind deviations in more than one cycle, criterion that failed more than one verdict, and rule over its word budget",
         HarvestAspect.Decisions => "passage stated in a completed cycle, reopen, change made at a person's request, rule argued inside a cycle, and decision over its word budget",
-        HarvestAspect.Suggestions => "open suggestion (a successor, a `## Declined` line, a `## Covered` line, or counted on an `## Ignored` line answers it) and gap in the framework",
+        HarvestAspect.Suggestions => "open suggestion (a successor, a `## Declined` line, a `## Covered` line, or counted on an `## Ignored` line answers it; a `## Covered` line naming `<cycle>/*` answers every open suggestion of that abandoned cycle) and gap in the framework",
         HarvestAspect.Stack => "row or rule the declared stack never mentions",
         HarvestAspect.Areas => "area name proposed at the bar, defined area every plan or no plan touched, and changed file in no area",
         _ => "item",

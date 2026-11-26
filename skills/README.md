@@ -95,7 +95,7 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`plan`](#plan) | single | — |
 | [`to-plan`](#to-plan) | playbook | `spec`, `plan`, `interrogate`, `refine`, `steer` |
 | [`wave`](#wave) | playbook | `intent`, `to-plan` |
-| [`series`](#series) | playbook | `intent`, `to-plan`, `build`, `pr` |
+| [`series`](#series) | playbook | `intent`, `to-plan`, `build`, `remediate`, `pr` |
 | [`interrogate`](#interrogate) | single | — |
 | [`refine`](#refine) | single | — |
 | [`steer`](#steer) | single | — |
@@ -342,7 +342,9 @@ where they are heading, so the skill suggests the intent from it and asks only w
 reading (D-200): every guess is marked, because a suggestion built on the record is more convincing than a
 question, and a premise carried inside one reaches the spec as fact unless somebody asks. A decision already taken is
 kept rather than discarded — recorded under `Fixed decisions` with who decided it and when — so the
-intent stays a problem statement while the plan can still honour the decision.
+intent stays a problem statement while the plan can still honour the decision. A bound on this piece alone —
+*not in this piece*, *later* — is not a decision: it is written into the outcome it limits, and a slicing never
+copies the same bounds into every slice (D-225).
 
 What it runs, in order:
 
@@ -519,7 +521,7 @@ approval as the missing piece, the approval drafted for a person to rename, and 
 #### Remarks
 
 A plan says *how*, and commits to what will prove each criterion. The constraint to watch is proof
-adequacy (`CON_21`). *Which case does this check never run, and which outcome does it never read?* If
+adequacy (`CON_29`). *Which case does this check never run, and which outcome does it never read?* If
 either has an answer, the proof is not adequate yet — and an inadequate proof is worse
 than none, because it produces a green verification instead of an obvious gap.
 
@@ -727,12 +729,12 @@ it plans nothing and builds only cycles a person approved, in wave order.
 | Stage | the planning chain and the build, across several waves |
 | Started by | a person, with the number of waves it may run; with `--unattended`, the process `sdlc series run` starts, and the factory, which runs only series |
 | Reads | `sdlc series wave` for each wave, and `sdlc series status` |
-| Writes | nothing itself: what `intent`, `to-plan`, `build` and `pr` write, on `series/<id>`; the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start` and `sdlc series wave` |
+| Writes | nothing itself: what `intent`, `to-plan`, `build`, `remediate` and `pr` write, on `series/<id>` — `remediate` only to bring the branch up to date when `pr` finds it behind the integration branch (D-227); the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start` and `sdlc series wave` |
 
 #### Syntax
 
 ```
-/sdlc:series [<id>] [--waves <n>] [--unattended]
+/sdlc:series [<id>] [--waves <n>] [--wave-size <n>] [--unattended]
 ```
 
 #### Parameters
@@ -741,6 +743,7 @@ it plans nothing and builds only cycles a person approved, in wave order.
 |---|---|
 | `<id>` | the series, as `sdlc series start` named it. `sdlc series run` passes it; a person starting one names none |
 | `--waves <n>` | how many waves it may run: it stops there or when nothing is ready, whichever comes first. Asked for when not given, since an open-ended run is spend nobody chose |
+| `--wave-size <n>` | how many items one wave may take, 3 when not given: what is ready past it waits for the next wave, so the waves times the wave size is the most a series takes on (D-228) |
 | `--unattended` | run as the series' own process: ask nothing. `sdlc series run` passes it, and the factory's pipeline runs it. A person never needs to type it |
 
 #### Output
@@ -754,7 +757,7 @@ summary followed by `sdlc report --run`.
 
 | Condition | Result | What to do |
 |---|---|---|
-| fewer than one wave | `sdlc series start` refuses | name a number |
+| fewer than one wave, or a wave size below one | `sdlc series start` refuses | name a number |
 | `sdlc series run` names no series, or the worktree is not on its branch | refuses, saying which worktree to pass | `--solution` with the path `sdlc series start` printed |
 | a cycle's loop cannot settle, or a question only a person can answer comes up | that cycle stops where it is, with its reason; the series goes on with what is ready | answer it after the series, then take it to plan |
 | a verification stays blocked | that cycle and every cycle depending on it stop; the rest carry on | the pull request's report names each |
@@ -1367,7 +1370,9 @@ see the build. Never edits code.
 #### Output
 
 `verify.md`: an entry for every criterion, numbered to match, each citing the evidence it rests on
-(`CON_22`), and `## Open` for limits of the evidence. **Never edits code.**
+(`CON_22`), and `## Open` for limits of the evidence, each naming the met criterion it bounds. **A Not met
+says why** — `Not met (contradicted).` when the evidence shows the criterion failing, `Not met (unproven).`
+when it does not show it either way — and both block (D-222). **Never edits code.**
 
 It writes `pass` or `blocked`. **`escalated` is computed, not declared**: it is what a remediation loop
 that stopped making progress makes of a blocked cycle (D-66). `sdlc verify-chain` checks mechanically
@@ -1387,7 +1392,8 @@ that every criterion has an entry and that a `pass` rests on named tests that pa
 ```
 
 Expect `verify.md` with a verdict per criterion, and the outcome in a line or two — on `blocked`, with
-each criterion marked Not met by its number and the first sentence of its reason.
+each criterion marked Not met by its number, whether it is contradicted or unproven, and the first sentence
+of its reason.
 
 #### Remarks
 
@@ -1402,9 +1408,11 @@ with no evidence behind it.
 so it has `sdlc round prompt` write the adjudicator's prompt — the plan, the spec, the evidence, the
 constraints, the perspectives' questions and the method — and `sdlc round run` start a fresh process with no
 tools to write the verdict criterion by criterion, and records what that returns byte for byte
-with `sdlc round verdict`, which refuses an answer that is not a verify document. Before the round,
-`sdlc evidence check` reports what the verdict cites that the evidence does not hold, and refuses nothing
-(D-120). It interrogates the verify document like any other artifact, and
+with `sdlc round verdict`, which refuses an answer that is not a verify document, a Not met that does not
+say why, and an `## Open` entry that bounds no criterion the verdict met (D-222). Before the round,
+`sdlc evidence check` reports what the verdict cites that the evidence does not hold, and each diff line it
+cites where its quote is not, and refuses nothing (D-120, D-222). The round reads the diff with each line
+numbered, and its readers raise suggestions about the built change or its evidence only. It interrogates the verify document like any other artifact, and
 a blocking finding is answered by a new adjudication given the findings, never by `refine` or an edit in
 the session. The verify round also runs the **diff reader**, which reads the change itself against the
 intent, the plan and the decisions; its findings, ids under `diff.`, go to `remediate` whatever the outcome
@@ -1433,7 +1441,7 @@ pull request (D-185, D-187). It changes no code itself.
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | build and verify, after verify recorded `blocked`; after an escalation, with the person's instruction; or at the pull request, when a person says what to change or it conflicts |
-| Started by | the `build` playbook, inside its own process; or a person, with what they want instead |
+| Started by | the `build` playbook, inside its own process — after a blocked verification, or when `pr` finds the branch behind the integration branch and the merge is clean (D-227); the `series` playbook for the second; or a person, with what they want instead |
 | Reads | `sdlc cycles --here --for remediate`, `sdlc pr-ready <id>`, and the verify outcome |
 | Writes | nothing itself: what `resolve-conflict`, `implement`, `verify` and `pr` write, in the worktree `sdlc branch <id> remediate` prints |
 
@@ -1506,7 +1514,7 @@ touches the remote.
 | Kind | single — one job, and it starts no other skill |
 | Stage | pull requests: after a verification passed, after a plan is approved, or after a build that did not pass |
 | Started by | the build, once its verification passes — saying *build it* was the consent to push (D-178); the build's run form or the series, for a run's one pull request; or `remediate` updating one already open; or a person, and then **it asks before the push** |
-| Reads | `sdlc pr-ready`, or `sdlc gate` and `sdlc verify-chain`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
+| Reads | `sdlc up-to-date` first, every time (D-227); then `sdlc pr-ready`, or `sdlc gate` and `sdlc verify-chain`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
 | Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>`, a slicing's `slices/<slug>/plan`, or a run's `wave/<id>` or `series/<id>` — and a pull request |
 
 #### Syntax
@@ -1540,6 +1548,7 @@ item where the solution tracks them.
 |---|---|---|
 | `sdlc pr-ready` refuses: not verified, did not pass, escalated, the chain broken since verification, or a test run a local build judged (D-135) | refuses, and does not push past it — except `--draft`, which opens a draft for did not pass or escalated, and nothing else | [Handling refusals](../docs/guides/handling-refusals.md) |
 | `--plan` and `sdlc gate` or `sdlc verify-chain` refuses, a local build's rounds included | does not push the plan | [Handling refusals](../docs/guides/handling-refusals.md) |
+| `sdlc up-to-date` refuses: the branch is behind its target, or the target could not be fetched (D-227) | does not push. A branch of records alone whose merge is clean takes the merge it prints and asks again; built code is handed back, for `remediate` | [Handling refusals](../docs/guides/handling-refusals.md#sdlc-up-to-date--the-two-ways-a-branch-is-not-ready-to-push) |
 | the solution is `local` or has no remote | stops | it walks you through creating one, then re-running adoption with a platform, and setting the branch policy `sdlc branch-policy` prints |
 | on Azure DevOps | names the organisation, project and repository rather than trusting the CLI to detect them, and keeps the body under the 4,000-character description cap (D-161) | — |
 | with `--all`, one cycle fails | the others carry on | — |
@@ -1568,7 +1577,7 @@ is the acceptance** — of the change and of every deviation, choice and concern
 `sdlc report <id>` (D-181). The local approval defended against an agent that forgets; the review is what defends
 against a human who did not look, and they are different jobs.
 
-It runs `sdlc pr-ready <id>`, then `sdlc doctor` and `git remote -v` to check there is somewhere to push,
+It runs `sdlc up-to-date`, which fetches the target and refuses a branch that has not taken its latest, so nothing is reviewed or checked against a target it has not seen (D-227); then `sdlc pr-ready <id>`, `sdlc doctor` and `git remote -v` to check there is somewhere to push,
 then `git push -u origin cycle/<id>` and the platform's own tool — `gh pr create` or
 `az repos pr create`. It never asks about a harvest: its report suggests `/sdlc:harvest` once the pull request has
 merged (D-182). With `--all` it shows `sdlc cycles --pr-ready` verbatim and asks once before the
@@ -2015,7 +2024,7 @@ its evidence beneath on `>` lines, which never leave it (D-204).
 | Condition | Result | What to do |
 |---|---|---|
 | `constraints.draft.md` still beside its file at `sdlc harvest record` | records nothing | rename it into place or delete it, then record |
-| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
+| a note under `## For the framework` with no surface, no `Kind:`, or no `Cycles:` line of cycle ids at `sdlc harvest record` | records nothing | name a surface, a kind and the cycles (or `all`), then record |
 
 #### Example
 
@@ -2080,7 +2089,7 @@ proposal is a `DEC_` entry with `Decided`, `Because`, `Instead of` and `From`.
 | Condition | Result | What to do |
 |---|---|---|
 | `decisions.draft.md` still beside its file at `sdlc harvest record` | records nothing | rename it into place or delete it, then record |
-| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
+| a note under `## For the framework` with no surface, no `Kind:`, or no `Cycles:` line of cycle ids at `sdlc harvest record` | records nothing | name a surface, a kind and the cycles (or `all`), then record |
 
 #### Example
 
@@ -2133,17 +2142,21 @@ under `## Declined` with the reason a person would give; **covered**, under `## 
 `successor:<slug>` or file that already handles it, with an optional `Concern:` line naming the tallied concern it
 closes; or **ignored**, under `## Ignored` as its concern and the
 cycles it was ignored in (D-153), with a `Why:` line under a new one (D-194). A concern ignored in three cycles is at the bar and is not ignored again. An
+abandoned cycle's open suggestions may be covered in one line, `- <cycle>/*: successor:<slug> — <how>`, by the
+successor that takes its work up (D-225). An
 accepted successor is written to `.sdlc/successors/<slug>.md`, ready once its cycle has merged. A successor marked
-`framework:` becomes a note under `## For the framework`, headed by the surface it is about, with its slug beneath
-(D-204). Lines under Declined, Covered and Ignored may be grouped under `### <theme>` headings, and the hand-back is
-what `sdlc harvest summary` prints of the file.
+`framework:` becomes a note under `## For the framework`, headed by the surface it is about, with the cycles that
+raised it on a `Cycles:` line and its slug beneath (D-204, D-225). Lines under Declined, Covered and Ignored may be
+grouped under `### <theme>` headings, no more than about eight to a section, and the hand-back is what
+`sdlc harvest summary` prints of the file.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
 | a `## Covered` line naming no rule in force, standing decision, successor or file here, or one that does not read, at `sdlc harvest record` | records nothing, and lists every such line | name what really covers it, or decline it with why |
-| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
+| a `## Covered` line answering `<cycle>/*` for a cycle that is not an abandoned one of the sitting, or by anything but a successor, at `sdlc harvest record` | records nothing | answer that cycle's suggestions one by one, or name the successor that takes the abandoned work up |
+| a note under `## For the framework` with no surface, no `Kind:`, or no `Cycles:` line of cycle ids at `sdlc harvest record` | records nothing | name a surface, a kind and the cycles (or `all`), then record |
 
 #### Example
 
@@ -2281,7 +2294,7 @@ it, and opens the pull request a person merges.
 | Kind | single — one job, and it starts no other skill |
 | Stage | none — last, once `harvest` has answered every aspect |
 | Started by | `harvest`, or a person who asks to clear out old cycles |
-| Reads | `sdlc harvest close`, which reads the ledger and the files |
+| Reads | `sdlc harvest close`, which reads the ledger and the files, and `sdlc up-to-date` before the push, taking the merge it prints when the branch is behind and the merge is clean (D-227) |
 | Writes | the `harvest/<date>` branch `sdlc harvest close` commits, pushed, and its pull request |
 
 #### Syntax
@@ -2297,7 +2310,8 @@ None.
 #### Output
 
 `sdlc harvest close` records each closed cycle in `.sdlc/harvested.json` — its merge commit and what later harvests
-read from it, the releases it ran on, what each reader raised and what each document cost — and on a new
+read from it, the releases it ran on, what each reader raised and what each document cost, and each concern a
+harvest already answered that its readers raised again (D-221) — and on a new
 `harvest/<date>` branch commits the removal of their folders with the ledger, the notes for the framework and the
 records the person placed. The skill pushes that branch and opens its pull request into the integration branch.
 **The check admits it as a harvest**: it carries only the records, the ledger, successors and the removed folders.

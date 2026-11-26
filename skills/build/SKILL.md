@@ -140,8 +140,9 @@ its permission check can read it before it runs:
   *the command line is too long*.
 
 A step the solution's own build needs that the list does not allow — an evidence script's shell, a container —
-is not yours to route around. Stop that cycle as not finished, say which command was refused, and say that a
-person adds it to `build_tools` in `.sdlc/solution.md`.
+is not yours to route around. Stop that cycle as not finished, say which command was refused -- never as a failing
+test -- and say that a person adds it to `build_tools` in `.sdlc/solution.md`, as the command or as that one command
+line. `sdlc build` names every refusal from the host's own record as well (D-224).
 
 ## 1. Find the work
 
@@ -231,7 +232,14 @@ nothing here — starting the build was the decision:
 | did not finish | none. Nothing was verified, so there is nothing to review |
 
 A blocked cycle with no pull request would be invisible in the morning and built again at full cost; its draft is
-where a person picks it up. A failure opening one does not stop the others. **With no remote**, push nothing: the
+where a person picks it up. A failure opening one does not stop the others.
+
+**When `pr` hands back that the branch is behind the integration branch** (D-227) — somebody merged while it was
+building — the verification judged code without what merged since. **A clean merge**: run **`remediate`** with the
+pull request's conflict way in, which merges the integration branch in through `resolve-conflict`, builds, records
+fresh evidence and verifies again; then **`pr`** once more. **A merge that stops on a conflict**: open no pull
+request — resolving it unattended is what the factory never does (D-86) — and the report names the cycle, the
+files the merge stops on and `/sdlc:remediate <id>` for a person. **With no remote**, push nothing: the
 verified branch stays local, and the report says so. **Never resolve a conflict between two cycles here.**
 
 ## 6. Report, and stop
@@ -284,7 +292,10 @@ named with what held it back. Its siblings carry on. A cycle that did not finish
 
 **Unless `--no-pr`**, run **`pr`** with `--run` once every cycle has an outcome: one pull request for the run, ready
 or draft as `sdlc pr-ready` says, its body led by `sdlc report --run`. A series passes `--no-pr` for each wave and
-opens its pull request once, at the end.
+opens its pull request once, at the end. **When `pr` hands back that the run's branch is behind** (D-227), the
+same as for one cycle, on the run's last cycle: a clean merge goes through **`remediate`** for that cycle, whose
+fresh run is the one the run's check reads, then **`pr`** again; a conflict opens nothing, and the report says
+where the merge stops.
 
 ## 4. Report, and stop
 

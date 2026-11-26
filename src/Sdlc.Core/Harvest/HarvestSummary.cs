@@ -48,8 +48,9 @@ public static class HarvestSummary
 
     /// <summary>One proposal heading.</summary>
     /// <param name="Heading">The heading after its mark.</param>
-    /// <param name="Marked">Whether the person marked it <c>[x]</c>.</param>
-    public sealed record Proposal(string Heading, bool Marked);
+    /// <param name="Marked">Whether the person marked it <c>[x]</c> or <c>[h]</c>.</param>
+    /// <param name="Held">Whether the mark is <c>[h]</c>: a successor accepted and held (D-220).</param>
+    public sealed record Proposal(string Heading, bool Marked, bool Held = false);
 
     /// <summary>One kind of answer and its themes.</summary>
     /// <param name="Kind">The section: <c>Declined</c>, <c>Covered</c> or <c>Ignored</c>.</param>
@@ -61,7 +62,17 @@ public static class HarvestSummary
     /// <param name="Name">The theme, or <see cref="NoTheme"/>.</param>
     /// <param name="Count">What it holds: suggestion ids, or concerns.</param>
     /// <param name="Refs">For Covered, what its lines rely on, each once; empty otherwise.</param>
-    public sealed record Theme(string Name, int Count, IReadOnlyList<string> Refs);
+    /// <param name="Whole">
+    /// For Covered, the abandoned cycles whose every suggestion it answers at once, <c>&lt;cycle&gt;/*</c>, counted
+    /// apart from <paramref name="Count"/> because the file does not say how many suggestions each holds (D-225).
+    /// </param>
+    public sealed record Theme(string Name, int Count, IReadOnlyList<string> Refs, int Whole = 0);
+
+    /// <summary>
+    /// How many themes of one answer a summary shows before it folds the rest into one line: past this a person is
+    /// reading a list again, which is what the themes were for (D-225).
+    /// </summary>
+    public const int Shown = 8;
 
     /// <summary>Reads a proposal file without resolving its ids.</summary>
     /// <param name="markdown">The proposal file.</param>
@@ -76,9 +87,11 @@ public static class HarvestSummary
         {
             string line = raw.Trim();
 
-            if (line.StartsWith("### [ ]", StringComparison.Ordinal) || line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("### [ ]", StringComparison.Ordinal)
+                || line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase)
+                || line.StartsWith("### [h]", StringComparison.OrdinalIgnoreCase))
             {
-                proposals.Add(new Proposal(line[7..].Trim(), line[5] is 'x' or 'X'));
+                proposals.Add(new Proposal(line[7..].Trim(), line[5] is 'x' or 'X' or 'h' or 'H', line[5] is 'h' or 'H'));
             }
         }
 
@@ -92,7 +105,7 @@ public static class HarvestSummary
                 continue;
             }
 
-            List<(string Theme, int Count, string? Ref)> counted = [];
+            List<(string Theme, int Count, string? Ref, int Whole)> counted = [];
 
             foreach ((string? theme, string raw) in RecordHarvest.Themed(sections, kind))
             {
@@ -108,12 +121,14 @@ public static class HarvestSummary
 
                 if (kind == "Ignored")
                 {
-                    counted.Add((theme ?? NoTheme, 1, null));
+                    counted.Add((theme ?? NoTheme, 1, null, 0));
                 }
                 else if (colon > 0)
                 {
                     string? by = kind == "Covered" ? By(line[(colon + 1)..]) : null;
-                    counted.Add((theme ?? NoTheme, RecordHarvest.Ids(line[..colon]).Count, by));
+                    List<string> ids = RecordHarvest.Ids(line[..colon]);
+                    int whole = ids.Count(id => id.EndsWith(RecordHarvest.WholeCycle, StringComparison.Ordinal));
+                    counted.Add((theme ?? NoTheme, ids.Count - whole, by, whole));
                 }
             }
 
@@ -123,16 +138,21 @@ public static class HarvestSummary
                 [.. counted.GroupBy(entry => entry.Theme, StringComparer.Ordinal).Select(group => new Theme(
                     group.Key,
                     group.Sum(entry => entry.Count),
-                    [.. group.Select(entry => entry.Ref).OfType<string>().Where(by => by.Length > 0).Distinct(StringComparer.Ordinal)]))]));
+                    [.. group.Select(entry => entry.Ref).OfType<string>().Where(by => by.Length > 0).Distinct(StringComparer.Ordinal)],
+                    group.Sum(entry => entry.Whole)))]));
         }
 
         return new Response(proposals, answers, []);
     }
 
-    /// <summary>The summary, for a person: brief, plain, one line per group.</summary>
+    /// <summary>
+    /// The summary, for a person: brief, plain, one line per group, and no more than <see cref="Shown"/> groups to an
+    /// answer unless <paramref name="all"/> asks for every one.
+    /// </summary>
     /// <param name="response">The summary.</param>
+    /// <param name="all">Whether to show every theme rather than fold the smallest.</param>
     /// <returns>The text.</returns>
-    public static string Render(Response response)
+    public static string Render(Response response, bool all = false)
     {
         ArgumentNullException.ThrowIfNull(response);
 
@@ -142,28 +162,51 @@ public static class HarvestSummary
         {
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"Proposals: {response.Proposals.Count}, {response.Proposals.Count(proposal => proposal.Marked)} marked -- what you approve is each [x]"));
+                $"Proposals: {response.Proposals.Count}, {response.Proposals.Count(proposal => proposal.Marked)} marked -- what you approve is each [x], and each [h] a successor you want and hold"));
 
             for (int index = 0; index < response.Proposals.Count; index++)
             {
                 Proposal proposal = response.Proposals[index];
                 text.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"  {index + 1}. {(proposal.Marked ? "[x]" : "[ ]")} {proposal.Heading}"));
+                    $"  {index + 1}. {(proposal.Held ? "[h]" : proposal.Marked ? "[x]" : "[ ]")} {proposal.Heading}"));
             }
         }
 
+        bool folded = false;
+
         foreach (Answer answer in response.Answers)
         {
+            int whole = answer.Themes.Sum(theme => theme.Whole);
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{answer.Kind}: {answer.Total} {(answer.Kind == "Ignored" ? "concern" : "suggestion")}{(answer.Total == 1 ? string.Empty : "s")}"));
+                $"{answer.Kind}: {answer.Total} {(answer.Kind == "Ignored" ? "concern" : "suggestion")}{(answer.Total == 1 ? string.Empty : "s")}{Whole(whole)}"));
 
-            foreach (Theme theme in answer.Themes)
+            // Past the limit the largest themes are shown and the rest counted on one line: a sitting of thousands of
+            // suggestions came back as hundreds of themes, which is a list again (D-225).
+            IReadOnlyList<Theme> themes = all || answer.Themes.Count <= Shown
+                ? answer.Themes
+                : [.. answer.Themes.OrderByDescending(theme => theme.Count + theme.Whole).Take(Shown)];
+
+            foreach (Theme theme in themes)
             {
-                string refs = theme.Refs.Count > 0 ? " (by " + string.Join(", ", theme.Refs) + ")" : string.Empty;
-                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {theme.Name} — {theme.Count}{refs}"));
+                string refs = theme.Refs.Count > 0 ? " (by " + string.Join(", ", theme.Refs.Take(all ? int.MaxValue : Shown)) + (!all && theme.Refs.Count > Shown ? ", ..." : string.Empty) + ")" : string.Empty;
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {theme.Name} — {theme.Count}{Whole(theme.Whole)}{refs}"));
             }
+
+            if (themes.Count < answer.Themes.Count)
+            {
+                List<Theme> rest = [.. answer.Themes.Except(themes)];
+                folded = true;
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  ...and {rest.Count} smaller themes holding {rest.Sum(theme => theme.Count)}{Whole(rest.Sum(theme => theme.Whole))}"));
+            }
+        }
+
+        if (folded)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"More than {Shown} themes to an answer is a list again: 'sdlc harvest summary <file> --all' shows every one."));
         }
 
         if (text.Length == 0)
@@ -174,6 +217,13 @@ public static class HarvestSummary
         text.Append(IdTexts.Render(response.Named));
         return text.ToString();
     }
+
+    private static string Whole(int cycles) => cycles switch
+    {
+        0 => string.Empty,
+        1 => ", and every suggestion of 1 abandoned cycle",
+        _ => string.Create(CultureInfo.InvariantCulture, $", and every suggestion of {cycles} abandoned cycles"),
+    };
 
     // What a covered line relies on: the text between its colon and its dash.
     private static string By(string rest)

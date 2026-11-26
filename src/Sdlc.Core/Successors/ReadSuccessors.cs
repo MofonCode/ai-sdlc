@@ -23,6 +23,12 @@ public enum SuccessorState
 
     /// <summary>It names a cycle or a slug that is nowhere.</summary>
     Unresolved,
+
+    /// <summary>
+    /// A person put it on hold (D-220): it would be ready or waiting, and nothing unattended starts it. A wrong
+    /// reference or an abandoned predecessor still reads as unresolved or stuck, because those need correcting either way.
+    /// </summary>
+    Held,
 }
 
 /// <summary>Where one thing a successor waits for stands.</summary>
@@ -174,6 +180,12 @@ public static class ReadSuccessors
         return standing.State switch
         {
             SuccessorState.Ready => null,
+
+            // A person starting a held one is what lifts the hold: only what it waits on can refuse it (D-220).
+            SuccessorState.Held when standing.Waits.All(w => w.State == WaitState.Merged) => null,
+            SuccessorState.Held => string.Create(
+                CultureInfo.InvariantCulture,
+                $"successor:{slug} is on hold, and is waiting too: {waits}. Starting it lifts the hold, once each has merged into the integration branch with a passing verify."),
             SuccessorState.Waiting => string.Create(
                 CultureInfo.InvariantCulture,
                 $"successor:{slug} is waiting: {waits}. It starts once each has merged into the integration branch with a passing verify, so its cycle can be built alone."),
@@ -449,6 +461,7 @@ public static class ReadSuccessors
             SuccessorState state =
                 waits.Any(w => w.State == WaitState.Missing) ? SuccessorState.Unresolved
                 : stuckBehind || waits.Any(w => w.State == WaitState.Abandoned) ? SuccessorState.Stuck
+                : successor.Held is not null ? SuccessorState.Held
                 : looped.Contains(slug) || waits.Any(w => w.State != WaitState.Merged) ? SuccessorState.Waiting
                 : SuccessorState.Ready;
 

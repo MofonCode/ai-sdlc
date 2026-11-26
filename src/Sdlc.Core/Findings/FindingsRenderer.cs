@@ -335,9 +335,17 @@ public static class FindingsRenderer
                 $"  {finding.Id,-28} {Label(finding),-10} {Shorten(finding.Headline)}"));
         }
 
-        foreach ((string reader, string standing) in response.Restated)
+        IReadOnlyDictionary<string, string> recurred = response.Recurred ?? new Dictionary<string, string>();
+
+        foreach ((string reader, string standing) in response.Restated.Where(pair => !recurred.ContainsKey(pair.Key)))
         {
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {reader} restates {standing}, carried under that id."));
+        }
+
+        // Already answered in a harvest: recorded as recurring against that answer, and nobody is asked again (D-221).
+        foreach ((string reader, string key) in recurred)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {reader} restates {key}, a concern a harvest already answered: recorded as recurring, not as a new suggestion."));
         }
 
         foreach (string id in response.Demoted)

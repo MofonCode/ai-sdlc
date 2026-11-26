@@ -112,8 +112,10 @@ internal static class Usage
                                      until 'sdlc admit' takes it out. 'sandbox' opens a
                                      worktree on sandbox/<id> beside the repository, where every
                                      cycle the work turns into is planned. 'plan --worktree'
-                                     opens the one cycle in a folder of its own. 'plan' without a
-                                     worktree refuses uncommitted work, which the switch would
+                                     opens the one cycle in a folder of its own. Both name each
+                                     file only a person writes that differs here from the base
+                                     they start from, which they will not hold (D-223). 'plan'
+                                     without a worktree refuses uncommitted work, which the switch would
                                      carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
             branch <id> remediate    Print the path of a worktree on the cycle's build branch -- the
@@ -132,9 +134,14 @@ internal static class Usage
                                      (the skills it runs, sdlc, git, dotnet, gh, az, and each
                                      command solution.md's build_tools names; D-202), never with
                                      permission checks off, never marked as a reader --
-                                     waits, and prints the report. Exits 0 on a pass, 1 on blocked
-                                     or escalated. With no id, every queued cycle in one process
-                                     started from here, each in a worktree of its own; a plan only
+                                     says first which build_tools it was granted and any shell
+                                     rule this machine's own settings add that the factory would
+                                     refuse, waits, prints what the process handed back and names
+                                     each command it was refused, so a refusal never reads as a
+                                     failing test (D-224), and prints the report. Exits 0 on a
+                                     pass, 1 on blocked or escalated. With no id, every queued
+                                     cycle in one process started from here, each in a worktree
+                                     of its own; a plan only
                                      in a sandbox is queued only when named. Refuses when the
                                      build's process cannot start, or ends without a report. The
                                      one stage this binary runs rather than names a skill for.
@@ -144,20 +151,23 @@ internal static class Usage
                                      another, into it -- no branch or worktree of a cycle's own --
                                      and opens the run's one pull request. Refused on any other
                                      branch. --solution names the run's worktree.
-            series start --waves <n>
+            series start --waves <n> [--wave-size <n>]
                                      Start a series: series/<id> from the integration branch, in
                                      a worktree beside the repository, its record committed there
-                                     at .sdlc/series/<id>/series.json with the wave limit and the
+                                     at .sdlc/series/<id>/series.json with the wave limit, how many
+                                     items a wave may take (3 unless --wave-size says) and the
                                      approval setting. Prints the worktree's path alone; what it
                                      will do and the next command go to standard error. Under
                                      approval: required it builds only approved cycles. Refuses
-                                     fewer than one wave.
+                                     fewer than one wave, or a wave size below one.
             series wave              On series/<id>: record the next wave and print one line per
-                                     item with what starts it. Under approval: none, every
-                                     successor and parked cycle ready against the series branch;
-                                     under approval: required, every approved cycle nothing has
-                                     built that no earlier wave took. Refuses once every wave is
-                                     taken; records nothing when nothing is ready. Commits nothing.
+                                     item with what starts it, at most the series' wave size,
+                                     parked cycles first, saying how many more wait. Under
+                                     approval: none, successors and parked cycles ready against
+                                     the series branch; under approval: required, approved cycles
+                                     nothing has built that no earlier wave took. Refuses once
+                                     every wave is taken; records nothing when nothing is ready.
+                                     Commits nothing.
             series status [<id>]     The series' waves, each item's cycle and where it stands --
                                      planned, built: pass, blocked, escalated, abandoned -- and
                                      the backlog judged against the series branch.
@@ -186,9 +196,11 @@ internal static class Usage
                                      --onto names, else the integration branch. Jira is not read yet.
             successors               Every slice waiting on another's code, as a file in
                                      .sdlc/successors/, and where each stands -- waiting, ready,
-                                     stuck behind an abandoned cycle, or unresolved -- worked out
-                                     from the record. Ready means everything it succeeds is on
-                                     the integration branch with a passing verify (D-125).
+                                     stuck behind an abandoned cycle, unresolved, or held by a
+                                     person -- worked out from the record. Ready means everything
+                                     it succeeds is on the integration branch with a passing
+                                     verify (D-125); held means nothing unattended starts it,
+                                     and a person starting it lifts the hold (D-220).
             backlog [--onto <branch>]
                                      Every successor and every parked cycle, in the waves they come
                                      ready in -- ready now, then after one more merge, and so on
@@ -319,6 +331,15 @@ internal static class Usage
                                      named: whether the run may open its one pull request -- the
                                      run's check, against --base or else the integration branch.
                                      Exits 1 if not.
+            up-to-date [--base <branch>]
+                                     Say whether what is checked out has taken the latest of the
+                                     branch its pull request goes into -- --base, or else the
+                                     integration branch -- fetched from origin first. Exits 1
+                                     when it is behind, naming how far and how to bring it in:
+                                     a merge for a branch of records alone, remediate for built
+                                     code, whose verification goes with the merge; and when the
+                                     fetch fails, since nothing was compared (D-227). The pr
+                                     skill runs it before every pull request.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
@@ -360,7 +381,8 @@ internal static class Usage
                                      --retire-pass, when a person asked for a change to a cycle
                                      that passed (D-185).
             evidence check <id>      List what verify.md cites in backticks that none of the
-                                     recorded evidence holds, and tests it says passed that did not.
+                                     recorded evidence holds, tests it says passed that did not,
+                                     and diff lines it cites where the quote is on another line.
                                      Reports only; always exits 0.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
@@ -433,7 +455,9 @@ internal static class Usage
                                      open. --host names the host the readers ran on.
             round verdict <id> --from <file>
                                      Write verify.md from the adjudicator's answer, byte for byte.
-                                     Refuses an answer that is not a verify document.
+                                     Refuses an answer that is not a verify document, a Not met
+                                     that does not say contradicted or unproven, and an Open entry
+                                     that bounds no criterion it met (D-222).
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --
@@ -520,20 +544,25 @@ internal static class Usage
                                      draft and solution.md; one handed the aspect's report and the
                                      proposal file. The newest of each in .sdlc/reports unless
                                      --proposals names the file.
-            harvest summary <proposal file>
+            harvest summary <proposal file> [--all]
                                      What one proposal file asks of a person, in a few lines: each
                                      proposal numbered, with its mark; the Declined, Covered and Ignored
                                      answers counted by the '### <theme>' each stands under, with
                                      what each Covered theme relies on; and every rule, decision
                                      and successor:<slug> the file names, with what it says or
-                                     'not found'. Writes nothing.
+                                     'not found'. Past eight themes to an answer it shows the
+                                     largest and counts the rest on one line; --all shows every
+                                     one (D-225). Writes nothing.
             harvest --history        The harvest ledger: every closed cycle, every sitting with its
                                      aspect and what was accepted, declined and covered, the
                                      concerns watched below the bar of three cycles, the concerns
                                      ignored with the cycles each was ignored in, and every rule,
                                      decision and successor the answers name, with what it says.
             doctor                   Check this installation and this repository: the rules, git,
-                                     how many decisions every reader is handed,
+                                     how many decisions every reader is handed, any command a
+                                     file only a person writes names that this release retired --
+                                     its line and what to write instead (D-224) -- the build
+                                     tools solution.md grants and what this machine adds,
                                      adoption, which release wrote adoption's files against this
                                      binary, line endings, every host's hook config, and the
                                      pipeline that is the guarantee, and asks the platform

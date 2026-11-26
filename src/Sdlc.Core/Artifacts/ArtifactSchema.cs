@@ -74,7 +74,7 @@ public static partial class ArtifactSchema
         ArtifactKind.Spec => ["Acceptance criteria", "Out of scope"],
 
         // Shape and departures holds the decision, judged by CON_15, CON_18 and CON_27. Files holds the
-        // estimate, which nothing judges. Proof is CON_21's subject and verify's criterion table. Risk
+        // estimate, which nothing judges. Proof is CON_29's subject and verify's criterion table. Risk
         // is read by the person at the gate, which is a consumer like any other.
         ArtifactKind.Plan => ["Shape and departures", "Files", "Proof", "Risk"],
 

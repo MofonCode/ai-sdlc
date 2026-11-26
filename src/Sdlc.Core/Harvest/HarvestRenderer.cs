@@ -21,9 +21,11 @@ public static class HarvestRenderer
             $"Recorded {HarvestAspects.NameOf(response.Aspect)} for {response.Recorded.Count} cycle{(response.Recorded.Count == 1 ? string.Empty : "s")}: {string.Join(", ", response.Recorded)}."));
 
         // A concern ignored in enough cycles is a pattern, and the next sitting has to answer it (D-153).
-        foreach (Watched ignored in response.Ignored.Where(ignored => ignored.Cycles.Count >= ProposeConstraints.Bar))
+        foreach ((Watched ignored, IReadOnlyList<string> seen) in response.Ignored
+            .Select(ignored => (ignored, response.Seen?.GetValueOrDefault(ignored.Gist) ?? ignored.Cycles))
+            .Where(pair => pair.Item2.Count >= ProposeConstraints.Bar))
         {
-            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ignored in {ignored.Cycles.Count} cycles, at the bar: {ignored.Gist} -- the next sitting makes it a successor, declines it, or covers it"));
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ignored in {seen.Count} cycles, at the bar: {ignored.Gist}{Recurring(ignored, seen)} -- the next sitting makes it a successor, declines it, or covers it"));
             Why(text, ignored, "    ");
         }
 
@@ -136,7 +138,8 @@ public static class HarvestRenderer
 
             foreach (Watched watched in ledger.Watch)
             {
-                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {watched.Cycles.Count} of {ProposeConstraints.Bar} -- {watched.Gist} ({string.Join(", ", watched.Cycles)})"));
+                IReadOnlyList<string> seen = ledger.SeenIn(HarvestedConcerns.Watch, watched);
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {seen.Count} of {ProposeConstraints.Bar} -- {watched.Gist} ({string.Join(", ", seen)}){Recurring(watched, seen)}"));
                 Why(text, watched, "    ");
             }
         }
@@ -148,7 +151,8 @@ public static class HarvestRenderer
 
             foreach (Watched concern in ignored)
             {
-                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {concern.Cycles.Count} of {ProposeConstraints.Bar} -- {concern.Gist} ({string.Join(", ", concern.Cycles)})"));
+                IReadOnlyList<string> seen = ledger.SeenIn(HarvestedConcerns.Ignored, concern);
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {seen.Count} of {ProposeConstraints.Bar} -- {concern.Gist} ({string.Join(", ", seen)}){Recurring(concern, seen)}"));
                 Why(text, concern, "    ");
             }
         }
@@ -160,6 +164,22 @@ public static class HarvestRenderer
         }
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// How many of a concern's cycles are readers raising it again after a person answered it (D-221), or nothing
+    /// when every cycle is one a person answered it for.
+    /// </summary>
+    /// <param name="concern">The concern as a person answered it.</param>
+    /// <param name="seen">Every cycle it was seen in.</param>
+    /// <returns>The note, starting with a space, or empty.</returns>
+    internal static string Recurring(Watched concern, IReadOnlyList<string> seen)
+    {
+        int recurred = seen.Count(cycle => !concern.Cycles.Contains(cycle, StringComparer.Ordinal));
+
+        return recurred == 0
+            ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $" [{recurred} of them a reader raising it again]");
     }
 
     /// <summary>

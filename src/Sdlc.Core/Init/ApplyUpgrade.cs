@@ -296,6 +296,17 @@ public static class ApplyUpgrade
                 return Result.Fail("a local solution has no platform to open a pull request on.");
             }
 
+            // Made from what was checked out, which can be a copy of the integration branch origin has moved past: the
+            // move is made again from the latest rather than pushed behind it (D-227).
+            FreshnessCheck fresh = TargetFreshness.Check(repository, root, move.Integration);
+
+            if (fresh.Standing != Freshness.UpToDate)
+            {
+                return Result.Fail(fresh.Standing == Freshness.Behind
+                    ? $"{move.Branch} was made from a {move.Integration} that origin has moved past, so it is not pushed (D-227). Make the move again from the latest: git switch {move.Integration}, git pull, then sdlc upgrade apply."
+                    : $"{move.Integration} could not be fetched from origin, so whether the move is behind it is unknown and it is not pushed (D-227): {fresh.Why}");
+            }
+
             Result<string> pushed = repository.Git(root, $"push --force origin \"{move.Branch}\"");
 
             if (pushed.IsFailed)

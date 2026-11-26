@@ -81,4 +81,15 @@ public sealed class CheckEvidenceTests
         StringAssert.Contains(rendered, "refuses nothing");
         StringAssert.Contains(rendered, "In none of the recorded evidence");
     }
+
+    [TestMethod]
+    public void A_cited_line_whose_quote_is_on_another_line_is_reported_and_refuses_nothing()
+    {
+        // D-222. Off-by-one line references cost a reader's finding each, in every cycle of 23.
+        string rendered = CheckEvidence.Render(new CheckEvidence.Response(null!, 1, [], [], ["criterion 1: +3 quotes `x()`, which is at +2 in a.cs"]));
+
+        StringAssert.Contains(rendered, "Cites a diff line where its quote is not");
+        StringAssert.Contains(rendered, "criterion 1: +3 quotes `x()`, which is at +2 in a.cs");
+        StringAssert.Contains(rendered, "refuses nothing");
+    }
 }

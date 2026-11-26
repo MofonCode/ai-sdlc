@@ -20,7 +20,9 @@ Each perspective is a document built into the `sdlc` binary, and every one has t
 | **rules** | the only part that can block | every reader |
 
 It also names **the evidence** it needs recorded at build — a vulnerable-package scan, an accessibility
-scan, tests named for the abuse cases.
+scan, tests named for the abuse cases. Evidence the build already is counts: where `Directory.Build.props` fails
+the build on a vulnerable package, every round says so and the security perspective asks for no scan beside it
+(D-222).
 
 **Read one rather than a summary of it:**
 
@@ -76,7 +78,7 @@ sdlc perspectives <id>
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |
 | `build` | **steers, and never widens.** It applies the *cover this* list to how the plan is written up in code and records the evidence each perspective needs. Anything a perspective wants that the plan did not describe becomes a tagged `Noticed: [name] …` line in the commit, not code |
-| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page. Asked in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164) |
+| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page. Asked in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164). A suggestion here is about the built change or its evidence, never how a Met is worded or whether the plan chose the right proof (D-222) |
 
 **Why steering as well as judging.** A perspective that only judges finds what it could have prevented,
 and the loop pays a refine round for every finding it raises. A perspective that steers mostly finds
@@ -113,13 +115,23 @@ with `sdlc perspective show <name> --for <stage>`.
 text that has not moved is one an earlier round already had the chance to raise. Its blocking findings are
 not limited that way (D-101).
 
+**A perspective does not raise what your decisions already settle.** Its reader is handed your
+`decisions.md` like every reader, and told that a standing decision closes the question it answers. Who may
+start or merge work, what review stands in for approval when you run with `approval: none`, what an unattended
+identity may do: record the answer once as a decision, and the security reader stops asking it of every cycle.
+It still raises a document that departs from the decision or goes past it, naming the decision, and it still
+suggests recording a decision while none settles the question (D-226).
+
 **A perspective re-raises what is still open, and the round keeps one id for it.** Its reader has no
 history, so once a section moves it raises the objections already standing there again, in new words and
 under ids of its own. The reconciling reader is shown what stands and names each restatement, and the
 round carries it under the id it already has, which records nothing new. Only a genuinely new objection
 gets a new id (D-108). **A suggestion is the cycle's, not the document's**, so the reconciler is shown
 every document's open suggestions: the plan's reader raising what the intent's raised is the same concern,
-recorded against the plan under the intent's `S_` id, and listed once (D-115).
+recorded against the plan under the intent's `S_` id, and listed once (D-115). **A concern the solution already
+answered is not raised again as new**: the reconciler is also shown, by key, what its harvests ignored, watched,
+declined and covered and every successor waiting, and a suggestion restating one of them is recorded as recurring —
+counted toward that concern's bar, asked of nobody. One gap raised twice in the same round is one finding (D-221).
 
 **When two perspectives disagree**, the reconciling reader settles it by rule, not by preference:
 

@@ -214,6 +214,7 @@ public static class SitrepRenderer
         Group(output, "**Ready now** — what the merges made ready. `/sdlc:wave` takes all of it; the factory's series takes it under `approval: none`.", items, Successors.SuccessorState.Ready);
         Group(output, "**Still waiting**", items, Successors.SuccessorState.Waiting);
         Group(output, "**No merge makes these ready**", items, Successors.SuccessorState.Stuck, Successors.SuccessorState.Unresolved);
+        Group(output, "**On hold** — wanted, not now. Nothing unattended starts these; starting one lifts its hold.", items, Successors.SuccessorState.Held);
 
         output.AppendLine();
         output.AppendLine(
@@ -249,6 +250,9 @@ public static class SitrepRenderer
         Successors.SuccessorState.Waiting => string.Create(
             CultureInfo.InvariantCulture,
             $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - waits on {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}"),
+        Successors.SuccessorState.Held => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - held since {successor.Successor.Held:yyyy-MM-dd}. Start it with `/sdlc:intent --from successor:{successor.Successor.Slug}`"),
         Successors.SuccessorState.Stuck => string.Create(
             CultureInfo.InvariantCulture,
             $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **stuck**: {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}. Correct its `succeeds:`, or delete it"),

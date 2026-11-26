@@ -182,8 +182,10 @@ rest:
    with its tools named and permission checks left on, and it asks you nothing: saying *build it* was the
    decision. Your session stays where it was, and the skill reports when the process ends. Because it asks
    nothing, it runs only what it was allowed. If your build needs a command beyond `sdlc`, `git`, `dotnet`, `gh`
-   and `az`, such as an evidence script's shell or a container, name it in `build_tools` in `solution.md`. A rule
-   in your own checkout's personal settings never reaches the build's worktree.
+   and `az`, such as an evidence script's shell or a container, name it in `build_tools` in `solution.md` -- the
+   tool whole, or one command line such as `docker build`. A rule in your own checkout's personal settings never
+   reaches the build's worktree; one in your user-level settings does, and `sdlc build` names it before it starts,
+   because the factory would refuse it. A command the build is refused is named when it ends (D-224).
 3. **It implements the plan, and only the plan.** Something worth fixing that the plan did not describe is left
    alone and noted in the commit, because creep is what reaches review dressed as approved work. On a new
    solution's first cycle, the skeleton the plan declared arrives first. It checks the suite actually ran rather
@@ -199,7 +201,10 @@ rest:
    deviations bend the same approved text, the cycle **escalates**: it opens only a draft pull request, and
    `handling-blockers.md` is what to read.
 6. **It opens the pull request** into the integration branch once the verification passes. With no remote it
-   stops at a verified local branch and says so.
+   stops at a verified local branch and says so. **First it fetches the integration branch and checks the build
+   has taken its latest** (`sdlc up-to-date`, D-227): if somebody merged while it built and the merge is clean, it
+   brings that in, builds and verifies again before it opens anything; if the merge stops on a conflict, it opens
+   nothing and the report names the files, for you to *fix it*.
 
 **Where the approved text cannot be followed, it records a deviation and keeps going** (D-156): a file the fix
 has to touch that the plan did not declare, a test whose name has to change, a decision the work cannot keep.
@@ -242,6 +247,8 @@ Its pull request is a draft, and the report says what stopped it. **Say what to 
 until it passes or needs you again. When what stopped it is a criterion the code cannot meet, the instruction is a
 reopen: no deviation changes what *done* means (D-179). `handling-blockers.md` has the rest.
 
+**Every pull request is opened from a branch that has taken the latest integration branch** — a plan's, a build's,
+a run's, a harvest's close (D-227) — so a pull request is never reviewed against a target it has not seen.
 **When the next pull request conflicts**, or goes red because an earlier merge broke it, *fix it*
 (`/sdlc:remediate <id>`): `resolve-conflict` brings it up to date inside the cycle's declared files, then it is
 verified again in a fresh process and the pull request updated.
@@ -271,12 +278,13 @@ behind what merged — there are two larger ones. **Each is one skill, ends in o
 |---|---|---|---|
 | **cycle** — *build it*, `/sdlc:build` | one approved cycle, on its own branch | everything above | the cycle's |
 | **wave** — `/sdlc:wave` | every item ready now, planned together in one sandbox, then built one after another on `wave/<id>` | each successor's inferred lines and the suggestions; under `approval: required` it stops at the approvals, and `/sdlc:wave` again builds what you approved | one, the wave's |
-| **series** — `/sdlc:series --waves <n>` | wave after wave on `series/<id>`, until that many waves or nothing is ready | nothing, once started | one, the series' |
+| **series** — `/sdlc:series --waves <n> [--wave-size <n>]` | wave after wave on `series/<id>`, at most three items a wave unless `--wave-size` says, one after another, until that many waves or nothing is ready | nothing, once started | one, the series' |
 
 **A series plans only where nobody reads plans before code anyway.** Under `approval: none` it suggests each
 successor's intent, plans it and builds it, wave after wave, asking nobody; every line it inferred stays marked and
 the report lists each as confirmed by nobody. Under `approval: required` it plans nothing: it builds the cycles you
-approved, in wave order, and stops where an unapproved one comes next. A successor in a series is ready once its
+approved, in wave order, and stops where an unapproved one comes next. A successor you hold — `held:` on its file,
+or `[h]` in a harvest — is never taken; you start it yourself when you want it (D-220). A successor in a series is ready once its
 predecessor passed on the series' branch, so later waves build on earlier ones before any of it merges — which is
 why **the whole series is accepted or rejected together**, at its one pull request. Rejecting it is one step:
 `sdlc draft abandon --series <id>` prints the record you place to stop every cycle that exists only in it; an approved cycle already on the integration branch stays as it stands, to be built again.

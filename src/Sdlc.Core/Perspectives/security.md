@@ -25,6 +25,11 @@ answer to this, and the cheapest place to find a missing one is before code exis
    (elevation)?
 4. **Name what the change holds.** Secrets, credentials, personal data: where each is kept, who can read
    it, and whether any of it reaches a log, an error message or a response.
+5. **Take what the solution has settled as settled.** Who may start work that reaches the main branch, what
+   review stands in for a person's approval when the solution runs without one — a pull request and the
+   reviewers its platform requires — and what an unattended identity may do — the permissions its platform
+   grants it — are the solution's to decide once, in its decisions. Where a decision covers one, this method
+   does not ask it again of each cycle; where none does, that one should be recorded is a suggestion, once.
 
 ## Cover this
 
@@ -53,7 +58,8 @@ answer to this, and the cheapest place to find a missing one is before code exis
 
 - validate at the boundary, not deep inside; parameterise queries; encode output for where it lands
 - no secret in source, configuration committed to the repository, or a log line
-- record the vulnerable-package scan with the evidence
+- record the vulnerable-package scan with the evidence, unless the build settings already fail the build on a
+  vulnerable package, which the round states when they do
 
 ### verify
 
@@ -95,7 +101,8 @@ answer to this, and the cheapest place to find a missing one is before code exis
 
 - Does the evidence show each abuse-case criterion being attempted and refused, rather than only the
   intended use succeeding?
-- Did the vulnerable-package scan run, and does it report a high or critical vulnerability?
+- Did the dependency audit run, and does it report a high or critical vulnerability? Where the round states the
+  build fails on a vulnerable package, a build that passed is that audit, run clean: ask for no scan beside it.
 
 ## Rules
 
@@ -104,6 +111,9 @@ recurring across cycles is what `/sdlc:harvest-constraints` turns into a rule.
 
 ## Evidence
 
-- `dotnet list package --vulnerable --include-transitive`, its output recorded with the build's evidence
+- the dependency audit: a build whose settings fail it on a vulnerable package — on .NET, `NuGetAudit` with
+  warnings as errors, which every round states when `Directory.Build.props` carries it — and a green build is its
+  clean result; otherwise `dotnet list package --vulnerable --include-transitive`, its output recorded with the
+  build's evidence
 - the analyzers' security rules, reported by the build that treats warnings as errors
 - tests named for the abuse cases the spec states

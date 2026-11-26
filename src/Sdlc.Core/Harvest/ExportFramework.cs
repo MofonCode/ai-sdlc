@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Cycles;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Harvest;
@@ -14,9 +15,12 @@ namespace Sdlc.Core.Harvest;
 /// <param name="Kind">What fell short.</param>
 /// <param name="Statement">What fell short, in words that need no knowledge of the solution.</param>
 /// <param name="Measure">The numbers behind it.</param>
-/// <param name="Cycles">How many cycles it was seen in.</param>
+/// <param name="Cycles">
+/// How many cycles it was seen in, counted from the cycle ids it names; null when it names none, as a note recorded
+/// before D-225 could, with a line of prose where its cycles belong.
+/// </param>
 /// <param name="Releases">The releases those cycles ran on.</param>
-public sealed record SentNote(string Surface, FrameworkNoteKind Kind, string Statement, string? Measure, int Cycles, IReadOnlyList<string> Releases);
+public sealed record SentNote(string Surface, FrameworkNoteKind Kind, string Statement, string? Measure, int? Cycles, IReadOnlyList<string> Releases);
 
 /// <summary>One closed cycle as it may leave the solution: its numbers, without its id, files, commits or areas.</summary>
 /// <param name="Abandoned">Whether it stopped rather than passed.</param>
@@ -67,6 +71,13 @@ public sealed record FrameworkExport(string Release, IReadOnlyList<SentNote> Not
     {
         try
         {
+            if (IsLedger(json))
+            {
+                return Result.Fail<FrameworkExport>(
+                    source + " is a solution's own " + FrameworkHarvest.FileName + ", with its evidence, not an export of it. "
+                    + "Run 'sdlc harvest framework --out <file>' in that solution and read the file it writes: that is what may leave it.");
+            }
+
             FrameworkExport? read = JsonSerializer.Deserialize<FrameworkExport>(json, _options);
 
             return read is null
@@ -77,6 +88,20 @@ public sealed record FrameworkExport(string Release, IReadOnlyList<SentNote> Not
         {
             return Result.Fail<FrameworkExport>(source + ": the export does not parse: " + error.Message);
         }
+    }
+
+    // The solution's file has notes and no release, and each note keeps its evidence; an export always names the
+    // release that wrote it, and never carries evidence. The two are named alike, so the mistake is an easy one (D-225).
+    private static bool IsLedger(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+
+        return root.ValueKind == JsonValueKind.Object
+            && !root.TryGetProperty("release", out _)
+            && root.TryGetProperty("notes", out JsonElement notes)
+            && notes.ValueKind == JsonValueKind.Array
+            && notes.EnumerateArray().Any(note => note.ValueKind == JsonValueKind.Object && (note.TryGetProperty("evidence", out _) || note.TryGetProperty("recorded", out _)));
     }
 }
 
@@ -111,7 +136,7 @@ public static class ExportFramework
 
         return new FrameworkExport(
             release,
-            [.. notes.Notes.Select(note => new SentNote(note.Surface, note.Kind, note.Statement, note.Measure, note.Cycles.Count, note.Releases))],
+            [.. notes.Notes.Select(note => new SentNote(note.Surface, note.Kind, note.Statement, note.Measure, Counted(note.Cycles), note.Releases))],
             [.. ledger.Cycles.Select(cycle => new SentCycle(
                 cycle.Abandoned,
                 cycle.Releases ?? [],
@@ -121,6 +146,19 @@ public static class ExportFramework
                 [.. cycle.Cited.Where(id => id.StartsWith("CON_", StringComparison.Ordinal) || id.StartsWith("PRO_", StringComparison.Ordinal))],
                 cycle.Readers ?? [],
                 cycle.Spent))]);
+    }
+
+    /// <summary>
+    /// How many cycles a note names by id: a line of prose in place of ids is no count at all, rather than one (D-225).
+    /// </summary>
+    /// <param name="cycles">What the note's cycles say.</param>
+    /// <returns>The distinct cycle ids, or null when there are none.</returns>
+    public static int? Counted(IReadOnlyList<string> cycles)
+    {
+        ArgumentNullException.ThrowIfNull(cycles);
+
+        int named = cycles.Where(cycle => CycleId.TryParse(cycle, out _)).Distinct(StringComparer.Ordinal).Count();
+        return named == 0 ? null : named;
     }
 
     /// <summary>The export, for the person deciding whether to hand it over.</summary>
@@ -149,7 +187,7 @@ public static class ExportFramework
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {note.Surface} [{KindName(note.Kind)}] {note.Statement}"));
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"    {note.Cycles} cycle{(note.Cycles == 1 ? string.Empty : "s")}{(note.Releases.Count == 0 ? string.Empty : " on " + string.Join(", ", note.Releases))}{(note.Measure is null ? string.Empty : "; " + note.Measure)}"));
+                $"    {CyclesOf(note.Cycles)}{(note.Releases.Count == 0 ? string.Empty : " on " + string.Join(", ", note.Releases))}{(note.Measure is null ? string.Empty : "; " + note.Measure)}"));
         }
 
         if (export.Cycles.Count > 0)
@@ -171,6 +209,13 @@ public static class ExportFramework
             : "Written to " + written + ". Sends nothing: hand it over if you choose to.");
         return text.ToString();
     }
+
+    private static string CyclesOf(int? cycles) => cycles switch
+    {
+        null => "cycles not named",
+        1 => "1 cycle",
+        _ => string.Create(CultureInfo.InvariantCulture, $"{cycles} cycles"),
+    };
 
     private static string KindName(FrameworkNoteKind kind) => kind switch
     {

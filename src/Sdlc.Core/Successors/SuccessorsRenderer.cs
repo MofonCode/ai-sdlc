@@ -35,7 +35,7 @@ public static class SuccessorsRenderer
             return output.ToString();
         }
 
-        foreach (SuccessorState state in new[] { SuccessorState.Ready, SuccessorState.Stuck, SuccessorState.Unresolved, SuccessorState.Waiting })
+        foreach (SuccessorState state in new[] { SuccessorState.Ready, SuccessorState.Stuck, SuccessorState.Unresolved, SuccessorState.Waiting, SuccessorState.Held })
         {
             foreach (ReadSuccessors.Standing standing in read.Successors.Where(s => s.State == state))
             {
@@ -52,6 +52,13 @@ public static class SuccessorsRenderer
                 if (standing.Successor.Framework is { } gap)
                 {
                     output.AppendLine(Indent + new string(' ', 12) + "a gap in the framework: " + gap);
+                }
+
+                if (state == SuccessorState.Held)
+                {
+                    output.AppendLine(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{Indent}{new string(' ', 12)}on hold since {standing.Successor.Held:yyyy-MM-dd}: nothing unattended starts it; starting it lifts the hold: /sdlc:intent --from successor:{standing.Successor.Slug}"));
                 }
 
                 if (state == SuccessorState.Ready)
@@ -128,6 +135,7 @@ public static class SuccessorsRenderer
         SuccessorState.Ready => "ready",
         SuccessorState.Stuck => "stuck",
         SuccessorState.Unresolved => "unresolved",
+        SuccessorState.Held => "held",
         _ => "waiting",
     };
 }

@@ -27,9 +27,18 @@ found again, not a new one:
 {{suggestions}}
 </suggestions>
 
+What the solution has already answered in a harvest, across its earlier cycles: concerns a person ignored,
+watched, declined or covered, and the successors waiting to take work further. Each has a key:
+
+<harvested>
+{{harvested}}
+</harvested>
+
 **First: which of this round's findings restate one that stands?** A restatement is the same objection to
 the same thing, in other words or under another id -- not a related objection, and not the same rule cited
-about something else. Name the standing id from either list above. **Where you are unsure, it is not a
+about something else. Name the standing id from the lists above, or the key of a harvested concern. A
+finding may also restate **another finding of this round** -- one reader raising one gap several times, or
+two readers raising the same one -- and then you name that finding's id. **Where you are unsure, it is not a
 restatement**: a duplicate is noise a person can see, and a distinct objection merged into an old one is
 lost.
 
@@ -40,6 +49,6 @@ and not two that merely disagree in emphasis.
 Answer as JSON only, in this shape, with empty arrays where there are none:
 
 ```json
-{ "restatements": [ { "finding": "<this round's id>", "standing": "<the id that stands>" } ],
+{ "restatements": [ { "finding": "<this round's id>", "standing": "<the id that stands, another of this round's ids, or a harvested key>" } ],
   "pairs": [ { "between": [ "<this round's id>", "<this round's id>" ], "why": "..." } ] }
 ```

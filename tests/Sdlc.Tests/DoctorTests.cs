@@ -848,6 +848,40 @@ public sealed class DoctorTests
     public void An_azure_repos_remote_names_its_repository(string remote, string? expected) =>
         Assert.AreEqual(expected, CliBranchPolicies.RepositoryName(remote));
 
+    [TestMethod]
+    public async Task A_placed_file_naming_a_retired_command_is_named_with_its_line_and_what_replaces_it()
+    {
+        // D-224: an upgrade rewrites what adoption owns and never a file only a person writes, so an older release's
+        // header stays until a person changes it -- doctor says where, and what to write.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Assert.AreEqual(CheckOutcome.Sound, (await Diagnosis(solution)).Checks.Single(check => check.Subject == "person's files").Outcome);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "constraints.md"),
+            "# This solution's own constraints\n\nnever reused. `sdlc propose constraints`\nnames the next free id.\n");
+
+        Check stale = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "person's files");
+
+        Assert.AreEqual(CheckOutcome.Problem, stale.Outcome);
+        StringAssert.Contains(stale.Detail, ".sdlc/constraints.md line 3 names 'sdlc propose constraints'");
+        StringAssert.Contains(stale.Detail, "sdlc harvest constraints");
+        StringAssert.Contains(stale.Remedy!, "by hand");
+    }
+
+    [TestMethod]
+    public async Task The_build_tools_a_solution_grants_are_said_where_an_install_is_checked()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Check tools = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "build tools");
+
+        Assert.AreEqual(CheckOutcome.Sound, tools.Outcome);
+        StringAssert.Contains(tools.Detail, "build_tools");
+    }
+
     /// <summary>Every host the enum declares, so the per-host check runs per host.</summary>
     public static IEnumerable<object[]> Hosts =>
         Enum.GetValues<HookHost>().Select(host => new object[] { host });

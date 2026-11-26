@@ -540,7 +540,10 @@ public static class FindingsReader
 
         Result<FindingsRound> valid = Validate(asRound, source);
 
-        return valid.IsFailed ? valid.ToResult<SuggestionLedger>() : Result.Ok(ledger);
+        // Two branches of the cycle merged can both carry one restatement of a harvested concern; it is one (D-221).
+        return valid.IsFailed
+            ? valid.ToResult<SuggestionLedger>()
+            : Result.Ok(ledger.Recurred is { Count: > 0 } ? ledger with { Recurred = ledger.RecurredOnce() } : ledger);
     }
 
     /// <summary>

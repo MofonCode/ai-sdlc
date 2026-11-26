@@ -59,7 +59,9 @@ those is the bias the process was opened to remove.
 sdlc round verdict <id> --from <scratch>/verdict/adjudicate.json
 ```
 
-It refuses an answer that is not a verify document — prose around it, a refusal, a question. Run `sdlc round
+It refuses an answer that is not a verify document — prose around it, a refusal, a question — and one whose
+Not met does not say whether the evidence contradicts the criterion or only does not prove it, or whose `## Open`
+holds an entry that bounds no criterion it met (D-222). Run `sdlc round
 run` again; do not repair it yourself, because the repair is this session writing the verdict after
 all. Then `sdlc status <id>` checks its shape. Interrogate the verdict with the same directory as
 `--dir`, so the round's collect counts what the adjudicator cost as that round's.
@@ -72,7 +74,8 @@ sdlc evidence check <id>
 
 A string match of the verdict against the evidence (D-120): every name `verify.md` cites in backticks
 that appears in none of the evidence — `tests.json`, `diff.patch`, `proof-sources.txt` where there is one, `coverage.json`, and the build log where there is one — and every test it says passed that `tests.json`
-does not record as passed. **It reports and refuses nothing**, and you act on nothing it lists — a
+does not record as passed, and every diff line it cites where its quote is on another line — the round's
+readers are handed those as not theirs to raise, and a rewrite corrects them (D-222). **It reports and refuses nothing**, and you act on nothing it lists — a
 backticked name may be a type or a log line, and whether a claim rests on its evidence is the round's
 reader's to judge. Show what it prints verbatim before the round, so the person sees it beside what the
 round finds.
@@ -121,8 +124,8 @@ sdlc pr-ready <id>
 ```
 
 Show both verbatim. Then **at most two lines of your own**, and only the outcome in your own words.
-On `blocked`, add each criterion `verify.md` marks Not met, by its number and the first sentence of its
-reason, quoted: they are why the outcome is blocked, the panel lists findings rather than criteria, and a
+On `blocked`, add each criterion `verify.md` marks Not met, by its number, whether it is contradicted or
+unproven, and the first sentence of its reason, quoted: they are why the outcome is blocked, the panel lists findings rather than criteria, and a
 person told only "blocked" goes looking for them. Then stop.
 
 **Nothing that is not already in `verify.md`.** You have just recorded the document that is the
