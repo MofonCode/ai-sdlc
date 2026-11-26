@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
@@ -54,14 +57,38 @@ public static class BuildRun
     ];
 
     /// <summary>The tools a build's own process may use: every build's, then the solution's own commands.</summary>
-    /// <param name="buildTools">The commands <c>build_tools</c> names, each a bare command name.</param>
-    /// <returns>The list, with each extra command allowed as <c>Bash(&lt;name&gt; *)</c> and none twice.</returns>
+    /// <param name="buildTools">The commands <c>build_tools</c> names, each a bare command name or one command line.</param>
+    /// <returns>The list, with each extra command allowed as <see cref="RulesFor"/> says and none twice.</returns>
     public static IReadOnlyList<string> AllowedToolsWith(IReadOnlyList<string> buildTools)
     {
         ArgumentNullException.ThrowIfNull(buildTools);
 
-        return [.. AllowedTools.Concat(buildTools.Select(tool => "Bash(" + tool + " *)")).Distinct(StringComparer.Ordinal)];
+        return [.. AllowedTools.Concat(buildTools.SelectMany(RulesFor)).Distinct(StringComparer.Ordinal)];
     }
+
+    /// <summary>The host's allow rules for one <c>build_tools</c> entry.</summary>
+    /// <remarks>
+    /// A bare name is the whole command, <c>Bash(pwsh *)</c>, as it always was (D-202). A command line is that line
+    /// and the line with more words after it, and nothing else (D-224): <c>docker build</c> allows
+    /// <c>docker build .</c> and never <c>docker run</c>, which granting the runtime whole used to allow.
+    /// </remarks>
+    /// <param name="entry">The entry as the solution document read it.</param>
+    /// <returns>The rules, one or two.</returns>
+    public static IReadOnlyList<string> RulesFor(string entry)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry);
+
+        return entry.Contains(' ', StringComparison.Ordinal)
+            ? ["Bash(" + entry + ")", "Bash(" + entry + " *)"]
+            : ["Bash(" + entry + " *)"];
+    }
+
+    /// <summary>How a build's or a series' process answers: one JSON object, which <see cref="Start"/> reads.</summary>
+    /// <remarks>
+    /// Its hand-back is the text the plain format printed, and beside it every tool use the host refused (D-224). A
+    /// headless process prints nothing until it ends in either format, so nothing a person watched is lost.
+    /// </remarks>
+    public static IReadOnlyList<string> OutputFormat { get; } = ["--output-format", "json"];
 
     /// <summary>Registers this operation's handlers.</summary>
     /// <param name="services">The collection to add to.</param>
@@ -110,7 +137,7 @@ public static class BuildRun
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pluginDirectory);
 
-        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id, run), "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
+        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id, run), .. OutputFormat, "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
     }
 
     /// <summary>
@@ -323,15 +350,203 @@ public static class BuildRun
             return solution.ToResult<AgentExit>();
         }
 
-        return Result.Ok(await agents.Run(
-            new AgentLaunch(
-                worktree,
-                arguments(solution.Value.ExtraBuildTools),
-                Input: null,
-                Output: null,
-                Reader: false,
-                Timeout: null),
-            cancellationToken).ConfigureAwait(false));
+        string answer = Path.Combine(Path.GetTempPath(), "sdlc-build-" + Guid.NewGuid().ToString("N") + ".json");
+
+        try
+        {
+            AgentExit exit = await agents.Run(
+                new AgentLaunch(
+                    worktree,
+                    arguments(solution.Value.ExtraBuildTools),
+                    Input: null,
+                    Output: answer,
+                    Reader: false,
+                    Timeout: null),
+                cancellationToken).ConfigureAwait(false);
+
+            if (!File.Exists(answer))
+            {
+                return Result.Ok(exit);
+            }
+
+            (string? said, IReadOnlyList<string> refused) = ReadAnswer(await File.ReadAllTextAsync(answer, cancellationToken).ConfigureAwait(false));
+            return Result.Ok(exit with { Said = said, Refused = refused });
+        }
+        finally
+        {
+            File.Delete(answer);
+        }
+    }
+
+    /// <summary>Reads what a build's process answered in the JSON format: its hand-back, and every tool use refused.</summary>
+    /// <remarks>
+    /// The host records each refusal as <c>permission_denials</c>, with the tool and what it was asked to run. An
+    /// answer that is not that object -- an older host, a crash part way -- is handed back as it was written, refusing
+    /// nothing, because what it said is still the person's to read.
+    /// </remarks>
+    /// <param name="text">What the process wrote to its standard output.</param>
+    /// <returns>Its hand-back, or null for none; and each refusal as <c>tool: command</c>.</returns>
+    public static (string? Said, IReadOnlyList<string> Refused) ReadAnswer(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        JsonNode? root;
+
+        try
+        {
+            root = JsonNode.Parse(text);
+        }
+        catch (JsonException)
+        {
+            return (text.Trim().Length == 0 ? null : text.Trim(), []);
+        }
+
+        if (root is not JsonObject answer)
+        {
+            return (text.Trim().Length == 0 ? null : text.Trim(), []);
+        }
+
+        string? said = answer["result"] is JsonValue result && result.TryGetValue(out string? value) && value.Trim().Length > 0 ? value.Trim() : null;
+        List<string> refused = [];
+
+        if (answer["permission_denials"] is JsonArray denials)
+        {
+            foreach (JsonNode? denial in denials)
+            {
+                string tool = denial?["tool_name"] is JsonValue name && name.TryGetValue(out string? named) ? named : "a tool";
+                JsonNode? input = denial?["tool_input"];
+                string asked = input?["command"] is JsonValue command && command.TryGetValue(out string? line)
+                    ? line
+                    : input?.ToJsonString() ?? string.Empty;
+
+                string entry = asked.Length == 0 ? tool : tool + ": " + asked.ReplaceLineEndings(" ").Trim();
+
+                if (!refused.Contains(entry, StringComparer.Ordinal))
+                {
+                    refused.Add(entry);
+                }
+            }
+        }
+
+        return (said, refused);
+    }
+
+    /// <summary>Says which commands a build was refused and how to grant one, for a person reading the build's end.</summary>
+    /// <param name="refused">Each refusal, as <see cref="ReadAnswer"/> read it.</param>
+    /// <returns>The paragraph, or empty when nothing was refused.</returns>
+    public static string RenderRefused(IReadOnlyList<string> refused)
+    {
+        ArgumentNullException.ThrowIfNull(refused);
+
+        if (refused.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        StringBuilder text = new();
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"The build's process was refused {refused.Count} {(refused.Count == 1 ? "command" : "commands")} its tools do not allow. It stopped at that step; no test failed for it:"));
+
+        foreach (string entry in refused)
+        {
+            text.AppendLine("  " + entry);
+        }
+
+        string? first = refused
+            .Where(entry => entry.StartsWith("Bash: ", StringComparison.Ordinal))
+            .Select(entry => entry["Bash: ".Length..].Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault())
+            .FirstOrDefault(word => word is not null && SolutionDocument.IsCommandName(word));
+
+        text.AppendLine(first is null
+            ? "A tool other than a shell command is one no build is given: the build playbook runs commands through bash."
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"If the build needs it, name it in solution.md's build_tools -- '{first}' grants the command whole, '{first} <words>' only that command line -- commit it, and build again."));
+
+        return text.ToString();
+    }
+
+    /// <summary>The commands a build's process may run beyond every build's own, and what this machine adds that it was never granted.</summary>
+    /// <param name="Granted">What <c>build_tools</c> names, as written there.</param>
+    /// <param name="MachineOnly">
+    /// The shell commands this machine's own host settings allow that neither every build's tools nor <c>build_tools</c>
+    /// cover. A build here may run them; an unattended build anywhere else is refused them.
+    /// </param>
+    public sealed record Tools(IReadOnlyList<string> Granted, IReadOnlyList<string> MachineOnly)
+    {
+        /// <summary>Says both, for a person, in one paragraph.</summary>
+        /// <returns>The text, ending in a line break.</returns>
+        public string Render()
+        {
+            StringBuilder text = new();
+            text.AppendLine(Granted.Count == 0
+                ? "Build tools: every build's own, and nothing from solution.md's build_tools."
+                : "Build tools: every build's own, and from solution.md's build_tools: " + string.Join(", ", Granted) + ".");
+
+            if (MachineOnly.Count > 0)
+            {
+                text.AppendLine(
+                    "This machine's own host settings also allow " + string.Join(", ", MachineOnly)
+                    + ", which build_tools does not grant. A build here may use them and pass; the factory, or any other machine, refuses them. If the build needs one, name it in build_tools.");
+            }
+
+            return text.ToString();
+        }
+    }
+
+    /// <summary>Works out the tools a build in a worktree runs with: the grant, and what this machine adds to it.</summary>
+    /// <remarks>
+    /// <para><strong>The process is <c>claude</c></strong>, started as <see cref="CliAgentProcess"/> starts it, so the
+    /// settings it reads beside its arguments are that host's: the user's own, and the worktree's local file. Both are
+    /// this machine's alone. The repository's committed settings travel with it, so they are not counted.</para>
+    /// <para>A file that cannot be read adds nothing: this reports, and a report that refused for a person's settings
+    /// file would stop a build over something the build does not need.</para>
+    /// </remarks>
+    /// <param name="worktree">Where the build works.</param>
+    /// <param name="buildTools">What <c>build_tools</c> names.</param>
+    /// <param name="home">The user's home directory, or null for this process's own.</param>
+    /// <returns>The tools.</returns>
+    public static Tools ToolsIn(string worktree, IReadOnlyList<string> buildTools, string? home = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(worktree);
+        ArgumentNullException.ThrowIfNull(buildTools);
+
+        string user = home ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        HashSet<string> granted = new(AllowedToolsWith(buildTools), StringComparer.Ordinal);
+        List<string> machine = [];
+
+        foreach (string file in new[] { Path.Combine(user, ".claude", "settings.json"), Path.Combine(worktree, ".claude", "settings.local.json") })
+        {
+            foreach (string rule in AllowRules(file))
+            {
+                if (rule.StartsWith("Bash(", StringComparison.Ordinal) && !granted.Contains(rule) && !machine.Contains(rule, StringComparer.Ordinal))
+                {
+                    machine.Add(rule);
+                }
+            }
+        }
+
+        return new Tools(buildTools, machine);
+    }
+
+    private static IEnumerable<string> AllowRules(string file)
+    {
+        if (!File.Exists(file))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonNode.Parse(File.ReadAllText(file))?["permissions"]?["allow"] is JsonArray allow
+                ? [.. allow.Select(rule => rule is JsonValue value && value.TryGetValue(out string? text) ? text : null).OfType<string>()]
+                : [];
+        }
+        catch (Exception unreadable) when (unreadable is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
     }
 
     private sealed class LaunchHandler(IAgentProcess agents) : IRequestHandler<Launch, AgentExit>

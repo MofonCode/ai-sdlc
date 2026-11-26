@@ -39,11 +39,33 @@ public sealed class BuildToolsTests
     }
 
     [TestMethod]
+    public void A_command_line_is_one_entry_its_spacing_made_single_and_written_back_the_same()
+    {
+        // D-224: one command line rather than the tool whole -- a container build, not the runtime.
+        Result<SolutionDocument> read = SolutionDocument.Read(
+            "---\norigin: adopted\nbuild_tools: docker  build, pwsh -File scripts/evidence.ps1, git\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(error => error.Message)));
+        CollectionAssert.AreEqual(new[] { "docker build", "pwsh -File scripts/evidence.ps1", "git" }, read.Value.ExtraBuildTools.ToList());
+        CollectionAssert.Contains(
+            SolutionDocument.Keys(SolutionOrigin.Adopted, SolutionStandard.Existing, Sdlc.Core.Init.Platform.GitHub, buildTools: read.Value.BuildTools),
+            "build_tools: docker build, pwsh -File scripts/evidence.ps1, git");
+    }
+
+    [TestMethod]
     [DataRow("docker *")]
     [DataRow("py*")]
     [DataRow("C:/tools/run.exe")]
     [DataRow("-rf")]
-    [DataRow("rm -rf")]
+    [DataRow("./evidence.sh")]
+    [DataRow("docker build *")]
+    [DataRow("docker build; rm x")]
+    [DataRow("pwsh -c $env:X")]
+    [DataRow("pwsh -File '../run.ps1'")]
+    [DataRow("pwsh -File ../run.ps1")]
+    [DataRow("docker build > out")]
+    [DataRow("make && make test")]
     public void A_name_that_would_allow_more_than_one_command_fails(string name)
     {
         Result<SolutionDocument> read = SolutionDocument.Read("---\norigin: adopted\nbuild_tools: " + name + "\n---\n", "solution.md");

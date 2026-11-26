@@ -348,23 +348,31 @@ headless: it asks nobody anything, so whatever it is not allowed is refused and 
 ### a solution document the build cannot read
 
 The worktree's `.sdlc/solution.md` would not read, so the build was never started. Its own message says which key,
-and the usual one is `build_tools` naming something that is not a bare command: `docker *`, a path, two words.
-Each name is allowed as `Bash(<name> *)`, so a name with a space or a wildcard in it would allow more than the
-command you meant.
+and the usual one is `build_tools` naming something that is not one command: `docker *`, a path in place of the
+command, a quote, a variable, `;` or `&&`. Each entry is allowed as `Bash(<entry> *)`, so any of those would allow
+more than the command you meant. A command line is fine: `docker build` grants that line and never `docker run`
+(D-224).
 
-**Next:** `sdlc draft solution`, correct the line to bare names separated by commas — `build_tools: pwsh, docker`
-— rename the draft into place, commit it, and build again.
+**Next:** `sdlc draft solution`, correct the line to commands separated by commas — `build_tools: pwsh, docker
+build` — rename the draft into place, commit it, and build again.
 
 ### a tool the build's process was not given
 
-The build stopped as not finished, and its report names a command that was refused. The process is allowed the
-skills its playbook runs, `sdlc`, `git`, `dotnet`, `gh`, `az`, the file tools, and each command `build_tools`
-names (D-202) — **and nothing from a checkout's personal settings**. The worktree is a fresh checkout, so a rule
-you added to `.claude/settings.local.json` in your own checkout never reaches it, and in a headless process there
-is no prompt to approve it either.
+The build stopped as not finished, and `sdlc build` printed *The build's process was refused … no test failed for
+it*, with each refused command under it, read from the host's own record of what it refused (D-224). The process
+is allowed the skills its playbook runs, `sdlc`, `git`, `dotnet`, `gh`, `az`, the file tools, and each command
+`build_tools` names (D-202) — **and nothing from a checkout's personal settings**. The worktree is a fresh
+checkout, so a rule you added to `.claude/settings.local.json` in your own checkout never reaches it, and in a
+headless process there is no prompt to approve it either.
+
+**The other way round.** A rule in your user-level host settings does reach a build on your machine, so a build
+here can pass on a command `build_tools` never granted, and the factory is then refused it. `sdlc build` says so
+before it starts — *This machine's own host settings also allow …* — and `sdlc doctor` says it too. Grant what the
+build needs in `build_tools`, so it holds wherever the build runs.
 
 **Next:** when the refused command is one the solution's own build needs — an evidence script's shell, a
-container — add it to `build_tools` with `sdlc draft solution` and a rename, commit it, and build again. When it
+container — add it to `build_tools` with `sdlc draft solution` and a rename, commit it, and build again: the bare
+name grants the tool whole, a command line such as `docker build` only that line. When it
 is a command a skill should not have needed, such as a pipe into `tail`, build again: the playbook writes its
 commands one at a time, and a refusal of one is not a missing tool. A refusal of `sdlc build` itself, **in your
 own session**, is your host's permission check rather than the framework: allow `Bash(sdlc *)` in your host's

@@ -33,6 +33,11 @@ the gate. A plan may move them, never remove or weaken them.
   so the release carries its own version — a package versioned as a preview cannot be renamed to a release, because
   the version is compiled in. Where the integration branch's last merge build already passed on the same tree,
   re-running its tests finds nothing new; where the default branch carries a change of its own, it runs everything.
+- **What skips a step is set by a step, never by whoever queues the run.** The template's `admission`, `promotion` and
+  `tested` come from the binary, as a step's output on GitHub and as variables the file declares on Azure DevOps,
+  which nobody can set at queue time. A skip of your own follows the same shape: decided by a step, exactly `true` or
+  `false`, and never read from a queue-time variable or a workflow input. A step that must run on every pull request
+  — a security scan, a licence check — carries no condition on them at all.
 - **New steps go where the template puts its own**, with the same skip conditions, and a comment saying why the
   step exists. The template's comments are part of the pipeline.
 - **A step's settings live where its tool reads them by itself**, not on the template's command line, so the step

@@ -138,6 +138,8 @@ public static class Diagnose
             checks.Add(await Stamp(cancellationToken).ConfigureAwait(false));
             checks.Add(await DeclaredStack(cancellationToken).ConfigureAwait(false));
             checks.Add(await DecisionRecord(cancellationToken).ConfigureAwait(false));
+            checks.Add(await PersonFiles(cancellationToken).ConfigureAwait(false));
+            checks.Add(await BuildTools(cancellationToken).ConfigureAwait(false));
 
             if (await BuildSettingsDeclared(cancellationToken).ConfigureAwait(false) is { } settings)
             {
@@ -381,6 +383,58 @@ public static class Diagnose
                     : string.Create(
                         CultureInfo.InvariantCulture,
                         $"{standing} standing. Every reader is handed them; 'sdlc decisions' renders them"));
+        }
+
+        /// <summary>
+        /// Whether a file only a person writes still names a command this release no longer has (D-224).
+        /// </summary>
+        /// <remarks>
+        /// An upgrade rewrites what adoption owns and never these, so a command a later release renamed stays in a
+        /// header adoption drafted until a person changes it. Each is named with its line and what replaces it, which
+        /// is the text the person places. The files a cycle owns are left out: a cycle's approval names what was true
+        /// when it was placed, and is history.
+        /// </remarks>
+        private async Task<Check> PersonFiles(CancellationToken cancellationToken)
+        {
+            List<string> found = [];
+
+            foreach (string name in ProtectedPaths.Names.Where(name => name is not ("approval.md" or "abandoned.md")))
+            {
+                string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, name);
+
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+                found.AddRange(CommandNames.StaleIn(text).Select(stale => string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Cycle.SdlcDirectoryName}/{name} line {stale.Line} names 'sdlc {stale.Mention}'; write {stale.Instead}")));
+            }
+
+            return found.Count == 0
+                ? new Check("person's files", CheckOutcome.Sound, "every command they name is one this release has")
+                : new Check(
+                    "person's files",
+                    CheckOutcome.Problem,
+                    string.Join("; ", found),
+                    "change each line by hand: only a person writes these files, so no upgrade can");
+        }
+
+        /// <summary>The commands a build's process starts with beyond every build's own, and what this machine adds (D-224).</summary>
+        /// <remarks>
+        /// Sound whatever it finds: a machine allowance is not wrong, but a build that passes here because of one is
+        /// refused it in the factory, so it is said where a person checking an install reads.
+        /// </remarks>
+        private async Task<Check> BuildTools(CancellationToken cancellationToken)
+        {
+            Result<SolutionDocument> document = await SolutionDocument.ReadFile(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            return document.IsFailed
+                ? new Check("build tools", CheckOutcome.Elsewhere, "solution.md cannot be read, so its build_tools cannot either", "the adoption check above says why")
+                : new Check("build tools", CheckOutcome.Sound, BuildRun.ToolsIn(solution.Path, document.Value.ExtraBuildTools).Render().Trim().ReplaceLineEndings(" "));
         }
 
         /// <summary>How many standing decisions every reader can be handed whole before attention thins (D-139).</summary>

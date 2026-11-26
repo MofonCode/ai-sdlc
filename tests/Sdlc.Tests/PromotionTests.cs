@@ -288,6 +288,26 @@ public sealed class PromotionTests
         Assert.IsTrue(lines.Skip(test).Take(3).Any(line => line.Contains(skip, StringComparison.Ordinal)), "Its tests are skipped once already run.");
     }
 
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Nobody_queuing_a_run_can_set_what_skips_the_tests(Platform platform)
+    {
+        // D-224: the skip is set only by the step that asks the binary, and only to exactly true or false.
+        string pipeline = Templates.Pipeline(platform).ReplaceLineEndings("\n");
+
+        Assert.IsFalse(pipeline.Contains("${tested", StringComparison.Ordinal), "No step reads a value it did not set itself.");
+        StringAssert.Contains(pipeline, "if [ \"$answer\" = true ]");
+        StringAssert.Contains(pipeline, "never the build or the chain");
+
+        if (platform == Platform.AzureDevOps)
+        {
+            // A variable this file declares is fixed at queue time, so a value given there cannot skip anything.
+            StringAssert.Contains(pipeline, "variables:\n  admission: 'false'\n  promotion: 'false'\n  tested: 'false'\n");
+            Assert.IsTrue(pipeline.IndexOf("variables:\n", StringComparison.Ordinal) < pipeline.IndexOf("steps:\n", StringComparison.Ordinal));
+        }
+    }
+
     private static string MergeMethod(JsonNode ruleset) =>
         Rule(ruleset, "pull_request")["allowed_merge_methods"]!.AsArray().Single()!.GetValue<string>();
 

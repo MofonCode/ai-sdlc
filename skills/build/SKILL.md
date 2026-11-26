@@ -140,8 +140,9 @@ its permission check can read it before it runs:
   *the command line is too long*.
 
 A step the solution's own build needs that the list does not allow — an evidence script's shell, a container —
-is not yours to route around. Stop that cycle as not finished, say which command was refused, and say that a
-person adds it to `build_tools` in `.sdlc/solution.md`.
+is not yours to route around. Stop that cycle as not finished, say which command was refused -- never as a failing
+test -- and say that a person adds it to `build_tools` in `.sdlc/solution.md`, as the command or as that one command
+line. `sdlc build` names every refusal from the host's own record as well (D-224).
 
 ## 1. Find the work
 
