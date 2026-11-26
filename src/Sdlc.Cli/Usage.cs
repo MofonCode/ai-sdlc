@@ -73,11 +73,14 @@ internal static class Usage
                                      a dependency file may move only versions, of any size (D-134).
                                      Anything else is refused: there is no chain.
             admission <branch> --base <branch>
-                                     Print true when everything a pull request changes is under
-                                     .sdlc/ -- a plan, a slicing's plans, a harvest, successors --
-                                     so a pipeline may skip the build and tests; false when one
-                                     path is outside. The chain still judges it (D-193). Always
-                                     exits 0.
+                                     Print true when everything a pull request changes is a record
+                                     of work in progress -- a cycle's folder, a successor, a
+                                     series' record: a plan, a slicing, an admission -- so a
+                                     pipeline may skip the build and tests; false when one path is
+                                     anything else, a file a person wrote under .sdlc/ included, or
+                                     a cycle's file is deleted, as a harvest's close does: a
+                                     solution's tests may read those. The chain still judges it
+                                     (D-193, D-229). Always exits 0.
             tested <branch>          Print true when this promotion merges exactly <branch>'s tip
                                      and the platform's runs on it, piped in, list a green one,
                                      so a pipeline builds and skips the tests; false for anything

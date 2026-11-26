@@ -795,11 +795,31 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    public void A_pull_request_changing_only_records_skips_the_build()
+    public void A_pull_request_changing_only_records_is_one_nothing_is_built_for()
     {
-        // D-193: whatever carries it -- a plan, a harvest, successors -- nothing under .sdlc/ is built.
+        // D-227: brought up to date, whatever carries it -- a plan, a harvest, successors -- takes the merge.
         Assert.IsTrue(VerifyChain.RecordsOnly([".sdlc/successors/totals.md"]));
         Assert.IsTrue(VerifyChain.RecordsOnly([".sdlc\\harvested.json", ".sdlc/decisions.md", "/.sdlc/cycles/20260929_1456_32/plan.md"]));
+    }
+
+    [TestMethod]
+    public void Only_records_of_work_in_progress_skip_the_build_and_the_tests()
+    {
+        // D-229: a plan, a slicing with its successors, a started successor's file going, a series' record.
+        Assert.IsTrue(VerifyChain.NothingToTest(["/.sdlc/cycles/20260929_1456_32/plan.md", ".sdlc\\cycles\\20260929_1456_32\\findings\\plan.json"], []));
+        Assert.IsTrue(VerifyChain.NothingToTest([".sdlc/cycles/20260929_1456_32/intent.md", ".sdlc/successors/totals.md"], [".sdlc/successors/totals.md"]));
+        Assert.IsTrue(VerifyChain.NothingToTest([".sdlc/series/20261121_0930_15/abandoned.md"], []));
+
+        // What a solution's tests may read is built and tested before it merges.
+        Assert.IsFalse(VerifyChain.NothingToTest([".sdlc/decisions.md"], []), "A person's decisions can be what a test reads.");
+        Assert.IsFalse(VerifyChain.NothingToTest([".sdlc/cycles/20260929_1456_32/plan.md", ".sdlc/constraints.md"], []));
+        Assert.IsFalse(VerifyChain.NothingToTest([".sdlc/theme.json"], []));
+        Assert.IsFalse(VerifyChain.NothingToTest([".sdlc/harvested.json"], []));
+        Assert.IsFalse(
+            VerifyChain.NothingToTest([".sdlc/cycles/20260929_1456_32/plan.md"], [".sdlc/cycles/20260929_1456_32/plan.md"]),
+            "A harvest's close deletes the cycles a test may count on.");
+        Assert.IsFalse(VerifyChain.NothingToTest([".sdlc/successors/totals.md", "src/Orders/OrderService.cs"], []));
+        Assert.IsFalse(VerifyChain.NothingToTest([], []), "An empty diff skips nothing.");
     }
 
     [TestMethod]

@@ -2436,10 +2436,12 @@ is admitted as a record, and a plan nobody built yet gets the admission check. T
 cycle's plan must have passed in the run's last recorded run, because a later cycle can break an earlier one's
 criteria and nothing verifies the earlier one again. One that changes no cycle's folder is refused.
 
-**A pull request that changes nothing outside `.sdlc/` is not built** (D-193). `sdlc admission` answers `true`
-for it, whatever carries it — a plan, a slicing, a harvest, successors — and the pipeline skips the build and
-the tests. The chain still judges it: the admission check, the harvest check with its records parsed, or a
-refusal for having no chain.
+**A pull request that changes only the records of work in progress is not built** (D-193, D-229). `sdlc
+admission` answers `true` when every path it changes is in a cycle's folder, a successor or a series' folder and no
+cycle's file is deleted — a plan, a slicing, an admission, a successor — and the pipeline skips the build and the
+tests. What a person wrote under `.sdlc/`, a harvest's records and a cycle's folder removed are built and tested,
+because a solution's tests may read them. The chain still judges every one: the admission check, the harvest check
+with its records parsed, or a refusal for having no chain.
 
 **Every open pull request is re-checked when another merges** (D-86). On Azure DevOps that is the build
 validation policy's expiration set to *Immediately*, which re-queues on its own; it is a platform setting
@@ -2712,7 +2714,7 @@ they print verbatim.
 | `up-to-date [--base <branch>]` | whether what is checked out has taken the latest of its pull request's target, fetched from origin first; refuses a branch behind it, saying how far, whether the merge is clean and how to bring it in, and a target it could not fetch. Every pull request asks it first (D-227) |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125). Given `wave/<id>` or `series/<id>`, every cycle the pull request changes gets the whole chain, and every test named in every built cycle's plan must have passed at the run's last recorded run (D-206) |
 | `tested <branch>` | `true` when a promotion merges exactly that branch's tip and the platform's runs, piped to standard input, list a green one of it, so a pipeline builds and skips the tests; `false` for anything else, including what it cannot read. Holds no token: the pipeline fetches the runs. Always exits 0 (D-196) |
-| `admission <branch> --base <branch>` | `true` when everything a pull request changes is under `.sdlc/`, so a pipeline skips the build and the tests; `false` when one path is outside. Always exits 0 (D-87, D-125, D-193) |
+| `admission <branch> --base <branch>` | `true` when everything a pull request changes is a record of work in progress — a cycle's folder, a successor, a series' record — and no cycle's file is deleted, so a pipeline skips the build and the tests; `false` otherwise. Always exits 0 (D-87, D-125, D-193, D-229) |
 | `promotion <source> --base <target>` | `true` when a pull request promotes the integration branch or a `release/*` branch into another branch, so a pipeline skips the chain; `false` when it targets the integration branch or a release branch; exits 1 when anything else targets another branch (D-136) |
 | `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing. `--approvals`, `--owner` and `--self-approve` set who must approve (D-136) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
@@ -7814,6 +7816,36 @@ nobody agreed to govern -- produces drafts on a local branch, which bind nothing
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
 
+### D-229 — Only the records of work in progress skip a pull request's build; what a person wrote, or a cycle's folder removed, is tested before it merges
+
+**Governs:** §13
+
+**Amends D-193**, which skipped the build and the tests on every pull request that changed nothing outside `.sdlc/`.
+
+**Decision.** `sdlc admission` answers `true` only when every path a pull request changes is in a cycle's folder,
+a successor or a series' folder, and no cycle's file is deleted: a plan, a slicing with its successors, an admission,
+a successor reviewed, a series' record. A started successor's file may go, as it does in the pull request that opens
+its cycle. Anything else under `.sdlc/` — `decisions.md`, `constraints.md`, `areas.md`, `techstack.md`, `solution.md`,
+`theme.json`, a harvest's own records — or a cycle's file deleted, as a harvest's close does, answers `false`, and the
+pipeline builds and tests it. The chain judges every one as before. What a branch brought up to date takes the merge
+on, nothing built, is unchanged: everything under `.sdlc/` (D-227).
+
+**Why.** D-193 accepted that a solution test reading a record would be skipped on such a pull request and named by
+the integration branch's merge build one step later. It happened: a governed solution's harvest close — 23 cycles'
+folders removed, decisions superseded and reworded — passed its pull request with the build and the tests skipped, and
+its merge to the integration branch failed two of the solution's own tests, one reading a superseded decision's
+wording and one counting on the cycles' review records being tracked. One step later was a red integration branch,
+after a person had approved the merge. The pull requests the skip exists for — a plan's paperwork, a slicing, a
+successor — are frequent and touch only work in progress, which no test reads; a harvest's close is rare, and is the
+one that changes what a solution has every reason to test.
+
+**Rejected.** *Dropping the skip*: the plan and successor pull requests it was made for would pay a full run again,
+ten minutes of end-to-end tests for files nothing reads. *A rule that a solution's tests do not read `.sdlc/`*: a
+solution testing its own decision record is reasonable, as D-193 already allowed for its documents. *A key in
+`solution.md` switching the skip off*: one more setting, which helps only the team that already knows the failure.
+*Listing what to build rather than what to skip*: a new record the framework adds later would then be skipped
+unseen; listing what may be skipped fails safe, to a build.
+
 ### D-228 — A series' wave takes a few items, three unless a person says, and a series runs them one after another
 
 **Governs:** §10.6
@@ -7865,7 +7897,7 @@ branch up to date. It refuses a target it could not fetch as well, since nothing
   slicing, a sandbox's admission, a verified build, a draft, a run, and an update to one already open — and
   `close-cycle` before a harvest's close; `sdlc upgrade apply` asks the same before it pushes a move. First, because a merge it asks for changes what `pr-ready`, the gate and
   `verify-chain` then read.
-- **A branch of records alone** — everything it changes under `.sdlc/`, as `admission` decides (D-193) — takes the
+- **A branch of records alone** — everything it changes under `.sdlc/` (D-193) — takes the
   merge and is asked again. Nothing was built, so nothing is judged again; the chain check that follows reads the
   merged branch. A merge that stops on a conflict is aborted and handed back: a conflict in a record is a person's.
 - **A branch of built code** is handed back, because the merge changes the code its verification judged and that

@@ -119,10 +119,10 @@ public static class VerifyChain
     /// Whether every path a pull request changes is under <c>.sdlc/</c>, which no build reads (D-193).
     /// </summary>
     /// <remarks>
-    /// <strong>What a pipeline skips the build and the tests on.</strong> A plan's paperwork, a slicing's plans, a
-    /// harvest's records and a successor are each a case of it; the chain still judges every one, so a records-only
-    /// pull request the chain does not admit fails there rather than in a build. One path outside, and everything
-    /// runs. A solution test that reads a record is the accepted cost: the integration branch's merge build runs it.
+    /// <strong>What a branch brought up to date takes the merge on, nothing built</strong> (D-227). A plan's paperwork,
+    /// a slicing's plans, a harvest's records and a successor are each a case of it. What a pipeline skips the build
+    /// and the tests on is narrower, <see cref="NothingToTest"/> (D-229): a harvest's records can be what a solution's
+    /// tests read.
     /// </remarks>
     /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
     /// <returns>True when there is at least one, and every one is.</returns>
@@ -134,6 +134,42 @@ public static class VerifyChain
 
         return changed.Count > 0
             && changed.All(path => path.Replace('\\', '/').TrimStart('/').StartsWith(sdlc, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// Whether a pull request changes only the records of work in progress, so a pipeline may skip the build and the
+    /// tests on it (D-229).
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Narrower than <see cref="RecordsOnly"/>.</strong> Every changed path is in a cycle's folder, a
+    /// successor or a series' folder -- a plan, a slicing, an admission, a successor reviewed, a series' record -- and no
+    /// cycle's file is deleted. A solution's tests may read what a person wrote under <c>.sdlc/</c>, its decisions, its
+    /// constraints, its theme, or count on a cycle's files being there, and a harvest's close changes the one and deletes
+    /// the other: such a pull request is built and tested before it merges, not named by the integration branch once
+    /// it has.</para>
+    /// <para>A successor's file may go: starting one removes it in the pull request that opens its cycle.</para>
+    /// </remarks>
+    /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
+    /// <param name="deleted">Which of them the pull request deletes.</param>
+    /// <returns>True when there is at least one, and every one is a record of work in progress.</returns>
+    public static bool NothingToTest(IReadOnlyList<string> changed, IReadOnlyCollection<string> deleted)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+        ArgumentNullException.ThrowIfNull(deleted);
+
+        string cycles = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/";
+        string[] inProgress =
+        [
+            cycles,
+            Cycle.SdlcDirectoryName + "/" + Successors.Successor.DirectoryName + "/",
+            Cycle.SdlcDirectoryName + "/" + Series.SeriesRecord.DirectoryName + "/",
+        ];
+
+        static string Normal(string path) => path.Replace('\\', '/').TrimStart('/');
+
+        return changed.Count > 0
+            && changed.All(path => inProgress.Any(prefix => Normal(path).StartsWith(prefix, StringComparison.Ordinal)))
+            && !deleted.Any(path => Normal(path).StartsWith(cycles, StringComparison.Ordinal));
     }
 
     /// <summary>
