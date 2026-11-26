@@ -1889,8 +1889,10 @@ recorded change, and nothing changed after the last cycle's head but what a merg
 **A series asks nobody.** It suggests each successor's intent and keeps it, leaving what it inferred marked
 `(inferred)` — the one place the schema allows a mark to stay — and plans each cycle with its full loop. **It stops
 at the number of waves a person set or an empty backlog**, whichever comes first: an open-ended run is spend nobody
-chose. Its record, `.sdlc/series/<id>/series.json`, is written only by the binary — `sdlc series start` and `sdlc
-series wave` — and says what each wave took; membership in a series lives there and nowhere else.
+chose. **A wave takes a few items, never the whole backlog** — three unless the person names a wave size — and a
+series runs them one after another, never at once, so a usage limit reached mid-wave leaves the finished items
+finished (D-228). Its record, `.sdlc/series/<id>/series.json`, is written only by the binary — `sdlc series
+start` and `sdlc series wave` — and says what each wave took; membership in a series lives there and nowhere else.
 
 **The series is the unit a person accepts or rejects**, at its one pull request, and the report names what depends
 on what so the cost of reverting part of it can be seen. A rejected series is abandoned in one step:
@@ -2655,7 +2657,7 @@ they print verbatim.
 | `build [<id>]` | *build it*, the one stage the binary runs rather than names a skill for (D-187): commits the approval a person placed in the sandbox when it is uncommitted, admits the plan when it is only in a sandbox, opens the build's worktree beside the repository on `cycle/<id>/build-unattended`, starts the build's own process there — headless, its tools named, never with permission checks off, never marked as a reader — waits, and prints the report. With no id, every queued cycle in one process started from the checkout, each in a worktree of its own; a plan only in a sandbox is queued only when named. With `--run`, on a run's branch — `wave/<id>` or `series/<id>` — its process builds every cycle the branch carries into that branch, with no branch or worktree of a cycle's own, and opens the run's one pull request; refused anywhere else. Refuses when the build's process cannot start or ends without a report — D-178, D-183, D-184, D-187, D-205 |
 | `report <id>` | the report a build ends on and the pull request leads with: deviations, choices, what was changed at the person's request, and the verification's open suggestions as concerns, in markdown. Merging the pull request accepts it (D-181) |
 | `report --run` | on a run's branch, the one report the run ends on and its pull request leads with, never one per cycle: a section per wave of a series, a short entry per cycle the branch carries — its outcome and its own report's facts, and for a series every intent line marked `(inferred)` as confirmed by nobody — what stopped with the successors and parked cycles it held back, and every rule, decision and successor it names with its text. Keeps a copy under `.sdlc/reports/`; exits 1 when a cycle's deviations are unsound — D-207 |
-| `series start --waves <n>\|wave\|status [<id>]\|run [<id>]` | a series: wave after wave into one branch, `series/<id>`, ending in one pull request. `start` opens its worktree beside the repository from the integration branch and commits its record, `.sdlc/series/<id>/series.json`, with the wave limit and the approval setting, printing the worktree; `wave`, on the series' branch, records the next wave — every successor and parked cycle ready against the branch under `approval: none`, every approved cycle nothing has built under `approval: required` — with what starts each, refusing once the limit is reached and recording nothing when nothing is ready; `status` the waves, each item's cycle and where it stands, and the backlog judged against the branch; `run` starts the series' own process in its worktree, as `build` starts a build's — D-205 |
+| `series start --waves <n> [--wave-size <n>]\|wave\|status [<id>]\|run [<id>]` | a series: wave after wave into one branch, `series/<id>`, ending in one pull request. `start` opens its worktree beside the repository from the integration branch and commits its record, `.sdlc/series/<id>/series.json`, with the wave limit, the wave size (3 unless named) and the approval setting, printing the worktree; `wave`, on the series' branch, records the next wave — at most the wave size of the successors and parked cycles ready against the branch under `approval: none`, of the approved cycles nothing has built under `approval: required`, parked or approved cycles first — with what starts each, refusing once the limit is reached and recording nothing when nothing is ready; `status` the waves, each item's cycle and where it stands, and the backlog judged against the branch; `run` starts the series' own process in its worktree, as `build` starts a build's — D-205, D-228 |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, a new blocker without a one-line gist (D-110), a new blocker citing a rule its reader was not handed (D-174), and a new finding quoting its rule in other words (D-177). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session decides the dispositions of earlier findings (D-49), and `--answered`/`--withdrawn` copy the ones it settles in from the ledger word for word — D-117, D-121, D-162 |
@@ -7811,6 +7813,40 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-228 — A series' wave takes a few items, three unless a person says, and a series runs them one after another
+
+**Governs:** §10.6
+
+**Amends D-205**, whose wave took everything ready against the series branch.
+
+**Decision.** `sdlc series start --waves <n> [--wave-size <n>]` records how many items one wave may take beside its
+wave limit, 3 when no size is named, and refuses a size below one. `sdlc series wave` takes no more than that: parked
+cycles first under `approval: none`, since each was planned once already, approved cycles first under `approval:
+required`, then successors. What is ready past the size stays ready for a later wave, and the wave says how many wait.
+A record written before the key existed reads as the default, so a series already running takes its next wave at
+three. The waves times the wave size is the most a series can take on, and both numbers are the person's.
+
+**A series runs its items one after another, in its own process, never handed to subagents or background tasks at
+once.** `series` says so for every skill it runs, `to-plan` for every cycle it takes, and `sdlc series wave` prints it
+under each wave.
+
+**Why.** A real series under `approval: none` took its first wave from a backlog of twenty-five ready successors, and
+its process opened every cycle and handed them to planning agents running at once. Eleven minutes later it had spent
+about six million weighted tokens — four and a half in orchestration, each agent rebuilding the same 100–180k of
+context, one and a third in reader panels — reached the person's usage limit, and stopped with five cycles partly
+planned, two of them to a plan, twenty untouched and nothing built. Planning the whole wave would have cost about
+fifteen million before a line was built. The wave limit bounded how many waves, not what one wave could take, so the
+spend a series could reach was the backlog's size, which nobody chose. Run at once, the items cost no less in total
+and the whole spend lands inside one usage window; a limit reached mid-wave leaves every item half done, where one at
+a time leaves the finished ones finished.
+
+**Rejected.** *Requiring the size, as the wave limit is required*: a small default is safe to leave unsaid, and one
+more number asked at every start is one more decision the person did not want. *Capping the whole series' items
+rather than each wave's*: a wave is planned and built before the next, so the wave is what one stretch of spend and
+one failure can reach. *Taking successors before parked cycles*: a parked cycle's plan exists already and waits only
+on code that has now landed. *Leaving parallelism to the agent and capping only the size*: the size bounds the total;
+the timing is what met the usage window, and nothing in the skill had told the agent which way to run.
 
 ### D-227 — No pull request is opened from a branch that has not taken its target's latest, fetched rather than assumed
 

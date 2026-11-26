@@ -1619,10 +1619,18 @@ static async Task<int> SeriesCommand(CommandLine line)
                 return ExitCode.Usage;
             }
 
+            int waveSize = SeriesRecord.DefaultWaveSize;
+
+            if (line.TryOption("wave-size", out string? size) && !int.TryParse(size, NumberStyles.Integer, CultureInfo.InvariantCulture, out waveSize))
+            {
+                await Console.Error.WriteLineAsync($"How many items may one wave take? As in 'sdlc series start --waves 3 --wave-size 2'; left out, it is {SeriesRecord.DefaultWaveSize}.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
             return await Workspace.Run(rest, async workspace =>
             {
                 Result<StartSeries.Response> started = await workspace
-                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves))
+                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves, waveSize))
                     .ConfigureAwait(false);
 
                 if (started.IsFailed)

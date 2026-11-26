@@ -734,7 +734,7 @@ it plans nothing and builds only cycles a person approved, in wave order.
 #### Syntax
 
 ```
-/sdlc:series [<id>] [--waves <n>] [--unattended]
+/sdlc:series [<id>] [--waves <n>] [--wave-size <n>] [--unattended]
 ```
 
 #### Parameters
@@ -743,6 +743,7 @@ it plans nothing and builds only cycles a person approved, in wave order.
 |---|---|
 | `<id>` | the series, as `sdlc series start` named it. `sdlc series run` passes it; a person starting one names none |
 | `--waves <n>` | how many waves it may run: it stops there or when nothing is ready, whichever comes first. Asked for when not given, since an open-ended run is spend nobody chose |
+| `--wave-size <n>` | how many items one wave may take, 3 when not given: what is ready past it waits for the next wave, so the waves times the wave size is the most a series takes on (D-228) |
 | `--unattended` | run as the series' own process: ask nothing. `sdlc series run` passes it, and the factory's pipeline runs it. A person never needs to type it |
 
 #### Output
@@ -756,7 +757,7 @@ summary followed by `sdlc report --run`.
 
 | Condition | Result | What to do |
 |---|---|---|
-| fewer than one wave | `sdlc series start` refuses | name a number |
+| fewer than one wave, or a wave size below one | `sdlc series start` refuses | name a number |
 | `sdlc series run` names no series, or the worktree is not on its branch | refuses, saying which worktree to pass | `--solution` with the path `sdlc series start` printed |
 | a cycle's loop cannot settle, or a question only a person can answer comes up | that cycle stops where it is, with its reason; the series goes on with what is ready | answer it after the series, then take it to plan |
 | a verification stays blocked | that cycle and every cycle depending on it stop; the rest carry on | the pull request's report names each |

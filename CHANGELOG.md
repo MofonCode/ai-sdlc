@@ -91,6 +91,12 @@ a plan, a slicing, an admission, a harvest's close — takes the merge and goes 
 and verified again through `remediate`, which a build, a run or a series does unattended only when the merge is
 clean. A conflict opens nothing and is named in the report, for a person.
 
+**A series takes a few items a wave, one after another** (D-228). `sdlc series start --waves <n> [--wave-size <n>]`
+records how many items one wave may take, 3 unless named, and `sdlc series wave` takes no more — parked or approved
+cycles first, then successors — saying how many more wait for a later wave. The series playbook and `to-plan` run
+each item in their own process, one at a time, never handed to subagents at once. A series that took a backlog of
+twenty-five as one wave, planned all at once, reached its person's usage limit in eleven minutes with nothing built.
+
 **What moving to it asks.** Nothing to write by hand except where named below. It is a minor because several
 things can now block or refuse where they passed before, and a successor file gained a key a binary before it refuses,
 so every machine and pipeline reading a solution's successors moves together:
@@ -111,6 +117,9 @@ so every machine and pipeline reading a solution's successors moves together:
   already declares a `variables:` block has it replaced, and the merge names it, so carry your variables back into
   the new block. `sdlc doctor` may now fail on an older `constraints.md` header: change the line it names by hand.
 - `suggestions.json` and `harvested.json` gained a `recurred` key (D-221), which a binary before 0.58 ignores.
+- **A series' wave takes at most three items** unless started with `--wave-size` (D-228). A series already running
+  takes its next wave at three; what it opened in earlier waves is still planned and built. `series.json` gained a
+  `wave_size` key, which a binary before 0.58 ignores.
 
 ## 0.57
 

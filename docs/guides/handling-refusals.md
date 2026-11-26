@@ -591,9 +591,10 @@ A series runs wave after wave into `series/<id>`, in a worktree of its own; `sdl
 ### fewer than one wave
 
 `sdlc series start --waves <n>` was given a number below one. A series stops at its number of waves or an empty
-backlog, whichever comes first, and the number is the person's: an open-ended run is spend nobody chose.
+backlog, whichever comes first, and the number is the person's: an open-ended run is spend nobody chose. A
+`--wave-size` below one is refused the same way: a wave takes at least one item, and 3 when no size is named.
 
-**Next:** start it again with the number of waves it may run.
+**Next:** start it again with the number of waves it may run, and leave `--wave-size` out or give it a number.
 
 ### not on a series' branch
 

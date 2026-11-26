@@ -15,6 +15,9 @@ namespace Sdlc.Core.Series;
 /// <remarks>
 /// <para><strong>A series stops at a number of waves or an empty backlog, whichever comes first.</strong> The person
 /// states the number when they start it; an open-ended run is spend nobody chose, so there is no default.</para>
+/// <para><strong>A wave takes a few items, never the whole backlog</strong> (D-228). Every item is planned and built
+/// before the next wave, so the waves times the wave size is the most a series can take on; given no size, it is
+/// <see cref="SeriesRecord.DefaultWaveSize"/>.</para>
 /// <para><strong>What it may do follows the approval setting, read once, here.</strong> Under <c>approval: none</c> it
 /// plans and builds wave after wave; under <c>approval: required</c> it builds only cycles a person already approved,
 /// because planning past that point would break the guarantee the setting exists for.</para>
@@ -33,7 +36,8 @@ public static class StartSeries
 
     /// <summary>Asks for a series to start.</summary>
     /// <param name="Waves">How many waves it may run, at least one.</param>
-    public sealed record Command(int Waves) : IRequest<Response>;
+    /// <param name="WaveSize">How many items one wave may take, at least one.</param>
+    public sealed record Command(int Waves, int WaveSize = SeriesRecord.DefaultWaveSize) : IRequest<Response>;
 
     /// <summary>The series started.</summary>
     /// <param name="Id">Its id.</param>
@@ -57,7 +61,7 @@ public static class StartSeries
         return string.Create(
             CultureInfo.InvariantCulture,
             $"""
-            Started series {started.Id} on {started.Branch}, from {started.From}, in {started.Worktree}: at most {started.Record.Limit} wave{(started.Record.Limit == 1 ? string.Empty : "s")}.
+            Started series {started.Id} on {started.Branch}, from {started.From}, in {started.Worktree}: at most {started.Record.Limit} wave{(started.Record.Limit == 1 ? string.Empty : "s")} of at most {started.Record.WaveSize} item{(started.Record.WaveSize == 1 ? string.Empty : "s")} each, one after another.
             The solution declares {does}
             Next: 'sdlc series run {started.Id} --solution "{started.Worktree}"' starts its own process there; it ends in one pull request.
 
@@ -75,6 +79,13 @@ public static class StartSeries
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"A series runs at least one wave, and {request.Waves} is not one. Say how many it may run, as in 'sdlc series start --waves 3': it stops there or when nothing is ready, whichever comes first."));
+            }
+
+            if (request.WaveSize < 1)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"A wave takes at least one item, and {request.WaveSize} is not one. Leave --wave-size out for {SeriesRecord.DefaultWaveSize}, or name a number, as in 'sdlc series start --waves 3 --wave-size 2'."));
             }
 
             string root = solution.Path;
@@ -107,7 +118,7 @@ public static class StartSeries
                 return opened.ToResult<Response>();
             }
 
-            var record = SeriesRecord.Start(id, clock.GetUtcNow(), request.Waves, approval);
+            var record = SeriesRecord.Start(id, clock.GetUtcNow(), request.Waves, approval, request.WaveSize);
             string path = SeriesRecord.PathIn(worktree, id);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, record.Write(), cancellationToken).ConfigureAwait(false);
@@ -115,7 +126,7 @@ public static class StartSeries
             Result committed = repository.Commit(
                 worktree,
                 [SeriesRecord.RelativeDirectory(id) + "/" + SeriesRecord.FileName],
-                string.Create(CultureInfo.InvariantCulture, $"Start a series of {request.Waves} wave{(request.Waves == 1 ? string.Empty : "s")}"));
+                string.Create(CultureInfo.InvariantCulture, $"Start a series of {request.Waves} wave{(request.Waves == 1 ? string.Empty : "s")} of {request.WaveSize}"));
 
             return committed.IsFailed
                 ? committed

@@ -2,7 +2,7 @@
 name: series
 description: Run a series -- wave after wave of ready successors and parked cycles, planned and built one after another into one series branch, ending in one pull request, until its wave limit or an empty backlog. In a person's session it starts the series and runs sdlc series run, which starts this playbook again in a process of its own; there, with --unattended, it takes each wave, runs intent and to-plan for what needs planning and build for the wave, and pr once at the end. Under approval required it plans nothing and builds approved cycles in wave order. A playbook. Use when a person wants a sliced piece of work carried through several waves without stopping at each, and as the factory's run.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[<id>] [--waves <n>] [--unattended]"
+argument-hint: "[<id>] [--waves <n>] [--wave-size <n>] [--unattended]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -15,7 +15,7 @@ successor's intent, `to-plan` checks and plans each cycle, `build` builds each w
 
 | Run as | Where | Does |
 |---|---|---|
-| `/sdlc:series --waves <n>` | a person's session | starts the series, runs `sdlc series run`, hands back what it printed — *In a person's session* |
+| `/sdlc:series --waves <n> [--wave-size <n>]` | a person's session | starts the series, runs `sdlc series run`, hands back what it printed — *In a person's session* |
 | `/sdlc:series <id> --unattended` | the process `sdlc series run` starts, and the factory | wave after wave: take it, plan what needs planning, build it, record it; then the pull request — *In its own process* |
 
 **What a series may do follows the approval setting** (D-137):
@@ -37,9 +37,12 @@ person relied on.
 
 **The person states how many waves it may run**: a series stops at that number or when nothing is ready,
 whichever comes first, and an open-ended run is spend nobody chose. Given no `--waves`, ask for the number, once.
+**A wave takes at most `--wave-size` items**, 3 when the person names none (D-228): what is ready past it waits for
+the next wave, so the waves times the wave size is the most the series takes on. Pass `--wave-size` only when the
+person gave one.
 
 ```
-sdlc series start --waves <n>
+sdlc series start --waves <n> [--wave-size <n>]
 ```
 
 It opens `series/<id>` from the integration branch, in a worktree beside the repository, with the series' record
@@ -83,6 +86,12 @@ from what was written down goes where the report finds it — an intent's `(infe
 
 **It builds; it never merges, never approves, and never writes a file only a person writes.**
 
+**One item at a time, never in parallel** (D-228). Every skill this playbook runs is run here, in this process, one
+after another: each successor's intent, each cycle's spec and plan with its loop, each build. **Never hand items to
+subagents or background tasks to run at once.** Run together, each one rebuilds the same context, the whole wave
+spends at once, and a usage limit reached mid-wave leaves every item half done instead of the finished ones
+finished and the rest untouched.
+
 ## Nobody approves a tool call here
 
 `sdlc series run` starts this process with its tools named, as a build's are: the skills this playbook reaches,
@@ -97,7 +106,8 @@ on Windows.
 sdlc series wave
 ```
 
-It records the next wave in the series' record and prints one line per item with what starts it. **When it says
+It records the next wave in the series' record — at most the series' wave size, parked cycles first — and prints one
+line per item with what starts it. **When it says
 the series is finished** — its limit reached, or nothing ready against the series branch — go to §5.
 
 ## 2. Each item, as the line says

@@ -278,7 +278,7 @@ behind what merged — there are two larger ones. **Each is one skill, ends in o
 |---|---|---|---|
 | **cycle** — *build it*, `/sdlc:build` | one approved cycle, on its own branch | everything above | the cycle's |
 | **wave** — `/sdlc:wave` | every item ready now, planned together in one sandbox, then built one after another on `wave/<id>` | each successor's inferred lines and the suggestions; under `approval: required` it stops at the approvals, and `/sdlc:wave` again builds what you approved | one, the wave's |
-| **series** — `/sdlc:series --waves <n>` | wave after wave on `series/<id>`, until that many waves or nothing is ready | nothing, once started | one, the series' |
+| **series** — `/sdlc:series --waves <n> [--wave-size <n>]` | wave after wave on `series/<id>`, at most three items a wave unless `--wave-size` says, one after another, until that many waves or nothing is ready | nothing, once started | one, the series' |
 
 **A series plans only where nobody reads plans before code anyway.** Under `approval: none` it suggests each
 successor's intent, plans it and builds it, wave after wave, asking nobody; every line it inferred stays marked and

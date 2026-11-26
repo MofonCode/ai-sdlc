@@ -60,7 +60,8 @@ It writes `.azuredevops/sdlc-factory.yml` or `.github/workflows/sdlc-factory.yml
    build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
    in writes nothing either, and would pass
 3. runs one series: `sdlc series start --waves <n>` opens `series/<id>` from `development` in a worktree, and
-   `sdlc series run` starts its own process there, which takes wave after wave — under `approval: required`
+   `sdlc series run` starts its own process there, which takes wave after wave, at most three items each, one after
+   another (D-228) — under `approval: required`
    every approved cycle not yet built, in wave order; under `approval: none` every ready successor and parked
    cycle too, planned and built — until the number of waves or an empty backlog, and opens **one pull request**,
    led by the series' report: what each cycle did, and what stopped and what it held back. The binary checks

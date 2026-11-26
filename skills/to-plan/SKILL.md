@@ -41,7 +41,8 @@ one, and when several are listed the person asked for all of them, so take every
 ready — already planned, approved, or abandoned — and `sdlc cycles --here` lists everything carried, so name each
 one you leave out, with `sdlc status <id>` for why.
 
-**Say what you will take, in one line per cycle, and go.**
+**Say what you will take, in one line per cycle, and go** — one cycle at a time, its loops clean or stopped
+before the next starts, never several handed to subagents at once (D-228).
 
 **Given a correction or finding ids** — the person said what should change, at a hand-back or on their own —
 run **`steer`** with their words and the ids first, then pick the cycle up as §2 says: the documents it edited

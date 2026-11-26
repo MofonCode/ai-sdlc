@@ -151,20 +151,23 @@ internal static class Usage
                                      another, into it -- no branch or worktree of a cycle's own --
                                      and opens the run's one pull request. Refused on any other
                                      branch. --solution names the run's worktree.
-            series start --waves <n>
+            series start --waves <n> [--wave-size <n>]
                                      Start a series: series/<id> from the integration branch, in
                                      a worktree beside the repository, its record committed there
-                                     at .sdlc/series/<id>/series.json with the wave limit and the
+                                     at .sdlc/series/<id>/series.json with the wave limit, how many
+                                     items a wave may take (3 unless --wave-size says) and the
                                      approval setting. Prints the worktree's path alone; what it
                                      will do and the next command go to standard error. Under
                                      approval: required it builds only approved cycles. Refuses
-                                     fewer than one wave.
+                                     fewer than one wave, or a wave size below one.
             series wave              On series/<id>: record the next wave and print one line per
-                                     item with what starts it. Under approval: none, every
-                                     successor and parked cycle ready against the series branch;
-                                     under approval: required, every approved cycle nothing has
-                                     built that no earlier wave took. Refuses once every wave is
-                                     taken; records nothing when nothing is ready. Commits nothing.
+                                     item with what starts it, at most the series' wave size,
+                                     parked cycles first, saying how many more wait. Under
+                                     approval: none, successors and parked cycles ready against
+                                     the series branch; under approval: required, approved cycles
+                                     nothing has built that no earlier wave took. Refuses once
+                                     every wave is taken; records nothing when nothing is ready.
+                                     Commits nothing.
             series status [<id>]     The series' waves, each item's cycle and where it stands --
                                      planned, built: pass, blocked, escalated, abandoned -- and
                                      the backlog judged against the series branch.

@@ -35,8 +35,8 @@ public sealed record SeriesItem(SeriesItemKind Kind, string Ref, string? Cycle);
 public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyList<SeriesItem> Items);
 
 /// <summary>
-/// A series' own record, <c>.sdlc/series/&lt;id&gt;/series.json</c>: its wave limit, the approval setting it started
-/// under, and what each wave took.
+/// A series' own record, <c>.sdlc/series/&lt;id&gt;/series.json</c>: its wave limit, how many items a wave may take,
+/// the approval setting it started under, and what each wave took.
 /// </summary>
 /// <remarks>
 /// <para><strong>Written only by the binary</strong>, committed on the series branch, so it reaches the integration
@@ -58,8 +58,15 @@ public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyLis
 /// <param name="Limit">How many waves it may run.</param>
 /// <param name="Approval">The approval setting <c>solution.md</c> declared when it started.</param>
 /// <param name="Waves">Each wave taken, in order.</param>
-public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves)
+/// <param name="WaveSize">
+/// How many items one wave may take; what is ready past it waits for the next wave (D-228). A record written before the
+/// key existed reads as <see cref="DefaultWaveSize"/>.
+/// </param>
+public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize)
 {
+    /// <summary>How many items a wave takes when the person starting the series names no number.</summary>
+    public const int DefaultWaveSize = 3;
+
     /// <summary>The directory every series' folder is in, inside the framework's.</summary>
     public const string DirectoryName = "series";
 
@@ -104,9 +111,10 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
     /// <param name="started">When it started.</param>
     /// <param name="limit">How many waves it may run.</param>
     /// <param name="approval">The approval setting it starts under.</param>
+    /// <param name="waveSize">How many items one wave may take.</param>
     /// <returns>The record.</returns>
-    public static SeriesRecord Start(string id, DateTimeOffset started, int limit, ApprovalRequirement approval) =>
-        new(id, started, limit, approval, []);
+    public static SeriesRecord Start(string id, DateTimeOffset started, int limit, ApprovalRequirement approval, int waveSize = DefaultWaveSize) =>
+        new(id, started, limit, approval, [], waveSize);
 
     /// <summary>Reads a record's text.</summary>
     /// <param name="json">The text.</param>
@@ -125,10 +133,12 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
                 return Result.Fail<SeriesRecord>(source + ": the series record names no series.");
             }
 
-            // An absent list is an empty one, so a record written before a key existed still reads.
+            // An absent list is an empty one, and an absent wave size the default, so a record written before a key
+            // existed still reads.
             return Result.Ok(read with
             {
                 Waves = [.. (read.Waves ?? []).Select(wave => wave with { Items = wave.Items ?? [] })],
+                WaveSize = read.WaveSize < 1 ? DefaultWaveSize : read.WaveSize,
             });
         }
         catch (JsonException error)
