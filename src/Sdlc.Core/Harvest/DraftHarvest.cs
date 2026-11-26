@@ -97,7 +97,11 @@ public static class DraftHarvest
     /// <param name="Statement">The entry's one line, or the stack choice.</param>
     /// <param name="Body">The entry's clauses, evidence lines left out.</param>
     /// <param name="Accepted">Whether the person marked it.</param>
-    public sealed record Proposal(Record Record, Operation Operation, string? Target, string Statement, string Body, bool Accepted);
+    /// <param name="Held">
+    /// Whether the person marked it <c>[h]</c>: a successor wanted, not now, drafted with <c>held:</c> so nothing
+    /// unattended starts it (D-220). Held is accepted too; only a successor can be held.
+    /// </param>
+    public sealed record Proposal(Record Record, Operation Operation, string? Target, string Statement, string Body, bool Accepted, bool Held = false);
 
     /// <summary>Drafts the accepted lines of one proposal file.</summary>
     /// <param name="From">The proposal file, as <c>/sdlc:harvest</c> wrote it and the person marked it.</param>
@@ -107,8 +111,8 @@ public static class DraftHarvest
     /// Reads a proposal file: <c>## Rules</c>, <c>## Decisions</c> and <c>## Stack</c>, each holding
     /// <c>### [ ] add — statement</c>, <c>### [ ] supersede LOC_02 — statement</c>,
     /// <c>### [ ] reword LOC_01 — statement</c> or <c>### [ ] set concern — choice</c> headings with the
-    /// entry's clauses below. <c>[x]</c> marks one accepted. A line starting <c>&gt;</c> is evidence and
-    /// is not drafted.
+    /// entry's clauses below. <c>[x]</c> marks one accepted, and <c>[h]</c> a successor accepted and held
+    /// (D-220). A line starting <c>&gt;</c> is evidence and is not drafted.
     /// </summary>
     /// <param name="markdown">The file.</param>
     /// <returns>Every proposal, accepted or not, or a failure naming the heading it could not read.</returns>
@@ -118,14 +122,14 @@ public static class DraftHarvest
 
         List<Proposal> proposals = [];
         Record? record = null;
-        (Record Record, Operation Operation, string? Target, string Statement, bool Accepted)? open = null;
+        (Record Record, Operation Operation, string? Target, string Statement, bool Accepted, bool Held)? open = null;
         List<string> body = [];
 
         void Close()
         {
             if (open is { } current)
             {
-                proposals.Add(new Proposal(current.Record, current.Operation, current.Target, current.Statement, string.Join('\n', body).Trim(), current.Accepted));
+                proposals.Add(new Proposal(current.Record, current.Operation, current.Target, current.Statement, string.Join('\n', body).Trim(), current.Accepted, current.Held));
             }
 
             open = null;
@@ -160,7 +164,16 @@ public static class DraftHarvest
                     continue;
                 }
 
-                Result<(Operation, string?, string, bool)> heading = Heading(line[4..].Trim(), section);
+                string written = line[4..].Trim();
+                bool held = written.StartsWith("[h]", StringComparison.OrdinalIgnoreCase);
+
+                if (held && section != Record.Successors)
+                {
+                    return Result.Fail<IReadOnlyList<Proposal>>(string.Create(CultureInfo.InvariantCulture, $"'### {written}': only a successor can be held. Mark a rule, decision, stack or area proposal [x], or leave it [ ]."));
+                }
+
+                // Held is accepted, with the hold drafted onto the file: the rest of the heading reads as [x] does.
+                Result<(Operation, string?, string, bool)> heading = Heading(held ? "[x]" + written[3..] : written, section);
 
                 if (heading.IsFailed)
                 {
@@ -168,7 +181,7 @@ public static class DraftHarvest
                 }
 
                 (Operation operation, string? target, string statement, bool accepted) = heading.Value;
-                open = (section, operation, target, statement, accepted);
+                open = (section, operation, target, statement, accepted, held);
                 continue;
             }
 
@@ -605,8 +618,9 @@ public static class DraftHarvest
     /// </summary>
     /// <param name="proposal">The accepted proposal: <c>add &lt;slug&gt; — headline</c>, with <c>**Succeeds:**</c>,
     /// <c>**Outcome:**</c> and <c>**Why it matters:**</c> beneath.</param>
+    /// <param name="today">The day written as <c>held:</c> when the proposal is held (D-220).</param>
     /// <returns>The file's text, or what the proposal is missing.</returns>
-    public static Result<string> SuccessorFile(Proposal proposal)
+    public static Result<string> SuccessorFile(Proposal proposal, DateOnly today = default)
     {
         ArgumentNullException.ThrowIfNull(proposal);
 
@@ -641,6 +655,7 @@ public static class DraftHarvest
             [
                 "---",
                 "succeeds: " + clauses["Succeeds"],
+                .. proposal.Held ? (string[])["held: " + today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)] : [],
                 "---",
                 string.Empty,
                 "# " + proposal.Statement,
@@ -860,7 +875,7 @@ public static class DraftHarvest
     // One record's file on its way to a draft: as it stands, as drafted, what it assigned, what reached it.
     private sealed record Pending(string File, string? Original, string? Draft, List<string> Assigned, List<Proposal> Mine);
 
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, DraftResult>
+    private sealed class Handler(SolutionRoot solution, TimeProvider clock) : IRequestHandler<Command, DraftResult>
     {
         public async Task<Result<DraftResult>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -882,7 +897,7 @@ public static class DraftHarvest
 
             if (accepted.Count == 0)
             {
-                return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"Nothing in {request.From} is marked [x], so there is nothing to draft. Mark each proposal you accept, edit its wording as you want it, and run this again.")));
+                return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"Nothing in {request.From} is marked [x] or [h], so there is nothing to draft. Mark each proposal you accept, edit its wording as you want it, and run this again.")));
             }
 
             string directory = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
@@ -965,7 +980,7 @@ public static class DraftHarvest
 
             foreach (Proposal proposal in accepted.Where(proposal => proposal.Record == Record.Successors))
             {
-                Result<string> file = SuccessorFile(proposal);
+                Result<string> file = SuccessorFile(proposal, DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
 
                 if (file.IsFailed)
                 {

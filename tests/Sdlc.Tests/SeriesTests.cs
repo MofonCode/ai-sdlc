@@ -82,6 +82,23 @@ public sealed class SeriesTests
     }
 
     [TestMethod]
+    public async Task A_wave_never_takes_a_held_successor_even_once_what_it_waits_on_merged()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        SuccessorTests.Write(workspace, "totals", First);
+        await File.WriteAllTextAsync(Path.Combine(Successor.DirectoryOf(workspace.Root), "pause.md"), SuccessorTests.File(First, "held: 2026-11-26\n"));
+        Record(workspace, SeriesRecord.Start(Run, _now, 3, ApprovalRequirement.None));
+        FakeRepository git = OnSeries();
+        git.Files[Branch + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        NextWave.Response taken = await Wave(workspace, git);
+
+        Assert.IsNotNull(taken.Wave);
+        CollectionAssert.AreEqual(new[] { "totals" }, taken.Wave.Items.Select(item => item.Ref).ToArray(), "The held one is a person's to start (D-220).");
+    }
+
+    [TestMethod]
     public async Task Under_approval_required_a_wave_takes_only_approved_cycles_no_earlier_wave_took()
     {
         using CycleWorkspace workspace = Approved();

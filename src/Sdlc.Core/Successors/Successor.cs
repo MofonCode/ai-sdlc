@@ -68,6 +68,10 @@ public sealed record SuccessorReference(CycleId? Cycle, string? Slug)
 /// What in the framework fell short, when the work exists because of a gap there rather than in the solution
 /// (D-173). A harvest lists these for a person to take to the framework.
 /// </param>
+/// <param name="Held">
+/// The day a person put it on hold, when they did (D-220): wanted, not now. A held successor never comes ready, so
+/// nothing unattended starts it; a person starting it is what lifts the hold.
+/// </param>
 public sealed record Successor(
     string Slug,
     string? Headline,
@@ -76,7 +80,8 @@ public sealed record Successor(
     string? Mirror,
     string Outcome,
     string Why,
-    string? Framework = null)
+    string? Framework = null,
+    DateOnly? Held = null)
 {
     /// <summary>The directory under <c>.sdlc/</c> that holds the successors.</summary>
     public const string DirectoryName = "successors";
@@ -86,7 +91,7 @@ public sealed record Successor(
         RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(1));
 
-    private static readonly string[] _keys = ["succeeds", "sliced_from", "mirror", "framework"];
+    private static readonly string[] _keys = ["succeeds", "sliced_from", "mirror", "framework", "held"];
 
     /// <summary>
     /// Where a solution's successors live, relative to its root and forward-slashed.
@@ -170,7 +175,7 @@ public sealed record Successor(
         {
             problems.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"'{key}' is not a key a successor carries. It carries succeeds:, sliced_from:, mirror: and framework:."));
+                $"'{key}' is not a key a successor carries. It carries succeeds:, sliced_from:, mirror:, framework: and held:."));
         }
 
         List<SuccessorReference> succeeds = [];
@@ -214,6 +219,23 @@ public sealed record Successor(
                 $"mirror: '{mirror}' is not a work item. Name one as azuredevops:1234, github:56 or jira:PROJ-123."));
         }
 
+        string? heldText = Value(keys.Value, "held");
+        DateOnly? held = null;
+
+        if (heldText is not null)
+        {
+            if (DateOnly.TryParseExact(heldText, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly day))
+            {
+                held = day;
+            }
+            else
+            {
+                problems.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"held: '{heldText}' is not a day. Write the day it was put on hold as yyyy-mm-dd, as in held: 2026-11-26, or take the line out to lift the hold."));
+            }
+        }
+
         IReadOnlyDictionary<string, IReadOnlyList<string>> sections = ArtifactSections.Read(text);
         string outcome = Section(sections, "Outcome", problems);
         string why = Section(sections, "Why", problems);
@@ -228,7 +250,8 @@ public sealed record Successor(
                 mirror,
                 outcome,
                 why,
-                Value(keys.Value, "framework")));
+                Value(keys.Value, "framework"),
+                held));
     }
 
     private static string? Value(IReadOnlyDictionary<string, string?> keys, string key) =>

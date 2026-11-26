@@ -30,13 +30,18 @@ the cycles each was ignored in, and every successor marked `framework:`.
 
 | Answer | When | Where it lives afterwards |
 |---|---|---|
-| **taken further** | it is worth doing | a successor under `## Successors`, its text copied in — then the intent it becomes |
+| **taken further** | it is worth doing | a successor under `## Successors`, its text copied in — then the intent it becomes; held, when it is wanted and not now |
 | **declined** | somebody decided against it, and will be asked again | a `## Declined` line with the reason, kept in the sitting |
 | **covered** | a rule, a decision, a successor or a file already handles it | a `## Covered` line naming what covers it, checked and kept in the sitting |
 | **ignored** | nothing to do and nothing to decide: a one-off, a nicety, a reader's taste | an `## Ignored` line — a tally of the concern and the cycles |
 
 **Decline is not a polite ignore.** Propose one only where you can write the reason the person would give. **A
 decline is not a decision either**: it stays in the sitting and never reaches `decisions.md`.
+
+**On hold is not a decline.** A person who wants the work, and not now, marks its successor `[h]`: it is drafted with
+`held:` and the day, nothing unattended starts it, and starting it lifts the hold (D-220). Never word a decline as
+*not yet* — a decline is something decided against, and it asks again whenever the concern comes back. A later
+suggestion raising a held successor's concern is covered by `successor:<slug>`.
 
 **Covered is not a decline.** Where a rule in force, a standing decision, a successor or a file in this repository
 already handles the concern, nobody decided against it: name that thing. `sdlc harvest record` checks every covered
@@ -114,7 +119,7 @@ sdlc harvest summary <the proposal file>
 
 Show its output: the successors to mark, each answer counted by theme, and every rule, decision and successor the
 file names, with what it says. Add at most two sentences of your own; never one line per suggestion. They mark `[x]`
-on the successors they want and may move any line between sections. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
+on the successors they want, `[h]` on those they want and not now, and may move any line between sections. Keep its numbers: a person may answer by number instead (*accept all but 11*), and you mark the file as they said. Then stop.
 
 ## 5. Once they have marked it
 

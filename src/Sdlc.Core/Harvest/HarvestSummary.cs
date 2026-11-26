@@ -48,8 +48,9 @@ public static class HarvestSummary
 
     /// <summary>One proposal heading.</summary>
     /// <param name="Heading">The heading after its mark.</param>
-    /// <param name="Marked">Whether the person marked it <c>[x]</c>.</param>
-    public sealed record Proposal(string Heading, bool Marked);
+    /// <param name="Marked">Whether the person marked it <c>[x]</c> or <c>[h]</c>.</param>
+    /// <param name="Held">Whether the mark is <c>[h]</c>: a successor accepted and held (D-220).</param>
+    public sealed record Proposal(string Heading, bool Marked, bool Held = false);
 
     /// <summary>One kind of answer and its themes.</summary>
     /// <param name="Kind">The section: <c>Declined</c>, <c>Covered</c> or <c>Ignored</c>.</param>
@@ -76,9 +77,11 @@ public static class HarvestSummary
         {
             string line = raw.Trim();
 
-            if (line.StartsWith("### [ ]", StringComparison.Ordinal) || line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("### [ ]", StringComparison.Ordinal)
+                || line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase)
+                || line.StartsWith("### [h]", StringComparison.OrdinalIgnoreCase))
             {
-                proposals.Add(new Proposal(line[7..].Trim(), line[5] is 'x' or 'X'));
+                proposals.Add(new Proposal(line[7..].Trim(), line[5] is 'x' or 'X' or 'h' or 'H', line[5] is 'h' or 'H'));
             }
         }
 
@@ -142,14 +145,14 @@ public static class HarvestSummary
         {
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"Proposals: {response.Proposals.Count}, {response.Proposals.Count(proposal => proposal.Marked)} marked -- what you approve is each [x]"));
+                $"Proposals: {response.Proposals.Count}, {response.Proposals.Count(proposal => proposal.Marked)} marked -- what you approve is each [x], and each [h] a successor you want and hold"));
 
             for (int index = 0; index < response.Proposals.Count; index++)
             {
                 Proposal proposal = response.Proposals[index];
                 text.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"  {index + 1}. {(proposal.Marked ? "[x]" : "[ ]")} {proposal.Heading}"));
+                    $"  {index + 1}. {(proposal.Held ? "[h]" : proposal.Marked ? "[x]" : "[ ]")} {proposal.Heading}"));
             }
         }
 

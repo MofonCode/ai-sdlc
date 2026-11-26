@@ -12,7 +12,7 @@ namespace Sdlc.Core.Successors;
 /// read, so nothing stored can go stale and nothing shared is edited from two sandboxes at once.</para>
 /// <para><strong>A wave is how many merges stand between an item and its start.</strong> Ready now is the first;
 /// an item waiting only on cycles already open is the next; one waiting on that is the one after. Stuck and unresolved
-/// items are listed apart, since no merge makes them ready.</para>
+/// items are listed apart, since no merge makes them ready, and so are held ones, which a person starts (D-220).</para>
 /// </remarks>
 public static class BacklogRenderer
 {
@@ -34,13 +34,15 @@ public static class BacklogRenderer
                 s.State,
                 s.Waits,
                 "/sdlc:intent --from successor:" + s.Successor.Slug,
-                FirstLine(s.Successor.Outcome))),
+                FirstLine(s.Successor.Outcome),
+                s.Successor.Held)),
             .. read.Waiting.Select(p => new Item(
                 p.Cycle + " (parked)",
                 p.Headline,
                 p.State,
                 p.Waits,
                 "sdlc unpark " + p.Cycle + ", then read its spec and plan again",
+                null,
                 null)),
         ];
 
@@ -89,6 +91,23 @@ public static class BacklogRenderer
             {
                 Line(output, item);
                 output.AppendLine(Indent + Indent + "  " + (item.State == SuccessorState.Stuck ? "stuck: " : "unresolved: ") + string.Join(", ", item.Waits.Select(ReadSuccessors.Describe)));
+            }
+
+            output.AppendLine();
+        }
+
+        Item[] held = [.. items.Where(i => i.State == SuccessorState.Held)];
+
+        if (held.Length > 0)
+        {
+            output.AppendLine("On hold -- no wave takes these; a person starting one lifts its hold:");
+
+            foreach (Item item in held)
+            {
+                Line(output, item);
+                output.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Indent}{Indent}  held since {item.Held:yyyy-MM-dd}; start it: {item.Start}"));
             }
 
             output.AppendLine();
@@ -152,5 +171,5 @@ public static class BacklogRenderer
         return known[key] = deepest + 1;
     }
 
-    private sealed record Item(string Name, string? Headline, SuccessorState State, IReadOnlyList<ReadSuccessors.Wait> Waits, string Start, string? Outcome);
+    private sealed record Item(string Name, string? Headline, SuccessorState State, IReadOnlyList<ReadSuccessors.Wait> Waits, string Start, string? Outcome, DateOnly? Held);
 }

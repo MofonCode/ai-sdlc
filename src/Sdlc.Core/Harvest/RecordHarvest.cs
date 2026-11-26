@@ -58,7 +58,7 @@ public static class RecordHarvest
     /// <summary>What a proposal file answered, as <see cref="Read"/> finds it.</summary>
     /// <param name="Watch">The concerns watched.</param>
     /// <param name="Declined">The suggestions declined, one per id, each with why.</param>
-    /// <param name="Accepted">Every heading marked <c>[x]</c>.</param>
+    /// <param name="Accepted">Every heading marked <c>[x]</c>, or <c>[h]</c> for a successor accepted and held (D-220).</param>
     /// <param name="Ignored">The concerns ignored.</param>
     /// <param name="Covered">The <c>## Covered</c> lines, as written: checked before anything is recorded.</param>
     public sealed record Answers(
@@ -117,7 +117,7 @@ public static class RecordHarvest
         }
 
         List<string> accepted = [.. markdown.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
-            .Where(line => line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase))
+            .Where(line => line.StartsWith("### [x]", StringComparison.OrdinalIgnoreCase) || line.StartsWith("### [h]", StringComparison.OrdinalIgnoreCase))
             .Select(line => line[7..].Trim())];
 
         return new Answers(Concerns(sections, "Watch"), declined, accepted, Concerns(sections, "Ignored"), Covers(sections));

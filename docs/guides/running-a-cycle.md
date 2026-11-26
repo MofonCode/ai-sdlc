@@ -276,7 +276,8 @@ behind what merged — there are two larger ones. **Each is one skill, ends in o
 **A series plans only where nobody reads plans before code anyway.** Under `approval: none` it suggests each
 successor's intent, plans it and builds it, wave after wave, asking nobody; every line it inferred stays marked and
 the report lists each as confirmed by nobody. Under `approval: required` it plans nothing: it builds the cycles you
-approved, in wave order, and stops where an unapproved one comes next. A successor in a series is ready once its
+approved, in wave order, and stops where an unapproved one comes next. A successor you hold — `held:` on its file,
+or `[h]` in a harvest — is never taken; you start it yourself when you want it (D-220). A successor in a series is ready once its
 predecessor passed on the series' branch, so later waves build on earlier ones before any of it merges — which is
 why **the whole series is accepted or rejected together**, at its one pull request. Rejecting it is one step:
 `sdlc draft abandon --series <id>` prints the record you place to stop every cycle that exists only in it; an approved cycle already on the integration branch stays as it stands, to be built again.

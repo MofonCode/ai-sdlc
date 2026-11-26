@@ -306,7 +306,9 @@ A suggestion lead is also the record that the suggestion was accepted, and by wh
 **A successor is a lead too** (D-125): `successor:<slug>` names `.sdlc/successors/<slug>.md`, the piece of a
 slicing that waits on another's code. Its `succeeds:` lists what it waits for, as cycle ids or
 `successor:<slug>`, and its readiness — `waiting`, `ready`, `stuck`, `unresolved` — is worked out from the
-record on every read. `sdlc successors` lists them. `intent --from successor:<slug>` starts a ready one: the
+record on every read. A person may hold one they want and not now: `held: <day>` reads `held` in place of waiting
+or ready, so nothing unattended starts it, and starting it lifts the hold (D-220). `sdlc successors` lists them.
+`intent --from successor:<slug>` starts a ready one: the
 interview resumes against the code that merged, the new intent records `lead: successor:<slug>`, which is what
 resolves every other reference to the slug, and the file is deleted on the new cycle's plan branch. A
 successor whose work exists because the framework fell short may carry `framework:` and one line saying what;
@@ -334,6 +336,7 @@ stored in a successor would go stale the moment one is added or declined. The pr
 can park a sibling a wave later — and a series' report shows it beside what ran.
 
 **A harvest answers every open suggestion one of four ways** (D-153, D-209): **taken further** as a successor,
+marked `[h]` to hold it when it is wanted and not now (D-220),
 **declined** with a person's reason, **covered** by the rule, decision, successor or file that already handles it,
 which `harvest record` checks is real, or **ignored** and tallied by concern, with a bar at three. A covered line
 may close a tallied concern. Each step hands back through `sdlc harvest summary`: its answers counted by the themes
@@ -2494,7 +2497,7 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `harvest` | playbook | takes back what the completed cycles settled, one aspect at a time — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`, `harvest-stack`, `harvest-areas`, each answered with the person before the next — then `close-cycle` — D-189, D-190, D-191 |
 | `harvest-constraints` | single | proposes the rules the completed cycles' findings argued, each with its evidence — D-69, D-191 |
 | `harvest-decisions` | single | proposes the decisions the completed cycles settled, a person's words once and a plan's only when it recurs — D-70, D-189 |
-| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor, declined, covered by what already handles it, or ignored, grouped by theme — D-153, D-191, D-209 |
+| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor (held when wanted and not now), declined, covered by what already handles it, or ignored, grouped by theme — D-153, D-191, D-209, D-220 |
 | `harvest-stack` | single | proposes the `techstack.md` rows the record asks for — D-191 |
 | `harvest-areas` | single | proposes the areas the plans named, and their renames, merges, removals and tags — D-150, D-191 |
 | `close-cycle` | single | closes the cycles every aspect has answered: `sdlc harvest close`, then the push and the pull request that removes their folders — D-192 |
@@ -2616,7 +2619,7 @@ they print verbatim.
 | `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144). `build` also finds the plan on an admission branch carrying several cycles, and a plan only in a sandbox is refused until admitted, unless there is no integration branch to admit it to (D-162). `remediate` prints the path of a worktree on the cycle's build branch, opening it from the local or the remote branch when absent (D-185). `wave`, given a sandbox's first cycle, prints the command that opens `wave/<id>` from `sandbox/<id>` in a worktree beside the repository, where the wave is built |
 | `factory` | writes the factory's pipeline for the recorded platform: one series from the integration branch — `series start` with the number of waves a person asks for, then `series run` in the worktree it printed — started by a person and never on a schedule, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84, D-143, D-205) |
 | `lead show <reference> [--onto <branch>]` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89). `--onto` judges a successor's readiness against the branch a run builds onto (D-206) |
-| `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
+| `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved`, or `held` by a person — worked out from the record and never stored (D-125, D-220) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id> [--onto <branch>]` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125). `--onto`, or a run's branch, judges readiness against that branch (D-206) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
@@ -7741,6 +7744,33 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
+
+**Governs:** §3.4, §15
+
+**Extends D-125**, whose readiness gains a fifth state, **and D-153**, whose taken-further answer may now be held.
+
+**Decision.** A successor may carry `held: <yyyy-mm-dd>`, the day a person put it on hold. Where it would read
+`waiting` or `ready` it reads `held` instead, so no wave and no series takes it, and `sdlc successors`, `sdlc backlog`
+and the sitrep list it apart with that day. One that names nothing or waits on an abandoned cycle still reads
+`unresolved` or `stuck`, because those need correcting either way. A person starting it with `intent --from
+successor:<slug>` is what lifts the hold: it starts once what it waits on has merged, as a ready one does, and the file
+goes with the hold on it. In a harvest, `[h]` beside a proposed successor accepts it and drafts it held; only a
+successor can be held. A later suggestion raising the same concern is covered by the held successor, as by any other.
+
+**Why.** A person asked, of two proposed successors, to put them on hold: not wanted yet. A harvest had two places for
+them and both were wrong. Accepted, a successor comes ready and an unattended series builds it. Declined, the work
+became one line of a sitting with nothing to start it from, read as decided against when it was not, and it came back
+for an answer every time a reader raised the concern again — the opposite of waiting quietly.
+
+**Rejected.** *A fifth answer to a suggestion, beside the four*: what is held is the work, and the work's place is the
+successor file, which keeps its text and is started by name; a hold on the answer would still leave nothing to start.
+*Decline worded "not yet"*: what the person met, and the reasons above. *Holding by a key the agent may not write*: a
+successor is a planning file a pull request carries and a person reviews, as its `succeeds:` already is; a protected
+file for one flag would be an eighth file only a person writes. *A date or a condition that lifts the hold by itself*:
+nobody can say when "later" is, and a hold that lapses unseen is the unattended start it exists to prevent. *Holding
+a parked cycle or one in flight*: a cycle is abandoned and its piece written as a successor; nothing has asked for more.
 
 ### D-219 — What the framework already holds is already recorded, in a harvest of a solution's decisions and rules
 

@@ -9,6 +9,18 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.58
+
+**A successor can be held** (D-220). Wanted, not now: a successor carrying `held: <yyyy-mm-dd>` reads `held`
+where it would have been waiting or ready, so no wave and no series takes it, and `sdlc successors`, `sdlc backlog`
+and the sitrep list it apart with the day it was held. Starting it yourself with `/sdlc:intent --from
+successor:<slug>` lifts the hold. In a harvest, `[h]` beside a proposed successor drafts it held, so a suggestion
+worth doing later no longer has to be declined as *not yet* — which read as decided against, kept nothing to start
+from, and asked again whenever the concern came back.
+
+**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
+before it refuses: every machine and pipeline reading a solution's successors moves together.
+
 ## 0.57
 
 **What a harvest found the framework should hold, it now holds** (D-216 – D-219). One governed solution's decisions

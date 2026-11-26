@@ -186,9 +186,11 @@ internal static class Usage
                                      --onto names, else the integration branch. Jira is not read yet.
             successors               Every slice waiting on another's code, as a file in
                                      .sdlc/successors/, and where each stands -- waiting, ready,
-                                     stuck behind an abandoned cycle, or unresolved -- worked out
-                                     from the record. Ready means everything it succeeds is on
-                                     the integration branch with a passing verify (D-125).
+                                     stuck behind an abandoned cycle, unresolved, or held by a
+                                     person -- worked out from the record. Ready means everything
+                                     it succeeds is on the integration branch with a passing
+                                     verify (D-125); held means nothing unattended starts it,
+                                     and a person starting it lifts the hold (D-220).
             backlog [--onto <branch>]
                                      Every successor and every parked cycle, in the waves they come
                                      ready in -- ready now, then after one more merge, and so on

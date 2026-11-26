@@ -59,7 +59,8 @@ ledger remembers which aspects each cycle has answered.
    names with what it says — then what it needs from you. The skill chooses the themes; the binary counts and quotes,
    so a group cannot claim more than it holds. It places nothing.
 2. You open the file, mark `[x]` on each proposal you accept, and edit its wording to yours — or answer by number
-   (*accept all but 11*) and the skill marks the file for you.
+   (*accept all but 11*) and the skill marks the file for you. A successor you want and not now is marked `[h]`:
+   it is drafted held, so no wave or series starts it until you do (D-220).
 3. The skill runs `sdlc draft harvest <file>`, which writes the draft beside the real file — a copy with only your
    accepted lines applied — and two fresh processes review it: whether what you approved still serves its evidence
    and `solution.md`, and whether any item was left without an answer. A gap goes back to the skill first.
