@@ -136,6 +136,13 @@ When `sdlc series wave` says the series is finished, run **`pr`** with `--run`: 
 into the integration branch, ready or draft as `sdlc pr-ready` says, its body a short summary followed by `sdlc
 report --run`. **With no remote**, push nothing: the branch stays local, and the hand-back says so.
 
+**When `pr` hands back that the series branch is behind the integration branch** (D-227) — somebody merged while it
+ran — the last cycle's verification judged code without that. **A clean merge**: run **`remediate`** for the
+series' last built cycle, with the pull request's conflict way in, which merges the integration branch in, builds,
+records fresh evidence and verifies again — its fresh run is the one the run's check reads — then **`pr`** with
+`--run` again. **A merge that stops on a conflict**: open nothing, and the hand-back names the files it stops on
+and `/sdlc:remediate <id>` for a person; the factory never resolves one (D-86).
+
 ## 6. Report, and stop
 
 Print `sdlc series status` verbatim and the pull request's link. That is what `sdlc series run` hands back to the
@@ -144,7 +151,8 @@ person.
 ## What you may not do
 
 - **Stage work of your own.** An intent is `intent`'s; a spec, a plan and their loops are `to-plan`'s; code,
-  verdicts and remediation are `build`'s; the pull request is `pr`'s.
+  verdicts and remediation are `build`'s, but for bringing the branch up to date before its pull request; the pull
+  request is `pr`'s.
 - **Plan anything under `approval: required`**, or build a cycle nobody approved there.
 - **Merge anything**, approve anything, or write any file only a person writes.
 - **Ask anybody anything.** A cycle that needs a person stops, with why, and the series goes on without it.

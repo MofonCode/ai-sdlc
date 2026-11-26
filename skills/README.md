@@ -95,7 +95,7 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`plan`](#plan) | single | — |
 | [`to-plan`](#to-plan) | playbook | `spec`, `plan`, `interrogate`, `refine`, `steer` |
 | [`wave`](#wave) | playbook | `intent`, `to-plan` |
-| [`series`](#series) | playbook | `intent`, `to-plan`, `build`, `pr` |
+| [`series`](#series) | playbook | `intent`, `to-plan`, `build`, `remediate`, `pr` |
 | [`interrogate`](#interrogate) | single | — |
 | [`refine`](#refine) | single | — |
 | [`steer`](#steer) | single | — |
@@ -727,7 +727,7 @@ it plans nothing and builds only cycles a person approved, in wave order.
 | Stage | the planning chain and the build, across several waves |
 | Started by | a person, with the number of waves it may run; with `--unattended`, the process `sdlc series run` starts, and the factory, which runs only series |
 | Reads | `sdlc series wave` for each wave, and `sdlc series status` |
-| Writes | nothing itself: what `intent`, `to-plan`, `build` and `pr` write, on `series/<id>`; the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start` and `sdlc series wave` |
+| Writes | nothing itself: what `intent`, `to-plan`, `build`, `remediate` and `pr` write, on `series/<id>` — `remediate` only to bring the branch up to date when `pr` finds it behind the integration branch (D-227); the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start` and `sdlc series wave` |
 
 #### Syntax
 
@@ -1433,7 +1433,7 @@ pull request (D-185, D-187). It changes no code itself.
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | build and verify, after verify recorded `blocked`; after an escalation, with the person's instruction; or at the pull request, when a person says what to change or it conflicts |
-| Started by | the `build` playbook, inside its own process; or a person, with what they want instead |
+| Started by | the `build` playbook, inside its own process — after a blocked verification, or when `pr` finds the branch behind the integration branch and the merge is clean (D-227); the `series` playbook for the second; or a person, with what they want instead |
 | Reads | `sdlc cycles --here --for remediate`, `sdlc pr-ready <id>`, and the verify outcome |
 | Writes | nothing itself: what `resolve-conflict`, `implement`, `verify` and `pr` write, in the worktree `sdlc branch <id> remediate` prints |
 
@@ -1506,7 +1506,7 @@ touches the remote.
 | Kind | single — one job, and it starts no other skill |
 | Stage | pull requests: after a verification passed, after a plan is approved, or after a build that did not pass |
 | Started by | the build, once its verification passes — saying *build it* was the consent to push (D-178); the build's run form or the series, for a run's one pull request; or `remediate` updating one already open; or a person, and then **it asks before the push** |
-| Reads | `sdlc pr-ready`, or `sdlc gate` and `sdlc verify-chain`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
+| Reads | `sdlc up-to-date` first, every time (D-227); then `sdlc pr-ready`, or `sdlc gate` and `sdlc verify-chain`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
 | Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>`, a slicing's `slices/<slug>/plan`, or a run's `wave/<id>` or `series/<id>` — and a pull request |
 
 #### Syntax
@@ -1540,6 +1540,7 @@ item where the solution tracks them.
 |---|---|---|
 | `sdlc pr-ready` refuses: not verified, did not pass, escalated, the chain broken since verification, or a test run a local build judged (D-135) | refuses, and does not push past it — except `--draft`, which opens a draft for did not pass or escalated, and nothing else | [Handling refusals](../docs/guides/handling-refusals.md) |
 | `--plan` and `sdlc gate` or `sdlc verify-chain` refuses, a local build's rounds included | does not push the plan | [Handling refusals](../docs/guides/handling-refusals.md) |
+| `sdlc up-to-date` refuses: the branch is behind its target, or the target could not be fetched (D-227) | does not push. A branch of records alone whose merge is clean takes the merge it prints and asks again; built code is handed back, for `remediate` | [Handling refusals](../docs/guides/handling-refusals.md#sdlc-up-to-date--the-two-ways-a-branch-is-not-ready-to-push) |
 | the solution is `local` or has no remote | stops | it walks you through creating one, then re-running adoption with a platform, and setting the branch policy `sdlc branch-policy` prints |
 | on Azure DevOps | names the organisation, project and repository rather than trusting the CLI to detect them, and keeps the body under the 4,000-character description cap (D-161) | — |
 | with `--all`, one cycle fails | the others carry on | — |
@@ -1568,7 +1569,7 @@ is the acceptance** — of the change and of every deviation, choice and concern
 `sdlc report <id>` (D-181). The local approval defended against an agent that forgets; the review is what defends
 against a human who did not look, and they are different jobs.
 
-It runs `sdlc pr-ready <id>`, then `sdlc doctor` and `git remote -v` to check there is somewhere to push,
+It runs `sdlc up-to-date`, which fetches the target and refuses a branch that has not taken its latest, so nothing is reviewed or checked against a target it has not seen (D-227); then `sdlc pr-ready <id>`, `sdlc doctor` and `git remote -v` to check there is somewhere to push,
 then `git push -u origin cycle/<id>` and the platform's own tool — `gh pr create` or
 `az repos pr create`. It never asks about a harvest: its report suggests `/sdlc:harvest` once the pull request has
 merged (D-182). With `--all` it shows `sdlc cycles --pr-ready` verbatim and asks once before the
@@ -2281,7 +2282,7 @@ it, and opens the pull request a person merges.
 | Kind | single — one job, and it starts no other skill |
 | Stage | none — last, once `harvest` has answered every aspect |
 | Started by | `harvest`, or a person who asks to clear out old cycles |
-| Reads | `sdlc harvest close`, which reads the ledger and the files |
+| Reads | `sdlc harvest close`, which reads the ledger and the files, and `sdlc up-to-date` before the push, taking the merge it prints when the branch is behind and the merge is clean (D-227) |
 | Writes | the `harvest/<date>` branch `sdlc harvest close` commits, pushed, and its pull request |
 
 #### Syntax

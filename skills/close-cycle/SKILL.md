@@ -33,6 +33,16 @@ Run it **on the integration branch**, where the cycles merged and the drafts wer
 The person asked to close, which is their word to push this branch. `.sdlc/solution.md` records the platform; if it
 says `local`, or `git remote -v` prints nothing, stop and say there is nowhere to push.
 
+**Then ask whether the branch has taken the latest integration branch** (D-227), on the `harvest/<date>` branch:
+
+```
+sdlc up-to-date
+```
+
+It fetches first. The branch changes only records, so when it is behind and says the merge is clean, run the merge
+it prints and ask again. When the merge stops on a conflict — the ledger, or a cycle somebody merged meanwhile —
+`git merge --abort`, show the refusal and stop; and when the target could not be fetched, show that and stop.
+
 ```
 git push -u origin <the branch it named>
 ```
