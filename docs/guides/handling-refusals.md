@@ -201,7 +201,7 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. *Take it to plan* (`/sdlc:to-plan`) does this for you, after `steer` when you said what
 should change, which is the reason to use it rather than editing documents by hand.
 
-## `sdlc round` — the nine ways a round is refused
+## `sdlc round` — the ten ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
@@ -210,8 +210,9 @@ words, the third when a reader raised a blocker without saying in a sentence wha
 fourth when a blocker cites a rule its reader was not handed (D-174), the fifth when a new finding quotes its
 rule in words other than the rule's own (D-177), and the sixth when a suggestion's id or its move does not fit
 the cycle's suggestions. The next two are about areas (D-150):
-a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
-that could not change where the cycle goes (D-165).
+a plan that leaves a declared file without one, and an area whose files have moved. Then a verify round
+that could not change where the cycle goes (D-165), and last a verdict whose Not met or open entry does not say
+what it is about (D-222).
 
 ### something above it is unsettled
 
@@ -313,6 +314,18 @@ remediate whatever the readers say, so a round there pays for every reader to co
 pass on that evidence is judged as before, and the run remediate records gets a full round.
 
 **Next:** `/sdlc:remediate <id>`.
+
+### a verdict that does not say why, or bounds nothing
+
+`sdlc round verdict` refuses the adjudicator's answer when a criterion is marked Not met without saying which kind
+— `Not met (contradicted).` when the evidence shows it failing, `Not met (unproven).` when it does not show it
+either way — or when an entry under `## Open` names no criterion, one the verdict does not adjudicate, or one it
+marks Not met. Both kinds block alike, but they tell remediate different things: the code to fix, or the proof to
+strengthen. An open entry bounds a criterion that was met; one bounding nothing stood nine rounds in one cycle
+(D-222).
+
+**Next:** `sdlc round run <id> verify` again for a new adjudication. Never repair the answer in the session:
+the repair is this session writing the verdict.
 
 ## `sdlc scaffold` — the two ways it is refused
 

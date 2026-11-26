@@ -167,7 +167,7 @@ public static class ReaderPrompts
             block.Append("The criteria it adjudicates, and the evidence it may cite:\n\n");
             await File(block, "spec.md", cycle.PathOf(ArtifactKind.Spec), "It does not exist.", cancellationToken).ConfigureAwait(false);
 
-            foreach (string name in new[] { "tests.json", "base.sha", "build.log", "diff.patch" })
+            foreach (string name in new[] { "tests.json", "base.sha", "build.log" })
             {
                 string path = Path.Combine(cycle.EvidenceDirectory, name);
 
@@ -178,6 +178,8 @@ public static class ReaderPrompts
 
                 await File(block, "evidence/" + name, path, "It was not recorded.", cancellationToken).ConfigureAwait(false);
             }
+
+            await Diff(block, cycle, cancellationToken).ConfigureAwait(false);
 
             // A proof resting on code the change never touched is quoted from here, or it could be quoted from
             // nowhere (D-168). Only when there is one.
@@ -190,6 +192,18 @@ public static class ReaderPrompts
 
             await Covered(block, cycle, cancellationToken).ConfigureAwait(false);
             await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
+        }
+
+        // How the build audits its dependencies, when its settings say: a reader asked for a scan the build already
+        // is, every round of every cycle, for want of being told (D-222).
+        if (PackageAudit.Fails(cycle.SolutionRoot) is { } audit)
+        {
+            block.Append(audit).Append("\n\n");
+        }
+
+        if (withDocument && artifact == ArtifactKind.Verify)
+        {
+            await Slipped(block, cycle, cancellationToken).ConfigureAwait(false);
         }
 
         if (withDocument)
@@ -347,6 +361,90 @@ public static class ReaderPrompts
         }
 
         block.Append("</file>\n\n");
+    }
+
+    /// <summary>
+    /// What a verify reader raises and what it leaves, said to the rules reader and to every perspective (D-222).
+    /// </summary>
+    /// <remarks>
+    /// A suggestion at verify can only become a successor (D-164), so one about how a verdict words a Met, or about
+    /// the proof the plan was approved with, has no stage to act on it: in one governed solution's 23 cycles they came
+    /// back in every one. A line slip has the binary's own list. A Not met's reason is a claim like any other.
+    /// </remarks>
+    internal const string VerifyScope =
+        "\nAt verify, a suggestion is about the built change or its evidence: something a later cycle could take up.\n"
+        + "How a Met is worded is not one, and neither is whether the plan chose the right proof: the plan was\n"
+        + "approved with its proof, so judge whether the run shows what that proof commits to. A Met that claims\n"
+        + "more than its quote shows breaks `CON_22`; one that claims no more is nothing to raise. A line number\n"
+        + "that is off while its quote is in the diff is not a finding either: the binary lists those above, for\n"
+        + "the next adjudication to correct. A Not met says whether the evidence contradicts the criterion or only\n"
+        + "does not prove it, and that reason is a claim the verdict relies on like any other.\n";
+
+    /// <summary>
+    /// The change, each hunk line numbered in a margin, so a verdict copies the line it cites rather than counting
+    /// down from a hunk header (D-222). The file on disk is unchanged.
+    /// </summary>
+    /// <param name="block">Where to append.</param>
+    /// <param name="cycle">The cycle.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>A task that completes when the block is appended.</returns>
+    private static async Task Diff(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(cycle.EvidenceDirectory, RecordEvidence.DiffFileName);
+
+        if (!System.IO.File.Exists(path))
+        {
+            await File(block, "evidence/" + RecordEvidence.DiffFileName, path, "It was not recorded.", cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        block.Append(DiffLines.Legend).Append("\n\n");
+        block.Append("<file name=\"evidence/").Append(RecordEvidence.DiffFileName).Append("\" form=\"numbered\">\n");
+        block.Append(DiffLines.Numbered(await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)));
+        block.Append("</file>\n\n");
+    }
+
+    /// <summary>
+    /// The verdict's line citations whose quote is in the diff on other lines, found by the binary, so no reader
+    /// spends a finding on one (D-222). Left out when there are none.
+    /// </summary>
+    /// <param name="block">Where to append.</param>
+    /// <param name="cycle">The cycle.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>A task that completes when the block is appended.</returns>
+    private static async Task Slipped(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<DiffLines.Slip> slips = await SlipsOf(cycle, cancellationToken).ConfigureAwait(false);
+
+        if (slips.Count == 0)
+        {
+            return;
+        }
+
+        block.Append("Line citations the binary checked against the numbered diff, whose quote is there on other lines than the verdict names. Each is listed for the next adjudication to correct, and none is a reader's finding:\n\n");
+
+        foreach (DiffLines.Slip slip in slips)
+        {
+            block.Append("- ").Append(slip.ToString()).Append('\n');
+        }
+
+        block.Append('\n');
+    }
+
+    /// <summary>The slips in a cycle's verdict, or none when it has no verdict or no diff.</summary>
+    /// <param name="cycle">The cycle.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The slips.</returns>
+    private static async Task<IReadOnlyList<DiffLines.Slip>> SlipsOf(Cycle cycle, CancellationToken cancellationToken)
+    {
+        string verify = cycle.PathOf(ArtifactKind.Verify);
+        string diff = Path.Combine(cycle.EvidenceDirectory, RecordEvidence.DiffFileName);
+
+        return System.IO.File.Exists(verify) && System.IO.File.Exists(diff)
+            ? DiffLines.Slips(
+                await System.IO.File.ReadAllTextAsync(verify, cancellationToken).ConfigureAwait(false),
+                await System.IO.File.ReadAllTextAsync(diff, cancellationToken).ConfigureAwait(false))
+            : [];
     }
 
     private static async Task File(StringBuilder block, string name, string path, string absent, CancellationToken cancellationToken)
@@ -620,7 +718,7 @@ public static class ReaderPrompts
             // criterion only the run as a whole could show passes spec and is found by the plan's author (D-167).
             string stage = request.Artifact switch
             {
-                ArtifactKind.Verify => "\nEach Met quotes the assertion it rests on from `diff.patch`, or from `proof-sources.txt` when the proof lives\nin code the change did not touch. Find each quote where it says it is, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is in neither file, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n",
+                ArtifactKind.Verify => "\nEach Met quotes the assertion it rests on from `diff.patch`, or from `proof-sources.txt` when the proof lives\nin code the change did not touch. Find each quote where it says it is, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is in neither file, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion. A criterion or a proof that a deviation in force replaces is\njudged as deviated.\n" + VerifyScope,
                 ArtifactKind.Spec => "\nThe evidence each criterion will be judged on is one recorded run: each test's name and outcome, the\nassertions in the diff, coverage and the build log. A criterion is shown only by an assertion some test in\nthat run makes. One whose check is a property of the run itself -- how long the whole run or suite takes,\nwhether a run in another mode, with other workers or on another machine passes, whether repeated runs are\nfree of flakes -- has nothing in the evidence to show it, and breaks `CON_12.2`. A test that times one\noperation, or runs the code two ways, and asserts the result is admissible.\n",
                 _ => string.Empty,
             };
@@ -659,7 +757,7 @@ public static class ReaderPrompts
             await Decisions(block, cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
             await Deviated(block, cycle, cancellationToken).ConfigureAwait(false);
             block.Append("The change to judge:\n\n");
-            await File(block, "evidence/diff.patch", Path.Combine(cycle.EvidenceDirectory, "diff.patch"), "It was not recorded.", cancellationToken).ConfigureAwait(false);
+            await Diff(block, cycle, cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(block + Template("diff")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal));
@@ -699,7 +797,7 @@ public static class ReaderPrompts
 
             return Result.Ok(Template("perspective")
                 .Replace("{{perspective}}", method, StringComparison.Ordinal)
-                .Replace("{{changed}}", since, StringComparison.Ordinal)
+                .Replace("{{changed}}", since + (request.Artifact == ArtifactKind.Verify ? VerifyScope : string.Empty), StringComparison.Ordinal)
                 .Replace("{{name}}", perspective.Value.Name, StringComparison.Ordinal));
         }
 
@@ -844,11 +942,19 @@ public static class ReaderPrompts
                 source = "An earlier run of this build had a verdict, removed when the run above was recorded.";
             }
 
+            // A line the verdict cites where its quote is not is corrected in the same pass, by the margin (D-222).
+            IReadOnlyList<DiffLines.Slip> slips = System.IO.File.Exists(current) ? await SlipsOf(cycle, cancellationToken).ConfigureAwait(false) : [];
+            string slipped = slips.Count == 0
+                ? string.Empty
+                : "\nIts line citations whose quote is in the numbered diff on other lines, which the binary found -- correct\neach to the line its margin gives, and change nothing else in the entry for it:\n\n"
+                    + string.Concat(slips.Select(slip => "- " + slip + "\n"));
+
             string previous = verdict is null
                 ? string.Empty
                 : "\n" + source + " Start from it and rewrite it in place. Copy an entry exactly as it stands\n"
-                    + "unless an open finding below names its criterion, its test no longer passed in `tests.json`, or the\n"
-                    + "lines it quotes are no longer in `diff.patch`. Rewrite only those entries, answer each finding from the\n"
+                    + "unless an open finding below names its criterion, its test no longer passed in `tests.json`, the\n"
+                    + "lines it quotes are no longer in `diff.patch`, or a line it cites is listed below as on another line.\n"
+                    + "Rewrite only those entries, answer each finding from the\n"
                     + "evidence -- standing by a claim and citing why is an answer, as is changing it -- and keep the outcome\n"
                     + "true to the entries. A new sentence in an entry nothing asked you to touch is one more thing for a\n"
                     + "reader to object to (D-130).\n\n<file name=\"verify.md\">\n"
@@ -856,7 +962,8 @@ public static class ReaderPrompts
                     + "\n</file>\n"
                     + (blockersOpen
                         ? "\n<findings>\n" + FindingsRenderer.Render(standing.Value).ReplaceLineEndings("\n").TrimEnd() + "\n</findings>\n"
-                        : string.Empty);
+                        : string.Empty)
+                    + slipped;
 
             return Result.Ok(shared + Template("adjudicate")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal)

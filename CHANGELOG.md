@@ -18,8 +18,24 @@ successor:<slug>` lifts the hold. In a harvest, `[h]` beside a proposed successo
 worth doing later no longer has to be declined as *not yet* — which read as decided against, kept nothing to start
 from, and asked again whenever the concern came back.
 
+**A verdict says why a criterion is not met, and verify readers stop raising what no stage acts on** (D-222):
+
+- **A Not met says which of two it is**: `Not met (contradicted).` when the evidence shows the criterion failing,
+  `Not met (unproven).` when it does not show it either way. Both still block. `sdlc round verdict` refuses one that
+  says neither.
+- **An entry under a verify's `## Open` names the met criterion it bounds** (`Criterion 2: …`), and `sdlc round
+  verdict` refuses one that bounds nothing the verdict met.
+- **A verify round reads the diff with each line numbered**, so a verdict copies the line it cites instead of
+  counting it. A citation whose quote sits on another line is listed by `sdlc evidence check`, handed to the round's
+  readers as not theirs to raise, and corrected by the next rewrite.
+- **Verify readers raise suggestions about the built change or its evidence only** — not the wording of a Met, nor
+  whether the plan picked the right proof.
+- **The security perspective takes the build as the dependency audit** when `Directory.Build.props` sets `NuGetAudit`
+  with warnings as errors, as the scaffold does: every round says so, and no vulnerable-package scan is asked for.
+
 **What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together.
+before it refuses: every machine and pipeline reading a solution's successors moves together. An adjudicator's verdict
+with a reasonless Not met, or an `## Open` entry bounding no met criterion, is now refused and adjudicated again.
 
 ## 0.57
 

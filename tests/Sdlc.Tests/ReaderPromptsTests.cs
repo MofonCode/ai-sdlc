@@ -1,5 +1,6 @@
 using FluentResults;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
 
 namespace Sdlc.Tests;
@@ -389,6 +390,66 @@ public sealed class ReaderPromptsTests
 
         workspace.WriteTestSummary(proofs: 2);
         Assert.IsTrue((await Prompt(workspace, ArtifactKind.Verify, directory)).IsSuccess, "A new run's evidence gets a full round.");
+    }
+
+    [TestMethod]
+    public async Task A_verify_round_reads_the_diff_numbered_and_is_told_the_verdicts_line_slips_and_what_not_to_raise()
+    {
+        // D-222. Readers spent a finding per off-by-one line reference, and raised the wording of Met lines that rest on
+        // the proof the plan was approved with, in every cycle, where no stage acts on either.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.PathOf(ArtifactKind.Verify),
+            "---\ncycle: " + workspace.Cycle.Id + "\noutcome: pass\n---\n\n# a verify\n\n## Criteria\n\n1. Met. `tests/RollTests.cs` +2: `Assert.AreEqual(1, roll);`\n\n## Open\n");
+        CycleWorkspace.WriteRaw(
+            Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"),
+            "--- a/tests/RollTests.cs\n+++ b/tests/RollTests.cs\n@@ -0,0 +1,2 @@\n+Assert.AreEqual(1, roll);\n+return;\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        ReaderPrompts.Response round = (await Prompt(workspace, ArtifactKind.Verify, directory)).Value;
+        string rules = Whole(round, round.Prompts.ToList().FindIndex(prompt => prompt.Reader == "rules"));
+        string security = Whole(round, round.Prompts.ToList().FindIndex(prompt => prompt.Reader == "security"));
+        string diff = await File.ReadAllTextAsync(round.Prompts.Single(prompt => prompt.Reader == "diff").Path);
+
+        StringAssert.Contains(rules, "+1     | Assert.AreEqual(1, roll);", "The verify readers read the margin.");
+        StringAssert.Contains(diff, "+1     | Assert.AreEqual(1, roll);", "So does the diff reader.");
+        StringAssert.Contains(rules, DiffLines.Legend);
+        StringAssert.Contains(rules, "criterion 1: +2 quotes `Assert.AreEqual(1, roll);`, which is at +1 in tests/RollTests.cs");
+        StringAssert.Contains(rules, "How a Met is worded is not one");
+        StringAssert.Contains(security, "How a Met is worded is not one", "A perspective is told too.");
+
+        string adjudicator = Whole((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value);
+        StringAssert.Contains(adjudicator, "a line it cites is listed below as on another line");
+        StringAssert.Contains(adjudicator, "- criterion 1: +2 quotes", "The rewrite is handed the slips to correct.");
+        StringAssert.Contains(adjudicator, "`Not met (unproven).`");
+
+        string plan = Whole((await Prompt(workspace, ArtifactKind.Plan, Path.Combine(workspace.Root, "plan-round"), "security")).Value);
+        Assert.IsFalse(plan.Contains("How a Met is worded", StringComparison.Ordinal), "Only a verify is told.");
+    }
+
+    [TestMethod]
+    public async Task Every_reader_is_told_the_build_is_the_dependency_audit_when_the_build_settings_make_it_one()
+    {
+        // D-222. The security reader asked for a vulnerable-package scan in every cycle of 23, at every stage, while the
+        // scaffolded build already failed on a vulnerable package.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        string directory = Path.Combine(workspace.Root, "round");
+        string props = Path.Combine(workspace.Root, "Directory.Build.props");
+        const string Audited = "<Project><PropertyGroup><TreatWarningsAsErrors>true</TreatWarningsAsErrors><NuGetAudit>true</NuGetAudit><NuGetAuditMode>all</NuGetAuditMode><NuGetAuditLevel>moderate</NuGetAuditLevel>{0}</PropertyGroup></Project>";
+
+        Assert.IsFalse(Whole((await Prompt(workspace, ArtifactKind.Intent, directory, "security")).Value).Contains("audits its dependencies", StringComparison.Ordinal), "No settings, no claim.");
+
+        CycleWorkspace.WriteRaw(props, string.Format(System.Globalization.CultureInfo.InvariantCulture, Audited, string.Empty));
+        string told = Whole((await Prompt(workspace, ArtifactKind.Intent, directory, "security")).Value);
+        StringAssert.Contains(told, "sets `NuGetAudit` and treats warnings as errors (mode all, level moderate)");
+        StringAssert.Contains(told, "no separate vulnerable-package scan is asked for");
+
+        CycleWorkspace.WriteRaw(props, string.Format(System.Globalization.CultureInfo.InvariantCulture, Audited, "<WarningsNotAsErrors>NU1902</WarningsNotAsErrors>"));
+        Assert.IsFalse(Whole((await Prompt(workspace, ArtifactKind.Intent, directory, "security")).Value).Contains("audits its dependencies", StringComparison.Ordinal), "An audit warning let through, and the build is not the audit.");
     }
 
     [TestMethod]

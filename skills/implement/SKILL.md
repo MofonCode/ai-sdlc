@@ -93,7 +93,9 @@ naming the test that replaces it.
 Two sources, and the job is both:
 
 - **The criteria `verify.md` marks Not met** — why the outcome is `blocked`, and usually **not** findings. Read
-  the Criteria section of `.sdlc/cycles/<id>/verify.md` for every entry that is not Met.
+  the Criteria section of `.sdlc/cycles/<id>/verify.md` for every entry that is not Met. Each says which kind
+  (D-222): `Not met (contradicted)` — the evidence shows it failing, so fix the code; `Not met (unproven)` —
+  nothing shows it either way, so strengthen the proof: a test that runs the case and reads its outcome.
 - **The open blockers**: `sdlc findings <id> --stage verify`. Each names what is wrong, where, and what would fix
   it.
 
