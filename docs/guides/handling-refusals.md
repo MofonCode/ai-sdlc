@@ -688,12 +688,13 @@ report as written.
 
 `sdlc harvest record <aspect>` is refused when a heading under `## For the framework` names no surface of the
 framework — a rule's id such as `CON_06`, `evidence`, or a kind and a name such as `perspective:security` or
-`stage:verify` — says nothing after it, or has no `Kind:` line of `cost`, `missing` or `defect` beneath it (D-204).
-Nothing is recorded, so the sitting is never half answered. The notes are what a solution may hand the framework,
-and one that cannot be grouped by what it is about cannot be read across solutions.
+`stage:verify` — says nothing after it, has no `Kind:` line of `cost`, `missing` or `defect` beneath it (D-204), or
+has no `Cycles:` line of cycle ids, or `all` (D-225). Nothing is recorded, so the sitting is never half answered. The
+notes are what a solution may hand the framework, and one that cannot be grouped by what it is about cannot be read
+across solutions; one whose cycles are words, or left to default to the whole sitting, is counted wrongly there.
 
-**Next:** fix each heading the refusal names — `### stage:verify — <what fell short>` and a `Kind:` line under it
-— and record again.
+**Next:** fix each heading the refusal names — `### stage:verify — <what fell short>`, a `Kind:` line, and a
+`Cycles:` line naming the cycles whose record shows it — and record again.
 
 ### a covered answer that names nothing real
 
@@ -701,12 +702,15 @@ and one that cannot be grouped by what it is about cannot be read across solutio
 covers it> — <how>`, or names something that is not here: a rule not in force, a decision not standing, a
 `successor:<slug>` with no file under `.sdlc/successors/` and no cycle started from it, or a path that is not a file
 or directory in the solution; or when a line's `Concern:` matches no concern the ledger or the sitting tallies, word for
-word. It lists every such line at once and records nothing, so the sitting is never half
-answered. *Covered* says something already handles the suggestion; one naming nothing real would be a decline
-nobody gave a reason for.
+word; or when a line answers a whole cycle, `<cycle>/*`, for a cycle that is not an abandoned one of this sitting, or
+names anything but a successor for it (D-225). It lists every such line at once and records nothing, so the sitting
+is never half answered. *Covered* says something already handles the suggestion; one naming nothing real would be a
+decline nobody gave a reason for. A whole cycle is answered at once only when a person refused its approach and a
+successor replans the work; a passed cycle's suggestions are each about code that shipped.
 
 **Next:** name what really covers each line the refusal lists — `sdlc constraints` and `sdlc decisions` list what
-stands — or move it to `## Declined` with the reason, then record again.
+stands — or move it to `## Declined` with the reason, or answer a passed cycle's suggestions one by one, then record
+again.
 
 ### an aspect is still unanswered
 

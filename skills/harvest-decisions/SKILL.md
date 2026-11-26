@@ -39,6 +39,11 @@ request, the rules argued inside a cycle, the standing decisions, and those over
 
 From an abandoned cycle only its reason is offered: its approach is what was refused.
 
+**A plan's shape comes whole**, one passage per plan with its bullets kept (D-225): compare the approaches across
+cycles and propose the choice two or more of them share, never one bullet at a time. A fixed decision that only
+bounds its own piece of work — *not in this piece*, *later* — is no choice future cycles meet: answer it *no
+proposal, because it bounds one cycle*.
+
 ## 2. Answer every item
 
 For each passage, reopen, declined deviation and argued rule, decide whether it holds a real choice. **The four
@@ -65,8 +70,9 @@ form of what it says.
 had to make again because the framework left it open, or a step that cost more than it gave. Its heading names the
 part of the framework — a rule's id, `stage:plan`, `document:intent`, `command:draft` — and what fell short, with
 no product, provider, file or person of the solution's in it; a `Kind:` line says `cost`, `missing` or `defect`.
-The evidence goes beneath under `>`, which stays here. `sdlc harvest record` refuses a note with no surface or no
-`Kind:`.
+The evidence goes beneath under `>`, which stays here. **`Cycles:` names the cycles whose record shows it, by id**
+— `all` only when every cycle of the sitting does (D-225). `sdlc harvest record` refuses a note with no surface, no
+`Kind:`, or no `Cycles:` line of cycle ids.
 
 **`Instead of` is the load-bearing clause**: an entry whose alternatives were never real records something nobody
 chose. **`Because` cannot be recovered later**: if the passage does not say why, ask the person rather than invent
@@ -99,7 +105,7 @@ Mark each proposal you accept by changing [ ] to [x], and edit its wording as yo
 
 ### <surface> — <what fell short, worded for somebody who has never seen this solution>
 Kind: <cost | missing | defect>
-Cycles: <cycle>, <cycle>
+Cycles: <cycle>, <cycle> | all
 Measure: <the numbers: cycles, findings, rounds, tokens>
 > <the cycles, finding ids and rounds behind it -- kept here, never sent>
 

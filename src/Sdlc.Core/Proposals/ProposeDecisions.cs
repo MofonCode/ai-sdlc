@@ -24,7 +24,8 @@ public enum DecisionSource
     /// <remarks>
     /// An agent's prose, so it qualifies only when the same choice appears in two or more cycles (D-189): a
     /// departure argued once is a local choice, the same one argued across cycles is a default that has actually
-    /// moved, and only a reader can tell whether two passages are one choice.
+    /// moved, and only a reader can tell whether two passages are one choice. The whole section is one passage, its
+    /// lines kept (D-225).
     /// </remarks>
     Plan,
 
@@ -233,7 +234,11 @@ public static class ProposeDecisions
                 return;
             }
 
-            foreach (string paragraph in Paragraphs(lines))
+            // A plan's shape is one passage: its bullets are the parts of one approach, and split one per bullet a
+            // plan's choice read as twenty fragments, so the same approach in two cycles never showed as one (D-225).
+            IEnumerable<string> passages = source == DecisionSource.Plan ? Whole(lines) : Paragraphs(lines);
+
+            foreach (string paragraph in passages)
             {
                 // A belief nobody measured is an assumption, not a choice (D-189).
                 if (source == DecisionSource.Intent && paragraph.Contains(Unconfirmed, StringComparison.OrdinalIgnoreCase))
@@ -280,6 +285,20 @@ public static class ProposeDecisions
             if (current.Count > 0)
             {
                 yield return string.Join(' ', current);
+            }
+        }
+
+        /// <summary>
+        /// A whole section as one passage, its lines kept and the blank runs between them dropped; nothing when it is
+        /// empty.
+        /// </summary>
+        private static IEnumerable<string> Whole(IReadOnlyList<string> lines)
+        {
+            List<string> kept = [.. lines.Select(line => line.TrimEnd()).Where(line => line.Trim().Length > 0)];
+
+            if (kept.Count > 0)
+            {
+                yield return string.Join('\n', kept);
             }
         }
 

@@ -414,7 +414,10 @@ public static class ProposalsRenderer
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
                     $"{Body}{Section(candidate.Source)}"));
-                output.AppendLine(Body + "    " + candidate.Passage);
+                foreach (string line in candidate.Passage.Split('\n'))
+                {
+                    output.AppendLine(Body + "    " + line);
+                }
             }
         }
     }

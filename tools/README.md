@@ -116,10 +116,17 @@ framework was done by hand, before its cycles were closed. A solution's export o
 evidence, cycle id, file or commit of the solution's, so it can be kept beside this repository rather than in it.
 
 It prints Markdown in three parts: **the notes by surface**, the one most exports raised first, every statement
-under it as written — whether two statements are one problem is a reader's question, so it never merges them;
+under it as written — whether two statements are one problem is a reader's question, so it never merges them — and
+headed with **the most cycles any one note under it names**, never their sum, since an export carries counts and two
+notes about one surface are often seen in the same cycles (D-225); a note that names no cycle id says *cycles not
+named* rather than counting as one;
 **the cycles by the release they last ran on**, so a cost that falls away after a release reads as that release's
 fix; and **each reader across every cycle**, how much it raised and how much of it blocked, cited a rule or was
 withdrawn. Keep exports, and its output, outside the repository: **no solution is named here**.
+
+**Hand it the export, not the solution's `.sdlc/framework-harvest.json`.** The two are named alike, and the
+solution's own file keeps the evidence that never leaves it; handed one, the tool says so and names
+`sdlc harvest framework --out <file>` rather than failing on its shape.
 
 ## See also
 

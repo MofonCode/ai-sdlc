@@ -16,7 +16,8 @@ read by nothing here.
 
 **An abandoned cycle gives some things and not others.** Your reason for abandoning it can become a decision, its
 findings still count as evidence for rules, and its suggestions can become new intents. Its plan's approach is never
-offered as a decision, because that approach is what you abandoned.
+offered as a decision, because that approach is what you abandoned. When a successor takes the abandoned work up, its
+suggestions are handed to that successor in one answer rather than one by one (D-225).
 
 **An abandoned cycle needs no merge.** If you stopped it before any of it reached the integration branch, it lives
 only on its own `cycle/<id>/...` branch. `sdlc harvest` finds it there, among the branches this clone knows (yours
@@ -57,7 +58,9 @@ ledger remembers which aspects each cycle has answered.
 1. The skill writes a proposal file under `.sdlc/reports/` and hands back what `sdlc harvest summary <file>` prints:
    each proposal numbered, with its mark, the other answers counted by theme, and every rule, decision and successor the file
    names with what it says — then what it needs from you. The skill chooses the themes; the binary counts and quotes,
-   so a group cannot claim more than it holds. It places nothing.
+   so a group cannot claim more than it holds. Past eight themes to an answer it shows the largest and counts the
+   rest on one line, so a sitting of thousands of suggestions still reads in a screen; `--all` lists every theme
+   (D-225). It places nothing.
 2. You open the file, mark `[x]` on each proposal you accept, and edit its wording to yours — or answer by number
    (*accept all but 11*) and the skill marks the file for you. A successor you want and not now is marked `[h]`:
    it is drafted held, so no wave or series starts it until you do (D-220).
@@ -129,8 +132,10 @@ the framework — a rule or a reader that cost more than it caught, a rule any s
 something wrong — goes under `## For the framework`, because nothing you place here could change it.
 
 Each note is written for somebody who has never seen your solution: its heading names the part of the framework it is
-about and what fell short, a `Kind:` line says `cost`, `missing` or `defect`, and the evidence — your cycles, finding
-ids and rounds — goes beneath it on `>` lines. `sdlc harvest record` keeps the notes in `.sdlc/framework-harvest.json`
+about and what fell short, a `Kind:` line says `cost`, `missing` or `defect`, a `Cycles:` line names the cycles whose
+record shows it by id — `all` only when every cycle of the sitting does, so the framework never reads a note about
+four cycles as one about twenty (D-225) — and the evidence — your cycles, finding ids and rounds — goes beneath it on
+`>` lines. `sdlc harvest record` keeps the notes in `.sdlc/framework-harvest.json`
 with the release each one's cycles ran on, so a cost the framework has since fixed reads as history.
 
 `sdlc harvest framework` prints everything that could leave your solution: each note **without** its evidence, and
@@ -161,7 +166,8 @@ for deletion; until then it keeps it, so nothing is deleted before it is harvest
 | `sdlc draft harvest` refuses an entry over its word budget | a title takes at most fifteen words and a clause sixty: shorten it and draft again |
 | `sdlc draft harvest` refuses an entry naming an area nobody defines | add the area in the same file, or take the tag off |
 | `sdlc harvest record` refuses while the aspect's draft is beside its file | rename it into place or delete it, then record |
-| `sdlc harvest record` refuses a note for the framework | give its heading a surface — `CON_06`, `stage:verify`, `perspective:security` — and a `Kind:` line beneath it |
+| `sdlc harvest record` refuses a note for the framework | give its heading a surface — `CON_06`, `stage:verify`, `perspective:security` — and a `Kind:` line and a `Cycles:` line of cycle ids beneath it |
+| `sdlc harvest record` refuses a covered `<cycle>/*` | it answers a whole cycle only when the cycle was abandoned and a successor takes the work up; otherwise answer its suggestions one by one |
 | `sdlc harvest close` refuses while a cycle still needs an aspect | run that aspect's skill first; the refusal names it |
 | `sdlc harvest close` refuses anywhere but the integration branch | switch to it, where the cycles merged and the drafts were placed |
 

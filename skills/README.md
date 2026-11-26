@@ -342,7 +342,9 @@ where they are heading, so the skill suggests the intent from it and asks only w
 reading (D-200): every guess is marked, because a suggestion built on the record is more convincing than a
 question, and a premise carried inside one reaches the spec as fact unless somebody asks. A decision already taken is
 kept rather than discarded — recorded under `Fixed decisions` with who decided it and when — so the
-intent stays a problem statement while the plan can still honour the decision.
+intent stays a problem statement while the plan can still honour the decision. A bound on this piece alone —
+*not in this piece*, *later* — is not a decision: it is written into the outcome it limits, and a slicing never
+copies the same bounds into every slice (D-225).
 
 What it runs, in order:
 
@@ -2016,7 +2018,7 @@ its evidence beneath on `>` lines, which never leave it (D-204).
 | Condition | Result | What to do |
 |---|---|---|
 | `constraints.draft.md` still beside its file at `sdlc harvest record` | records nothing | rename it into place or delete it, then record |
-| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
+| a note under `## For the framework` with no surface, no `Kind:`, or no `Cycles:` line of cycle ids at `sdlc harvest record` | records nothing | name a surface, a kind and the cycles (or `all`), then record |
 
 #### Example
 
@@ -2081,7 +2083,7 @@ proposal is a `DEC_` entry with `Decided`, `Because`, `Instead of` and `From`.
 | Condition | Result | What to do |
 |---|---|---|
 | `decisions.draft.md` still beside its file at `sdlc harvest record` | records nothing | rename it into place or delete it, then record |
-| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
+| a note under `## For the framework` with no surface, no `Kind:`, or no `Cycles:` line of cycle ids at `sdlc harvest record` | records nothing | name a surface, a kind and the cycles (or `all`), then record |
 
 #### Example
 
@@ -2134,17 +2136,21 @@ under `## Declined` with the reason a person would give; **covered**, under `## 
 `successor:<slug>` or file that already handles it, with an optional `Concern:` line naming the tallied concern it
 closes; or **ignored**, under `## Ignored` as its concern and the
 cycles it was ignored in (D-153), with a `Why:` line under a new one (D-194). A concern ignored in three cycles is at the bar and is not ignored again. An
+abandoned cycle's open suggestions may be covered in one line, `- <cycle>/*: successor:<slug> — <how>`, by the
+successor that takes its work up (D-225). An
 accepted successor is written to `.sdlc/successors/<slug>.md`, ready once its cycle has merged. A successor marked
-`framework:` becomes a note under `## For the framework`, headed by the surface it is about, with its slug beneath
-(D-204). Lines under Declined, Covered and Ignored may be grouped under `### <theme>` headings, and the hand-back is
-what `sdlc harvest summary` prints of the file.
+`framework:` becomes a note under `## For the framework`, headed by the surface it is about, with the cycles that
+raised it on a `Cycles:` line and its slug beneath (D-204, D-225). Lines under Declined, Covered and Ignored may be
+grouped under `### <theme>` headings, no more than about eight to a section, and the hand-back is what
+`sdlc harvest summary` prints of the file.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
 | a `## Covered` line naming no rule in force, standing decision, successor or file here, or one that does not read, at `sdlc harvest record` | records nothing, and lists every such line | name what really covers it, or decline it with why |
-| a note under `## For the framework` with no surface or no `Kind:` at `sdlc harvest record` | records nothing | name a surface and a kind, then record |
+| a `## Covered` line answering `<cycle>/*` for a cycle that is not an abandoned one of the sitting, or by anything but a successor, at `sdlc harvest record` | records nothing | answer that cycle's suggestions one by one, or name the successor that takes the abandoned work up |
+| a note under `## For the framework` with no surface, no `Kind:`, or no `Cycles:` line of cycle ids at `sdlc harvest record` | records nothing | name a surface, a kind and the cycles (or `all`), then record |
 
 #### Example
 

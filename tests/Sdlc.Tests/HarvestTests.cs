@@ -785,6 +785,65 @@ public sealed class HarvestTests
         return workspace;
     }
 
+    [TestMethod]
+    public async Task An_abandoned_cycles_suggestions_are_handed_to_its_successor_in_one_answer()
+    {
+        using CycleWorkspace workspace = Covering();
+        workspace.Abandon();
+        string cycle = workspace.Cycle.Id.ToString();
+
+        string proposals = await Proposals(workspace, $"## Covered\n\n- {cycle}/*: successor:keyboard-chart — the successor replans the work\n");
+
+        Result<RecordHarvest.Response> recorded = await Record(workspace, Merged(workspace), HarvestAspect.Suggestions, proposals);
+        Assert.IsTrue(recorded.IsSuccess, string.Join("; ", recorded.Errors.Select(error => error.Message)));
+        Assert.AreEqual(cycle + "/*", (await HarvestLedger.Read(workspace.Root, CancellationToken.None)).Value.Sittings[^1].Covered!.Single().Id);
+
+        HarvestSummary.Theme theme = HarvestSummary.Read(await File.ReadAllTextAsync(proposals)).Answers.Single().Themes.Single();
+        Assert.AreEqual(0, theme.Count, "The file does not say how many suggestions the cycle holds.");
+        Assert.AreEqual(1, theme.Whole);
+        StringAssert.Contains(HarvestSummary.Render(HarvestSummary.Read(await File.ReadAllTextAsync(proposals))), "every suggestion of 1 abandoned cycle");
+    }
+
+    [TestMethod]
+    [DataRow(false, "successor:keyboard-chart", "is not an abandoned cycle of this sitting")]
+    [DataRow(true, "DEC_01", "answered whole only by the successor")]
+    public async Task A_whole_cycle_answer_is_refused_for_a_passed_cycle_or_by_anything_but_a_successor(bool abandon, string by, string refusal)
+    {
+        using CycleWorkspace workspace = Covering();
+        string cycle = workspace.Cycle.Id.ToString();
+
+        if (abandon)
+        {
+            workspace.Abandon();
+        }
+
+        string proposals = await Proposals(workspace, $"## Covered\n\n- {cycle}/*: {by} — takes it all\n");
+
+        Result<RecordHarvest.Response> refused = await Record(workspace, Merged(workspace), HarvestAspect.Suggestions, proposals);
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, refusal);
+        Assert.IsFalse(File.Exists(HarvestLedger.PathIn(workspace.Root)), "Nothing is recorded.");
+    }
+
+    [TestMethod]
+    public void A_summary_past_eight_themes_shows_the_largest_and_counts_the_rest_on_one_line()
+    {
+        string themes = string.Concat(Enumerable.Range(1, 12).Select(index =>
+            $"### Theme {index:00}\n\n- {string.Join(", ", Enumerable.Range(1, index).Select(id => $"a/x.S_{index:00}{id:00}"))}: not ours\n\n"));
+        HarvestSummary.Response summary = HarvestSummary.Read("## Declined\n\n" + themes);
+
+        string folded = HarvestSummary.Render(summary);
+        StringAssert.Contains(folded, "Declined: 78 suggestions");
+        StringAssert.Contains(folded, "  Theme 12 — 12");
+        Assert.IsFalse(folded.Contains("Theme 04", StringComparison.Ordinal), "The smallest themes are folded.");
+        StringAssert.Contains(folded, "  ...and 4 smaller themes holding 10");
+        StringAssert.Contains(folded, "--all");
+
+        string all = HarvestSummary.Render(summary, all: true);
+        StringAssert.Contains(all, "  Theme 01 — 1");
+        Assert.IsFalse(all.Contains("smaller themes", StringComparison.Ordinal));
+    }
+
     /// <summary>A completed cycle in a solution with a rule, a decision, a successor and a file a covered line may name.</summary>
     private static CycleWorkspace Covering()
     {

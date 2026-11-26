@@ -52,6 +52,26 @@ several times in one round — by one reader or by two — is one finding, the b
 before it refuses: every machine and pipeline reading a solution's successors moves together. `suggestions.json` and
 `harvested.json` gained a `recurred` key, which a binary before 0.58 ignores.
 
+**A large harvest reads in groups, and its notes for the framework count honestly** (D-225):
+
+- An abandoned cycle's open suggestions are answered in one line, `- <cycle>/*: successor:<slug> — <how>`, by the
+  successor that takes its work up, rather than one by one.
+- `sdlc harvest summary` shows the eight largest themes to an answer and counts the rest on one line; `--all` shows
+  every one.
+- `harvest decisions` hands over a plan's shape as one passage, bullets kept, so an approach two cycles share reads as
+  one choice rather than forty fragments.
+- The intent skill writes *not in this piece* into the outcome it limits rather than under `Fixed decisions`, and a
+  slicing no longer copies the same bounds into every slice.
+- A note under `## For the framework` needs a `Cycles:` line of cycle ids, or `all`. The export counts the ids a note
+  names and sends no count when it names none; `tools/Sdlc.FrameworkHarvest` heads a surface with the most cycles one
+  note names rather than a sum, and handed a solution's own `framework-harvest.json` says to export it first.
+
+**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
+before it refuses: every machine and pipeline reading a solution's successors moves together. A harvest proposal file
+written for an earlier release whose framework notes have no `Cycles:` line is refused at `sdlc harvest record` until
+each note gains one. Notes already in `.sdlc/framework-harvest.json` keep the cycles they were recorded with: one
+stamped with every cycle of its sitting still exports that count.
+
 ## 0.57
 
 **What a harvest found the framework should hold, it now holds** (D-216 – D-219). One governed solution's decisions

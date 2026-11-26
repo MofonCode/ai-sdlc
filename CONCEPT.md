@@ -317,7 +317,8 @@ a harvest lists it to be carried to ai-sdlc, and nothing about it blocks (D-173)
 **A harvest has two outputs: the solution's records, and notes for the framework** (D-204). What a sitting finds
 about the framework — a rule, reader or step that cost more than it caught, a rule any solution would need, or a
 defect — goes under `## For the framework`, worded for somebody who has never seen the solution, headed by the
-surface it is about, with a kind, and with its evidence beneath. `harvest record` keeps each note in
+surface it is about, with a kind, the cycles whose record shows it named by id (or `all`, when every cycle of the
+sitting does; D-225), and with its evidence beneath. `harvest record` keeps each note in
 `.sdlc/framework-harvest.json` with the releases its cycles ran on, and `harvest close` keeps each closed cycle's
 releases, reader yield and cost in the ledger. `harvest framework` prints what of both may leave the solution —
 the notes without their evidence, the cycles' numbers without their ids, files, commits or the solution's own rules
@@ -340,8 +341,10 @@ marked `[h]` to hold it when it is wanted and not now (D-220),
 **declined** with a person's reason, **covered** by the rule, decision, successor or file that already handles it,
 which `harvest record` checks is real, or **ignored** and tallied by concern, with a bar at three. A covered line
 may close a tallied concern. A reader raising an answered concern again in a later cycle is recorded as recurring
-rather than as a new suggestion, and counts toward that concern's bar (D-221). Each step hands back through `sdlc harvest summary`: its answers counted by the themes
-the sitting grouped them under, and every rule, decision and successor named with its text.
+rather than as a new suggestion, and counts toward that concern's bar (D-221). An abandoned cycle's open suggestions
+may be covered together, `<cycle>/*`, by the successor that takes its work up (D-225). Each step hands back through
+`sdlc harvest summary`: its answers counted by the themes the sitting grouped them under, the eight largest to an
+answer and the rest on one line, and every rule, decision and successor named with its text.
 
 **Operate files work items; it writes no artifact of its own.** A person runs it — no pipeline does since D-143 —
 and it reads the solution's
@@ -2521,8 +2524,8 @@ playbook's steps and its row agree both ways, that a single skill runs nothing, 
 | `draft` | single | prints a protected file's entry for a person to place — §5.3 |
 | `harvest` | playbook | takes back what the completed cycles settled, one aspect at a time — `harvest-constraints`, `harvest-decisions`, `harvest-suggestions`, `harvest-stack`, `harvest-areas`, each answered with the person before the next — then `close-cycle` — D-189, D-190, D-191 |
 | `harvest-constraints` | single | proposes the rules the completed cycles' findings argued, each with its evidence — D-69, D-191 |
-| `harvest-decisions` | single | proposes the decisions the completed cycles settled, a person's words once and a plan's only when it recurs — D-70, D-189 |
-| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor (held when wanted and not now), declined, covered by what already handles it, or ignored, grouped by theme — D-153, D-191, D-209, D-220 |
+| `harvest-decisions` | single | proposes the decisions the completed cycles settled, a person's words once and a plan's only when it recurs — D-70, D-189, D-225 |
+| `harvest-suggestions` | single | answers every open suggestion: taken further as a successor (held when wanted and not now), declined, covered by what already handles it, or ignored, grouped by theme — D-153, D-191, D-209, D-220, D-225 |
 | `harvest-stack` | single | proposes the `techstack.md` rows the record asks for — D-191 |
 | `harvest-areas` | single | proposes the areas the plans named, and their renames, merges, removals and tags — D-150, D-191 |
 | `close-cycle` | single | closes the cycles every aspect has answered: `sdlc harvest close`, then the push and the pull request that removes their folders — D-192 |
@@ -7928,6 +7931,57 @@ what readers kept noticing afterwards would read the same, and a later sitting c
 second shared state across branches, and nothing yet shows the repeats it would catch are not the ones a harvest
 answers once. *Keying by position in the ledger*: a sitting covering a watched concern removes it, and every key after
 it would point at its neighbour.
+
+### D-225 — A harvest is read by groups and counted by ids: an abandoned cycle's suggestions in one answer, a plan's shape whole, a note's cycles named
+
+**Governs:** §3.4, §15
+
+**Amends D-204:** a note's `Cycles:` line is required, and holds cycle ids or `all`. **Amends D-189:** a plan's
+shape is one passage. **Extends D-153:** a covered line may answer an abandoned cycle's suggestions together.
+
+**Decision.**
+
+- **An abandoned cycle's open suggestions go to its successor in one answer.** A `## Covered` line
+  `- <cycle>/*: successor:<slug> — <how>` answers every open suggestion of that cycle. `harvest record` refuses it
+  for a cycle of the sitting that is not abandoned, and when anything but a successor answers it. The report says
+  how many each abandoned cycle holds, and the reviewer counts the line as answering them.
+- **The summary stays a few lines however large the sitting.** Past eight themes to an answer, `sdlc harvest summary`
+  shows the eight largest and counts the rest on one line; `--all` shows every one. The suggestions skill aims for no
+  more than eight themes to a section.
+- **A plan's shape is one passage**, its bullets kept, in `harvest decisions`. An intent's fixed decisions are still
+  one passage a bullet.
+- **A bound on one piece of work is not a fixed decision.** The intent skill writes *not in this piece* into the
+  outcome it limits, and a bound every slice of a slicing shares into one slice, or into the solution's decisions
+  when it reaches past the slicing — never word for word into each.
+- **A note names the cycles whose record shows it.** `Cycles:` is required, by id or `all`; a line of prose there is
+  refused. The export counts the distinct cycle ids a note names and sends no count when it names none, rather than
+  one. `framework-harvest` heads a surface with the most cycles any one note names, never their sum, and says it is
+  a most.
+- **`framework-harvest` handed a solution's own `framework-harvest.json`** says so and names
+  `sdlc harvest framework --out <file>`.
+
+**Why.** One governed solution's sitting over 23 cycles. Its decisions reading held 600 passages, 497 of them
+fragments of plan shapes — 305 for the first six cycles alone — so an approach two plans shared read as forty bullets
+and never as one choice. Its suggestions sitting held 2,869 open suggestions in 235 answer groups, which the summary
+printed one line each; an abandoned cycle's had to be answered one by one though its successor replanned the work.
+15 of the later cycles' 95 fixed decisions were scope statements, and three batched intents repeated the same five
+word for word, each one a passage for the harvest. And its framework notes misled the reading they were for: twelve
+notes from the suggestions sitting named no cycles and were each stamped with all 23, one note's cycles were the words
+*all 23 of this sitting* and counted as 1, and the reading summed them into "48 cycles" for a surface of a 23-cycle
+solution. The first attempt to read it at all handed the tool the solution's file rather than an export, and got a
+JSON conversion error.
+
+**Rejected.** *Counting an abandoned cycle's suggestions as answered by abandoning it*: a suggestion may still be
+worth taking further, and naming the successor is what says which work carries it. *Allowing `<cycle>/*` for a passed
+cycle*: its suggestions were raised against code that shipped, and each is still a question about that code.
+*Capping themes in the file*: the themes are the sitting's choice and recording reads every line; the cap is in what
+a person is shown. *A plan's shape split by sub-heading*: plans carry none, and a reader compares approaches whole.
+*An intent section for scope*: the spec's `Out of scope` already names what an intent did not ask for, and a section
+would be one more shape every stage reads. *Keeping the sitting as a note's default cycles*: the default is what
+stamped notes about one cycle with twenty-three. *Recounting notes already recorded*: the ledger is the binary's
+record of what a sitting answered and is never rewritten; a note recorded before this release keeps its cycles, and
+exports what its ids give. *Deduplicating cycles across notes in the reading*: an export carries counts, not ids, by
+design (D-204).
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

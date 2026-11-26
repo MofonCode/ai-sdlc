@@ -25,6 +25,12 @@ namespace Sdlc.Core.Harvest;
 /// </remarks>
 public static class RecordHarvest
 {
+    /// <summary>
+    /// What follows a cycle's id, <c>&lt;cycle&gt;/*</c>, in a covered line that answers every open suggestion of an
+    /// abandoned cycle by the successor taking its work up (D-225).
+    /// </summary>
+    public const string WholeCycle = "/*";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -308,7 +314,10 @@ public static class RecordHarvest
             HashSet<string> concerns = new(
                 ledger.Value.Watch.Concat(ledger.Value.Ignored ?? []).Concat(watch).Concat(ignored).Select(concern => concern.Gist),
                 StringComparer.Ordinal);
-            Result unresolved = await Resolved(covered, concerns, cancellationToken).ConfigureAwait(false);
+            HashSet<string> abandoned = new(
+                report.Value.Open.Where(open => open.Abandoned && report.Value.Sitting.Contains(open.Cycle)).Select(open => open.Cycle.ToString()),
+                StringComparer.Ordinal);
+            Result unresolved = await Resolved(covered, concerns, abandoned, cancellationToken).ConfigureAwait(false);
 
             if (unresolved.IsFailed)
             {
@@ -373,7 +382,10 @@ public static class RecordHarvest
         // with a file or a cycle started from it, or a file or directory under the solution.
         // A covered line's Concern: must name a concern the ledger or this sitting tallies, word for word, or it would
         // close nothing and the concern would go on counting.
-        private async Task<Result> Resolved(IReadOnlyList<Cover> covered, HashSet<string> concerns, CancellationToken cancellationToken)
+        // A whole cycle's suggestions, '<cycle>/*', are answered at once only for an abandoned cycle of this sitting, and
+        // only by the successor that takes its work up: that successor replans the work, so each suggestion against the
+        // abandoned approach is either carried by it or moot (D-225).
+        private async Task<Result> Resolved(IReadOnlyList<Cover> covered, HashSet<string> concerns, HashSet<string> abandoned, CancellationToken cancellationToken)
         {
             if (covered.Count == 0)
             {
@@ -418,6 +430,21 @@ public static class RecordHarvest
                 else if (!IsPathHere(cover.By))
                 {
                     refused.Add("'- " + cover.Line + "': " + cover.By + " is not a rule, a decision, successor:<slug>, or a file or directory in this solution.");
+                }
+
+                foreach (string whole in cover.Ids.Where(id => id.EndsWith(WholeCycle, StringComparison.Ordinal)))
+                {
+                    string cycle = whole[..^WholeCycle.Length];
+
+                    if (!abandoned.Contains(cycle))
+                    {
+                        refused.Add("'- " + cover.Line + "': " + whole + " answers every suggestion of a cycle at once, and " + cycle
+                            + " is not an abandoned cycle of this sitting. Answer a passed cycle's suggestions one by one.");
+                    }
+                    else if (!cover.By.StartsWith(SuccessorReference.Prefix, StringComparison.Ordinal))
+                    {
+                        refused.Add("'- " + cover.Line + "': " + whole + " is answered whole only by the successor that takes the abandoned work up: write successor:<slug>.");
+                    }
                 }
 
                 if (cover.Concern is { } gist && !concerns.Contains(gist))
