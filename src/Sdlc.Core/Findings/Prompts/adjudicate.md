@@ -72,12 +72,12 @@ criterion in turn:
    write Met. A test that asserts a value was handed to a library, where the criterion is about what the
    person saw; a keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that
    checks one of the four failure paths the criterion names. If the test misses a case the criterion
-   states or never reads its outcome, the criterion is **not met**. The cases a criterion states are the ones
+   states or never reads its outcome, the criterion is **not met (unproven)**. The cases a criterion states are the ones
    the spec lists under `Cases:`, or the one its sentence states when it lists none. A defect you can only
    imagine the test missing, or a case the spec never listed, is not a reason to withhold Met (D-127, D-132).
 
 Question three is where judgement lives, and where you may disagree with the plan. A test that ran and
-passed but does not reach its criterion is **not met** — say so, cite the test and the diff lines, and
+passed but does not reach its criterion is **not met (unproven)** — say so, cite the test and the diff lines, and
 let the finding stand. That is `CON_29` caught late rather than never, and it is worth more here than a
 pass that nobody can rely on.
 
@@ -90,21 +90,42 @@ fourteen verify blockers was "Met, because test X passed" where test X asserted 
 asked, and it took ten rounds because the verdict cited names. A quoted assertion that does not establish
 the criterion is visible in the first round.
 
+**The diff above is numbered for you.** Each hunk line carries its number in the margin before the `|`: `+41`
+is line 41 of the new file. Cite a line by its margin and quote what follows the `|`; never count down from a
+hunk header.
+
 **Do not overcorrect.** Not met is a claim too, and it needs the same citation: what the criterion asks
 and what in the evidence falls short of it. A verdict that swings from overclaiming to underclaiming is
 still a verdict that does not read the evidence.
+
+**Every Not met says which of two it is, in the words that open its entry:**
+
+| Opens with | When |
+|---|---|
+| `Not met (contradicted).` | the evidence shows the criterion failing: its test failed, or what the test reads is the wrong outcome |
+| `Not met (unproven).` | the evidence does not show it either way: no proof reached it, the test never runs a listed case or never reads its outcome, or the evidence is missing |
+
+Both block, alike. They are not the same news: an unproven criterion about credentials read as a leak, and
+remediate fixes the code for one and the proof for the other. Never write contradicted for a gap.
+`sdlc round verdict` refuses a Not met that says neither.
 
 Question two is also checked mechanically by `sdlc verify-chain`, so a verdict of `pass` on a criterion
 whose named test did not pass will be refused at the merge. Agreeing with the evidence costs you
 nothing; disagreeing with it costs the cycle a round trip.
 
 **Every criterion the spec states gets an entry under `Criteria`, numbered to match.** A criterion whose
-proof could not be reached is **not met** — it does not move to `## Open` as a limit of the proof. That
+proof could not be reached is **not met (unproven)** — it does not move to `## Open` as a limit of the proof. That
 region is for what this document cannot settle, and whether a criterion was met is the one thing a verify
 is for. `sdlc verify-chain` checks this too, so a verify that leaves one out is refused at the merge
 however the outcome reads. A genuine limit still belongs under `## Open`: the template below shows one,
 and the difference is that it bounds a criterion that was met rather than standing in for one that
 was not.
+
+**Each entry under `## Open` opens by naming the met criterion it bounds** — `Criterion 1: nothing beyond
+10,000 draws` — and `sdlc round verdict` refuses one that names no criterion, one this verdict does not
+adjudicate, or one it marks Not met, whose reason belongs in its own entry. An entry the evidence settles is
+not open: settle it in the criterion's entry. One that bounds nothing a criterion asks is not open either:
+leave it out. A section with nothing open says so in a line, with no list.
 
 ## Ask each perspective's questions of the evidence
 
@@ -113,7 +134,8 @@ verify` printed them.
 
 By now each perspective's concerns are criteria in the spec, and those are adjudicated above like any other.
 What a perspective adds here is its questions of the **evidence** — did the abuse case get attempted and
-refused, did the vulnerable-package scan run and what did it report (D-90). An answer that breaks a rule the
+refused, did the dependency audit run and what did it report (D-90). Where the round states that the build
+fails on a vulnerable package, a build that passed is that audit's clean result. An answer that breaks a rule the
 perspective lists is a criterion not met, citing that rule. **Anything else it finds is not yours to
 record here**: the interrogation of this document that follows runs every perspective's reader against the
 same evidence, and writes what they find with the perspective named, which is where `sdlc harvest
@@ -132,8 +154,8 @@ sentence stronger than it needs is something a reader will object to, and it dec
 | the change looks correct | — nothing. That is not derivable from evidence |
 | tests pass | Met. 14 passed, 0 failed, 0 skipped |
 
-**Where the evidence does not reach, say so in `## Open`.** A proof that only covers 100 rows says
-nothing about 50,000, and recording that limit is honest; claiming the criterion met is not.
+**Where the evidence does not reach a criterion you met, say so in `## Open`, naming it.** A proof that only
+covers 100 rows says nothing about 50,000, and recording that limit is honest; claiming more is not.
 
 ## Choose the outcome
 
@@ -165,12 +187,12 @@ outcome: pass
 
 1. Met. `Rolls_within_one_and_six` passed over 10,000 draws; `diff.patch` adds the
    service at `src/Dice/RollService.cs`.
-2. Not met. `Two_requests_differ` failed: both draws returned 4. The service is
+2. Not met (contradicted). `Two_requests_differ` failed: both draws returned 4. The service is
    registered as a singleton, so one instance holds one sequence.
 
 ## Open
 
-- Nothing about behaviour beyond 10,000 draws; the test does not reach further.
+- Criterion 1: nothing about behaviour beyond 10,000 draws; the test does not reach further.
 ```
 
 Write `verify.md` for cycle `{{id}}`, and return only that document: its frontmatter first, nothing before

@@ -466,6 +466,11 @@ criterion is adjudicated* is presence — which D-05 already establishes a parse
 the spec, while correlating two documents is what that layer already does for the proof entries. §13
 carries the check.
 
+**On a verify an entry bounds a criterion that was met, and names it** (D-222): `Criterion 2: nothing beyond
+10,000 draws`. `sdlc round verdict` refuses an entry naming no criterion, one the verdict does not adjudicate,
+or one it marks Not met, whose reason belongs in that criterion's entry. Whether the evidence could settle an
+entry stays a reader's question.
+
 ### 4.4 The plan holds two kinds of claim
 
 | Section | Kind | Judged by |
@@ -525,6 +530,12 @@ other verdict refuses it.
 the names `verify.md` cites that appear in none of the evidence — `tests.json`, `diff.patch`, `proof-sources.txt` where there is one, `coverage.json`, and the build log where there is one — and the tests it
 claims passed that `tests.json` does not record as passed. Whether a claim rests on its evidence stays
 the reader's judgement, so it never refuses. `tests.json` records the platform the tests ran on.
+
+**A verify round reads the diff numbered, and a line slip is listed** (D-222). Every verify reader gets each
+hunk line's number in a margin, so a verdict copies the line it cites rather than counting it. A citation whose
+quote is in the diff on other lines is reported by `sdlc evidence check`, handed to the round's readers as not
+theirs to raise, and handed to a rewrite to correct. **A Not met says why**: `Not met (contradicted).` when the
+evidence shows the criterion failing, `Not met (unproven).` when it does not show it either way. Both block.
 
 ---
 
@@ -1020,7 +1031,13 @@ wants, never to add or widen one (D-128). `interrogate` runs one fresh
 process per active perspective, handed that perspective's full method and rules, then **one reconciling
 reader** over the round's findings and the artifact's standing ones, which names a finding that restates
 one still open so the round carries it under the id it has (D-108). `verify` asks each perspective's questions of the evidence,
-in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164).
+in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164). **At verify a
+suggestion is about the built change or its evidence** (D-222): not how a Met is worded, and not whether the
+plan chose the right proof, since the plan was approved with it and no stage acts on either.
+
+**A perspective's evidence may already be the build.** Where a solution's build settings fail the build on a
+vulnerable package, every round's shared block says so, and the security perspective takes a passing build as
+its dependency audit rather than asking for a scan beside it (D-222).
 
 **Which apply.** Security, operability and maintainability always. The intent names any others, seen in
 the interview and covered by the approval's hash; at plan, the declared files add any the intent missed,
@@ -8045,6 +8062,54 @@ concerns phrased alike would merge, and D-108 has a distinct concern merged into
 the same words are a lookup. *Holding the framework's own `D-nn` ids too*: a solution's documents cite its own record,
 and a framework decision is cited by a person reading this repository, not by a cycle's reader. *Applying the checks to
 cycles in flight*: an approved plan citing a number would need a reopen to say what it already said.
+
+### D-222 — A verdict says why a criterion is not met, bounds only met criteria in `## Open`, and reads a numbered diff; verify readers leave what no stage acts on
+
+**Governs:** §4.3, §4.5, §6.5
+
+**Amends D-120**, whose evidence check also reports a cited diff line where its quote is not, **D-130**, whose rewrite
+in place also corrects those lines, **and D-90**, whose security perspective takes a build that fails on a vulnerable
+package as its dependency audit.
+
+**Decision.**
+
+- **A Not met says which of two it is.** Each opens `Not met (contradicted).` when the evidence shows the criterion
+  failing, or `Not met (unproven).` when it does not show it either way. Both block alike: unproven is still unmet.
+  `sdlc round verdict` refuses one that says neither.
+- **An entry under a verify's `## Open` names the met criterion it bounds**, as `Criterion 2: …`. `sdlc round verdict`
+  refuses an entry naming no criterion, one the verdict does not adjudicate, or one it marks Not met. A section that
+  says nothing is open, with no list, is left as it is.
+- **A verify round reads the diff numbered.** Every verify reader, the adjudicator and the diff reader get each hunk
+  line's number in a margin, the new file's for an added or unchanged line and the old file's for a removed one. The
+  patch on disk is unchanged.
+- **A citation whose quote is in the diff on other lines is listed, never refused.** `sdlc evidence check` reports it,
+  the round's readers are handed the list and told it is not a finding, and an adjudication that rewrites in place is
+  handed it to correct.
+- **A verify reader raises a suggestion about the built change or its evidence, and nothing else.** Not how a Met is
+  worded, and not whether the plan chose the right proof: the plan was approved with it. A Met claiming more than its
+  quote shows still breaks `CON_22`. The rules reader and every perspective at verify are told so.
+- **Every reader is told when the build is the dependency audit.** When `Directory.Build.props` sets `NuGetAudit` and
+  treats warnings as errors, with no audit warning let through, the round's shared block says a passing build is the
+  audit's clean result, and the security perspective asks for no scan beside it.
+
+**Why.** One governed solution's harvest of 23 cycles found each of these standing in every cycle. One verdict marked
+four criteria Not met on coverage gaps with no evidence the behaviour failed, and an unproven credentials criterion read
+as a leak; remediate cannot tell code to fix from a proof to strengthen when both read alike. One verdict kept three
+`## Open` entries the evidence settled or no criterion asked, and a reader stood on them for nine rounds: §4.3 said what
+the section is for on a verify, and nothing read it. Readers' verify findings were again and again a line reference off
+by one beside a quote that was right, because a unified diff never says which line is 41 and the adjudicator counted.
+Verify readers raised the wording of Met lines resting on the plan's approved proof in every cycle, where a suggestion
+can only become a successor (D-164) and no successor is about a verdict's words. And the security reader asked for a
+vulnerable-package scan at every stage of every cycle while the scaffolded build (§11.4) already failed on one.
+
+**Rejected.** *A third outcome per criterion, `Not proven`*: it changes the verify document's shape and every reader of
+it, for a difference two words carry, and unproven must block as unmet does. *Refusing a verdict with a line slip*:
+which file a sentence means is read from prose, a refusal resting on that reading costs a rerun of the largest prompt
+the framework sends, and numbering the diff removes the cause; the list is enough for what remains. *A rule for what
+`## Open` may hold on a verify*: which criterion an entry bounds is presence, which §7.2 routes to a check; whether the
+evidence could settle it stays a reader's question. *Recording an audit result as evidence*: the build already ran it,
+and a second file proves what a green build of those settings does. *Telling only the security perspective about the
+audit*: the fact is about the build, and the shared block keeps the readers' prefix one.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

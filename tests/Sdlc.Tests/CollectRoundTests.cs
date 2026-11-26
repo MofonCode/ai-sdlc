@@ -204,7 +204,7 @@ public sealed class CollectRoundTests
     {
         // D-161. A fenced verdict was refused, and the rerun cost the largest prompt the framework sends.
         using var workspace = CycleWorkspace.Create();
-        string verdict = "---\ncycle: 20260929_1456_32\noutcome: blocked\n---\n\n# Rolls\n\n## Criteria\n\n1. Not met.\n\n```\nAssert.AreEqual(1, roll);\n```\n";
+        string verdict = "---\ncycle: 20260929_1456_32\noutcome: blocked\n---\n\n# Rolls\n\n## Criteria\n\n1. Not met (contradicted).\n\n```\nAssert.AreEqual(1, roll);\n```\n";
         string from = Path.Combine(workspace.Root, "adjudicate.json");
 
         await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("```markdown\n" + verdict + "```\n"));
@@ -215,6 +215,47 @@ public sealed class CollectRoundTests
 
         await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope("Here it is:\n```markdown\n" + verdict + "```\n"));
         Assert.IsTrue((await Verdict(workspace, from)).IsFailed, "Prose beside the fence is still prose.");
+    }
+
+    [TestMethod]
+    public async Task A_not_met_says_whether_the_evidence_contradicts_the_criterion_or_does_not_prove_it()
+    {
+        // D-222. Four criteria marked Not met on coverage gaps read as failures; one about credentials read as a leak.
+        using var workspace = CycleWorkspace.Create();
+        string from = Path.Combine(workspace.Root, "adjudicate.json");
+        const string Head = "---\ncycle: 20260929_1456_32\noutcome: blocked\n---\n\n# Rolls\n\n## Criteria\n\n";
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Head + "1. Met. `Rolls` passed.\n2. **Not met.** No test reads the label.\n3. Not met. `Differs` failed.\n"));
+        Result<WriteVerdict.Response> refused = await Verdict(workspace, from);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "marks criteria 2, 3 Not met without saying why");
+        Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "Refused, never tidied.");
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Head + "1. Met. `Rolls` passed.\n2. **Not met (unproven).** No test reads the label.\n3. Not met (contradicted). `Differs` failed.\n"));
+        Assert.IsTrue((await Verdict(workspace, from)).IsSuccess, "Both reasons block alike, and either is a reason.");
+    }
+
+    [TestMethod]
+    public async Task An_open_entry_names_the_met_criterion_it_bounds_or_the_verdict_is_refused()
+    {
+        // D-222. One verdict kept three open entries the evidence settled or no criterion asked, for nine rounds.
+        using var workspace = CycleWorkspace.Create();
+        string from = Path.Combine(workspace.Root, "adjudicate.json");
+        const string Head = "---\ncycle: 20260929_1456_32\noutcome: blocked\n---\n\n# Rolls\n\n## Criteria\n\n1. Met. `Rolls` passed.\n2. Not met (unproven). Nothing reads it.\n\n## Open\n\n";
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Head + "- The run was on one machine.\n- Criterion 2: only the happy path.\n- Criteria 1 and 4: nothing past 100 rows.\n"));
+        string message = (await Verdict(workspace, from)).Errors[0].Message;
+
+        StringAssert.Contains(message, "'The run was on one machine.' names no criterion");
+        StringAssert.Contains(message, "bounds criterion 2, which it marks Not met");
+        StringAssert.Contains(message, "names criterion 4, which it does not adjudicate");
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Head + "- Criterion 1: nothing past 10,000 draws.\n  - a sub-bullet is the entry's own\n"));
+        Assert.IsTrue((await Verdict(workspace, from)).IsSuccess);
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Head + "- None.\n"));
+        Assert.IsTrue((await Verdict(workspace, from)).IsSuccess, "Saying nothing is open is not an entry.");
     }
 
     [TestMethod]

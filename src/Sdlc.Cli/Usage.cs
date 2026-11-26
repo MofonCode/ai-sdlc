@@ -373,7 +373,8 @@ internal static class Usage
                                      --retire-pass, when a person asked for a change to a cycle
                                      that passed (D-185).
             evidence check <id>      List what verify.md cites in backticks that none of the
-                                     recorded evidence holds, and tests it says passed that did not.
+                                     recorded evidence holds, tests it says passed that did not,
+                                     and diff lines it cites where the quote is on another line.
                                      Reports only; always exits 0.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
@@ -446,7 +447,9 @@ internal static class Usage
                                      open. --host names the host the readers ran on.
             round verdict <id> --from <file>
                                      Write verify.md from the adjudicator's answer, byte for byte.
-                                     Refuses an answer that is not a verify document.
+                                     Refuses an answer that is not a verify document, a Not met
+                                     that does not say contradicted or unproven, and an Open entry
+                                     that bounds no criterion it met (D-222).
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --

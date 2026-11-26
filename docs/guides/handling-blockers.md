@@ -251,7 +251,9 @@ It is handed two more rules, as every reader of a change is — `CON_09`, which 
 (D-178). Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
 latest verify round. They are not the same list. A Not met that the verdict's readers agree with raises
 no finding, so a pass that worked only the findings could leave the criterion that blocked the cycle
-untouched. It edits source and tests to fix the **cause**, never a planning document. After each pass it builds,
+untouched. **Each Not met says which kind it is** (D-222): `Not met (contradicted)` means the evidence shows the
+criterion failing, so the code is what to fix; `Not met (unproven)` means nothing shows it either way, so the
+proof is — a test that runs the case the criterion lists and reads its outcome. It edits source and tests to fix the **cause**, never a planning document. After each pass it builds,
 tests, records the evidence again and commits it, then **runs verify again** — whose adjudicator is a fresh
 process that never saw the fix, so the session that wrote it never grades it (D-159).
 

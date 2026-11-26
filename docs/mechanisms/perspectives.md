@@ -20,7 +20,9 @@ Each perspective is a document built into the `sdlc` binary, and every one has t
 | **rules** | the only part that can block | every reader |
 
 It also names **the evidence** it needs recorded at build — a vulnerable-package scan, an accessibility
-scan, tests named for the abuse cases.
+scan, tests named for the abuse cases. Evidence the build already is counts: where `Directory.Build.props` fails
+the build on a vulnerable package, every round says so and the security perspective asks for no scan beside it
+(D-222).
 
 **Read one rather than a summary of it:**
 
@@ -76,7 +78,7 @@ sdlc perspectives <id>
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |
 | `build` | **steers, and never widens.** It applies the *cover this* list to how the plan is written up in code and records the evidence each perspective needs. Anything a perspective wants that the plan did not describe becomes a tagged `Noticed: [name] …` line in the commit, not code |
-| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page. Asked in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164) |
+| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page. Asked in the cycle's first verify round; a later one is the rules and diff readers' alone (D-164). A suggestion here is about the built change or its evidence, never how a Met is worded or whether the plan chose the right proof (D-222) |
 
 **Why steering as well as judging.** A perspective that only judges finds what it could have prevented,
 and the loop pays a refine round for every finding it raises. A perspective that steers mostly finds

@@ -1369,7 +1369,9 @@ see the build. Never edits code.
 #### Output
 
 `verify.md`: an entry for every criterion, numbered to match, each citing the evidence it rests on
-(`CON_22`), and `## Open` for limits of the evidence. **Never edits code.**
+(`CON_22`), and `## Open` for limits of the evidence, each naming the met criterion it bounds. **A Not met
+says why** — `Not met (contradicted).` when the evidence shows the criterion failing, `Not met (unproven).`
+when it does not show it either way — and both block (D-222). **Never edits code.**
 
 It writes `pass` or `blocked`. **`escalated` is computed, not declared**: it is what a remediation loop
 that stopped making progress makes of a blocked cycle (D-66). `sdlc verify-chain` checks mechanically
@@ -1389,7 +1391,8 @@ that every criterion has an entry and that a `pass` rests on named tests that pa
 ```
 
 Expect `verify.md` with a verdict per criterion, and the outcome in a line or two — on `blocked`, with
-each criterion marked Not met by its number and the first sentence of its reason.
+each criterion marked Not met by its number, whether it is contradicted or unproven, and the first sentence
+of its reason.
 
 #### Remarks
 
@@ -1404,9 +1407,11 @@ with no evidence behind it.
 so it has `sdlc round prompt` write the adjudicator's prompt — the plan, the spec, the evidence, the
 constraints, the perspectives' questions and the method — and `sdlc round run` start a fresh process with no
 tools to write the verdict criterion by criterion, and records what that returns byte for byte
-with `sdlc round verdict`, which refuses an answer that is not a verify document. Before the round,
-`sdlc evidence check` reports what the verdict cites that the evidence does not hold, and refuses nothing
-(D-120). It interrogates the verify document like any other artifact, and
+with `sdlc round verdict`, which refuses an answer that is not a verify document, a Not met that does not
+say why, and an `## Open` entry that bounds no criterion the verdict met (D-222). Before the round,
+`sdlc evidence check` reports what the verdict cites that the evidence does not hold, and each diff line it
+cites where its quote is not, and refuses nothing (D-120, D-222). The round reads the diff with each line
+numbered, and its readers raise suggestions about the built change or its evidence only. It interrogates the verify document like any other artifact, and
 a blocking finding is answered by a new adjudication given the findings, never by `refine` or an edit in
 the session. The verify round also runs the **diff reader**, which reads the change itself against the
 intent, the plan and the decisions; its findings, ids under `diff.`, go to `remediate` whatever the outcome

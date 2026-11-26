@@ -408,6 +408,11 @@ public sealed class PublicSurfaceTests
         // is public for the same reason Claim and Collision are.
         "Sdlc.Core.Evidence.ComputeClaimGraph+Skipped",
         "Sdlc.Core.Evidence.DeclaredFiles",
+
+        // D-222: the diff a verify round reads, numbered, and the line citations whose quote is on other lines. A
+        // Slip is part of what the evidence check renders.
+        "Sdlc.Core.Evidence.DiffLines",
+        "Sdlc.Core.Evidence.DiffLines+Slip",
         "Sdlc.Core.Evidence.EvidenceRenderer",
         "Sdlc.Core.Evidence.FileComparison",
         "Sdlc.Core.Evidence.RecordEvidence",
