@@ -599,11 +599,11 @@ public static class CollectRound
         // that concern whatever the reconciler said: the same words are a lookup, not a judgement (D-223). One
         // reconciler missed a verify suggestion of its own ledger and the next round recorded it under a second id;
         // two readers of one round copying a sentence did the same within it.
-        List<Finding> kept = [];
+        List<Finding> worded = [];
 
         foreach (Finding finding in raised.Where(finding => !dropped.Contains(finding.Id) && finding.Severity == Severity.Suggestion))
         {
-            if (kept.FirstOrDefault(earlier => SuggestionLedger.SameWords(earlier.Statement, finding.Statement)) is { } earlier)
+            if (worded.FirstOrDefault(earlier => SuggestionLedger.SameWords(earlier.Statement, finding.Statement)) is { } earlier)
             {
                 restated[finding.Id] = earlier.Id;
                 dropped.Add(finding.Id);
@@ -631,7 +631,7 @@ public static class CollectRound
                 continue;
             }
 
-            kept.Add(finding);
+            worded.Add(finding);
         }
 
         List<Finding> findings = [.. raised.Where(finding => !dropped.Contains(finding.Id))];
