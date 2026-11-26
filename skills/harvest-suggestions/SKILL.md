@@ -47,6 +47,12 @@ suggestion raising a held successor's concern is covered by `successor:<slug>`.
 already handles the concern, nobody decided against it: name that thing. `sdlc harvest record` checks every covered
 line names something real, and refuses the sitting when one does not.
 
+**An abandoned cycle's suggestions go to the successor that takes its work up, in one answer** (D-225). They were
+raised against an approach a person refused, and the successor replans the work: write
+`- <cycle>/*: successor:<slug> — <how it takes the work up>` under `## Covered`, and the report's line for that cycle
+says how many it answers. `sdlc harvest record` refuses `<cycle>/*` for a cycle that passed, or answered by anything
+but a successor. With no successor taking the work up, answer them one by one.
+
 **An ignored suggestion is counted by its concern, not its id.** Where it is one of the report's *ignored before*
 concerns, write the gist **exactly as written there**, so the tally gains this cycle. **A concern at the bar —
 ignored in three cycles — is not ignored again**: make it a successor, decline it, or cover it. A covered line's
@@ -54,13 +60,18 @@ ignored in three cycles — is not ignored again**: make it a successor, decline
 
 **Themes are for the person's reading.** Under `## Declined`, `## Covered` and `## Ignored`, group the lines under
 `### <theme>` headings — *Settled by a recorded decision*, *Already handled by a rule* — so the hand-back is a
-handful of groups rather than a line per suggestion. A theme changes nothing recorded.
+handful of groups rather than a line per suggestion. A theme changes nothing recorded. **A theme is a reason the
+person would recognise, not a restatement of one suggestion**: aim for no more than eight to a section, however
+many suggestions the sitting holds. The summary shows the eight largest and counts the rest on one line, because a
+sitting of thousands of suggestions written as hundreds of themes is a list again (D-225).
 
 Each successor the report lists under *Gaps in the framework* goes under `## For the framework` (D-173), as a note
 written for somebody who has never seen this solution (D-204): its heading names the part of the framework — a rule's
 id, `stage:verify`, `command:evidence`, `evidence` — and what fell short, rewording its `framework:` line wherever
-that names the solution's own product, files or people; a `Kind:` line says `cost`, `missing` or `defect`; its slug
-goes beneath under `>`, which stays here. `sdlc harvest record` refuses a note with no surface or no `Kind:`.
+that names the solution's own product, files or people; a `Kind:` line says `cost`, `missing` or `defect`; a
+`Cycles:` line names the cycles whose suggestions raised it, by id, never every cycle of the sitting by default —
+`all` only when each of them really does (D-225); its slug goes beneath under `>`, which stays here.
+`sdlc harvest record` refuses a note with no surface, no `Kind:`, or no `Cycles:` line of cycle ids.
 
 ## 3. Write the proposal file
 
@@ -90,6 +101,7 @@ At the path the report names:
 
 - <cycle>/<suggestion id>[, <cycle>/<suggestion id>]: <a rule id, a decision id, successor:<slug>, or a path> — <how it covers it>
   Concern: <the ignored or watched concern it closes, worded as the report has it — only when there is one>
+- <abandoned cycle>/*: successor:<slug> — <how it takes the abandoned work up>
 
 ## Ignored
 
@@ -102,6 +114,7 @@ At the path the report names:
 
 ### <surface> — <what fell short, worded for somebody who has never seen this solution>
 Kind: <cost | missing | defect>
+Cycles: <the cycles whose suggestions raised it> | all
 > <slug>: <its framework: line, as written>
 
 ## Cycles

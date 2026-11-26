@@ -522,13 +522,15 @@ internal static class Usage
                                      draft and solution.md; one handed the aspect's report and the
                                      proposal file. The newest of each in .sdlc/reports unless
                                      --proposals names the file.
-            harvest summary <proposal file>
+            harvest summary <proposal file> [--all]
                                      What one proposal file asks of a person, in a few lines: each
                                      proposal numbered, with its mark; the Declined, Covered and Ignored
                                      answers counted by the '### <theme>' each stands under, with
                                      what each Covered theme relies on; and every rule, decision
                                      and successor:<slug> the file names, with what it says or
-                                     'not found'. Writes nothing.
+                                     'not found'. Past eight themes to an answer it shows the
+                                     largest and counts the rest on one line; --all shows every
+                                     one (D-225). Writes nothing.
             harvest --history        The harvest ledger: every closed cycle, every sitting with its
                                      aspect and what was accepted, declined and covered, the
                                      concerns watched below the bar of three cycles, the concerns

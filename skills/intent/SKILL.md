@@ -572,8 +572,9 @@ fixed decision it becomes, in the person's words — and write it once they conf
 suggestions"* is the person adopting your wording, so the read-back is what they are agreeing to.
 
 What the person picks becomes a wanted outcome **in their words**, and an answer that is a decision
-(*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do not take up, you do
-not write.** The spec may only derive from what the intent states (`CON_26`) — apart from a criterion another
+(*"the prices are shown as delayed, never passed off as live"*) goes to `Fixed decisions`. An answer that
+only bounds this piece (*"sign-in is not needed for this piece"*) is not a decision: see **A bound on this
+piece is not a fixed decision**, under §6. **What they do not take up, you do not write.** The spec may only derive from what the intent states (`CON_26`) — apart from a criterion another
 rule in force requires, such as what a failure tells somebody, which names that rule — so a concern added here
 without being asked is the scope creep the rule exists to stop, moved one stage earlier. The fresh
 readers will raise what was left, and the hand-back offers it again.
@@ -671,6 +672,21 @@ often. Their words where you can.
 
 ## Open
 ```
+
+**A bound on this piece is not a fixed decision** (D-225). *Not in this piece*, *only today's chart*,
+*sign-in comes later* — what this work leaves out is said by the outcomes it asks for, and the spec names
+the rest in `Out of scope`. Write such a bound into the wanted outcome it limits, in that outcome's line
+and the person's words (*"- A trader sees today's chart — today's only; earlier days are a later piece"*),
+or leave it out when no outcome comes near it. `Fixed decisions` holds a choice already taken about how the
+thing is to be: one the plan must honour, and one a later cycle could meet again. A harvest reads every
+fixed decision as a candidate for the solution's decisions, so a bound filed there is one more passage to
+answer that records nothing.
+
+**In a slicing, a bound shared by every slice is not copied into each.** Each slice's outcomes already
+leave the other slices' work out. Write a shared bound once, in the slice it limits most; if it reaches past
+this slicing — every future cycle will meet it — it is a decision for the solution's record, which the
+person writes in `decisions.md`, and none of the intents repeats it. The same five lines word for word in
+three intents are read three times at every stage and three times more by a harvest.
 
 **`## Open` is required even when empty.** Without it, nothing can tell "nothing is open" from "the
 author forgot the section", and those need different responses.

@@ -94,8 +94,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **A harvest — `sdlc harvest record`, `sdlc harvest close`, and its pull request** | |
 | [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename the draft into place or delete it, then run the command again |
 | [nothing left to record](../guides/handling-refusals.md#nothing-left-to-record) | `sdlc harvest` shows what each cycle still needs; copy `## Cycles` as the report wrote it |
-| [a note for the framework that does not read](../guides/handling-refusals.md#a-note-for-the-framework-that-does-not-read) | name a surface and a `Kind:` under each `## For the framework` heading, then record again |
-| [a covered answer that names nothing real](../guides/handling-refusals.md#a-covered-answer-that-names-nothing-real) | name the rule, decision, successor or file that really covers each listed line, or decline it with why, then record again |
+| [a note for the framework that does not read](../guides/handling-refusals.md#a-note-for-the-framework-that-does-not-read) | name a surface, a `Kind:` and a `Cycles:` line under each `## For the framework` heading, then record again |
+| [a covered answer that names nothing real](../guides/handling-refusals.md#a-covered-answer-that-names-nothing-real) | name the rule, decision, successor or file that really covers each listed line, or decline it with why, or answer a passed cycle's suggestions one by one, then record again |
 | [an aspect is still unanswered](../guides/handling-refusals.md#an-aspect-is-still-unanswered) | run that aspect's skill, or `/sdlc:harvest`, then close again |
 | [not on the integration branch](../guides/handling-refusals.md#not-on-the-integration-branch) | switch to the integration branch and close again |
 | [a harvest pull request carries something that is not a harvest's](../guides/handling-refusals.md#a-harvest-pull-request-carries-something-that-is-not-a-harvests) | take out what is not a closed cycle's or a closed series' deletion, and fix the record the check names |

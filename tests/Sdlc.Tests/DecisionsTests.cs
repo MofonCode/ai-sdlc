@@ -250,6 +250,40 @@ public sealed class DecisionsTests
     }
 
     [TestMethod]
+    public async Task A_plans_shape_is_one_passage_however_many_bullets_it_has()
+    {
+        // One per bullet, a solution's first six plans came back as 305 fragments, and the same approach in two
+        // cycles never read as one choice (D-225).
+        using var workspace = CycleWorkspace.Create();
+        Stated(workspace);
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.PathOf(ArtifactKind.Plan),
+            string.Join(
+                Environment.NewLine,
+                "---",
+                "cycle: " + workspace.Cycle.Id,
+                "tier: contract",
+                "---",
+                string.Empty,
+                "# plan",
+                string.Empty,
+                "## Shape and departures",
+                string.Empty,
+                "- The handler writes to an outbox in the same transaction.",
+                "- A dispatcher publishes from it.",
+                string.Empty,
+                "- The declared default is a direct publish.",
+                string.Empty,
+                "## Open"));
+
+        Candidate plan = (await Propose(workspace)).Candidates.Single(candidate => candidate.Source == DecisionSource.Plan);
+
+        Assert.AreEqual(
+            "- The handler writes to an outbox in the same transaction.\n- A dispatcher publishes from it.\n- The declared default is a direct publish.",
+            plan.Passage);
+    }
+
+    [TestMethod]
     public async Task What_is_already_recorded_is_handed_over_so_a_proposal_is_not_a_duplicate()
     {
         using var workspace = CycleWorkspace.Create();

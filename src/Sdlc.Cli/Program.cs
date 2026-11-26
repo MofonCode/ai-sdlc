@@ -2628,7 +2628,7 @@ static async Task<int> HarvestCommand(CommandLine line)
                 return await Report(summary, ExitCode.Refused).ConfigureAwait(false);
             }
 
-            await Console.Out.WriteAsync(HarvestSummary.Render(summary.Value)).ConfigureAwait(false);
+            await Console.Out.WriteAsync(HarvestSummary.Render(summary.Value, rest.HasOption("all"))).ConfigureAwait(false);
             return ExitCode.Ok;
         }).ConfigureAwait(false);
     }

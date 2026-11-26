@@ -33,13 +33,15 @@ internal static class Reading
     }
 
     // By surface, the one most solutions raised first: a note several solutions wrote is the framework's, not a habit.
+    // Then by the most cycles any one note under it names. Never by a sum: two notes about one surface are often seen
+    // in the same cycles, and an export carries counts rather than ids, so adding them counts a cycle twice (D-225).
     private static void Notes(StringBuilder text, IReadOnlyList<(string Source, FrameworkExport Export)> exports)
     {
         IEnumerable<IGrouping<string, (string Source, SentNote Note)>> bySurface = exports
             .SelectMany(entry => entry.Export.Notes.Select(note => (entry.Source, Note: note)))
             .GroupBy(entry => entry.Note.Surface, StringComparer.Ordinal)
             .OrderByDescending(group => group.Select(entry => entry.Source).Distinct(StringComparer.Ordinal).Count())
-            .ThenByDescending(group => group.Sum(entry => entry.Note.Cycles))
+            .ThenByDescending(group => Most(group.Select(entry => entry.Note)) ?? 0)
             .ThenBy(group => group.Key, StringComparer.Ordinal);
 
         text.AppendLine();
@@ -48,18 +50,20 @@ internal static class Reading
         foreach (IGrouping<string, (string Source, SentNote Note)> surface in bySurface)
         {
             int solutions = surface.Select(entry => entry.Source).Distinct(StringComparer.Ordinal).Count();
+            int? most = Most(surface.Select(entry => entry.Note));
 
             text.AppendLine();
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"### {surface.Key} — {solutions} export{Plural(solutions)}, {surface.Sum(entry => entry.Note.Cycles)} cycles"));
+                $"### {surface.Key} — {solutions} export{Plural(solutions)}, {(most is { } cycles ? "up to " + cycles + " cycle" + Plural(cycles) + " a note" : "cycles not named")}"));
 
             foreach ((string source, SentNote note) in surface)
             {
                 string releases = note.Releases.Count == 0 ? "no release recorded" : string.Join(", ", note.Releases);
+                string seen = note.Cycles is { } count ? count + " cycle" + Plural(count) + " on " + releases : "cycles not named, on " + releases;
                 text.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"- **{KindName(note.Kind)}** {note.Statement} _({source}; {note.Cycles} cycle{Plural(note.Cycles)} on {releases}{(note.Measure is null ? string.Empty : "; " + note.Measure)})_"));
+                    $"- **{KindName(note.Kind)}** {note.Statement} _({source}; {seen}{(note.Measure is null ? string.Empty : "; " + note.Measure)})_"));
             }
         }
     }
@@ -123,6 +127,9 @@ internal static class Reading
                 $"| {reader.Key} | {seen} | {raised} | {(double)raised / seen:0.#} | {Share(reader.Sum(entry => entry.Yield.Blocking), raised)} | {Share(reader.Sum(entry => entry.Yield.Cited), raised)} | {Share(reader.Sum(entry => entry.Yield.Withdrawn), raised)} |"));
         }
     }
+
+    // The most cycles any one note names, or null when none names any.
+    private static int? Most(IEnumerable<SentNote> notes) => notes.Select(note => note.Cycles).Max();
 
     private static string Mean(List<SentCycle> cycles, Func<SentCycle, int?> value)
     {

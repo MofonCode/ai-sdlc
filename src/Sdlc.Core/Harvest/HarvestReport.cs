@@ -239,7 +239,7 @@ public static class HarvestReport
                 Decisions(text, response);
                 break;
             case HarvestAspect.Suggestions:
-                Suggested(text, response.Suggestions, response.Ledger.Ignored ?? []);
+                Suggested(text, response.Suggestions, response.Ledger.Ignored ?? [], [.. response.Open.Where(open => open.Abandoned).Select(open => open.Cycle)]);
                 Gaps(text, response.FrameworkGaps);
                 break;
             case HarvestAspect.Stack:
@@ -533,12 +533,24 @@ public static class HarvestReport
     /// The earlier ignored concerns are listed in their own words so an ignored suggestion is worded the same way
     /// and counted with them, and one at the bar is not ignored again.
     /// </remarks>
-    private static void Suggested(StringBuilder text, IReadOnlyList<Suggestion> suggestions, IReadOnlyList<Watched> ignored)
+    private static void Suggested(StringBuilder text, IReadOnlyList<Suggestion> suggestions, IReadOnlyList<Watched> ignored, IReadOnlyList<CycleId> abandoned)
     {
         text.AppendLine();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
             $"Suggestions   {suggestions.Count} open -- take each further, decline it with why, cover it with what already handles it, or ignore it"));
+
+        // An abandoned cycle's suggestions are against an approach a person refused; the successor that replans the
+        // work takes them up in one answer rather than one by one (D-225).
+        foreach (IGrouping<CycleId, Suggestion> stopped in suggestions
+            .Where(suggestion => abandoned.Contains(suggestion.Cycle))
+            .GroupBy(suggestion => suggestion.Cycle)
+            .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal))
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {stopped.Key} was abandoned, with {stopped.Count()} open: answer them together as '- {stopped.Key}{RecordHarvest.WholeCycle}: successor:<slug> — <how it takes the work up>' under ## Covered, or one by one"));
+        }
 
         foreach (Suggestion suggestion in suggestions
             .OrderBy(suggestion => suggestion.Cycle.ToString(), StringComparer.Ordinal)

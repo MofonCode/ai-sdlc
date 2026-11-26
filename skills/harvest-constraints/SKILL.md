@@ -67,7 +67,9 @@ wants it now, and write it under `## For the framework` as `missing` as well.
 framework — a rule's id, `perspective:security`, `stage:verify`, `command:evidence`, `evidence` — and what fell
 short, with no product, provider, file or person of the solution's in it. The cycles, finding ids and rounds go
 beneath it under `>`, which stays here: `sdlc harvest framework` prints everything above that line and nothing
-below it. `sdlc harvest record` refuses a note with no surface or no `Kind:`.
+below it. **`Cycles:` names the cycles whose record shows it, by id** — `all` only when every cycle of the sitting
+does — so a note seen in four cycles is never counted as seen in twenty (D-225). `sdlc harvest record` refuses a
+note with no surface, no `Kind:`, or no `Cycles:` line of cycle ids.
 
 **An argued rule is usually settled by a decision, not a rule.** Answer here only whether the rule itself needs
 changing; `harvest-decisions` reads what the plan finally did about it.
@@ -115,7 +117,7 @@ label and a colon, exactly as constraints.md writes them>
 
 ### <surface> — <what fell short, worded for somebody who has never seen this solution>
 Kind: <cost | missing | defect>
-Cycles: <cycle>, <cycle>
+Cycles: <cycle>, <cycle> | all
 Measure: <the numbers: cycles, findings, rounds, tokens>
 > <the cycles, finding ids and rounds behind it -- kept here, never sent>
 
