@@ -199,7 +199,10 @@ rest:
    deviations bend the same approved text, the cycle **escalates**: it opens only a draft pull request, and
    `handling-blockers.md` is what to read.
 6. **It opens the pull request** into the integration branch once the verification passes. With no remote it
-   stops at a verified local branch and says so.
+   stops at a verified local branch and says so. **First it fetches the integration branch and checks the build
+   has taken its latest** (`sdlc up-to-date`, D-227): if somebody merged while it built and the merge is clean, it
+   brings that in, builds and verifies again before it opens anything; if the merge stops on a conflict, it opens
+   nothing and the report names the files, for you to *fix it*.
 
 **Where the approved text cannot be followed, it records a deviation and keeps going** (D-156): a file the fix
 has to touch that the plan did not declare, a test whose name has to change, a decision the work cannot keep.
@@ -242,6 +245,8 @@ Its pull request is a draft, and the report says what stopped it. **Say what to 
 until it passes or needs you again. When what stopped it is a criterion the code cannot meet, the instruction is a
 reopen: no deviation changes what *done* means (D-179). `handling-blockers.md` has the rest.
 
+**Every pull request is opened from a branch that has taken the latest integration branch** — a plan's, a build's,
+a run's, a harvest's close (D-227) — so a pull request is never reviewed against a target it has not seen.
 **When the next pull request conflicts**, or goes red because an earlier merge broke it, *fix it*
 (`/sdlc:remediate <id>`): `resolve-conflict` brings it up to date inside the cycle's declared files, then it is
 verified again in a fresh process and the pull request updated.

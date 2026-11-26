@@ -1001,6 +1001,45 @@ a new cycle. [Testing a local build](testing-a-local-build.md) is the whole loop
 
 ---
 
+## `sdlc up-to-date` — the two ways a branch is not ready to push
+
+The `pr` skill and `close-cycle` ask it before every pull request they open (D-227). It fetches the target from
+origin — the integration branch, or `--base` — and refuses a branch that does not hold the target's head.
+
+### behind its target
+
+The target took commits the branch does not have, so the pull request would be reviewed and checked without
+them, and anything both sides wrote — a record two cycles each added to, a file the target changed under the
+cycle — would be merged by the platform's text merge rather than seen. The refusal says how many commits, and
+whether the merge would be clean or where it stops.
+
+**Next,** for a branch that changes only the record under `.sdlc/` — a plan, a slicing, a sandbox's admission, a
+harvest's close: nothing is built again, so bring the target in and ask again:
+
+```
+git merge origin/<target>
+sdlc up-to-date
+```
+
+**Merge, never rebase**: the branch may already be pushed, and the pull request is squashed when it lands, so a
+merge rewrites nothing.
+
+**Next,** for a branch carrying built code: bringing the target in changes the code the verification judged, so
+the verification goes with it. `/sdlc:remediate <id>` merges the target in through `resolve-conflict`, builds,
+records fresh evidence and verifies again in a fresh process, which is then judged against the new base. On a
+run's branch, remediate the run's last cycle: its fresh run is the one the run's check reads. Inside the build's
+own process this happens without asking when the merge is clean; when it stops on a conflict, the build opens no
+pull request and its report names the cycle and the files, for a person to remediate.
+
+### the target could not be fetched
+
+Offline, no remote called `origin`, or a target the remote does not have. Nothing was compared, so passing would be
+a guess.
+
+**Next:** `git fetch origin <target>` once the remote answers, then `sdlc up-to-date` again.
+
+---
+
 ## The pre-tool hook — the eight things an agent is denied
 
 These are denied at the tool call, by file path and by shell command alike. `../mechanisms/protected-files.md` says

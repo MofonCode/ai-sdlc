@@ -568,6 +568,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Themes.Slot",
         "Sdlc.Core.Git.GitRepository",
         "Sdlc.Core.Git.IRepository",
+        // D-227: 'sdlc up-to-date', whether a branch has taken the latest of its pull request's target.
+        "Sdlc.Core.Git.Freshness",
+        "Sdlc.Core.Git.FreshnessCheck",
+        "Sdlc.Core.Git.TargetFreshness",
         // The four added with D-46. Each host's facts are one row in a table rather than a switch
         // arm in each of four files, and the row is public because `Templates` and `Initialise`
         // read it and the conformance suite enumerates it. ConfigOwnership and HookEntryShape are

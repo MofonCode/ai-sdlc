@@ -115,6 +115,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [escalated](../guides/handling-refusals.md#escalated) | a person decides: reopen the approval, or abandon the cycle |
 | [the chain does not hold](../guides/handling-refusals.md#the-chain-does-not-hold) | `sdlc verify-chain <id>` prints every check |
 | [a test run](../guides/handling-refusals.md#a-test-run) | abandon it; publish a preview, pin the integration branch to it, and run the work again |
+| **Before any pull request — `sdlc up-to-date`** | |
+| [behind its target](../guides/handling-refusals.md#behind-its-target) | records alone: `git merge origin/<target>` and ask again. Built code: `/sdlc:remediate <id>`, which merges, builds and verifies again |
+| [the target could not be fetched](../guides/handling-refusals.md#the-target-could-not-be-fetched) | `git fetch origin <target>` once the remote answers, and ask again |
 | **Denied to an agent — the pre-tool hook\*** | |
 | writing `approval.md` | `sdlc draft approval <id>`, then rename |
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |

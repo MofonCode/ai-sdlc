@@ -1,6 +1,6 @@
 ---
 name: resolve-conflict
-description: Bring one cycle's pull request up to date with the integration branch when it conflicts, or goes red after another merge -- resolve inside the cycle's declared files, rebuild, and record fresh evidence. A single-responsibility skill: remediate runs it first when a pull request conflicts, then verifies. Use when a pull request into the integration branch conflicts or its re-check fails.
+description: Bring one cycle's pull request up to date with the integration branch when it conflicts, goes red after another merge, or is behind it before it opens -- resolve inside the cycle's declared files, rebuild, and record fresh evidence. A single-responsibility skill: remediate runs it first when a pull request conflicts, then verifies. Use when a pull request into the integration branch conflicts or its re-check fails.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
@@ -10,7 +10,8 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glo
 
 Every cycle builds from the same base, so two that touch the same thing meet when the second one's pull
 request is merged (`CONCEPT.md` §10.5, D-86). A person merges one pull request at a time; when the next one
-conflicts, or its re-check goes red because an earlier merge broke it, this brings it up to date.
+conflicts, or its re-check goes red because an earlier merge broke it, this brings it up to date. So does a branch
+`sdlc up-to-date` finds behind before its pull request is opened (D-227): the same merge, a little earlier.
 
 **A single-responsibility skill** (D-186): it brings the integration branch in and records what the code now is,
 and nothing else. **It edits, and it does not judge its own work.** A resolution changes code, so the cycle's

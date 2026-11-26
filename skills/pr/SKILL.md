@@ -25,6 +25,9 @@ happened.
 | `pr <id>`, its pull request already open | a new push after `remediate`, and the body's report refreshed | nothing: the playbook that ran it already decided |
 | `pr --run`, on `wave/<id>` or `series/<id>` | every cycle a run built, by one pull request, draft or ready | `sdlc pr-ready`, with no id |
 
+**And every one of them asks `sdlc up-to-date` before that** (D-227), on the branch about to be pushed — below,
+under *Before any push*. A merge it asks for changes what the row's own question reads, so it comes first.
+
 ## Which cycle
 
 **For a verified build the id may be left out** (D-158): a person who has just been told *open the pull
@@ -271,6 +274,30 @@ the guarantee and a green tick. `sdlc doctor` reads the policy back when the pla
 it does not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer,
 and nothing on one machine stands in for it. Say that plainly rather than letting somebody believe a
 local cycle is governed to the same standard.
+
+## Before any push: has the branch taken the latest target?
+
+**Every pull request this skill opens or updates asks this first, on the branch it pushes** — the cycle's own, a
+slicing's or a sandbox's admission branch in its folder, a run's branch (D-227):
+
+```
+sdlc up-to-date --base <target>
+```
+
+`<target>` is where the pull request goes: the integration branch, or the release branch a cycle's `release`
+names. It fetches the target from origin, so a stale local copy cannot make the branch look current, and exits 0
+when the branch holds the target's head. **It refuses a branch behind the target, and a target it could not
+fetch, and neither is pushed past:**
+
+- **Behind, on a branch of records alone** — a plan, a slicing, a sandbox's admission: nothing was built, so
+  bringing the target in is the pull. **When it says the merge is clean, run the merge it prints and ask again**,
+  then go on to the row's own question, which now reads the merged branch. When the merge stops on a conflict,
+  `git merge --abort`, show the refusal and stop: a person settles a conflict in a record.
+- **Behind, on a branch of built code** — a verified build, a draft, a run: the merge changes the code the
+  verification judged, so it is not yours. Show the refusal and hand back; whoever ran this routes it. The
+  `build` playbook takes a clean merge through `remediate` and asks for the pull request again; a person reads
+  the refusal's `/sdlc:remediate <id>`.
+- **The target could not be fetched**: show it and stop. Nothing was compared.
 
 ## Push and open the pull request
 

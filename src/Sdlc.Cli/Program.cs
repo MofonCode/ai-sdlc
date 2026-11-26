@@ -14,6 +14,7 @@ using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Harvest;
@@ -113,6 +114,7 @@ try
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
+        "up-to-date" => await UpToDateCommand(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
         "harvest" => await HarvestCommand(line).ConfigureAwait(false),
@@ -483,6 +485,23 @@ static async Task<int> AskPrReady(CommandLine line)
             return result.Value.MayOpen ? ExitCode.Ok : ExitCode.Refused;
         }).ConfigureAwait(false);
 }
+
+// Whether what is checked out has taken the latest of the branch its pull request goes into (D-227): fetched, never
+// assumed, and refused when behind or when the fetch fails. Every pull request the skills open asks this first, so a
+// branch is never reviewed or checked against a target it has not seen. --base names the target; the integration
+// branch otherwise.
+static async Task<int> UpToDateCommand(CommandLine line) =>
+    await Workspace.Run(line, async workspace =>
+    {
+        string target = line.TryOption("base", out string? named)
+            ? named
+            : await SolutionDocument.IntegrationBranchOf(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+
+        FreshnessCheck check = TargetFreshness.Check(workspace.Repository, workspace.SolutionRoot, target);
+        bool current = check.Standing == Freshness.UpToDate;
+        await (current ? Console.Out : Console.Error).WriteAsync(TargetFreshness.Render(check)).ConfigureAwait(false);
+        return current ? ExitCode.Ok : ExitCode.Refused;
+    }).ConfigureAwait(false);
 
 // Whether a run may open its one pull request: the run's check, against --base or else the integration branch.
 static async Task<int> RunPrReady(Workspace workspace, CommandLine line, RunKind kind, string run)

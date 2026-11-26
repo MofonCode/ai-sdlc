@@ -1729,6 +1729,12 @@ integration branch, and only a merged cycle is read (D-190). The question D-111 
 rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
 cycle's own branch and targets the integration branch, or the default branch while there is none.
 
+**No pull request is opened from a branch that has not taken its target's latest** (D-227). Before every push —
+a plan, a slicing, a sandbox's admission, a build, a draft, a run, a harvest's close — `sdlc up-to-date` fetches the
+target from origin and refuses a branch that does not hold its head, or a target it could not fetch. A branch of
+records alone takes the merge and is checked again; built code is brought up to date by `remediate`, whose fresh
+verify is the one judged against the new base, and unattended only when the merge is clean (D-86).
+
 **No cycle a local build judged opens a pull request, in any form** (D-135). A build of the framework nobody
 published calls itself `<release>-local`, and every round records the release that wrote it, so the chain check
 fails a cycle with any such round, or a solution that pins one. A cycle run on a local build is a test run: it
@@ -2644,6 +2650,7 @@ they print verbatim.
 | `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
+| `up-to-date [--base <branch>]` | whether what is checked out has taken the latest of its pull request's target, fetched from origin first; refuses a branch behind it, saying how far, whether the merge is clean and how to bring it in, and a target it could not fetch. Every pull request asks it first (D-227) |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125). Given `wave/<id>` or `series/<id>`, every cycle the pull request changes gets the whole chain, and every test named in every built cycle's plan must have passed at the run's last recorded run (D-206) |
 | `tested <branch>` | `true` when a promotion merges exactly that branch's tip and the platform's runs, piped to standard input, list a green one of it, so a pipeline builds and skips the tests; `false` for anything else, including what it cannot read. Holds no token: the pipeline fetches the runs. Always exits 0 (D-196) |
 | `admission <branch> --base <branch>` | `true` when everything a pull request changes is under `.sdlc/`, so a pipeline skips the build and the tests; `false` when one path is outside. Always exits 0 (D-87, D-125, D-193) |
@@ -7744,6 +7751,51 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-227 — No pull request is opened from a branch that has not taken its target's latest, fetched rather than assumed
+
+**Governs:** §10.3
+
+**Amends D-86:** a build whose target moved while it ran is brought up to date before its pull request opens, rather
+than at merge; a conflict is still a person's, and the factory still never resolves one.
+
+**Decision.** `sdlc up-to-date [--base <branch>]` fetches the target from origin — the integration branch unless
+`--base` names another, a release branch for a cycle carrying a fix to one — by an explicit refspec, so a clone
+following one branch alone still learns its head. It exits 0 when what is checked out holds that head, and refuses
+otherwise, saying how many commits behind, whether a merge would be clean or where it stops, and how to bring the
+branch up to date. It refuses a target it could not fetch as well, since nothing was compared.
+
+- **Every pull request the skills open asks it first**, on the branch pushed: `pr` in every form — a plan, a
+  slicing, a sandbox's admission, a verified build, a draft, a run, and an update to one already open — and
+  `close-cycle` before a harvest's close; `sdlc upgrade apply` asks the same before it pushes a move. First, because a merge it asks for changes what `pr-ready`, the gate and
+  `verify-chain` then read.
+- **A branch of records alone** — everything it changes under `.sdlc/`, as `admission` decides (D-193) — takes the
+  merge and is asked again. Nothing was built, so nothing is judged again; the chain check that follows reads the
+  merged branch. A merge that stops on a conflict is aborted and handed back: a conflict in a record is a person's.
+- **A branch of built code** is handed back, because the merge changes the code its verification judged and that
+  verification goes with it. `remediate`, through `resolve-conflict`, merges, builds, records fresh evidence and
+  verifies again in a fresh process, and that verdict is the one judged against the new base. **Unattended** — the
+  build's process, a run, a series — it does so only when the merge is clean, then asks for the pull request again;
+  a merge that stops on a conflict opens nothing, and the report names the files. On a run's branch it is the run's
+  last cycle that is remediated: its fresh run is the one the run's check reads (D-206).
+- **Merge, never rebase**: the branch may already be pushed, and the pull request is squashed when it lands, so a
+  merge rewrites nothing (D-197).
+
+**Why.** A person asked for a check that nothing is pushed for review from a branch that has not pulled the latest,
+when records were starting to be written by more than one branch at once: a record two branches each add to, merged
+by the platform's text merge, can count one thing twice or lose a line, and nobody sees the merge that did it. D-86
+left a stale base to the pull request's re-check, which judges the merge only after a reviewer has started on a diff
+that is not the one that will land, and a record merged clean by text passes that check while being wrong. The local
+copy of the target is as old as the last fetch, so a check that did not fetch would pass exactly when it mattered.
+
+**Rejected.** *Folding the check into `pr-ready`, `admit` or `verify-chain`.* Each answers for some forms of pull
+request and not others, and none fetches; one command every form asks is one place, and a check that writes nothing
+but a fetch. *Refusing only when a merge would conflict*: a clean text merge of a record is the case that miscounts.
+*Merging built code without verifying again*: the verdict would describe code that no longer exists. *Rebasing*:
+it rewrites a pushed branch, and the squash makes a merge free. *Leaving `sdlc upgrade apply` out*, as made from the
+integration branch's head: it is made from whatever is checked out, which a person's clone can hold stale, so it asks
+too before it pushes, and a move found behind is made again from the latest rather than merged. *Passing when the
+fetch fails*: offline is when a stale copy is likeliest, and a pull request needs the remote anyway.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

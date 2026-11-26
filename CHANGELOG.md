@@ -18,6 +18,13 @@ successor:<slug>` lifts the hold. In a harvest, `[h]` beside a proposed successo
 worth doing later no longer has to be declined as *not yet* — which read as decided against, kept nothing to start
 from, and asked again whenever the concern came back.
 
+**No pull request opens from a branch behind its target** (D-227). `sdlc up-to-date` fetches the target from origin
+and refuses a branch that has not taken its latest, or a target it could not fetch. Every pull request asks it first:
+`/sdlc:pr` in every form, `/sdlc:close-cycle`, and `sdlc upgrade apply` before it pushes. A branch of records alone —
+a plan, a slicing, an admission, a harvest's close — takes the merge and goes on; built code is brought up to date
+and verified again through `remediate`, which a build, a run or a series does unattended only when the merge is
+clean. A conflict opens nothing and is named in the report, for a person.
+
 **What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
 before it refuses: every machine and pipeline reading a solution's successors moves together.
 

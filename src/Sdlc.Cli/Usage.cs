@@ -321,6 +321,15 @@ internal static class Usage
                                      named: whether the run may open its one pull request -- the
                                      run's check, against --base or else the integration branch.
                                      Exits 1 if not.
+            up-to-date [--base <branch>]
+                                     Say whether what is checked out has taken the latest of the
+                                     branch its pull request goes into -- --base, or else the
+                                     integration branch -- fetched from origin first. Exits 1
+                                     when it is behind, naming how far and how to bring it in:
+                                     a merge for a branch of records alone, remediate for built
+                                     code, whose verification goes with the merge; and when the
+                                     fetch fails, since nothing was compared (D-227). The pr
+                                     skill runs it before every pull request.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
