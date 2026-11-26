@@ -110,6 +110,13 @@ concern a rule already handles.
 declines it or covers it, rather than ignoring it a fourth time. A covered line's `Concern:` names the concern it
 closes, and that concern leaves the tally.
 
+**A concern you already answered is not asked again.** When a later cycle's reader raises something a harvest
+ignored, watched, declined or covered, or a successor already takes further, the round records it in that cycle as
+recurring rather than as a new suggestion, so the next harvest does not list it for you to answer. An ignored concern
+counts the cycles whose readers raised it again toward its bar, and the report says how many of its cycles those are
+— so one you ignored twice and readers keep finding reaches the bar on its own. `harvest close` folds the
+recurrences into the ledger (D-221).
+
 **Every counted concern carries its reason.** A concern watched below the bar, or ignored, is kept with a line
 saying what it prevents and what it promotes, so when it reaches the bar you can weigh it without digging the
 deleted cycles back out of git. `sdlc harvest --history` prints it under each one. Concerns are matched by their

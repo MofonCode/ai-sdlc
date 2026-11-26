@@ -47,6 +47,10 @@ public static class CollectRound
     /// <param name="Conflicts">The conflicts the draft carries.</param>
     /// <param name="NotRaised">Findings still open on this document that no reader raised again.</param>
     /// <param name="Usage">What each reader cost.</param>
+    /// <param name="Recurred">
+    /// Each reader's suggestion the reconciler matched to a concern the solution already answered in a harvest, and
+    /// that concern's key (D-221): recorded in the cycle's ledger as recurring, and asked of nobody.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         ArtifactKind Artifact,
@@ -56,7 +60,8 @@ public static class CollectRound
         IReadOnlyList<string> Demoted,
         IReadOnlyList<Conflict> Conflicts,
         IReadOnlyList<Finding> NotRaised,
-        IReadOnlyList<ReaderUsage> Usage);
+        IReadOnlyList<ReaderUsage> Usage,
+        IReadOnlyDictionary<string, string>? Recurred = null);
 
     /// <summary>Drafts one round from the answers in its directory.</summary>
     /// <param name="Id">The cycle.</param>
@@ -85,7 +90,47 @@ public static class CollectRound
         IReadOnlyList<Finding> Findings,
         IReadOnlyList<Conflict>? Conflicts,
         string? Host,
-        IReadOnlyList<ReaderUsage> Usage);
+        IReadOnlyList<ReaderUsage> Usage,
+        IReadOnlyList<DraftRecurred>? Recurred);
+
+    /// <summary>A suggestion of this round that restates a harvested concern, as the draft carries it to <c>sdlc round</c> (D-221).</summary>
+    /// <param name="Restates">The concern's key.</param>
+    /// <param name="Perspective">The perspective whose reader raised it.</param>
+    /// <param name="Statement">What it said.</param>
+    /// <param name="Gist">Its one sentence, when it gave one.</param>
+    internal sealed record DraftRecurred(string Restates, string? Perspective, string Statement, string? Gist);
+
+    private sealed record RoundFileRecurred(IReadOnlyList<DraftRecurred>? Recurred);
+
+    private static readonly JsonSerializerOptions _reading = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
+
+    /// <summary>
+    /// What a round file carries of harvested concerns its readers restated (D-221), as <c>sdlc round</c> records them;
+    /// none when the file was not drafted by <c>sdlc round collect</c> or names none.
+    /// </summary>
+    /// <param name="json">The round file's text.</param>
+    /// <returns>The restatements, each with no document or round yet.</returns>
+    internal static IReadOnlyList<RecurredSuggestion> RecurredIn(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<RoundFileRecurred>(json, _reading)?.Recurred is { Count: > 0 } recurred
+                ? [.. recurred
+                    .Where(item => !string.IsNullOrWhiteSpace(item.Restates) && !string.IsNullOrWhiteSpace(item.Statement))
+                    .Select(item => new RecurredSuggestion(item.Restates, string.Empty, 0, item.Perspective, item.Statement, item.Gist))]
+                : [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Command, Response>
     {
@@ -231,6 +276,7 @@ public static class CollectRound
 
             IReadOnlyList<Finding> standingHere = FindingsReader.Standing(history.Value);
             ReconcilerBody reconciled = new([], []);
+            IReadOnlyList<Harvest.HarvestedConcern> harvested = [];
 
             // Nothing raised, nothing to reconcile: a reconciler asked about an empty round answers nothing.
             if (raised.Count > 0)
@@ -251,9 +297,18 @@ public static class CollectRound
 
                 reconciled = body.Value;
                 usage.Add(answer.Value.Usage);
+
+                Result<IReadOnlyList<Harvest.HarvestedConcern>> concerns = await Harvest.HarvestedConcerns.Read(solution.Path, cancellationToken).ConfigureAwait(false);
+
+                if (concerns.IsFailed)
+                {
+                    return concerns.ToResult<Response>();
+                }
+
+                harvested = concerns.Value;
             }
 
-            Apply applied = Reconcile(raised, reconciled, standingHere, suggestions.Value);
+            Apply applied = Reconcile(raised, reconciled, standingHere, suggestions.Value, harvested);
             Dictionary<string, string> renamed = Number(applied, history.Value, suggestions.Value, taken.Value);
 
             List<Finding> findings = [];
@@ -293,7 +348,14 @@ public static class CollectRound
 
             Directory.CreateDirectory(request.Directory);
             string path = Path.Combine(request.Directory, ReaderAnswers.RoundFileName);
-            Draft draft = new(findings, conflicts.Count == 0 ? null : conflicts, host, usage);
+            Draft draft = new(
+                findings,
+                conflicts.Count == 0 ? null : conflicts,
+                host,
+                usage,
+                applied.Recurred.Count == 0
+                    ? null
+                    : [.. applied.Recurred.Select(pair => new DraftRecurred(pair.Key, pair.Finding.Perspective, pair.Finding.Statement, pair.Finding.Gist))]);
             await File.WriteAllTextAsync(path, JsonSerializer.Serialize(draft, _writing) + "\n", cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(new Response(
@@ -305,7 +367,8 @@ public static class CollectRound
                 [.. demoted.Select(id => renamed.GetValueOrDefault(id, id))],
                 conflicts,
                 notRaised,
-                usage));
+                usage,
+                applied.Recurred.ToDictionary(pair => pair.Finding.Id, pair => pair.Key, StringComparer.Ordinal)));
         }
 
         /// <summary>
@@ -366,18 +429,26 @@ public static class CollectRound
         Dictionary<string, string> Restated,
         Dictionary<string, string> Contradicts,
         Dictionary<string, string> RunsInto,
-        List<Conflict> Conflicts);
+        List<Conflict> Conflicts,
+        List<(Finding Finding, string Key)> Recurred);
 
     /// <summary>
     /// Carries each restatement under the id that stands, and settles each pair that cannot both be
-    /// answered by the reconciler's table (D-108, D-64).
+    /// answered by the reconciler's table (D-108, D-64). A suggestion restating a concern a harvest already
+    /// answered is set apart as recurring, and one restating another finding of the same round is dropped
+    /// for it (D-221).
     /// </summary>
     private static Apply Reconcile(
         IReadOnlyList<Finding> raised,
         ReconcilerBody reconciled,
         IReadOnlyList<Finding> standingHere,
-        SuggestionLedger suggestions)
+        SuggestionLedger suggestions,
+        IReadOnlyList<Harvest.HarvestedConcern> harvested)
     {
+        HashSet<string> keys = [.. harvested.Select(concern => concern.Key)];
+        List<(Finding Finding, string Key)> recurring = [];
+        Dictionary<string, string> sameAs = new(StringComparer.Ordinal);
+
         var byId = raised.ToDictionary(finding => finding.Id, StringComparer.Ordinal);
         var open = standingHere
             .Where(finding => finding.Disposition == Disposition.Open)
@@ -440,6 +511,72 @@ public static class CollectRound
 
                 restated[id] = standing;
                 dropped.Add(id);
+                continue;
+            }
+
+            // A concern the solution already answered in a harvest, raised again (D-221): recorded as recurring
+            // against it, and asked of nobody. Not a blocker: a blocking finding is never set aside (D-27).
+            if (keys.Contains(standing))
+            {
+                if (finding.Severity == Severity.Suggestion)
+                {
+                    recurring.Add((finding, standing));
+                    restated[id] = standing;
+                    dropped.Add(id);
+                }
+
+                continue;
+            }
+
+            // Another finding of this same round: one reader raising one gap several times, or two readers the
+            // same one (D-221). One of them is kept -- the blocker, when only one blocks -- and two blockers citing
+            // different rules are two blockers.
+            if (byId.ContainsKey(standing) && !string.Equals(standing, id, StringComparison.Ordinal))
+            {
+                string target = standing;
+                HashSet<string> followed = new(StringComparer.Ordinal) { id };
+
+                while (sameAs.TryGetValue(target, out string? further) && followed.Add(target))
+                {
+                    target = further;
+                }
+
+                if (string.Equals(target, id, StringComparison.Ordinal) || !byId.TryGetValue(target, out Finding? kept))
+                {
+                    continue;
+                }
+
+                // The one it restates already went to something that stands or recurs: this suggestion goes with it.
+                // A blocker does not -- it stays new, as it would have restating the standing one directly.
+                if (dropped.Contains(target) && !sameAs.ContainsKey(target))
+                {
+                    if (finding.Severity == Severity.Suggestion)
+                    {
+                        if (recurring.FirstOrDefault(pair => pair.Finding.Id == target) is { Key: { } key })
+                        {
+                            recurring.Add((finding, key));
+                        }
+
+                        restated[id] = restated.GetValueOrDefault(target, target);
+                        dropped.Add(id);
+                    }
+
+                    continue;
+                }
+
+                if (finding.Severity == Severity.Blocking && kept.Severity == Severity.Blocking
+                    && !string.Equals(finding.Cites?.Id, kept.Cites?.Id, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                (string drop, string keep) = finding.Severity == Severity.Blocking && kept.Severity == Severity.Suggestion
+                    ? (target, id)
+                    : (id, target);
+
+                sameAs[drop] = keep;
+                restated[drop] = keep;
+                dropped.Add(drop);
             }
 
             // Anything else names an id that does not stand: unsure, so the finding is new.
@@ -490,7 +627,7 @@ public static class CollectRound
             }
         }
 
-        return new Apply(findings, carried, restated, contradicts, runsInto, conflicts);
+        return new Apply(findings, carried, restated, contradicts, runsInto, conflicts, recurring);
     }
 
     /// <summary>

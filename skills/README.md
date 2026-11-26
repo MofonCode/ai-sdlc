@@ -2297,7 +2297,8 @@ None.
 #### Output
 
 `sdlc harvest close` records each closed cycle in `.sdlc/harvested.json` — its merge commit and what later harvests
-read from it, the releases it ran on, what each reader raised and what each document cost — and on a new
+read from it, the releases it ran on, what each reader raised and what each document cost, and each concern a
+harvest already answered that its readers raised again (D-221) — and on a new
 `harvest/<date>` branch commits the removal of their folders with the ledger, the notes for the framework and the
 records the person placed. The skill pushes that branch and opens its pull request into the integration branch.
 **The check admits it as a harvest**: it carries only the records, the ledger, successors and the removed folders.

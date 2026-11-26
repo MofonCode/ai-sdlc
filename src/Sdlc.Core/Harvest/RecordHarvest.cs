@@ -47,13 +47,18 @@ public static class RecordHarvest
     /// <param name="Ignored">The concerns the ledger has seen ignored, and how many cycles each was ignored in.</param>
     /// <param name="Open">Every completed cycle not closed yet, with the aspects it still needs.</param>
     /// <param name="FrameworkNotes">How many notes for the framework the sitting added to its file (D-204).</param>
+    /// <param name="Seen">
+    /// Each ignored concern's cycles by its gist, counting those whose readers raised it again after (D-221): what the
+    /// bar is measured against. Absent, a concern's own cycles are all there are.
+    /// </param>
     public sealed record Response(
         HarvestAspect Aspect,
         IReadOnlyList<CycleId> Recorded,
         int Watched,
         IReadOnlyList<Watched> Ignored,
         IReadOnlyList<HarvestReport.OpenCycle> Open,
-        int FrameworkNotes = 0);
+        int FrameworkNotes = 0,
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? Seen = null);
 
     /// <summary>What a proposal file answered, as <see cref="Read"/> finds it.</summary>
     /// <param name="Watch">The concerns watched.</param>
@@ -355,7 +360,13 @@ public static class RecordHarvest
                 written.Watch.Count,
                 written.Ignored ?? [],
                 [.. report.Value.Open.Select(open => open with { Missing = written.Missing(open.Cycle.ToString()) })],
-                notes.Value.Count));
+                notes.Value.Count,
+                (written.Ignored ?? [])
+                    .GroupBy(concern => concern.Gist, StringComparer.Ordinal)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => written.SeenIn(HarvestedConcerns.Ignored, group.First(), report.Value.Pending),
+                        StringComparer.Ordinal)));
         }
 
         // Every covered line reads, and what it names is real: a rule in force, a standing decision, a successor

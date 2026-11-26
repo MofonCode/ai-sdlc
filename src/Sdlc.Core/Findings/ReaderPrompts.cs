@@ -309,6 +309,15 @@ public static class ReaderPrompts
         _listing);
 
     /// <summary>
+    /// The harvested concerns as the reconciler reads them (D-221): one line each, key first.
+    /// </summary>
+    /// <param name="concerns">The concerns.</param>
+    /// <returns>The lines, or a sentence saying there are none.</returns>
+    internal static string Harvested(IReadOnlyList<Harvest.HarvestedConcern> concerns) => concerns.Count == 0
+        ? "Nothing yet: this solution has answered no harvest and has no successor waiting."
+        : string.Join("\n", concerns.Select(concern => "- " + concern.Key + " (" + concern.Kind + "): " + concern.Gist.ReplaceLineEndings(" ")));
+
+    /// <summary>
     /// The standing decisions in the short form a reader judges against: id, statement and <c>Instead of</c>.
     /// </summary>
     /// <remarks>
@@ -757,7 +766,15 @@ public static class ReaderPrompts
                 .ReplaceLineEndings("\n")
                 .TrimEnd();
 
+            Result<IReadOnlyList<Harvest.HarvestedConcern>> harvested = await Harvest.HarvestedConcerns.Read(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
+
+            if (harvested.IsFailed)
+            {
+                return harvested.ToResult<string>();
+            }
+
             return Result.Ok(Template("reconcile")
+                .Replace("{{harvested}}", Harvested(harvested.Value), StringComparison.Ordinal)
                 .Replace("{{document}}", Cycle.FileNameOf(request.Artifact), StringComparison.Ordinal)
                 .Replace("{{text}}", text, StringComparison.Ordinal)
                 .Replace("{{round}}", Listing(raised), StringComparison.Ordinal)
