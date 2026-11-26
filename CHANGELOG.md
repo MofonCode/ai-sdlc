@@ -145,6 +145,11 @@ The file's headings are unchanged.
 **What moving to it asks.** Nothing to write. It is a minor because a build can now stop where it used to rerun the
 suite until it passed: a team whose suite has a test that fails only sometimes will meet that test as a hand-back.
 
+**From 0.57.1 the upgrade pipeline waits for a new release to be installable.** nuget.org lists a release for
+download minutes before it lists it for install, and a run queued in between failed with the version not found. The
+pipeline now asks once a minute, up to twenty times, before installing, and refuses a release nuget.org does not have
+before any wait. A solution's pipeline takes it on its next move. Nothing a cycle is judged on changes.
+
 ## 0.56
 
 **The release being moved to makes the move** (D-213). `sdlc upgrade apply` moves a solution to the release that

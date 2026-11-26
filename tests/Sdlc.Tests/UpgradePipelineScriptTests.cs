@@ -37,12 +37,88 @@ public sealed class UpgradePipelineScriptTests
 
         """;
 
+    // Never published, so nuget.org's download listing has no manifest for it.
+    private const string Missing = "0.9.9";
+
+    // Published, but never listed for install: the window between nuget.org's two listings, held open.
+    private const string Unlisted = "0.3.0";
+
+    // How many times the script asks nuget.org before giving up, a minute apart.
+    private const int ListingChecks = 20;
+
+    // nuget.org: every release is published and listed except the two above. The address is the last argument.
+    private const string FakeCurl = """
+        #!/usr/bin/env bash
+        url="${@: -1}"
+        case "$url" in
+          *"/0.9.9/"*) exit 22 ;;
+          *registration*"/0.3.0.json") exit 22 ;;
+          *) exit 0 ;;
+        esac
+
+        """;
+
+    // The wait between checks, taken at once, so a run that waits the whole window takes no time.
+    private const string FakeSleep = """
+        #!/usr/bin/env bash
+        echo "slept $1"
+
+        """;
+
     [TestMethod]
     [DataRow(Platform.GitHub, To, true)]
     [DataRow(Platform.AzureDevOps, To, true)]
     [DataRow(Platform.GitHub, From, false)]
     [DataRow(Platform.AzureDevOps, From, false)]
     public void It_installs_the_release_asked_for_and_hands_the_move_to_it(Platform platform, string release, bool moves)
+    {
+        (int exit, string output, string last) = RunScript(platform, release);
+
+        Assert.AreEqual(0, exit, output);
+
+        if (moves)
+        {
+            StringAssert.Contains(output, "handed over as " + To, "The move runs as the release just installed.\n" + output);
+        }
+        else
+        {
+            StringAssert.Contains(output, "Nothing to upgrade", output);
+            Assert.IsFalse(output.Contains("handed over", StringComparison.Ordinal), "A solution on the release already stops cleanly.");
+        }
+
+        Assert.AreEqual("seed", last, "The script commits nothing itself: the release it hands to does.");
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void A_release_nuget_org_does_not_hold_is_refused_before_any_wait(Platform platform)
+    {
+        (int exit, string output, _) = RunScript(platform, Missing);
+
+        Assert.AreNotEqual(0, exit, output);
+        StringAssert.Contains(output, "nuget.org has no sdlc " + Missing + ".", output);
+        Assert.IsFalse(output.Contains("slept", StringComparison.Ordinal), "A typing slip is not waited on.\n" + output);
+        Assert.IsFalse(output.Contains("handed over", StringComparison.Ordinal), output);
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void A_release_not_yet_listed_for_install_is_waited_for_and_then_given_up_plainly(Platform platform)
+    {
+        // A run queued minutes after a release found it published but not installable, and failed "not found".
+        (int exit, string output, _) = RunScript(platform, Unlisted);
+
+        Assert.AreNotEqual(0, exit, output);
+        StringAssert.Contains(output, "Waiting for nuget.org to list sdlc " + Unlisted + " for install (1 of " + ListingChecks + ")", output);
+        Assert.AreEqual(ListingChecks - 1, output.Split("slept 60").Length - 1, "It waits a minute between checks, and not after the last.\n" + output);
+        StringAssert.Contains(output, "has published sdlc " + Unlisted + " but not yet listed it for install. Run this again later.", output);
+        Assert.IsFalse(output.Contains("handed over", StringComparison.Ordinal), "Nothing is installed when the wait runs out.\n" + output);
+    }
+
+    /// <summary>Runs the step's script in a clone of a throwaway remote, with stand-ins for dotnet, nuget.org and the wait.</summary>
+    private static (int Exit, string Output, string LastCommit) RunScript(Platform platform, string release)
     {
         string root = Path.Combine(Path.GetTempPath(), "sdlc-upgrade-script", Guid.NewGuid().ToString("N"));
         string remote = Path.Combine(root, "remote.git");
@@ -77,30 +153,25 @@ public sealed class UpgradePipelineScriptTests
 
             string dotnet = Path.Combine(bin, "dotnet");
             File.WriteAllText(dotnet, FakeDotnet.ReplaceLineEndings("\n"));
+            File.WriteAllText(Path.Combine(bin, "curl"), FakeCurl.ReplaceLineEndings("\n"));
+            File.WriteAllText(Path.Combine(bin, "sleep"), FakeSleep.ReplaceLineEndings("\n"));
 
             // Not executable, bash passes it by and finds the real one further down the path.
             if (!OperatingSystem.IsWindows())
             {
-                File.SetUnixFileMode(dotnet, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                foreach (string fake in (string[])[dotnet, Path.Combine(bin, "curl"), Path.Combine(bin, "sleep")])
+                {
+                    File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                }
             }
             string script = Path.Combine(root, "upgrade.sh");
-            File.WriteAllText(script, Script(platform));
+            // Git for Windows' bash puts its own tools ahead of the inherited path, curl among them, so the
+            // stand-ins are put first again from inside the script.
+            File.WriteAllText(script, "PATH=\"$(cd \"$(dirname \"$0\")/bin\" && pwd):$PATH\"\n" + Script(platform));
 
             (int exit, string output) = Run(Bash(), $"\"{script.Replace('\\', '/')}\"", work, environment);
 
-            Assert.AreEqual(0, exit, output);
-
-            if (moves)
-            {
-                StringAssert.Contains(output, "handed over as " + To, "The move runs as the release just installed.\n" + output);
-            }
-            else
-            {
-                StringAssert.Contains(output, "Nothing to upgrade", output);
-                Assert.IsFalse(output.Contains("handed over", StringComparison.Ordinal), "A solution on the release already stops cleanly.");
-            }
-
-            Assert.AreEqual("seed", Git(work, environment, "log -1 --format=%s").Trim(), "The script commits nothing itself: the release it hands to does.");
+            return (exit, output, Git(work, environment, "log -1 --format=%s").Trim());
         }
         finally
         {
