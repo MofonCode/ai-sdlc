@@ -76,6 +76,8 @@ decisions with attribution, not as the intent's content.
 
 ## CON_02 — An intent's unknowns are recorded as open questions, not answered by guess
 
+**Superseded-by:** CON_28
+
 **Applies to:** an intent, at approval.
 
 **Forbids:** an intent stating as settled fact a figure, cause or behaviour that nobody has
@@ -378,6 +380,8 @@ action can do, and the spec is the last place it is cheap to ask.
 
 ## CON_21 — A plan's proof reaches the criterion it claims to prove
 
+**Superseded-by:** CON_29
+
 **Applies to:** a plan, at approval.
 
 **Forbids:** a proof that never runs a case its criterion states, that asserts something other than
@@ -517,3 +521,46 @@ document that could have cited one, is a suggestion, because a rule read at four
 maybe would be a loop at all four. No analyzer can decide it — whether a passage or a hunk contradicts a
 paragraph of prose is a judgement about language, and the entry's `Instead of` is what makes the
 judgement possible rather than a guess.
+
+## CON_28 — An intent's unknowns are recorded as open questions, neither answered by guess nor left for its spec to guess
+
+**Applies to:** an intent, at approval.
+
+**Forbids:** an intent stating as settled fact a figure, cause or behaviour that nobody has
+measured or verified; and a wanted outcome its spec cannot test without choosing something the intent
+leaves unsaid — a measure for a word like "clearly shorter" or "fast enough", or which of two readings
+the outcome covers — where no open question or unconfirmed assumption records that it is unsettled.
+
+**Why:** every later phase treats an approved intent as settled. A guessed figure becomes a
+criterion, then a test, then a green verification of something nobody established. An intent
+with three open questions is sound; an intent with three invented answers is a liability. Leaving the
+figure out is the same guess, made later and by somebody else: the spec's author picks how much shorter
+counts, and the person approving the spec is never told the intent left it open. `CON_02` forbade only
+the stated guess, so a reader who saw an outcome with no measure had no rule to cite, and raised it as a
+suggestion that stood for rounds while the spec guessed. What this does not forbid is something a reader
+can imagine left open that no wanted outcome depends on: every intent leaves things unsaid, a rule against
+all of them would have no end, and those are suggestions.
+
+## CON_29 — A plan's proof reaches the criterion it claims to prove, and holds the change to nothing its criterion did not fix
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a proof that never runs a case its criterion states, that asserts something other than
+the outcome its criterion names, or that cannot fail when that outcome is absent — the last shown by
+naming the specific defect, and where in this change it would arise. And a proof that asserts exact words
+a person is shown — a message, a label, a heading, a page's title — where its criterion does not fix those
+words.
+
+**Why:** a schema can require that every criterion has some proof named. Only judgment can tell
+whether "add a unit test" proves "returns within 200ms over 50,000 rows". An inadequate proof is
+worse than none, because it produces a green verification instead of an obvious gap. A proof pinning
+words its criterion left free is the other way to miss: the criterion says the person is told, the test
+says they are told one sentence, and a build that tells them in other words fails a criterion it meets.
+The build then writes the test's sentence, so the plan has settled wording nobody approved in the spec,
+and the verify's Met rests on a string match rather than on the outcome. Whether a literal in a proof
+appears in its criterion is read off the two documents, not imagined. What it does not forbid is a proof
+a reader can imagine being fooled: an assertion that could be tighter, a starting state not tried, a field
+not read. For any test there is a defect it would miss, so a rule against that has no end, and a fresh
+reader finds a new instance every round. Those are suggestions.
+
+**Judged:** per criterion.

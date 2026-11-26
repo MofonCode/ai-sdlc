@@ -406,12 +406,12 @@ separating "the part that is judged".
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here, and `CON_27` a departure from a recorded one; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_26`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_26`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_29`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
 | | `Out of scope` | `CON_26`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_27` |
 | | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
-| | `Proof` | `CON_21`, and `verify`'s criterion table |
+| | `Proof` | `CON_29`, and `verify`'s criterion table |
 | | `Risk` | the person at the gate |
 | | `tier` | the blast radius: `local`, `contract`, `data`, chosen by reversibility |
 | `verify` | `Criteria` | the criterion-by-criterion adjudication; `CON_22` binds every claim the verdict relies on |
@@ -709,7 +709,7 @@ Three mechanical checks need no reading comprehension:
    signal, not a gate (§7.7)
 
 With every intent item disposed, anything still open at plan time is by construction out of scope or
-explicitly deferred: anything in scope got a criterion, and `CON_21` and `CON_12` require every
+explicitly deferred: anything in scope got a criterion, and `CON_29` and `CON_12` require every
 criterion to have a proof that can run. **So the gate before build is about dependency, not the
 absence of open items** (D-04).
 
@@ -1027,7 +1027,11 @@ records another target. **Operability's reader may block on `CON_20`** (D-99), t
 lists, and only at a spec, the one document it binds; the others have none of their own, so everything they find is a suggestion until rules are adopted. The
 other five are not written. A perspective's reader is handed the decisions and the solution's own rules as every
 reader is: where the solution names areas, in full only those in the areas its stage touches, and the rest by
-headline (§8.1.1, D-151). The fixtures that prove a perspective catches its planted
+headline (§8.1.1, D-151). **What a standing decision settles, a perspective does not raise again**: where its
+method would ask something the decisions answer — who may start or merge work, what stands in for a person's
+approval when the solution runs without one, what an unattended identity may do — it raises nothing, unless the
+document departs from the decision or reaches past it, and then it names the decision. Asking a solution to settle
+something is a suggestion only while no decision does (D-226). The fixtures that prove a perspective catches its planted
 defect need a model to run, so they are an evaluation outside the suite and are not built.
 
 ### 6.6 Guidance
@@ -1181,7 +1185,6 @@ nobody.
 | Id | Rule | Applies to |
 |---|---|---|
 | `CON_01` | an intent states the problem, not the solution | intent |
-| `CON_02` | an intent's unknowns are recorded as open questions, not answered by guess | intent |
 | `CON_03` | a criterion states an observable outcome and how it is checked | spec |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
 | `CON_10.3` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
@@ -1193,14 +1196,15 @@ nobody.
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
 | `CON_20` | a spec says what is recorded when the action fails | spec |
-| `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
 | `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
 | `CON_23` | a criterion that ranges over cases lists them | spec |
 | `CON_25` | a change does only what its plan, or a deviation in force, describes — wherever it lands | diff |
 | `CON_26` | a spec introduces no scope its intent did not ask for, beyond what a rule in force requires | spec |
 | `CON_27` | a departure from a recorded decision is declared where it arises, or recorded as a deviation, and later stages rely on it | intent, spec, plan, diff |
+| `CON_28` | an intent's unknowns are recorded as open questions, neither answered by guess nor left for its spec to guess | intent |
+| `CON_29` | a plan's proof reaches the criterion it claims to prove, and holds the change to nothing its criterion did not fix | plan |
 
-**Eight ids are absent because they no longer bind**, and each is explained once below.
+**Ten ids are absent because they no longer bind**, and each is explained once below.
 
 `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -1238,7 +1242,15 @@ list is not a finding; `CON_25` forbids a change no plan or deviation in force d
 is one too; `CON_27` names it (D-176). In force means recorded by the build and not asked to change: a person accepts
 it by merging, after the verification that reads it (D-181).
 
-`CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
+`CON_02` and `CON_21` each forbade one way to miss and left its neighbour unforbidden, and a reader judges the
+rule's words. `CON_02` forbade an intent stating a guess as fact, not leaving the guess to the spec: an outcome
+asking for something "clearly shorter" with no measure had no rule to cite, so readers raised it as a suggestion that
+stood while the spec invented the figure. `CON_28` forbids both. `CON_21` forbade a proof too weak for its criterion,
+not one pinning words the criterion left free, which fails a build that meets the criterion and settles wording
+nobody approved. `CON_29` forbids both. Each new half is read off the documents — an outcome with no measure and no
+open question, a literal in a proof that its criterion does not hold — so neither reopens what D-127 closed (D-226).
+
+`CON_06`, later `CON_21` and now `CON_29`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
 reading rather than re-running.
 
@@ -1252,9 +1264,9 @@ Four constraints, one per artifact, each naming what becomes illegal in that pla
 
 | Artifact | Constraint | Forbids |
 |---|---|---|
-| intent | `CON_02` | stating as settled fact a figure nobody measured |
+| intent | `CON_28` | stating as settled fact a figure nobody measured, or leaving its spec to choose one |
 | spec | `CON_03` | a criterion that cannot fail, or an outcome with no way to observe it |
-| plan | `CON_21` | a proof that never runs a stated case, asserts the wrong outcome, or cannot fail on a named defect |
+| plan | `CON_29` | a proof that never runs a stated case, asserts the wrong outcome, cannot fail on a named defect, or pins words its criterion left free |
 | verify | `CON_22` | a claim the verdict relies on with no evidence, or evidence showing something else |
 
 Each forbids what is wrong, never what a reader can imagine going wrong (D-127). What a criterion covers is
@@ -7744,6 +7756,62 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-226 — A perspective does not re-raise what a decision settles, and two rules forbid the miss beside the one they named
+
+**Governs:** §6.5, §7.5, §7.6
+
+**Revisits D-90, D-127 and D-151.** **Supersedes `CON_02` and `CON_21`** with `CON_28` and `CON_29`. The old entries
+stay on the page verbatim, so the findings that cited them stay readable.
+
+**Decision.**
+
+- **A perspective's reader is told that a standing decision settles what it states.** Where the method would ask
+  what a decision answers, the reader raises nothing; where the document departs from the decision or goes past
+  what it settles, the suggestion names the decision's id; and a suggestion that the solution should settle
+  something is raised only while no decision does. The perspective prompt says it once, for every perspective.
+  Security's method names the case that showed it: who may start work that reaches the main branch, what review
+  stands in for approval under `approval: none`, and what an unattended identity may do, are the solution's to
+  settle once, in its decisions.
+- **`CON_28`** is `CON_02` with the silent guess beside the stated one: an intent may not leave a wanted outcome its
+  spec cannot test without choosing a measure or a reading the intent leaves unsaid, unless an open question or an
+  unconfirmed assumption records that it is unsettled.
+- **`CON_29`** is `CON_21` with the other way a proof misses: it may not assert exact words a person is shown — a
+  message, a label, a heading, a title — where its criterion does not fix those words. Still judged per criterion.
+
+**Why.** One governed solution's harvest of 23 cycles found the security reader raising, in every cycle, who may
+open a cycle and what the factory's identity may do, under `approval: none`. Its readers are already handed the
+decisions (D-151), and a solution can settle exactly this in one — the pull request is the review, the platform's
+permissions bound the identity — but nothing told a perspective that a decision closes a question rather than being
+one more thing to read. Every cycle paid a suggestion and a disposition for it. Saying so in the prompt every
+perspective shares fixes it for every perspective and every settled question, rather than one at a time.
+
+The same harvest found three cycles' rules readers raising "the spec will have to guess" — a threshold "clearly
+shorter" never set, a scope left between two readings — as suggestions resting on no rule, one standing six rounds
+at the spec that settled what the intent had left open. `CON_02`'s title asked for unknowns as open questions;
+its `Forbids` named only the guess stated as fact, and a reader judges the rule's words (D-176). And seven cycles
+found proofs asserting a sentence the criterion never fixed. Such a proof is not weak in the sense D-127 bounded —
+it reaches its criterion — but it fails a build that meets the criterion in other words, so the build writes the
+test's sentence and the plan has settled user-facing wording nobody approved at the spec. Each is a change to
+what is forbidden, so §7.4 makes each a new rule.
+
+**Why neither reopens D-127.** D-127 removed the rules that blocked on what a reader could imagine, because for any
+test there is a defect it would miss and the loop never ended. Both new halves are read off the documents: an
+outcome with no measure and no open question recording it, a literal in a proof that its criterion does not hold.
+Neither asks a reader to imagine; each forbids something a person can point at, and each rule's `Why` keeps D-127's
+line — what a reader can imagine left open, or imagine fooling a proof, is a suggestion.
+
+**Rejected.** *A place of its own to record that the security question is settled*, which the harvest asked for.
+The decisions record is that place; what was missing was the reader honouring it. *A rule in each perspective
+forbidding the question once settled.* A perspective's rules are what it may block on (D-175); this is about what
+it should not raise at all. *Showing a perspective the harvest's ignored and declined concerns too.* That is the
+reconciler's to match (D-221), and a perspective reader stays blind to the record
+by design (D-108). *Revising `CON_02` and `CON_21` in place.* Each widens what is illegal, and a revision that does
+that loses the old rule for real (§7.4). *A rule of its own for pinned wording*, as the harvest proposed. It is a
+question about one proof and its criterion, judged per criterion with the rest of proof adequacy; a second rule
+judged over the same rows would split one answer between two readers' rows. *Forbidding every literal a proof
+asserts that the criterion lacks.* A proof may assert an identifier the plan chose or a value the criterion implies;
+the harm is wording a person reads, which the spec is where a person approves.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

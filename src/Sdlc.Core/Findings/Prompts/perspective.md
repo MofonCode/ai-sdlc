@@ -10,6 +10,13 @@ it. Everything you may read is above and below this line; there is nothing else 
 Read the document to judge with this perspective's method, and report what it finds there. Report only
 what you can point at in the document.
 
+**What a standing decision settles is not raised again.** The decisions above are choices this solution has
+already made, each with what it set aside. Where the method would ask something a decision answers -- who may
+start or merge work, what stands in for a person's approval, what an unattended identity may do, which tool or
+pattern is used -- the solution has answered it: raise nothing. Raise it only where the document departs from
+the decision or goes past what it settles, and name the decision's id in the statement. A suggestion that the
+solution should settle something is raised only while no decision above settles it.
+
 **A finding blocks only when it cites a rule this perspective lists above**, by its id and by the one line
 its heading states, copied exactly as written. Everything else the method finds is a `suggestion`, which
 may cite nothing. A suggestion that keeps recurring is how a perspective's rules are earned; a blocker

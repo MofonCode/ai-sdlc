@@ -906,7 +906,7 @@ public static class VerifyChain
         /// <remarks>
         /// Matched by number rather than by prose, because the number is the one part of a criterion that
         /// can be compared without reading comprehension. Whether the proof is <em>adequate</em> to the
-        /// criterion is `CON_21`, and that is judgement rather than a check -- which is exactly the split:
+        /// criterion is `CON_29`, and that is judgement rather than a check -- which is exactly the split:
         /// this catches a criterion with no proof at all, and no schema could catch a proof that never
         /// reaches its criterion.
         /// </remarks>

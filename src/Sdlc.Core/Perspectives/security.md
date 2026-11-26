@@ -25,6 +25,11 @@ answer to this, and the cheapest place to find a missing one is before code exis
    (elevation)?
 4. **Name what the change holds.** Secrets, credentials, personal data: where each is kept, who can read
    it, and whether any of it reaches a log, an error message or a response.
+5. **Take what the solution has settled as settled.** Who may start work that reaches the main branch, what
+   review stands in for a person's approval when the solution runs without one — a pull request and the
+   reviewers its platform requires — and what an unattended identity may do — the permissions its platform
+   grants it — are the solution's to decide once, in its decisions. Where a decision covers one, this method
+   does not ask it again of each cycle; where none does, that one should be recorded is a suggestion, once.
 
 ## Cover this
 

@@ -113,6 +113,13 @@ with `sdlc perspective show <name> --for <stage>`.
 text that has not moved is one an earlier round already had the chance to raise. Its blocking findings are
 not limited that way (D-101).
 
+**A perspective does not raise what your decisions already settle.** Its reader is handed your
+`decisions.md` like every reader, and told that a standing decision closes the question it answers. Who may
+start or merge work, what review stands in for approval when you run with `approval: none`, what an unattended
+identity may do: record the answer once as a decision, and the security reader stops asking it of every cycle.
+It still raises a document that departs from the decision or goes past it, naming the decision, and it still
+suggests recording a decision while none settles the question (D-226).
+
 **A perspective re-raises what is still open, and the round keeps one id for it.** Its reader has no
 history, so once a section moves it raises the objections already standing there again, in new words and
 under ids of its own. The reconciling reader is shown what stands and names each restatement, and the

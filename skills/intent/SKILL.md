@@ -682,9 +682,11 @@ and it is the constraint most often tripped, because the open region is the one 
 nothing satisfies every other rule.
 
 **An unmeasured figure is an assumption, not an open item.** Record it under `Fixed decisions` marked
-unconfirmed. `CON_02` forbids stating it as settled fact — and it also forbids the move that looks
+unconfirmed. `CON_28` forbids stating it as settled fact — and it also forbids the move that looks
 like a fix: rewording "fourteen seconds" into "slow" removes the problem from the page while leaving
-the belief in it.
+the belief in it. **It forbids leaving the figure out, too.** An outcome the spec cannot test without
+choosing a measure — "clearly shorter", "fast enough" — or a reading the intent never picked needs the
+figure, or an open question saying nobody has one yet; otherwise the spec guesses it for you.
 
 **Before the first round, read the draft once for every claim stated as fact** — on the suggestion's path
 you did this before showing it, so do it again for whatever the conversation added. Each number, cause, current

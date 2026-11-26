@@ -239,7 +239,7 @@ round may answer what was raised against the spec, and not what was raised again
   "round": 2,
   "findings": [
     { "id": "F_01", "severity": "blocking", "disposition": "answered",
-      "cites": { "id": "CON_02", "heading": "<as round 1 copied it, unchanged>" },
+      "cites": { "id": "CON_28", "heading": "<as round 1 copied it, unchanged>" },
       "statement": "<as round 1 stated it, unchanged>" },
     { "id": "S_03", "severity": "suggestion", "disposition": "open",
       "statement": "<what this reader found>" }

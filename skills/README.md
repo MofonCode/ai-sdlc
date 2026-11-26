@@ -519,7 +519,7 @@ approval as the missing piece, the approval drafted for a person to rename, and 
 #### Remarks
 
 A plan says *how*, and commits to what will prove each criterion. The constraint to watch is proof
-adequacy (`CON_21`). *Which case does this check never run, and which outcome does it never read?* If
+adequacy (`CON_29`). *Which case does this check never run, and which outcome does it never read?* If
 either has an answer, the proof is not adequate yet — and an inadequate proof is worse
 than none, because it produces a green verification instead of an obvious gap.
 

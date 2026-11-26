@@ -78,7 +78,7 @@ criterion in turn:
 
 Question three is where judgement lives, and where you may disagree with the plan. A test that ran and
 passed but does not reach its criterion is **not met** — say so, cite the test and the diff lines, and
-let the finding stand. That is `CON_21` caught late rather than never, and it is worth more here than a
+let the finding stand. That is `CON_29` caught late rather than never, and it is worth more here than a
 pass that nobody can rely on.
 
 **Quote the assertion, not the test's name.** Every Met cites the lines of the diff that do the asserting

@@ -51,6 +51,25 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task A_perspective_is_told_that_a_standing_decision_settles_what_it_states()
+    {
+        // D-226. One solution's security reader raised who may open a cycle in every one of 23 cycles, though its
+        // decisions could settle it and every reader is handed them: nothing said a decision closes a question.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent, "## Problem\n\nThe die is hard to read.");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        ReaderPrompts.Response written = (await Prompt(workspace, ArtifactKind.Intent, directory)).Value;
+
+        for (int index = 1; index < written.Prompts.Count; index++)
+        {
+            StringAssert.Contains(Whole(written, index), "What a standing decision settles is not raised again.", written.Prompts[index].Reader);
+        }
+
+        Assert.IsFalse(Whole(written, 0).Contains("What a standing decision settles", StringComparison.Ordinal), "The rules reader judges a departure under CON_27, not by this.");
+    }
+
+    [TestMethod]
     public async Task A_plan_round_carries_the_stack_file_and_says_so_when_there_is_none()
     {
         using var workspace = CycleWorkspace.Create();

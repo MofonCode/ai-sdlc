@@ -18,8 +18,20 @@ successor:<slug>` lifts the hold. In a harvest, `[h]` beside a proposed successo
 worth doing later no longer has to be declined as *not yet* — which read as decided against, kept nothing to start
 from, and asked again whenever the concern came back.
 
+**A perspective does not raise what a decision settles, and two rules forbid the miss beside the one they named**
+(D-226). Every perspective's reader is told that a standing decision closes the question it answers: the security
+reader that asked, every cycle, who may open one and what the unattended identity may do stops once a decision
+says so, and still names the decision when a document departs from it. `CON_28` supersedes `CON_02`: an intent may
+not leave its spec to guess a measure or a reading either — "clearly shorter" needs a figure or an open question.
+`CON_29` supersedes `CON_21`: a proof may not assert exact words a person is shown where its criterion does not fix
+them. Both old rules stay on the page for the findings that cited them.
+
 **What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together.
+before it refuses: every machine and pipeline reading a solution's successors moves together. And two rules now
+block where their predecessors passed: an intent leaving a measure for its spec to choose, with no open question
+saying so, and a plan whose proof quotes a message its criterion never fixed. A cycle in flight meets them at its
+next round of that document; the fix is a figure or an open question, and an assertion about what the person is
+told rather than its sentence.
 
 ## 0.57
 

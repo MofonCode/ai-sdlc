@@ -160,7 +160,7 @@ place the truth lives. Only the first of them binds.
 | **revision** | a rule reworded without changing what it forbids keeps its number and gains one: `CON_12.2`. The new wording replaces the old, and nothing else moves |
 | **supersession** | a rule whose meaning changes is replaced by a new id, and the old one stays on the page marked `Superseded-by`, out of force, so a finding that cited it is still readable against the rule it was judged under |
 | **the four clauses** | the statement, what it applies to and when, what it **forbids**, and why. `CON_11` forbids a rule with no Forbids clause |
-| **judged per criterion** | an optional field on a rule — `Judged: per criterion` or `per outcome` — saying it is decided one item at a time. The rules reader answers it with a row per spec criterion or intent outcome, and an answer missing a row is refused, so every instance of a repeated gap surfaces in one round. `CON_03`, `CON_21`, `CON_22` and `CON_23` are judged per criterion, `CON_16` per outcome (D-119) |
+| **judged per criterion** | an optional field on a rule — `Judged: per criterion` or `per outcome` — saying it is decided one item at a time. The rules reader answers it with a row per spec criterion or intent outcome, and an answer missing a row is refused, so every instance of a repeated gap surfaces in one round. `CON_03`, `CON_22`, `CON_23` and `CON_29` are judged per criterion, `CON_16` per outcome (D-119) |
 | **the shipped library** | the global set, embedded in the binary. `SDLC_CONSTRAINTS` points at another and refuses rather than falling back if it is not there |
 | **stack rules** | the `PRO_` set, embedded in the binary, of which a solution is held to exactly the ones its declared stack marks `true`. **The one tier where a rule may name a language, framework or package** — the global set may not, which is what the tier is for. The framework ships five |
 | **the three admission tests** | what a proposed rule must pass: it forbids something, **no analyzer could decide it**, and it is incompatible with at least one plausible implementation |
@@ -179,9 +179,9 @@ place the truth lives. Only the first of them binds.
 | **the harvest ledger** | `.sdlc/harvested.json`: which aspects each completed cycle has answered, each closed cycle's merge commit, files, cited rules and proposed areas, each sitting's aspect, accepted and declined, the concerns watched below the bar, and the concerns ignored. Each closed cycle also keeps the releases its rounds ran on, what each reader raised, and what each document cost (D-204). Written only by the binary | `sdlc harvest --history` |
 | **a note for the framework** | what a harvest sitting found about the framework rather than the solution: a rule, reader or step that cost more than it caught (`cost`), a rule any solution would need (`missing`), or something the framework did wrong (`defect`). Written under `## For the framework` for somebody who has never seen the solution, naming a **surface** — a rule's id, `perspective:<name>`, `stage:<name>`, `command:<name>` — with its evidence beneath, which stays in the solution. Kept in `.sdlc/framework-harvest.json`, written only by the binary; `sdlc harvest framework` prints what of it may be handed over, and sends nothing (D-204) | `sdlc harvest framework` |
 
-There are **19 global constraints in force**; eight are superseded and kept on the page — `CON_04` by
-`CON_16`, `CON_05` by `CON_26`, `CON_06` by `CON_21`, `CON_07.2` by `CON_25`, `CON_08` by `CON_22`, `CON_13` by
-`CON_15`, `CON_19` by `CON_24`, and `CON_24` by `CON_27`. `sdlc constraints` is the authority, and it says which.
+There are **19 global constraints in force**; ten are superseded and kept on the page — `CON_02` by `CON_28`,
+`CON_04` by `CON_16`, `CON_05` by `CON_26`, `CON_06` by `CON_21`, `CON_07.2` by `CON_25`, `CON_08` by `CON_22`,
+`CON_13` by `CON_15`, `CON_19` by `CON_24`, `CON_21` by `CON_29`, and `CON_24` by `CON_27`. `sdlc constraints` is the authority, and it says which.
 
 **See also:** [`constraints`](../skills/README.md#constraints) · [`harvest`](../skills/README.md#harvest) · [Declaring the stack](guides/declaring-the-stack.md) · [`CONSTRAINTS.md`](../CONSTRAINTS.md)
 
