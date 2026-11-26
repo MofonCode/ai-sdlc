@@ -167,6 +167,9 @@ public static class UpgradePipeline
         _ => throw new ArgumentOutOfRangeException(nameof(platform), "A local solution has nowhere to run a pipeline."),
     };
 
+    /// <summary>How many times, a minute apart, the move asks whether nuget.org lists the release for install.</summary>
+    private const int ListingChecks = 20;
+
     /// <summary>
     /// The lines that settle the release, install it, and hand the move to it (D-213).
     /// </summary>
@@ -179,6 +182,12 @@ public static class UpgradePipeline
     /// <para><strong>The release is named or the newest on nuget.org</strong>, never a preview. Azure DevOps will
     /// not take an empty string as a parameter's default, so the default is a space, trimmed here. A solution already
     /// on it stops cleanly, as success.</para>
+    /// <para><strong>It waits for the release to be installable before installing it.</strong> nuget.org lists a new
+    /// version in its download listing, which settles the release, minutes before the registration a tool install
+    /// reads: a run queued in between failed with the version "not found". So it asks for that version's registration
+    /// entry once a minute, up to <see cref="ListingChecks"/> times, and installs once it answers. A version the download
+    /// listing does not hold — a typing slip — is refused before the wait, by asking for its own manifest there, and the install itself is never repeated, so
+    /// any other failure fails as before.</para>
     /// <para><strong><c>dotnet sdlc</c> rather than a global install</strong>: an agent's image may carry an older
     /// global binary in a lower layer, which <c>dotnet tool uninstall</c> cannot remove there ("Invalid cross-device
     /// link"), and a hosted agent carries none.</para>
@@ -193,6 +202,14 @@ public static class UpgradePipeline
         yield return indent + $"[ -f {PinnedRelease.ManifestPath} ] || {{ echo \"This solution pins no sdlc release. Run 'sdlc init' on the integration branch and commit {PinnedRelease.ManifestPath}.\" >&2; exit 1; }}";
         yield return indent + "pinned=\"$(dotnet tool list --local | awk 'tolower($1) == \"mofoncode.sdlc.cli\" { print $2 }')\"";
         yield return indent + "if [ \"$pinned\" = \"$release\" ]; then echo \"This solution pins sdlc $release already. Nothing to upgrade.\"; exit 0; fi";
+        yield return indent + "curl -fs -o /dev/null \"https://api.nuget.org/v3-flatcontainer/mofoncode.sdlc.cli/$release/mofoncode.sdlc.cli.nuspec\" || { echo \"nuget.org has no sdlc $release.\" >&2; exit 1; }";
+        yield return indent + "# nuget.org lists a new release for download minutes before it lists it for install; wait for the second.";
+        yield return indent + "listed=\"https://api.nuget.org/v3/registration5-gz-semver2/mofoncode.sdlc.cli/$release.json\"";
+        yield return indent + $"for attempt in $(seq 1 {ListingChecks}); do";
+        yield return indent + "  if curl -fs --compressed -o /dev/null \"$listed\"; then break; fi";
+        yield return indent + $"  if [ \"$attempt\" = {ListingChecks} ]; then echo \"nuget.org has published sdlc $release but not yet listed it for install. Run this again later.\" >&2; exit 1; fi";
+        yield return indent + $"  echo \"Waiting for nuget.org to list sdlc $release for install ($attempt of {ListingChecks})...\"; sleep 60";
+        yield return indent + "done";
         yield return indent + $"dotnet tool update --local {PinnedRelease.PackageId} --version \"$release\"";
         yield return indent + "# Everything after the install is the new release's: it moves the solution, checks the move, and opens the pull request.";
         yield return indent + "dotnet sdlc upgrade apply --push";

@@ -342,8 +342,9 @@ release rather than the one the solution pins (D-170). The rest of this section 
 
 **A solution moves by a run of its upgrade pipeline** (D-201). Adoption writes it beside the pull-request check —
 `.github/workflows/sdlc-upgrade.yml` on GitHub, `.azuredevops/sdlc-upgrade.yml` on Azure DevOps — and a person starts
-it on the platform, naming a release or leaving it empty for the newest. It installs that release and hands the move
-to it: `sdlc upgrade apply --push`, run as the release being moved to, runs adoption and `sdlc factory --keep`,
+it on the platform, naming a release or leaving it empty for the newest. A release nuget.org does not have is refused
+at once; one published in the last few minutes is waited for, up to twenty minutes, until nuget.org lists it for
+install. It installs that release and hands the move to it: `sdlc upgrade apply --push`, run as the release being moved to, runs adoption and `sdlc factory --keep`,
 commits only what an upgrade may carry on `upgrade/sdlc-<release>`, checks the commit as the pull request will, and
 only then pushes it and opens the pull request into the integration branch (D-213). You review and merge. Because
 the release being moved to does the moving, a fix to how a move is made reaches your solution on its next move. It
