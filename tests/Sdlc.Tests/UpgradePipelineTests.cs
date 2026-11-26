@@ -29,6 +29,14 @@ public sealed class UpgradePipelineTests
 
         Assert.IsTrue(pin > 0 && apply > pin, "The move runs as the release the manifest now pins.");
 
+        // A run queued minutes after a release found it in the download listing but not installable yet.
+        int listed = pipeline.IndexOf("registration5-gz-semver2/mofoncode.sdlc.cli/$release.json", StringComparison.Ordinal);
+        Assert.IsTrue(listed > 0 && pin > listed, "It waits for the release to be listed for install before installing it.");
+        StringAssert.Contains(pipeline, "seq 1 20", "The wait is bounded.");
+        StringAssert.Contains(pipeline, "not yet listed it for install. Run this again later.");
+        int known = pipeline.IndexOf("nuget.org has no sdlc $release.", StringComparison.Ordinal);
+        Assert.IsTrue(known > 0 && listed > known, "A version nuget.org does not hold is refused before the wait, not after it.");
+
         foreach (string stale in (string[])["dotnet sdlc init", "sdlc factory --keep", "git add", "git commit", "git push", "pr create"])
         {
             Assert.IsFalse(pipeline.Contains(stale, StringComparison.Ordinal), stale + " is the release's to run, not the file's.");
