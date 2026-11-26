@@ -429,6 +429,10 @@ the second adjudication on, the fresh adjudicator starts from the verdict before
 entries a finding or the evidence moved. The status panel prints each document's size, and refuses
 nothing for it (D-130).
 
+**A criterion is cited by a number the spec has.** A spec numbers its criteria in ascending order, and a spec,
+plan or verify citing a criterion the spec does not have — a proof row, an adjudication, *criterion 4* in prose — is
+refused before a reader is started; a reference to another cycle's criterion names that cycle (D-223).
+
 ### 4.3 `## Open` — what an artifact deliberately does not assert
 
 Questions nobody has answered, criteria that cannot be written yet, and limits of the proof. One
@@ -887,6 +891,10 @@ same concern found again rather than a new id. What became of one — `accepted`
 leads and abandonments, never stored. Two branches each raising a suggestion can merge with one `S_nn` recorded
 twice; the round refuses that and names `sdlc suggestions <id> --renumber`, which gives each duplicate the next
 free id (D-171).
+
+**A suggestion in the same words is the same concern.** `round collect` carries one worded as an earlier one of the
+round, or as one the ledger holds, under that one's id whatever the reconciler named, and `sdlc round` refuses a new
+suggestion with no statement, an empty gist, or another's words (D-223).
 
 ### 6.2 A round records what it judged, and what against
 
@@ -1363,6 +1371,11 @@ diff reader holds the change to it. The binary parses the lines and reports them
 in the approval draft, in `sdlc status`, in the pull request — and `harvest decisions` offers each one a
 completed cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
 supersedes the plan-only rule of D-72).
+
+**A decision is cited once it is placed, on the branch the cycle is planned from.** An intent, spec or plan citing
+a `DEC_nn` the checkout's record does not hold is refused before any reader is started, and a sandbox or worktree
+opened while this checkout's record differs from the integration branch's says so: a decision placed in one checkout
+and not committed is not in the record a cycle planned elsewhere is judged by (D-223).
 
 **An entry's title is its headline**, at most fifteen words, and each clause at most sixty: a harvest's drafter
 refuses a new entry past either, and an entry already on the page is named and proposed for rewording, never
@@ -2685,7 +2698,8 @@ repository, so the person's own checkout is never switched (D-144); a person run
 refusal of uncommitted work is `sdlc branch <id> plan`'s**, for a person who asked for one working copy rather
 than a sandbox, because that switch is the only step that would carry it into the cycle as work no plan
 declared (D-94, D-144). A sandbox starts from what the integration branch committed, so nothing uncommitted
-rides into it.
+rides into it — and `sdlc branch` says which of the files only a person writes differ here from there, so a decision
+placed in this checkout and not yet committed is not cited by a cycle planned where it is missing (D-223).
 
 ---
 
@@ -7744,6 +7758,55 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-223 — What a document cites by number points at something, and a suggestion in another's words is that one
+
+**Governs:** §4.2, §6.1, §8.1.1, §15.2
+
+**Extends D-139**, whose departure check already refused a `Departs from` naming a decision the record does not hold,
+**and D-115**, whose ledger holds each concern once. **Leaves D-108 unchanged**: whether two statements in different
+words are one concern is still the reconciler's judgement.
+
+**Decision.**
+
+- **A decision cited is a decision placed.** An intent, a spec or a plan citing a `DEC_nn` the solution's
+  `decisions.md` does not hold — anywhere, not only on a departure line — is refused: `sdlc round prompt` composes no
+  reader for it, `sdlc round` records no round of it, and `sdlc status` and `verify-chain` report it as a shape problem.
+  A superseded decision is accepted, as a departure from one is; a fenced block quotes rather than cites; a record that
+  does not parse is `sdlc decisions`' to report, not a reason to refuse the document.
+- **A criterion cited is a criterion the spec has.** A spec, a plan or a verify citing a criterion by number the spec
+  does not have — a plan's proof entry or row, a verify's adjudication, or prose such as *criterion 4* or *criteria
+  2-4* — is refused the same way, and a spec numbering its criteria out of ascending order is too. A reference that
+  names another cycle beside it — its id, a `successor:`, *another cycle* — is left alone.
+- **Both hold only cycles opened on 0.58 or later**, so no document an approval already covers is refused for them.
+- **A suggestion is something to read, once.** `round collect` sends back a reader that raised a finding with no
+  statement, makes an empty gist no gist, and carries a suggestion in the same words — past spacing and case — as one
+  earlier in the round, or as one the cycle's ledger holds, under that one's id, whatever the reconciler named.
+  `sdlc round` refuses a new suggestion with no statement, an empty gist, or another's words.
+- **A new working copy says what of this checkout's record it will not hold.** `sdlc branch <id> sandbox`, and a plan
+  worktree, name each file only a person writes under `.sdlc/` whose text differs from the integration branch's they
+  start from, and say to commit and push it first if it is meant to bind the work.
+
+**Why.** One governed solution's harvest of 23 cycles found readers doing lookups. In six suggestions of one cycle
+and three of two others, readers reported an intent or plan citing `DEC_25` or `DEC_30` while the record they were
+handed held `DEC_01` to `DEC_15`. The cause was not stale readers: the person had placed decisions 16 to 44 in their
+own checkout days earlier and committed them only at the harvest's close, while the cycles were planned in sandboxes
+cut from the committed integration branch, as D-144 has them. The authors read the record in the person's checkout;
+the readers read the sandbox's. Nothing said the two differed, and by the time the decisions were committed `DEC_25`
+named a different choice. In three more cycles readers caught a criterion number left behind by a renumbering, and
+criteria out of order. In two cycles of that solution a suggestion stood with an empty gist, and a verify suggestion
+was recorded again word for word under a new id the next round because the reconciler missed its own ledger's entry —
+each one an item a person had to answer twice. Every one of these is a lookup a reader paid a round to do.
+
+**Rejected.** *Handing readers the person's record rather than the checkout's*: a cycle is judged by what its branch
+holds, which is what reaches the pull request; a record nobody committed binds nothing yet. *Refusing a sandbox while
+the record differs*: D-144 rejected refusing a cycle over work that cannot reach it, and what differs may be meant for
+other work. *Recording on each round the decisions hash it handed readers*: it would say afterwards that the record
+moved, where the refusal says it before a reader is paid. *Matching statements loosely — by gist, or by most words*: two
+concerns phrased alike would merge, and D-108 has a distinct concern merged into another as the failure to avoid; only
+the same words are a lookup. *Holding the framework's own `D-nn` ids too*: a solution's documents cite its own record,
+and a framework decision is cited by a person reading this repository, not by a cycle's reader. *Applying the checks to
+cycles in flight*: an approved plan citing a number would need a reopen to say what it already said.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 

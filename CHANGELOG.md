@@ -18,8 +18,17 @@ successor:<slug>` lifts the hold. In a harvest, `[h]` beside a proposed successo
 worth doing later no longer has to be declined as *not yet* — which read as decided against, kept nothing to start
 from, and asked again whenever the concern came back.
 
+**What a document cites points at something** (D-223). An intent, spec or plan citing a decision `decisions.md` does
+not hold, or a spec, plan or verify citing a criterion the spec does not have, is refused before a reader is started
+and when its round is recorded, and `sdlc status` and `verify-chain` show it; a spec's criteria run in ascending
+order. A suggestion with no statement, a blank gist or another's words is refused, and `round collect` carries a copy
+under the first one's id itself. `sdlc branch <id> sandbox` says when this checkout's decisions, constraints or other
+person-written files differ from the integration branch the sandbox starts from — the cause of readers reporting real
+decisions as pointing at nothing.
+
 **What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together.
+before it refuses: every machine and pipeline reading a solution's successors moves together. A cycle opened on it
+is refused a round for a citation to nothing; a cycle opened before is not held to that.
 
 ## 0.57
 

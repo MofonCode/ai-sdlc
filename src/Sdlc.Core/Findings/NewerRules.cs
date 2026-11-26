@@ -38,6 +38,12 @@ public static class NewerRules
     public static Version Areas { get; } = new(0, 39, 0);
 
     /// <summary>
+    /// The release that holds what a document cites to what exists: a decision the record holds, a criterion the spec
+    /// has (D-223).
+    /// </summary>
+    public static Version Citations { get; } = new(0, 58, 0);
+
+    /// <summary>
     /// Says whether a cycle was opened on a given release or a later one: its intent has no round yet, or its
     /// first round names a release at least that.
     /// </summary>

@@ -3396,10 +3396,14 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         : null;
     ArtifactValidation? shape = text is null
         ? null
-        : Departures.Checked(
-            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false), status.Cycle.InSeries),
+        : await Citations.Checked(
+            status.Cycle,
+            Departures.Checked(
+                ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false), status.Cycle.InSeries),
+                text,
+                recorded),
             text,
-            recorded);
+            CancellationToken.None).ConfigureAwait(false);
 
     StagePanel panel = new(state, outline, shape, text is null ? null : ArtifactSize.Describe(kind, text));
     SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);

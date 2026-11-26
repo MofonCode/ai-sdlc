@@ -201,17 +201,18 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. *Take it to plan* (`/sdlc:to-plan`) does this for you, after `steer` when you said what
 should change, which is the reason to use it rather than editing documents by hand.
 
-## `sdlc round` — the nine ways a round is refused
+## `sdlc round` — the eleven ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
 words, the third when a reader raised a blocker without saying in a sentence what set it off, the
 fourth when a blocker cites a rule its reader was not handed (D-174), the fifth when a new finding quotes its
-rule in words other than the rule's own (D-177), and the sixth when a suggestion's id or its move does not fit
-the cycle's suggestions. The next two are about areas (D-150):
-a plan that leaves a declared file without one, and an area whose files have moved. The last is a verify round
-that could not change where the cycle goes (D-165).
+rule in words other than the rule's own (D-177), the sixth when a suggestion's id or its move does not fit
+the cycle's suggestions, and the seventh when a suggestion has nothing to read or says what another already
+says (D-223). The next is a document citing a decision or a criterion that does not exist (D-223). The next two
+are about areas (D-150): a plan that leaves a declared file without one, and an area whose files have moved. The
+last is a verify round that could not change where the cycle goes (D-165).
 
 ### something above it is unsettled
 
@@ -282,6 +283,31 @@ usual cause is a perspective reader numbering from `F_01`.
 `accessibility.S_04` — and carry a restated one under its standing id, which the reconciler finds among
 every document's open suggestions. Answer a suggestion only on the documents that raised it. A suggestion
 that has become a blocker is handed back `withdrawn`, and the blocker takes a new `F_` id of its own.
+
+### a suggestion with nothing to read, or in another's words
+
+A new suggestion is refused when its statement is empty, when it carries a gist that is blank, or when its
+statement is word for word — past spacing and case — what another suggestion of the round or of the cycle's
+ledger says. Each would stand as an item somebody must answer: one with nothing in it, or one answered twice
+(D-223). `sdlc round collect` already sends back a reader that raised a finding with no statement, drops a blank
+gist, and carries a copy under the first one's id; this refusal meets a draft edited after that.
+
+**Next:** carry the copy under the id the refusal names, and leave out a gist you have no sentence for. A finding
+with no statement is its reader's to write: start that reader again rather than writing it in this session.
+
+### a document cites what does not exist
+
+Writing a round's prompts, and recording the round, are refused when the document cites a number that points at
+nothing: an intent, spec or plan naming a `DEC_nn` the solution's `decisions.md` does not hold, or a spec, plan or
+verify naming a criterion the spec does not have — a proof row, an adjudication, *criterion 4* in prose — or a spec
+whose criteria are out of order (D-223). A reader would spend the round on the number. The usual causes are a
+decision proposed by a harvest and not yet placed, a decision placed in another checkout and not committed to the
+integration branch — a sandbox starts from what that branch committed — and a spec renumbered under its references.
+A cycle opened before 0.58 is not held to it.
+
+**Next:** place the decision and bring it onto this branch, or cite what `sdlc decisions` lists; give a criterion
+reference the number the spec has now. A reference to another cycle's criterion names that cycle beside it. On a
+verify, run the adjudicator again: it wrote the number.
 
 ### a declared file with no area
 

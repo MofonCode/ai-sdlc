@@ -283,6 +283,23 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
                     return Refuse($"{finding.Id} is new, and says it is {Name(line.Event)}. A suggestion is raised before anything can answer or withdraw it.");
                 }
 
+                // A suggestion with nothing to read stands as an item somebody must answer, and one saying word for
+                // word what another says is the same concern answered twice (D-223).
+                if (string.IsNullOrWhiteSpace(finding.Statement))
+                {
+                    return Refuse($"{finding.Id} has no statement. A suggestion says what is wrong, or it is nothing anybody can answer: start its reader again.");
+                }
+
+                if (finding.Gist is { } gist && string.IsNullOrWhiteSpace(gist))
+                {
+                    return Refuse($"{finding.Id} has an empty gist, and the gist is the line a person reads it by. Leave the gist out, or write it.");
+                }
+
+                if (suggestions.FirstOrDefault(other => SameWords(other.Statement, finding.Statement)) is { } same)
+                {
+                    return Refuse($"{finding.Id} says word for word what {same.Id} says. One concern is one id: carry it as {same.Id}, which records it raised again where it is not already standing.");
+                }
+
                 suggestions.Add(new LedgerSuggestion(
                     finding.Id,
                     finding.Cites,
@@ -374,6 +391,21 @@ public sealed partial record SuggestionLedger(string? Cycle, IReadOnlyList<Ledge
 
         return string.Create(CultureInfo.InvariantCulture, $"{prefix}S_{highest + 1:D2}");
     }
+
+    /// <summary>
+    /// Whether two statements are the same words, read past spacing and case: what one reader copying another, or a
+    /// reconciler missing a restatement of its own ledger, produces (D-223).
+    /// </summary>
+    /// <param name="first">One statement.</param>
+    /// <param name="second">The other.</param>
+    /// <returns>True when they say the same thing word for word.</returns>
+    internal static bool SameWords(string? first, string? second) =>
+        !string.IsNullOrWhiteSpace(first)
+        && !string.IsNullOrWhiteSpace(second)
+        && string.Equals(Words(first), Words(second), StringComparison.OrdinalIgnoreCase);
+
+    private static string Words(string statement) =>
+        string.Join(' ', statement.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static bool SameConcern(LedgerSuggestion known, Finding finding) =>
         string.Equals(known.Statement, finding.Statement, StringComparison.Ordinal)
