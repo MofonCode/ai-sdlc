@@ -451,6 +451,14 @@ public static class ReaderPrompts
                 }
             }
 
+            // A number pointing at nothing -- a decision the record does not hold, a criterion the spec does not have --
+            // is a lookup, refused before the readers are paid to raise it (D-223). The adjudicator writes the verify
+            // it would read, so it is composed whatever the old one cites.
+            if (!adjudicating && !request.List && await Citations.Refusal(cycle, request.Artifact, cancellationToken).ConfigureAwait(false) is { } dangling)
+            {
+                return Result.Fail<Response>(dangling);
+            }
+
             // A verdict that concedes on the evidence the last round judged goes to remediate whatever a round says,
             // and the next run's evidence gets a full one (D-165). One real verify spent 1.1M tokens four
             // minutes after the last, on the same evidence, to confirm a concession.

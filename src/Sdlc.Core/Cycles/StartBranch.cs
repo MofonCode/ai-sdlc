@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Git;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
@@ -139,7 +140,7 @@ public static class StartBranch
                     : new Response(
                         sandbox,
                         "git worktree add -b " + sandbox + " " + place + (integrationRef is null ? string.Empty : " " + integrationRef) + " && mkdir -p " + place + "/" + folder,
-                        string.Create(CultureInfo.InvariantCulture, $"This work gets a sandbox at {place}, on {sandbox} from {integrationRef ?? "what is checked out"}. Every cycle it turns into is planned there, beside this one; this checkout stays as it is.")));
+                        string.Create(CultureInfo.InvariantCulture, $"This work gets a sandbox at {place}, on {sandbox} from {integrationRef ?? "what is checked out"}. Every cycle it turns into is planned there, beside this one; this checkout stays as it is.") + RecordLeftBehind(root, integrationRef, integration)));
             }
 
             if (request.Worktree)
@@ -157,7 +158,7 @@ public static class StartBranch
                     : new Response(
                         branch,
                         "git worktree add -b " + branch + " " + path + (integrationRef is null ? string.Empty : " " + integrationRef) + " && mkdir -p " + path + "/" + directory,
-                        string.Create(CultureInfo.InvariantCulture, $"This cycle gets its own working copy at {path}, on {branch} from {integrationRef ?? "what is checked out"}. Work on it there, in a session opened there; this checkout stays as it is.")));
+                        string.Create(CultureInfo.InvariantCulture, $"This cycle gets its own working copy at {path}, on {branch} from {integrationRef ?? "what is checked out"}. Work on it there, in a session opened there; this checkout stays as it is.") + RecordLeftBehind(root, integrationRef, integration)));
             }
 
             // A switch carries uncommitted changes with it, so a plan branch switched to over them would take them
@@ -284,6 +285,44 @@ public static class StartBranch
 
             return normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
                 && normalised.EndsWith("/.gitignore", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// What a new working copy will not hold of this checkout's record: each file only a person writes under
+        /// <c>.sdlc/</c> whose text here differs from the integration branch's, said as one sentence; empty when none
+        /// does (D-223).
+        /// </summary>
+        /// <remarks>
+        /// A working copy starts from what the integration branch committed (D-144). A decisions record a person placed
+        /// here and has not committed and pushed is missing there, so a cycle planned there cites decisions its readers
+        /// are never handed, and they report each as pointing at nothing. Said rather than refused: what is left behind
+        /// may be meant for other work, and D-144 rejected refusing a cycle over work that cannot reach it.
+        /// </remarks>
+        private string RecordLeftBehind(string root, string? integrationRef, string integration)
+        {
+            if (integrationRef is null)
+            {
+                return string.Empty;
+            }
+
+            List<string> differing = [];
+
+            foreach (string name in ProtectedPaths.Names.Where(name => File.Exists(Path.Combine(root, Cycle.SdlcDirectoryName, name))))
+            {
+                string here = File.ReadAllText(Path.Combine(root, Cycle.SdlcDirectoryName, name));
+                string? there = repository.ReadAt(root, integrationRef, Cycle.SdlcDirectoryName + "/" + name);
+
+                if (there is null || !string.Equals(here.ReplaceLineEndings("\n").TrimEnd(), there.ReplaceLineEndings("\n").TrimEnd(), StringComparison.Ordinal))
+                {
+                    differing.Add(name);
+                }
+            }
+
+            return differing.Count == 0
+                ? string.Empty
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $" This checkout's {string.Join(", ", differing)} differ{(differing.Count == 1 ? "s" : string.Empty)} from {integrationRef}'s, and the new working copy starts from {integrationRef}: what is here and not there will not be in it, so a cycle planned there cannot cite it and its readers are never handed it. If it is meant to bind this work, commit it to {integration} and push it first.");
         }
 
         private static Response Create(string branch, string from, string why) =>

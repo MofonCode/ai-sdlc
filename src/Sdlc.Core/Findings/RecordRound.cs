@@ -572,6 +572,13 @@ public static class RecordRound
                 return Result.Fail<Response>(planAreas.Errors);
             }
 
+            // The same refusal the round's prompt gives (D-223): a document edited since it was composed is held to it
+            // again here, where the round would otherwise become part of its record.
+            if (await Citations.Refusal(cycle, request.Artifact, cancellationToken).ConfigureAwait(false) is { } dangling)
+            {
+                return Result.Fail<Response>(dangling);
+            }
+
             // A verify round's upstream is the plan, which commits to the proof per criterion -- the
             // hash the status panel compares a verify round against.
             ArtifactKind? above = request.Artifact == ArtifactKind.Verify

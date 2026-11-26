@@ -133,6 +133,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Artifacts.ArtifactSections",
         "Sdlc.Core.Artifacts.ArtifactSize",
         "Sdlc.Core.Artifacts.ArtifactValidation",
+        "Sdlc.Core.Artifacts.Citations",
         "Sdlc.Core.Artifacts.ContentHash",
         "Sdlc.Core.Artifacts.Frontmatter",
         "Sdlc.Core.Artifacts.FrontmatterDocument",

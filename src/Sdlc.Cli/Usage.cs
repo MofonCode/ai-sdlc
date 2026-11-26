@@ -112,8 +112,10 @@ internal static class Usage
                                      until 'sdlc admit' takes it out. 'sandbox' opens a
                                      worktree on sandbox/<id> beside the repository, where every
                                      cycle the work turns into is planned. 'plan --worktree'
-                                     opens the one cycle in a folder of its own. 'plan' without a
-                                     worktree refuses uncommitted work, which the switch would
+                                     opens the one cycle in a folder of its own. Both name each
+                                     file only a person writes that differs here from the base
+                                     they start from, which they will not hold (D-223). 'plan'
+                                     without a worktree refuses uncommitted work, which the switch would
                                      carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
             branch <id> remediate    Print the path of a worktree on the cycle's build branch -- the

@@ -212,6 +212,13 @@ public static class CollectRound
                     return body.ToResult<Response>();
                 }
 
+                if (body.Value.Findings.Where(finding => string.IsNullOrWhiteSpace(finding.Statement)).Select(finding => finding.Id).ToList() is { Count: > 0 } empty)
+                {
+                    return Result.Fail<Response>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"The {reader} reader raised {string.Join(", ", empty)} with no statement, which would stand as nothing anybody can answer. Start it again; do not write one here."));
+                }
+
                 if (Ungisted(body.Value.Findings) is { Count: > 0 } wanting)
                 {
                     return Result.Fail<Response>(string.Create(
@@ -244,10 +251,16 @@ public static class CollectRound
                 // The binary copies the rule's own line rather than trusting a reader to (D-177): a citation is
                 // the reader's choice, the words beside it are the library's, and a paraphrase there is a second
                 // version of the rule.
-                raised.AddRange(body.Value.Findings.Select(finding =>
-                    handed.Value.Misquoted(finding.Cites) is { } line
-                        ? finding with { Cites = finding.Cites! with { Heading = line } }
-                        : finding));
+                // A suggestion's gist is optional, and an empty one is not a gist: the line a person reads it by
+                // would be blank (D-223).
+                raised.AddRange(body.Value.Findings
+                    .Select(finding => finding.Severity == Severity.Suggestion && finding.Gist is { } gist && string.IsNullOrWhiteSpace(gist)
+                        ? finding with { Gist = null }
+                        : finding)
+                    .Select(finding =>
+                        handed.Value.Misquoted(finding.Cites) is { } line
+                            ? finding with { Cites = finding.Cites! with { Heading = line } }
+                            : finding));
                 conflicts.AddRange(body.Value.Conflicts);
                 demoted.AddRange(body.Value.Demoted);
                 usage.Add(answer.Value.Usage);
@@ -580,6 +593,45 @@ public static class CollectRound
             }
 
             // Anything else names an id that does not stand: unsure, so the finding is new.
+        }
+
+        // A suggestion in the same words as one the cycle's ledger holds, or as one raised earlier in this round, is
+        // that concern whatever the reconciler said: the same words are a lookup, not a judgement (D-223). One
+        // reconciler missed a verify suggestion of its own ledger and the next round recorded it under a second id;
+        // two readers of one round copying a sentence did the same within it.
+        List<Finding> kept = [];
+
+        foreach (Finding finding in raised.Where(finding => !dropped.Contains(finding.Id) && finding.Severity == Severity.Suggestion))
+        {
+            if (kept.FirstOrDefault(earlier => SuggestionLedger.SameWords(earlier.Statement, finding.Statement)) is { } earlier)
+            {
+                restated[finding.Id] = earlier.Id;
+                dropped.Add(finding.Id);
+                continue;
+            }
+
+            if (suggestions.Suggestions.FirstOrDefault(known => SuggestionLedger.SameWords(known.Statement, finding.Statement)) is { } known)
+            {
+                if (carried.All(other => other.Id != known.Id))
+                {
+                    carried.Add(new Finding(
+                        known.Id,
+                        Severity.Suggestion,
+                        Disposition.Open,
+                        known.Cites,
+                        known.Statement,
+                        known.Locus,
+                        known.Remedy,
+                        Perspective: known.Perspective,
+                        Gist: known.Gist));
+                }
+
+                restated[finding.Id] = known.Id;
+                dropped.Add(finding.Id);
+                continue;
+            }
+
+            kept.Add(finding);
         }
 
         List<Finding> findings = [.. raised.Where(finding => !dropped.Contains(finding.Id))];
