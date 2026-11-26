@@ -18,28 +18,6 @@ successor:<slug>` lifts the hold. In a harvest, `[h]` beside a proposed successo
 worth doing later no longer has to be declined as *not yet* — which read as decided against, kept nothing to start
 from, and asked again whenever the concern came back.
 
-**A perspective does not raise what a decision settles, and two rules forbid the miss beside the one they named**
-(D-226). Every perspective's reader is told that a standing decision closes the question it answers: the security
-reader that asked, every cycle, who may open one and what the unattended identity may do stops once a decision
-says so, and still names the decision when a document departs from it. `CON_28` supersedes `CON_02`: an intent may
-not leave its spec to guess a measure or a reading either — "clearly shorter" needs a figure or an open question.
-`CON_29` supersedes `CON_21`: a proof may not assert exact words a person is shown where its criterion does not fix
-them. Both old rules stay on the page for the findings that cited them.
-
-**No pull request opens from a branch behind its target** (D-227). `sdlc up-to-date` fetches the target from origin
-and refuses a branch that has not taken its latest, or a target it could not fetch. Every pull request asks it first:
-`/sdlc:pr` in every form, `/sdlc:close-cycle`, and `sdlc upgrade apply` before it pushes. A branch of records alone —
-a plan, a slicing, an admission, a harvest's close — takes the merge and goes on; built code is brought up to date
-and verified again through `remediate`, which a build, a run or a series does unattended only when the merge is
-clean. A conflict opens nothing and is named in the report, for a person.
-
-**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together. And two rules now
-block where their predecessors passed: an intent leaving a measure for its spec to choose, with no open question
-saying so, and a plan whose proof quotes a message its criterion never fixed. A cycle in flight meets them at its
-next round of that document; the fix is a figure or an open question, and an assertion about what the person is
-told rather than its sentence.
-
 **A concern a harvest already answered is not asked again** (D-221). The reconciling reader is shown, by key, what
 the solution's harvests ignored, watched, declined and covered and every successor waiting. A suggestion restating one
 of them is recorded in the cycle's `suggestions.json` under `recurred` instead of among the suggestions, so no panel,
@@ -47,42 +25,6 @@ of them is recorded in the cycle's `suggestions.json` under `recurred` instead o
 cycle, document and round once. No round writes `harvested.json`, so two branches merged can never count one recurrence
 twice. An ignored concern counts the cycles whose readers raised it again toward its bar of three. And one gap raised
 several times in one round — by one reader or by two — is one finding, the blocker kept when only one blocks.
-
-**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together. `suggestions.json` and
-`harvested.json` gained a `recurred` key, which a binary before 0.58 ignores.
-
-**A large harvest reads in groups, and its notes for the framework count honestly** (D-225):
-
-- An abandoned cycle's open suggestions are answered in one line, `- <cycle>/*: successor:<slug> — <how>`, by the
-  successor that takes its work up, rather than one by one.
-- `sdlc harvest summary` shows the eight largest themes to an answer and counts the rest on one line; `--all` shows
-  every one.
-- `harvest decisions` hands over a plan's shape as one passage, bullets kept, so an approach two cycles share reads as
-  one choice rather than forty fragments.
-- The intent skill writes *not in this piece* into the outcome it limits rather than under `Fixed decisions`, and a
-  slicing no longer copies the same bounds into every slice.
-- A note under `## For the framework` needs a `Cycles:` line of cycle ids, or `all`. The export counts the ids a note
-  names and sends no count when it names none; `tools/Sdlc.FrameworkHarvest` heads a surface with the most cycles one
-  note names rather than a sum, and handed a solution's own `framework-harvest.json` says to export it first.
-
-**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together. A harvest proposal file
-written for an earlier release whose framework notes have no `Cycles:` line is refused at `sdlc harvest record` until
-each note gains one. Notes already in `.sdlc/framework-harvest.json` keep the cycles they were recorded with: one
-stamped with every cycle of its sitting still exports that count.
-
-**What a document cites points at something** (D-223). An intent, spec or plan citing a decision `decisions.md` does
-not hold, or a spec, plan or verify citing a criterion the spec does not have, is refused before a reader is started
-and when its round is recorded, and `sdlc status` and `verify-chain` show it; a spec's criteria run in ascending
-order. A suggestion with no statement, a blank gist or another's words is refused, and `round collect` carries a copy
-under the first one's id itself. `sdlc branch <id> sandbox` says when this checkout's decisions, constraints or other
-person-written files differ from the integration branch the sandbox starts from — the cause of readers reporting real
-decisions as pointing at nothing.
-
-**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together. A cycle opened on it
-is refused a round for a citation to nothing; a cycle opened before is not held to that.
 
 **A verdict says why a criterion is not met, and verify readers stop raising what no stage acts on** (D-222):
 
@@ -99,9 +41,13 @@ is refused a round for a citation to nothing; a cycle opened before is not held 
 - **The security perspective takes the build as the dependency audit** when `Directory.Build.props` sets `NuGetAudit`
   with warnings as errors, as the scaffold does: every round says so, and no vulnerable-package scan is asked for.
 
-**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together. An adjudicator's verdict
-with a reasonless Not met, or an `## Open` entry bounding no met criterion, is now refused and adjudicated again.
+**What a document cites points at something** (D-223). An intent, spec or plan citing a decision `decisions.md` does
+not hold, or a spec, plan or verify citing a criterion the spec does not have, is refused before a reader is started
+and when its round is recorded, and `sdlc status` and `verify-chain` show it; a spec's criteria run in ascending
+order. A suggestion with no statement, a blank gist or another's words is refused, and `round collect` carries a copy
+under the first one's id itself. `sdlc branch <id> sandbox` says when this checkout's decisions, constraints or other
+person-written files differ from the integration branch the sandbox starts from — the cause of readers reporting real
+decisions as pointing at nothing.
 
 **A build says what it was refused, and what it may run** (D-224):
 
@@ -116,11 +62,55 @@ with a reasonless Not met, or an `## Open` entry bounding no met criterion, is n
 - **`sdlc doctor` names a retired command a file only a person writes still mentions** — an older constraints header
   naming `sdlc propose constraints` — with its line and what to write instead. New constraints drafts name no command.
 
-**What moving to it asks.** Nothing to write. It is a minor because a successor file gained a key, which a binary
-before it refuses: every machine and pipeline reading a solution's successors moves together. The upgrade rewrites
-the verify pipeline with its declared variables; a pipeline of your own that already declares a `variables:` block
-has it replaced, and the merge names it, so carry your variables back into the new block. `sdlc doctor` may now
-fail on an older `constraints.md` header: change the line it names by hand.
+**A large harvest reads in groups, and its notes for the framework count honestly** (D-225):
+
+- An abandoned cycle's open suggestions are answered in one line, `- <cycle>/*: successor:<slug> — <how>`, by the
+  successor that takes its work up, rather than one by one.
+- `sdlc harvest summary` shows the eight largest themes to an answer and counts the rest on one line; `--all` shows
+  every one.
+- `harvest decisions` hands over a plan's shape as one passage, bullets kept, so an approach two cycles share reads as
+  one choice rather than forty fragments.
+- The intent skill writes *not in this piece* into the outcome it limits rather than under `Fixed decisions`, and a
+  slicing no longer copies the same bounds into every slice.
+- A note under `## For the framework` needs a `Cycles:` line of cycle ids, or `all`. The export counts the ids a note
+  names and sends no count when it names none; `tools/Sdlc.FrameworkHarvest` heads a surface with the most cycles one
+  note names rather than a sum, and handed a solution's own `framework-harvest.json` says to export it first.
+
+**A perspective does not raise what a decision settles, and two rules forbid the miss beside the one they named**
+(D-226). Every perspective's reader is told that a standing decision closes the question it answers: the security
+reader that asked, every cycle, who may open one and what the unattended identity may do stops once a decision
+says so, and still names the decision when a document departs from it. `CON_28` supersedes `CON_02`: an intent may
+not leave its spec to guess a measure or a reading either — "clearly shorter" needs a figure or an open question.
+`CON_29` supersedes `CON_21`: a proof may not assert exact words a person is shown where its criterion does not fix
+them. Both old rules stay on the page for the findings that cited them.
+
+**No pull request opens from a branch behind its target** (D-227). `sdlc up-to-date` fetches the target from origin
+and refuses a branch that has not taken its latest, or a target it could not fetch. Every pull request asks it first:
+`/sdlc:pr` in every form, `/sdlc:close-cycle`, and `sdlc upgrade apply` before it pushes. A branch of records alone —
+a plan, a slicing, an admission, a harvest's close — takes the merge and goes on; built code is brought up to date
+and verified again through `remediate`, which a build, a run or a series does unattended only when the merge is
+clean. A conflict opens nothing and is named in the report, for a person.
+
+**What moving to it asks.** Nothing to write by hand except where named below. It is a minor because several
+things can now block or refuse where they passed before, and a successor file gained a key a binary before it refuses,
+so every machine and pipeline reading a solution's successors moves together:
+
+- **Two rules block where their predecessors passed** (D-226): an intent leaving a measure for its spec to choose,
+  with no open question saying so, and a plan whose proof quotes a message its criterion never fixed. A cycle in
+  flight meets them at its next round of that document; the fix is a figure or an open question, and an assertion
+  about what the person is told rather than its sentence.
+- **A citation to nothing is refused** (D-223) on a cycle opened on 0.58; a cycle opened before is not held to it.
+- **A verdict with a reasonless Not met, or an `## Open` entry bounding no met criterion, is refused** and
+  adjudicated again (D-222).
+- **A pull request is not opened from a branch behind its target** (D-227); built code behind its target is brought
+  up to date and verified again first.
+- **A harvest proposal file whose framework notes have no `Cycles:` line is refused** at `sdlc harvest record` until
+  each note gains one (D-225). Notes already in `.sdlc/framework-harvest.json` keep the cycles they were recorded
+  with: one stamped with every cycle of its sitting still exports that count.
+- **The upgrade rewrites the verify pipeline with its declared variables** (D-224); a pipeline of your own that
+  already declares a `variables:` block has it replaced, and the merge names it, so carry your variables back into
+  the new block. `sdlc doctor` may now fail on an older `constraints.md` header: change the line it names by hand.
+- `suggestions.json` and `harvested.json` gained a `recurred` key (D-221), which a binary before 0.58 ignores.
 
 ## 0.57
 

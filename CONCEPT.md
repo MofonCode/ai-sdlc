@@ -7913,61 +7913,6 @@ judged over the same rows would split one answer between two readers' rows. *For
 asserts that the criterion lacks.* A proof may assert an identifier the plan chose or a value the criterion implies;
 the harm is wording a person reads, which the spec is where a person approves.
 
-### D-221 — A concern a harvest already answered, raised again, is recorded as recurring and counted, never asked again
-
-**Governs:** §6.1, §6.5, §15
-
-**Extends D-108 and D-115:** the reconciling reader is also shown the concerns the solution answered in its harvests,
-and a finding of the round may restate another finding of the same round. **Extends D-153:** an ignored concern's
-count toward the bar includes the cycles whose readers raised it again. **D-27 and D-49 are unchanged**: a blocker is
-never set aside, and where a suggestion stands on a document is still not the author's to move.
-
-**Decision.**
-
-- **The reconciler is shown what the solution already answered**, one line each with a key: every concern a harvest
-  ignored or watched, each reason a sitting declined suggestions for, each thing a sitting covered suggestions with,
-  and every successor waiting. A key is the kind and eight hex digits of the line's text (`ignored:3fa1c2d0`), or
-  `successor:<slug>`, so the same answer has the same key on every branch. Declines and covers are shown once per
-  answer, not once per suggestion: the concern is what is matched, and the ids are the cycles' own.
-- **A suggestion the reconciler names as restating one of them is recurring, not new.** `round collect` leaves it out of
-  the round's findings and carries it in the draft; `sdlc round` records it in the cycle's own
-  `findings/suggestions.json`, under `recurred`, with the key, the document and the round. It is not one of the cycle's
-  suggestions, so the panel, `sdlc suggestions` and the next harvest never ask anybody to answer it. A blocker naming a
-  key stays a new blocker.
-- **No round writes `harvested.json`.** `sdlc harvest close` folds each closing cycle's `recurred` into the ledger's own
-  `recurred` list, each (key, cycle, document, round) once, so folding a cycle twice, recording one draft twice, or a
-  merge carrying one entry twice adds nothing, and every read drops a duplicate. A person's own `cycles` and `why` on
-  a concern are never touched.
-- **An ignored or watched concern counts its distinct cycles: those a person answered it for, and those whose readers
-  raised it again**, folded or still in an open cycle. One ignored in two cycles and raised again in a third reaches the
-  bar in the sitting that sees it, and is listed with how many of its cycles are a reader raising it again.
-- **A finding may restate another of the same round.** One reader raising one gap three times, or two readers the same
-  gap, is one finding: the reconciler names the duplicate, and the round keeps one — the blocker, when only one of the
-  two blocks. Two blockers citing different rules are two blockers.
-- **Unsure is still new** (D-108): a key or an id the reconciler is not sure of leaves the finding where it was.
-
-**Why.** One governed solution's 23 cycles came to 2,869 open suggestions at one harvest. The readers raised about 40
-suggestions a cycle each for maintainability, security and operability, and less than 2% of them ever blocked. Much of
-it was the same concern in every cycle — an area proposal until a harvest placed one, the dependency audit every
-verify, the wording of Met lines that rest on an approved proof — and the reconciler, shown only its own cycle's
-suggestions, called each one new. Each then cost a disposition in the cycle and an answer in the harvest, though a
-person had already answered it once. One spec's reader raised past F_1800 and one verify raised reduced motion three
-times, because the reconciler matched against what stood before the round and never within it. The harvest ledger
-already kept every answer a person gave; nothing read it during a round.
-
-Recording the recurrence rather than suppressing it makes the repeat evidence: an ignored concern that keeps coming
-back is what the bar of three is for, and until now only a sitting could feed that tally.
-
-**Rejected.** *Telling the readers what was already answered*: they run blind by design (D-108), and a reader shown a
-list judges the list. *Writing the recurrence into `harvested.json` from the round*: every cycle branch would write the
-one file every other branch writes, and a merge would count one concern twice or lose one; the person asked for a
-guardrail against exactly that. *Adding the reader's cycles to the concern's `cycles`*: what a person answered and
-what readers kept noticing afterwards would read the same, and a later sitting could not tell which it was weighing.
-*Matching the open suggestions of other live cycles too*: it catches the repeats before a first harvest, but it is a
-second shared state across branches, and nothing yet shows the repeats it would catch are not the ones a harvest
-answers once. *Keying by position in the ledger*: a sitting covering a watched concern removes it, and every key after
-it would point at its neighbour.
-
 ### D-225 — A harvest is read by groups and counted by ids: an abandoned cycle's suggestions in one answer, a plan's shape whole, a note's cycles named
 
 **Governs:** §3.4, §15
@@ -8018,6 +7963,63 @@ stamped notes about one cycle with twenty-three. *Recounting notes already recor
 record of what a sitting answered and is never rewritten; a note recorded before this release keeps its cycles, and
 exports what its ids give. *Deduplicating cycles across notes in the reading*: an export carries counts, not ids, by
 design (D-204).
+
+### D-224 — A build names what it was refused and what it may run, a grant may be one command line, nobody queuing a run can skip its tests, and a retired command is found where only a person can change it
+
+**Governs:** §8.3, §10.1, §13, §15.2
+
+**Amends D-202**, whose `build_tools` held bare command names alone, **and D-196**, whose skip of a promotion's tests
+the Azure DevOps pipeline read from a variable anybody queuing a run could set. **Extends D-148 and D-191**, whose
+renamed commands the binary answers: the list it answers from is read by `doctor` too.
+
+**Decision.**
+
+1. **A build says what it was refused.** The build's and the series' own processes answer in the host's JSON format,
+   and `sdlc build` and `sdlc series run` print the hand-back it carries, then each tool use the host refused, as
+   `tool: command`, once each, under *no test failed for it*, with the `build_tools` entry that would grant it. An
+   answer that is not that object is printed as written and refuses nothing.
+2. **A build says what it may run before it starts.** It names what `build_tools` granted, and each shell rule this
+   machine's own host settings add beyond every build's tools and that grant -- the user's settings and the
+   worktree's local file, both this machine's alone -- because a build here may use them and the factory is refused
+   them. `doctor` says the same as a sound check.
+3. **A grant may be one command line.** A `build_tools` entry is a bare command name, as before, or a command line
+   that starts with one: `docker build`, `pwsh -File scripts/evidence.ps1`. A line is allowed as itself and with more
+   words after it, and nothing else. Its later words may hold an option, a value or a relative path; a wildcard, a
+   quote, a variable, a redirection, `..` or a second command fails the document as before.
+4. **What skips the tests is set by a step, never by whoever queues the run.** The Azure DevOps verify pipeline
+   declares `admission`, `promotion` and `tested` as `false`, which Azure Pipelines does not let a run override at
+   queue time, and each step sets exactly `true` or `false`. On GitHub the skip is already a step's output. Both
+   templates say the skip passes over the tests and their publishing, never the build or the chain, and never a
+   team's own step, which carries no condition on them when it must run on every pull request. The `pipeline`
+   guidance says a team's own skip takes the same shape.
+5. **A retired command is found where only a person can change it.** The commands a release renamed are one list in
+   the binary, which answers them; `doctor` reads every file only a person writes outside a cycle for a command in
+   backticks on that list, and names its line and what to write instead. The constraints draft names no command:
+   `.sdlc/README.md`, which every upgrade rewrites, names the ones it used to.
+
+**Why.** One governed solution's harvest, over 23 cycles, handed the framework four notes on these surfaces. A build
+stopped by a refused tool looked the same as a failing test: the output never named the command, and nothing said
+which tools were in effect, so an allowance in a person's own settings let builds pass on a grant that was broken
+and would fail in the factory. A grant was the tool whole -- a shell, a container runtime -- when the need was one
+command. The verify pipeline's skip had no account of what stops a person queuing a run from setting it, and on
+Azure DevOps nothing did: `tested`, `admission` and `promotion` were ordinary variables, so a value given at queue
+time skipped the tests, the build or the chain. And a scaffolded constraints header still told people to run a
+command two releases had renamed, which no upgrade could change because only a person writes that file.
+
+**Rejected.**
+
+- *Starting the build with the user's settings left out*, so a machine's allowance could not mask anything. Those
+  settings also hold how a person signs in and which model they use, and a build that could not start for that is
+  worse than one that says what it was given.
+- *A refusal read from the build's own report.* The playbook already says to name it, and the note is that it did
+  not; the host's record of what it refused is a fact the binary can read, where the report is a sentence.
+- *A wildcard grant, `docker build *`, written by the person.* A wildcard is what `build_tools` refuses, because a
+  person writing one cannot see what else it matches; the binary adds the one it means.
+- *Output variables named by step on Azure DevOps.* A queue-time variable can be given a dotted name too; a
+  variable the file declares cannot be given at all.
+- *Rewriting the stale header on upgrade.* The file is a person's, and a tool that edits it once edits it again.
+- *Flagging every command a person's file names that this release does not answer.* A typo or a stage typed at the
+  binary is not something a release took away, and the binary answers a stage by naming its skill.
 
 ### D-223 — What a document cites by number points at something, and a suggestion in another's words is that one
 
@@ -8116,62 +8118,60 @@ evidence could settle it stays a reader's question. *Recording an audit result a
 and a second file proves what a green build of those settings does. *Telling only the security perspective about the
 audit*: the fact is about the build, and the shared block keeps the readers' prefix one.
 
-### D-224 — A build names what it was refused and what it may run, a grant may be one command line, nobody queuing a run can skip its tests, and a retired command is found where only a person can change it
+### D-221 — A concern a harvest already answered, raised again, is recorded as recurring and counted, never asked again
 
-**Governs:** §8.3, §10.1, §13, §15.2
+**Governs:** §6.1, §6.5, §15
 
-**Amends D-202**, whose `build_tools` held bare command names alone, **and D-196**, whose skip of a promotion's tests
-the Azure DevOps pipeline read from a variable anybody queuing a run could set. **Extends D-148 and D-191**, whose
-renamed commands the binary answers: the list it answers from is read by `doctor` too.
+**Extends D-108 and D-115:** the reconciling reader is also shown the concerns the solution answered in its harvests,
+and a finding of the round may restate another finding of the same round. **Extends D-153:** an ignored concern's
+count toward the bar includes the cycles whose readers raised it again. **D-27 and D-49 are unchanged**: a blocker is
+never set aside, and where a suggestion stands on a document is still not the author's to move.
 
 **Decision.**
 
-1. **A build says what it was refused.** The build's and the series' own processes answer in the host's JSON format,
-   and `sdlc build` and `sdlc series run` print the hand-back it carries, then each tool use the host refused, as
-   `tool: command`, once each, under *no test failed for it*, with the `build_tools` entry that would grant it. An
-   answer that is not that object is printed as written and refuses nothing.
-2. **A build says what it may run before it starts.** It names what `build_tools` granted, and each shell rule this
-   machine's own host settings add beyond every build's tools and that grant -- the user's settings and the
-   worktree's local file, both this machine's alone -- because a build here may use them and the factory is refused
-   them. `doctor` says the same as a sound check.
-3. **A grant may be one command line.** A `build_tools` entry is a bare command name, as before, or a command line
-   that starts with one: `docker build`, `pwsh -File scripts/evidence.ps1`. A line is allowed as itself and with more
-   words after it, and nothing else. Its later words may hold an option, a value or a relative path; a wildcard, a
-   quote, a variable, a redirection, `..` or a second command fails the document as before.
-4. **What skips the tests is set by a step, never by whoever queues the run.** The Azure DevOps verify pipeline
-   declares `admission`, `promotion` and `tested` as `false`, which Azure Pipelines does not let a run override at
-   queue time, and each step sets exactly `true` or `false`. On GitHub the skip is already a step's output. Both
-   templates say the skip passes over the tests and their publishing, never the build or the chain, and never a
-   team's own step, which carries no condition on them when it must run on every pull request. The `pipeline`
-   guidance says a team's own skip takes the same shape.
-5. **A retired command is found where only a person can change it.** The commands a release renamed are one list in
-   the binary, which answers them; `doctor` reads every file only a person writes outside a cycle for a command in
-   backticks on that list, and names its line and what to write instead. The constraints draft names no command:
-   `.sdlc/README.md`, which every upgrade rewrites, names the ones it used to.
+- **The reconciler is shown what the solution already answered**, one line each with a key: every concern a harvest
+  ignored or watched, each reason a sitting declined suggestions for, each thing a sitting covered suggestions with,
+  and every successor waiting. A key is the kind and eight hex digits of the line's text (`ignored:3fa1c2d0`), or
+  `successor:<slug>`, so the same answer has the same key on every branch. Declines and covers are shown once per
+  answer, not once per suggestion: the concern is what is matched, and the ids are the cycles' own.
+- **A suggestion the reconciler names as restating one of them is recurring, not new.** `round collect` leaves it out of
+  the round's findings and carries it in the draft; `sdlc round` records it in the cycle's own
+  `findings/suggestions.json`, under `recurred`, with the key, the document and the round. It is not one of the cycle's
+  suggestions, so the panel, `sdlc suggestions` and the next harvest never ask anybody to answer it. A blocker naming a
+  key stays a new blocker.
+- **No round writes `harvested.json`.** `sdlc harvest close` folds each closing cycle's `recurred` into the ledger's own
+  `recurred` list, each (key, cycle, document, round) once, so folding a cycle twice, recording one draft twice, or a
+  merge carrying one entry twice adds nothing, and every read drops a duplicate. A person's own `cycles` and `why` on
+  a concern are never touched.
+- **An ignored or watched concern counts its distinct cycles: those a person answered it for, and those whose readers
+  raised it again**, folded or still in an open cycle. One ignored in two cycles and raised again in a third reaches the
+  bar in the sitting that sees it, and is listed with how many of its cycles are a reader raising it again.
+- **A finding may restate another of the same round.** One reader raising one gap three times, or two readers the same
+  gap, is one finding: the reconciler names the duplicate, and the round keeps one — the blocker, when only one of the
+  two blocks. Two blockers citing different rules are two blockers.
+- **Unsure is still new** (D-108): a key or an id the reconciler is not sure of leaves the finding where it was.
 
-**Why.** One governed solution's harvest, over 23 cycles, handed the framework four notes on these surfaces. A build
-stopped by a refused tool looked the same as a failing test: the output never named the command, and nothing said
-which tools were in effect, so an allowance in a person's own settings let builds pass on a grant that was broken
-and would fail in the factory. A grant was the tool whole -- a shell, a container runtime -- when the need was one
-command. The verify pipeline's skip had no account of what stops a person queuing a run from setting it, and on
-Azure DevOps nothing did: `tested`, `admission` and `promotion` were ordinary variables, so a value given at queue
-time skipped the tests, the build or the chain. And a scaffolded constraints header still told people to run a
-command two releases had renamed, which no upgrade could change because only a person writes that file.
+**Why.** One governed solution's 23 cycles came to 2,869 open suggestions at one harvest. The readers raised about 40
+suggestions a cycle each for maintainability, security and operability, and less than 2% of them ever blocked. Much of
+it was the same concern in every cycle — an area proposal until a harvest placed one, the dependency audit every
+verify, the wording of Met lines that rest on an approved proof — and the reconciler, shown only its own cycle's
+suggestions, called each one new. Each then cost a disposition in the cycle and an answer in the harvest, though a
+person had already answered it once. One spec's reader raised past F_1800 and one verify raised reduced motion three
+times, because the reconciler matched against what stood before the round and never within it. The harvest ledger
+already kept every answer a person gave; nothing read it during a round.
 
-**Rejected.**
+Recording the recurrence rather than suppressing it makes the repeat evidence: an ignored concern that keeps coming
+back is what the bar of three is for, and until now only a sitting could feed that tally.
 
-- *Starting the build with the user's settings left out*, so a machine's allowance could not mask anything. Those
-  settings also hold how a person signs in and which model they use, and a build that could not start for that is
-  worse than one that says what it was given.
-- *A refusal read from the build's own report.* The playbook already says to name it, and the note is that it did
-  not; the host's record of what it refused is a fact the binary can read, where the report is a sentence.
-- *A wildcard grant, `docker build *`, written by the person.* A wildcard is what `build_tools` refuses, because a
-  person writing one cannot see what else it matches; the binary adds the one it means.
-- *Output variables named by step on Azure DevOps.* A queue-time variable can be given a dotted name too; a
-  variable the file declares cannot be given at all.
-- *Rewriting the stale header on upgrade.* The file is a person's, and a tool that edits it once edits it again.
-- *Flagging every command a person's file names that this release does not answer.* A typo or a stage typed at the
-  binary is not something a release took away, and the binary answers a stage by naming its skill.
+**Rejected.** *Telling the readers what was already answered*: they run blind by design (D-108), and a reader shown a
+list judges the list. *Writing the recurrence into `harvested.json` from the round*: every cycle branch would write the
+one file every other branch writes, and a merge would count one concern twice or lose one; the person asked for a
+guardrail against exactly that. *Adding the reader's cycles to the concern's `cycles`*: what a person answered and
+what readers kept noticing afterwards would read the same, and a later sitting could not tell which it was weighing.
+*Matching the open suggestions of other live cycles too*: it catches the repeats before a first harvest, but it is a
+second shared state across branches, and nothing yet shows the repeats it would catch are not the ones a harvest
+answers once. *Keying by position in the ledger*: a sitting covering a watched concern removes it, and every key after
+it would point at its neighbour.
 
 ### D-220 — A successor wanted and not now is held: nothing unattended starts it, and a person starting it lifts the hold
 
