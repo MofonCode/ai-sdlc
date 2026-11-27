@@ -260,7 +260,7 @@ decisions, suggestions, stack rows, areas — one aspect at a time, then closes 
 `harvesting-the-cycles.md` has it step by step.
 
 **Clear away what merged**: `sdlc tidy` prints the removal of every worktree and local branch whose work has
-reached the integration branch — the plan branches, the build branches, the sandboxes and admissions — for you to
+reached the integration branch — the plan branches, the build branches, the sandboxes and admissions, a plan's probes — for you to
 run. It deletes nothing itself, and a squash merge is why git cannot tell you this on its own (D-162).
 
 **What was noticed and not acted on**: `sdlc suggestions`. Non-blocking is not trivial — two real ones from a

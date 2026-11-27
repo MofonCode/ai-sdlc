@@ -155,11 +155,11 @@ public sealed class ProofSourcesTests
     }
 
     [TestMethod]
-    public void A_proof_entry_names_a_file_by_a_path_with_a_slash()
+    public void A_proof_entry_names_a_file_by_a_path_with_a_slash_and_never_by_a_pattern()
     {
         CollectionAssert.AreEqual(
             new[] { "tests/Support/Dice.cs" },
-            DeclaredFiles.PathsIn("`Rolls` asserts through `./tests/Support/Dice.cs`, a `Dice.cs` type and `.NET`.").ToArray());
+            DeclaredFiles.PathsIn("`Rolls` asserts through `./tests/Support/Dice.cs`, a `Dice.cs` type, `.NET` and every `findings/*.json`.").ToArray());
     }
 
     private static CycleWorkspace Recorded(int proofs)

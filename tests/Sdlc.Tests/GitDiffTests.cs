@@ -169,6 +169,27 @@ public sealed class GitDiffTests
         Assert.AreEqual(0, git.FilesContaining(repo.Root, head, "Nowhere_at_all", [".sdlc"]).Count);
     }
 
+    [TestMethod]
+    public void A_file_read_at_a_commit_is_that_commits_and_a_pattern_reads_as_no_file()
+    {
+        // A real cycle: a plan's proof row named `findings/*.json`, git took it for a pathspec and printed the
+        // commit checked out, and proof-sources.txt -- under the verify's evidence hash -- changed with every
+        // commit after the round, so the round always read as stale.
+        using var repo = Repo.Create();
+        string first = repo.Git("rev-parse HEAD").Trim();
+        Directory.CreateDirectory(Path.Combine(repo.Root, "findings"));
+        File.WriteAllText(Path.Combine(repo.Root, "findings", "plan.json"), "{}\n");
+        File.WriteAllText(Path.Combine(repo.Root, "README.md"), "# second\n");
+        repo.Git("add .");
+        repo.Git("commit -m second");
+
+        var git = new GitRepository();
+
+        Assert.AreEqual("# scratch\n", git.ReadAt(repo.Root, first, "README.md")?.ReplaceLineEndings("\n"));
+        Assert.IsNull(git.ReadAt(repo.Root, first, "findings/*.json"), "A pattern is not a file the commit holds.");
+        Assert.IsNull(git.ReadAt(repo.Root, "HEAD", "findings/*.json"), "Not even where something matches it.");
+    }
+
     /// <summary>A throwaway git repository with one commit in it.</summary>
     private sealed class Repo : IDisposable
     {

@@ -97,6 +97,23 @@ cycles first, then successors — saying how many more wait for a later wave. Th
 each item in their own process, one at a time, never handed to subagents at once. A series that took a backlog of
 twenty-five as one wave, planned all at once, reached its person's usage limit in eleven minutes with nothing built.
 
+**A harvest's close is tested before it merges** (D-229). `sdlc admission` now answers `true` only for the records of
+work in progress — a cycle's folder, a successor, a series' record — with no cycle's file deleted, so a plan, a
+slicing or a successor review still skips the build and the tests. A pull request that changes what a person wrote
+under `.sdlc/`, a harvest's records, or removes closed cycles' folders is built and tested. A harvest close had
+passed its pull request untested and then failed two of the solution's own tests on the integration branch.
+
+**A verify round no longer goes stale with every commit.** A plan whose proof named a pattern in backticks —
+`` `findings/*.json` `` — had git print the commit checked out in place of a file, and that text went into the
+`proof-sources.txt` the verify's evidence hash covers, so committing the round made it read as judged against other
+evidence, every time. A file read at a commit is now that commit's or nothing, and a pattern is never taken for a
+file a proof rests on.
+
+**`sdlc tidy` offers what carried a harvested cycle.** A harvest's close removes closed cycles' folders, and tidy
+looked for their plans there, so it never offered the sandboxes and slicings that had carried them. It now reads the
+harvest ledger for those too, and offers a plan's `probe/<id>/<slug>` branches once their cycle's plan is on the
+integration branch or the cycle is closed.
+
 **What moving to it asks.** Nothing to write by hand except where named below. It is a minor because several
 things can now block or refuse where they passed before, and a successor file gained a key a binary before it refuses,
 so every machine and pipeline reading a solution's successors moves together:
@@ -120,6 +137,10 @@ so every machine and pipeline reading a solution's successors moves together:
 - **A series' wave takes at most three items** unless started with `--wave-size` (D-228). A series already running
   takes its next wave at three; what it opened in earlier waves is still planned and built. `series.json` gained a
   `wave_size` key, which a binary before 0.58 ignores.
+- **A harvest's close, and a pull request changing a file a person wrote under `.sdlc/`, now runs the build and the
+  tests** (D-229). Nothing to change in the pipeline: it already asks `sdlc admission`. A test of the solution's own
+  that reads a record, or counts on a closed cycle's folder, now fails on the pull request rather than after merge;
+  the comments above the step change in the generated pipelines.
 
 ## 0.57
 

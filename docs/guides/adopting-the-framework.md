@@ -300,10 +300,11 @@ On GitHub the equivalent is **Require branches to be up to date before merging**
 which makes a pull request's author bring it up to date and re-run the check; a **merge queue** checks each pull
 request against everything queued ahead of it. Azure DevOps has no merge queue.
 
-**A pull request that changes only `.sdlc/` is not built.** A plan, a harvest or a successor review carries
-nothing a build reads, so the pipeline skips the build and the tests and the chain judges the records alone
-(D-193). If one of your own tests reads a file under `.sdlc/`, it is skipped there too, and the integration
-branch's merge build is what runs it.
+**A pull request that changes only work in progress is not built.** A plan, a slicing or a successor review
+changes nothing but cycles' folders and successors, which no build reads, so the pipeline skips the build and the
+tests and the chain judges the records alone (D-193). A harvest's close, or anything that changes a file a person
+wrote under `.sdlc/` — your decisions, constraints, areas, stack or theme — is built and tested like code, so a test
+of your own that reads one runs before the merge, not after it (D-229).
 
 **A promotion skips the tests the integration branch already ran.** A pull request into the default branch always
 builds, so the release carries its own version. When it merges exactly the integration branch's tip, and the

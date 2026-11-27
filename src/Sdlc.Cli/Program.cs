@@ -1021,12 +1021,21 @@ static async Task<int> AdmissionCommand(CommandLine line)
         return ExitCode.Usage;
     }
 
-    // The diff decides, never the branch (D-87): a pull request that changes nothing outside .sdlc/ has nothing to
-    // build, whatever carries it -- a plan, a slicing, a harvest, a successor (D-193). The chain still judges it.
+    // The diff decides, never the branch (D-87): a pull request that changes only the records of work in progress --
+    // a plan, a slicing, a successor, a series' record -- has nothing to build (D-193). One that changes what a person
+    // wrote under .sdlc/, or deletes a cycle's files, is built and tested: a solution's tests may read them (D-229).
+    // The chain still judges every one.
     return await Workspace.Run(line, async workspace =>
     {
-        IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
-        bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.RecordsOnly(changed);
+        (IReadOnlyList<string>? changed, string? divergence) = await AgainstBase(workspace, line).ConfigureAwait(false);
+        Result<string>? deletions = divergence is null
+            ? null
+            : workspace.Repository.Git(workspace.SolutionRoot, "diff --name-only --no-renames --diff-filter=D " + divergence + " HEAD");
+        bool admission = changed is not null
+            && deletions is { IsSuccess: true }
+            && Sdlc.Core.Chain.VerifyChain.NothingToTest(
+                changed,
+                [.. deletions.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]);
         await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
