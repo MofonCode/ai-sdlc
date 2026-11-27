@@ -163,14 +163,17 @@ internal static class Usage
                                      will do and the next command go to standard error. Under
                                      approval: required it builds only approved cycles. Refuses
                                      fewer than one wave, or a wave size below one.
-            series wave              On series/<id>: record the next wave and print one line per
+            series wave [--done]     On series/<id>: record the next wave and print one line per
                                      item with what starts it, at most the series' wave size,
                                      parked cycles first, saying how many more wait. Under
                                      approval: none, successors and parked cycles ready against
                                      the series branch; under approval: required, approved cycles
-                                     nothing has built that no earlier wave took. Refuses once
-                                     every wave is taken; records nothing when nothing is ready.
-                                     Commits nothing.
+                                     nothing has built that no earlier wave took. A wave not
+                                     recorded built with an item still to start, plan or build
+                                     -- the series stopped partway through it -- is handed back
+                                     instead, each item with what is left of it. --done records
+                                     the last wave built. Refuses once every wave is taken and
+                                     built; records nothing when nothing is ready. Commits nothing.
             series status [<id>]     The series' waves, each item's cycle and where it stands --
                                      planned, built: pass, blocked, escalated, abandoned -- and
                                      the backlog judged against the series branch.

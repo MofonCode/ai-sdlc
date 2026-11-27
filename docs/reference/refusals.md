@@ -83,6 +83,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [fewer than one wave](../guides/handling-refusals.md#fewer-than-one-wave) | start it again with the number of waves it may run |
 | [not on a series' branch](../guides/handling-refusals.md#not-on-a-series-branch) | run it in the series' worktree, or pass it with `--solution` |
 | [a series that has taken every wave](../guides/handling-refusals.md#a-series-that-has-taken-every-wave) | open its pull request; a new series takes what is ready next |
+| [no wave to record built](../guides/handling-refusals.md#no-wave-to-record-built) | take the first wave with `sdlc series wave` |
 | [not on a run's branch](../guides/handling-refusals.md#not-on-a-runs-branch) | run it in the run's worktree, or pass it with `--solution` |
 | **An upgrade's pull request — `sdlc verify-chain <branch> --base <branch>`** | |
 | [the check runs as another release](../guides/handling-refusals.md#the-check-runs-as-another-release) | let the pipeline restore the pin first; `sdlc init` rewrites a pipeline that does not |

@@ -1612,8 +1612,8 @@ static async Task ToolsInEffect(string worktree)
 }
 
 // A series: wave after wave of successors planned and built into series/<id>, ending in one pull request. 'start'
-// opens its branch and worktree; 'wave' takes the next wave there; 'status' says where it stands; 'run' starts its own
-// process, which is what the factory runs.
+// opens its branch and worktree; 'wave' takes the next wave there, or hands back one left open, and '--done' records
+// one built; 'status' says where it stands; 'run' starts its own process, which is what the factory runs.
 static async Task<int> SeriesCommand(CommandLine line)
 {
     string what = line.Arguments.Count == 0 ? string.Empty : line.Arguments[0].ToUpperInvariant();
@@ -1653,6 +1653,22 @@ static async Task<int> SeriesCommand(CommandLine line)
                 return ExitCode.Ok;
             }).ConfigureAwait(false);
 
+        case "WAVE" when line.HasOption("done"):
+            return await Workspace.Run(rest, async workspace =>
+            {
+                Result<NextWave.Recorded> recorded = await workspace
+                    .Send<NextWave.Done, NextWave.Recorded>(new NextWave.Done())
+                    .ConfigureAwait(false);
+
+                if (recorded.IsFailed)
+                {
+                    return await Report(recorded, ExitCode.Refused).ConfigureAwait(false);
+                }
+
+                await Console.Out.WriteAsync(NextWave.Render(recorded.Value)).ConfigureAwait(false);
+                return ExitCode.Ok;
+            }).ConfigureAwait(false);
+
         case "WAVE":
             return await Workspace.Run(rest, async workspace =>
             {
@@ -1689,7 +1705,7 @@ static async Task<int> SeriesCommand(CommandLine line)
             return await Workspace.Run(rest, workspace => SeriesRunCommand(workspace, rest)).ConfigureAwait(false);
 
         default:
-            await Console.Error.WriteLineAsync("Which? 'sdlc series start --waves <n>', 'sdlc series wave', 'sdlc series status [<id>]' or 'sdlc series run [<id>]'.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("Which? 'sdlc series start --waves <n>', 'sdlc series wave [--done]', 'sdlc series status [<id>]' or 'sdlc series run [<id>]'.").ConfigureAwait(false);
             return ExitCode.Usage;
     }
 }

@@ -583,7 +583,7 @@ cycle's head is recorded by recording the last cycle's evidence again on top of 
 
 ---
 
-## A series, and a run's own commands — the four ways they are refused
+## A series, and a run's own commands — the five ways they are refused
 
 A series runs wave after wave into `series/<id>`, in a worktree of its own; `sdlc build --run` and
 `sdlc report --run` work on a run's branch, `wave/<id>` or `series/<id>`. Each refuses before it does anything.
@@ -598,16 +598,26 @@ backlog, whichever comes first, and the number is the person's: an open-ended ru
 
 ### not on a series' branch
 
-`sdlc series wave`, or `sdlc series status` with no id, ran somewhere other than `series/<id>`. A wave is judged
-against the series' branch and recorded in its record, which only its worktree carries.
+`sdlc series wave`, with or without `--done`, or `sdlc series status` with no id, ran somewhere other than
+`series/<id>`. A wave is judged against the series' branch and recorded in its record, which only its worktree
+carries.
 
 **Next:** run it in the worktree `sdlc series start` printed, or pass that path with `--solution`.
 
 ### a series that has taken every wave
 
-`sdlc series wave` found the record's wave limit reached. The series is finished.
+`sdlc series wave` found the record's wave limit reached and its last wave built — recorded with `--done`, or with
+nothing left in it to start, plan or build. The series is finished. A last wave still open is handed back rather than
+refused (D-230).
 
 **Next:** open its pull request. What is ready next is a new series' to take.
+
+### no wave to record built
+
+`sdlc series wave --done` found a series that has taken no wave yet. It records the last wave built, and there is
+none.
+
+**Next:** `sdlc series wave` takes the first; record it built once it is.
 
 ### not on a run's branch
 

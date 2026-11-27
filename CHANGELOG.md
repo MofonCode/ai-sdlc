@@ -9,6 +9,28 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.59
+
+**A series that stops partway is continued, not restarted** (D-230). A series that hit a usage limit, lost its
+session or had its process stopped could only be run again from the top of its loop, which took a new wave: the
+stopped wave counted against the limit, its items were never taken again, a successor whose cycle was never opened
+dropped out of the series, and a stop in the last wave opened the pull request with that wave unbuilt. Each wave is
+now recorded built — `sdlc series wave --done`, which the series playbook runs once every item has an outcome or has
+stopped — and `sdlc series wave` hands back a wave not recorded built that still has an item to start, plan or build,
+each item with what is left of it, before it takes a new one or says the series is finished. `/sdlc:series <id>`
+continues a stopped series: it runs `sdlc series run` in the series' worktree again. `sdlc series status` says which
+waves are recorded built.
+
+**What moving to it asks.** Nothing to write by hand. It is a minor because the series' record gained a key and the
+series playbook a step:
+
+- `series.json` gained a `done` key on each wave, which a binary before 0.59 ignores. A series already running when
+  its machine moves reads its earlier waves as not recorded built, which matters only for its last: one whose items
+  all have an outcome is recorded built as the next wave is taken, and one with work left is handed back once.
+- The series playbook records each wave built before it commits it. `sdlc series run` always starts the playbook
+  its own binary carries, so the two cannot disagree; a person running a series' steps by hand runs
+  `sdlc series wave --done` after each wave, or the next `sdlc series wave` hands the same wave back.
+
 ## 0.58
 
 **A successor can be held** (D-220). Wanted, not now: a successor carrying `held: <yyyy-mm-dd>` reads `held`

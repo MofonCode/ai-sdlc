@@ -21,6 +21,12 @@ namespace Sdlc.Core.Series;
 /// </remarks>
 public static class SeriesStatus
 {
+    /// <summary>What a cycle with an intent and no plan yet says it is.</summary>
+    public const string BeingPlanned = "being planned";
+
+    /// <summary>What a cycle with a plan and no verification yet says it is.</summary>
+    public const string Planned = "planned";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -74,7 +80,7 @@ public static class SeriesStatus
             return string.Equals(outcome.Trim(), "pass", StringComparison.OrdinalIgnoreCase) ? "built: pass" : outcome.Trim();
         }
 
-        return File.Exists(cycle.PathOf(ArtifactKind.Plan)) ? "planned" : "being planned";
+        return File.Exists(cycle.PathOf(ArtifactKind.Plan)) ? Planned : BeingPlanned;
     }
 
     /// <summary>The series as a person reads it.</summary>
@@ -94,7 +100,8 @@ public static class SeriesStatus
         foreach (SeriesWave wave in record.Waves)
         {
             text.AppendLine();
-            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Wave {wave.Number}, taken {wave.Started:yyyy-MM-dd HH:mm} UTC:"));
+            string done = wave.Done is { } at ? string.Create(CultureInfo.InvariantCulture, $", built {at:yyyy-MM-dd HH:mm} UTC") : ", not recorded built";
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Wave {wave.Number}, taken {wave.Started:yyyy-MM-dd HH:mm} UTC{done}:"));
 
             foreach (ItemState item in status.Items.Where(entry => entry.Wave == wave.Number))
             {

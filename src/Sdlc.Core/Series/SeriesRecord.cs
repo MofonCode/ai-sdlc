@@ -32,7 +32,11 @@ public sealed record SeriesItem(SeriesItemKind Kind, string Ref, string? Cycle);
 /// <param name="Number">Its number, from one.</param>
 /// <param name="Started">When it was taken.</param>
 /// <param name="Items">What it took.</param>
-public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyList<SeriesItem> Items);
+/// <param name="Done">
+/// When the series recorded it built, through <c>sdlc series wave --done</c>, or null while it is open: a series that
+/// stopped partway through it finishes it before the next is taken (D-230).
+/// </param>
+public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyList<SeriesItem> Items, DateTimeOffset? Done = null);
 
 /// <summary>
 /// A series' own record, <c>.sdlc/series/&lt;id&gt;/series.json</c>: its wave limit, how many items a wave may take,
@@ -171,6 +175,14 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
     /// <returns>The new record.</returns>
     public SeriesRecord WithWave(DateTimeOffset started, IReadOnlyList<SeriesItem> items) =>
         this with { Waves = [.. Waves, new SeriesWave(Waves.Count + 1, started, items)] };
+
+    /// <summary>The record with its last wave recorded built.</summary>
+    /// <param name="done">When.</param>
+    /// <returns>The new record, the same one when it has no wave or its last is already done.</returns>
+    public SeriesRecord WithWaveDone(DateTimeOffset done) =>
+        Waves.Count == 0 || Waves[^1].Done is not null
+            ? this
+            : this with { Waves = [.. Waves.Take(Waves.Count - 1), Waves[^1] with { Done = done }] };
 
     /// <summary>The record with each successor item's cycle filled in from the intents that record it as their lead.</summary>
     /// <remarks>

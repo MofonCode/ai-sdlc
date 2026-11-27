@@ -293,6 +293,11 @@ why **the whole series is accepted or rejected together**, at its one pull reque
 carry on, and the run's report — `sdlc report --run`, which leads its pull request — names what stopped and what it
 held back. `sdlc backlog` lists what is waiting, and `sdlc series status` where a series stands.
 
+**A series that stops partway** — a usage limit reached, the session closed — **is continued with
+`/sdlc:series <id>`**. It runs the series again in its worktree, and the series finishes the wave it stopped in
+before it takes the next: an item never started is started, a cycle part-planned is planned from where it stopped,
+and one already built is left alone (D-230).
+
 **With several cycles approved**, *build it* with no id — `/sdlc:build` — builds, verifies and remediates them
 all, each on its own branch, opens a pull request for each, and ends with the sitrep:
 

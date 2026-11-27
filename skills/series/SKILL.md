@@ -1,6 +1,6 @@
 ---
 name: series
-description: Run a series -- wave after wave of ready successors and parked cycles, planned and built one after another into one series branch, ending in one pull request, until its wave limit or an empty backlog. In a person's session it starts the series and runs sdlc series run, which starts this playbook again in a process of its own; there, with --unattended, it takes each wave, runs intent and to-plan for what needs planning and build for the wave, and pr once at the end. Under approval required it plans nothing and builds approved cycles in wave order. A playbook. Use when a person wants a sliced piece of work carried through several waves without stopping at each, and as the factory's run.
+description: Run a series -- wave after wave of ready successors and parked cycles, planned and built one after another into one series branch, ending in one pull request, until its wave limit or an empty backlog. In a person's session it starts the series, or continues one that stopped, and runs sdlc series run, which starts this playbook again in a process of its own; there, with --unattended, it takes each wave, runs intent and to-plan for what needs planning and build for the wave, and pr once at the end. Under approval required it plans nothing and builds approved cycles in wave order. A playbook. Use when a person wants a sliced piece of work carried through several waves without stopping at each, and as the factory's run.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[<id>] [--waves <n>] [--wave-size <n>] [--unattended]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
@@ -16,6 +16,7 @@ successor's intent, `to-plan` checks and plans each cycle, `build` builds each w
 | Run as | Where | Does |
 |---|---|---|
 | `/sdlc:series --waves <n> [--wave-size <n>]` | a person's session | starts the series, runs `sdlc series run`, hands back what it printed — *In a person's session* |
+| `/sdlc:series <id>` | a person's session | continues a series that stopped: runs `sdlc series run` in its worktree again — *Continue one that stopped* |
 | `/sdlc:series <id> --unattended` | the process `sdlc series run` starts, and the factory | wave after wave: take it, plan what needs planning, build it, record it; then the pull request — *In its own process* |
 
 **What a series may do follows the approval setting** (D-137):
@@ -60,6 +61,14 @@ sdlc series run --solution <the path it printed>
 long as it takes: run it where your host lets a long command finish, and tell the person in one line that the
 series has started and that you will report when it ends. **Never run the series yourself**, in this session: if
 the command refuses, show what it said.
+
+## Continue one that stopped
+
+**Given a series' `<id>` and no `--unattended`**, the person is continuing a series that stopped — a usage limit, a
+closed session, a process killed. Start nothing new: find its worktree, the one `git worktree list` shows on
+`series/<id>`, and run it again as above, `sdlc series run --solution <that worktree>`. Its process picks up where
+the series stopped, the wave it was in first (D-230). With no worktree on that branch, say so and stop: the series
+was cleaned up, or never started here.
 
 ## Hand back
 
@@ -110,6 +119,12 @@ It records the next wave in the series' record — at most the series' wave size
 line per item with what starts it. **When it says
 the series is finished** — its limit reached, or nothing ready against the series branch — go to §5.
 
+**When it says a wave is not finished**, the series stopped partway through that wave on an earlier run — a usage
+limit, a process stopped — and it hands that wave back rather than taking a new one (D-230). Each line says what is
+left: a start command for an item never started or not yet unparked, which §2 runs as for a new wave; *to-plan takes
+it on* or *the wave's build builds it* for a cycle already opened, which §2's `to-plan` and §3's `build` pick up from
+where it stopped; *nothing left to do* for one with an outcome. Then carry on from §2 as for any wave.
+
 ## 2. Each item, as the line says
 
 | The item | What to do |
@@ -137,8 +152,15 @@ leaves it as it is and names what it held back, and its siblings carry on. The s
 
 ## 4. Record it, and go again
 
-Commit the series' record, `.sdlc/series/<id>/series.json`, and anything the wave left uncommitted:
-`git add .sdlc`, then `git commit -m "Series <id>: wave <n> built"`. Then back to §1.
+Record the wave built — once every item has an outcome or has stopped with its reason, never before:
+
+```
+sdlc series wave --done
+```
+
+Then commit the series' record, `.sdlc/series/<id>/series.json`, and anything the wave left uncommitted:
+`git add .sdlc`, then `git commit -m "Series <id>: wave <n> built"`. Then back to §1. **A wave not recorded built is
+handed back by the next `sdlc series wave`**, so skipping this step runs the same wave again.
 
 ## 5. One pull request for the series
 

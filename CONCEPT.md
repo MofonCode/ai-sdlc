@@ -1891,8 +1891,11 @@ recorded change, and nothing changed after the last cycle's head but what a merg
 at the number of waves a person set or an empty backlog**, whichever comes first: an open-ended run is spend nobody
 chose. **A wave takes a few items, never the whole backlog** — three unless the person names a wave size — and a
 series runs them one after another, never at once, so a usage limit reached mid-wave leaves the finished items
-finished (D-228). Its record, `.sdlc/series/<id>/series.json`, is written only by the binary — `sdlc series
-start` and `sdlc series wave` — and says what each wave took; membership in a series lives there and nowhere else.
+finished (D-228). **A series that stops is continued, never restarted**: each wave is recorded built once every
+item in it has an outcome or has stopped, and a wave not recorded built is handed back, with what is left of each
+item, before the next is taken (D-230). Its record, `.sdlc/series/<id>/series.json`, is written only by the binary
+— `sdlc series start` and `sdlc series wave` — and says what each wave took and when each was recorded built;
+membership in a series lives there and nowhere else.
 
 **The series is the unit a person accepts or rejects**, at its one pull request, and the report names what depends
 on what so the cost of reverting part of it can be seen. A rejected series is abandoned in one step:
@@ -2783,7 +2786,8 @@ placed in this checkout and not yet committed is not cited by a cycle planned wh
   series/                   one folder per series, <id>/, committed on series/<id> and reaching the
                             integration branch with its cycles; removed with the last of them (D-205, D-208)
     <id>/
-      series.json           its record: the wave limit, the approval setting, what each wave took.
+      series.json           its record: the wave limit, the approval setting, what each wave took and
+                            when each was recorded built.
                             Written only by the binary, by `sdlc series start` and `sdlc series wave`
       abandoned.md          why a person rejected the whole series; every cycle that exists only in the
                             series reads it as its own. A person's file (D-208)
@@ -7815,6 +7819,36 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-230 — A series that stops partway is continued: the wave it stopped in is finished before the next is taken
+
+**Governs:** §10.6
+
+**Amends D-205**, whose record said what each wave took but not whether it was done.
+
+**Decision.** Each wave in `series.json` carries `done`, the time `sdlc series wave --done` recorded it built, and the
+series playbook runs that once every item of the wave has an outcome or has stopped with its reason, before it
+commits the wave. `sdlc series wave` reads the last wave first: **not recorded built, with an item still to start,
+plan or build** — a successor no cycle was opened for, a parked cycle ready and not yet taken back, a cycle with no
+plan or no verification — it hands that wave back, each item with what is left of it, and takes nothing new. It does
+so before the wave limit is asked, so a series that stopped in its last wave finishes it too. A last wave with
+nothing left is recorded done as the next is taken, so a series that stopped between building and recording loses
+nothing and runs nothing twice. A person continues a stopped series with `/sdlc:series <id>`, which runs `sdlc series
+run` in its worktree again. A record written before the key existed reads every wave as not recorded built, which
+matters only for its last.
+
+**Why.** A series stopped mid-wave — the usage limit D-228 describes, a closed session, a killed process — had no way
+back. Running it again took a new wave: the stopped one counted against the limit, its items were listed as taken so
+no later wave took them again, a successor whose cycle was never opened was lost from the series for good, and a
+stop in the last wave went straight to the pull request with that wave unbuilt. `to-plan` and `build` already pick
+up a cycle from where it stopped; what was missing was the series knowing which wave it was in.
+
+**Rejected.** *Working out whether a wave is done from its items' states alone*: a cycle whose loop could not settle
+stays planned, so the series would hand the same wave back after every pass and never end. *A token per run, a wave
+taken by an earlier run being one to finish*: it rests on an environment variable surviving into every shell the
+agent opens, and a person running the playbook's commands by hand would carry none. *Re-taking the stopped wave's
+items into a new wave*: it spends a wave of the limit on work already counted, and loses the numbering the report
+reads by.
 
 ### D-229 — Only the records of work in progress skip a pull request's build; what a person wrote, or a cycle's folder removed, is tested before it merges
 
