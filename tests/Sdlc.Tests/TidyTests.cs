@@ -56,6 +56,31 @@ public sealed class TidyTests
     }
 
     [TestMethod]
+    public async Task A_sandbox_and_a_probe_go_once_a_harvest_closed_their_cycles_and_their_folders_left_with_it()
+    {
+        // A real solution: a harvest closed 23 cycles and removed their folders, and tidy offered none of the six
+        // sandboxes, two slicings or three probes that had carried them, because each looked for a plan that was gone.
+        string sandbox = "sandbox/" + Merged;
+        string probe = $"probe/{Merged}/dialog";
+        string waiting = $"probe/{Open}/evict";
+        FakeRepository git = new() { Base = "base", Committed = [Folder(Merged) + "plan.md"] };
+        git.Refs.UnionWith([At, sandbox, probe, waiting]);
+
+        Assert.AreEqual(0, (await Review(git)).Removable.Count, "Nothing of either cycle is on the integration branch yet.");
+
+        HarvestedCycle closed = new(Merged, "tip", DateTimeOffset.UnixEpoch, false, [], [], [], [], new Dictionary<string, int>(), 0, []);
+        git.Files[$"{At}:.sdlc/{HarvestLedger.FileName}"] = HarvestLedger.Empty.Closing([closed]).Write();
+
+        TidyCycles.Response review = await Review(git);
+
+        CollectionAssert.AreEqual(new[] { probe, sandbox }, review.Removable.Select(entry => entry.Branch).ToArray(), $"{Open}'s probe stays: its plan is not there.");
+
+        git.PathsAt.Add($"{At}:{Folder(Open)}plan.md");
+
+        StringAssert.Contains((await Review(git)).Removable.Single(entry => entry.Branch == waiting).Why, "whose plan it probed for");
+    }
+
+    [TestMethod]
     public async Task A_wave_or_series_is_open_on_the_sitrep_until_what_it_built_passed_there_and_then_tidy_removes_it()
     {
         string wave = "wave/" + Merged;

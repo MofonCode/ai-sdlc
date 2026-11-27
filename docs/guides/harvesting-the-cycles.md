@@ -156,7 +156,8 @@ need — the rules it cited, the files it touched, the areas its plan proposed, 
 reader raised and what each document cost — is kept in the ledger.
 `sdlc harvest --history` shows it. A cycle read from its own branch is at that branch's last commit instead, and the
 folder brought into your working tree is deleted again. Once the pull request merges, `sdlc tidy` lists that branch
-for deletion; until then it keeps it, so nothing is deleted before it is harvested.
+for deletion, with every sandbox, slicing and probe that carried a closed cycle; until then it keeps them, so nothing
+is deleted before it is harvested.
 
 ## When it refuses
 

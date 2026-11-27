@@ -18,9 +18,10 @@ namespace Sdlc.Core.Cycles;
 /// leaves every branch unmerged as far as git can tell, which is why one person removed twelve worktrees and fifteen
 /// branches by hand. A plan branch is done once its plan is on the integration branch; any other cycle branch once
 /// the verification there passes; a slicing or a sandbox once every cycle it changed is; a wave or a series once every
-/// cycle it changed passed there, was abandoned or was closed by a harvest; and every branch of a cycle
-/// once its abandonment is there, or once the harvest ledger there records it closed: a cycle abandoned before any of
-/// it merged is harvested from its branch, and never reaches the integration branch any other way.</para>
+/// cycle it changed passed there; a plan's probe once its cycle's plan is; and every branch of a cycle, and every
+/// branch carrying it, once its abandonment is there, or once the harvest ledger there records it closed: a cycle
+/// abandoned before any of it merged is harvested from its branch, and never reaches the integration branch any other
+/// way, and a harvest's close removes a finished cycle's folder, plan and all.</para>
 /// <para><strong>It reports and never deletes</strong>, as <c>discard</c> does: a worktree is removed without
 /// <c>--force</c>, so git refuses one holding uncommitted work, and a branch is deleted with <c>-D</c>, because
 /// <c>-d</c> asks git the question a squash merge makes it answer wrongly. Remote branches are left alone.</para>
@@ -53,7 +54,10 @@ public static class TidyCycles
     /// <param name="Commands">The worktree removals, then one branch deletion; empty when nothing can go.</param>
     public sealed record Response(string Integration, IReadOnlyList<Entry> Removable, IReadOnlyList<Entry> Kept, IReadOnlyList<string> Commands);
 
-    private static readonly string[] _families = [CycleId.BranchPrefix, SlicingBranch.Prefix, SandboxBranch.Prefix, RunBranch.WavePrefix, RunBranch.SeriesPrefix];
+    /// <summary>Where the plan skill branches a probe: <c>probe/&lt;id&gt;/&lt;slug&gt;</c>, never merged or pushed.</summary>
+    private const string ProbePrefix = "probe/";
+
+    private static readonly string[] _families = [CycleId.BranchPrefix, SlicingBranch.Prefix, SandboxBranch.Prefix, RunBranch.WavePrefix, RunBranch.SeriesPrefix, ProbePrefix];
 
     /// <summary>Why a branch the framework opened is done, or null while it is not or this cannot tell.</summary>
     /// <param name="repository">Git.</param>
@@ -153,10 +157,7 @@ public static class TidyCycles
 
                 // A cycle abandoned before any of it merged is read from its branch and closed by a harvest, so its
                 // branches are done once the ledger on the integration branch records it (D-190).
-                string ledgerPath = Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName;
-
-                if (repository.ReadAt(root, at, ledgerPath) is { } ledger
-                    && HarvestLedger.Parse(ledger, ledgerPath).ValueOrDefault?.Find(id.ToString()) is not null)
+                if (Closed(repository, root, at)?.Find(id.ToString()) is not null)
                 {
                     return string.Create(CultureInfo.InvariantCulture, $"{id} is closed by a harvest on {at}");
                 }
@@ -173,6 +174,18 @@ public static class TidyCycles
                     : null;
             }
 
+            // A probe is a plan's experiment: done once its cycle's plan is on the integration branch, or the cycle
+            // was abandoned or closed there. Only the output the plan quoted from it was ever going to be kept.
+            if (branch.StartsWith(ProbePrefix, StringComparison.Ordinal))
+            {
+                return CycleId.TryParse(branch[ProbePrefix.Length..].Split('/')[0], out CycleId? probed)
+                    && (repository.PathExistsAt(root, at, Folder(probed.Value) + Cycle.FileNameOf(ArtifactKind.Plan))
+                        || repository.PathExistsAt(root, at, Folder(probed.Value) + "abandoned.md")
+                        || Closed(repository, root, at)?.Find(probed.Value.ToString()) is not null)
+                    ? string.Create(CultureInfo.InvariantCulture, $"{probed.Value}, whose plan it probed for, is done on {at}")
+                    : null;
+            }
+
             // A slicing or a sandbox carries several cycles: done once each it changed has reached the integration
             // branch. What it changed is measured from where it left, so later work there is not counted as its.
             if (repository.MergeBase(root, branch, at) is not { } from
@@ -183,13 +196,14 @@ public static class TidyCycles
 
             List<CycleId> carried = [.. CyclesIn(changed)];
 
+            // A harvest's close removes every finished cycle's folder from the integration branch, so a cycle it
+            // closed is done however much of it is left there to read.
+            HarvestLedger? closed = Closed(repository, root, at);
+
             if (RunBranch.IsRun(branch))
             {
                 // A wave or a series built what it carries, so it is done once each cycle passed verification there,
                 // or was abandoned, or -- a rejected series, whose cycles never merge -- a harvest there closed it.
-                string ledgerPath = Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName;
-                HarvestLedger? closed = repository.ReadAt(root, at, ledgerPath) is { } text ? HarvestLedger.Parse(text, ledgerPath).ValueOrDefault : null;
-
                 return carried.Count > 0
                     && carried.All(cycle => MergedCycle.Passed(repository.ReadAt(root, at, Folder(cycle) + Cycle.FileNameOf(ArtifactKind.Verify)))
                         || repository.PathExistsAt(root, at, Folder(cycle) + "abandoned.md")
@@ -200,9 +214,17 @@ public static class TidyCycles
 
             return carried.Count > 0
                 && carried.All(cycle => repository.PathExistsAt(root, at, Folder(cycle) + Cycle.FileNameOf(ArtifactKind.Plan))
-                    || repository.PathExistsAt(root, at, Folder(cycle) + "abandoned.md"))
+                    || repository.PathExistsAt(root, at, Folder(cycle) + "abandoned.md")
+                    || closed?.Find(cycle.ToString()) is not null)
                 ? string.Create(CultureInfo.InvariantCulture, $"every cycle it carries is on {at}: {string.Join(", ", carried)}")
                 : null;
+        }
+
+        private static HarvestLedger? Closed(IRepository repository, string root, string at)
+        {
+            string ledgerPath = Cycle.SdlcDirectoryName + "/" + HarvestLedger.FileName;
+
+            return repository.ReadAt(root, at, ledgerPath) is { } text ? HarvestLedger.Parse(text, ledgerPath).ValueOrDefault : null;
         }
 
         private static IEnumerable<CycleId> CyclesIn(IReadOnlyList<string> paths)

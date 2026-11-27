@@ -222,8 +222,9 @@ internal static class Usage
                                      work has reached the integration branch: a plan branch once
                                      its plan is there, a build once its verification passes there,
                                      a slicing or sandbox once every cycle it carries is, a wave or
-                                     series once every cycle it built passed there, anything
-                                     of an abandoned cycle, and anything of a cycle the harvest
+                                     series once every cycle it built passed there, a plan's
+                                     probe once its cycle's plan is there, anything of an
+                                     abandoned cycle, and anything carrying a cycle the harvest
                                      ledger there records closed. Prints the removal for a person to run.
                                      Deletes nothing, and leaves remote branches alone.
             upgrade [<release>]      Everything that moves to take a release, in order, with what
