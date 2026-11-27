@@ -556,7 +556,10 @@ public sealed class GitRepository : IRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        return Run(workingDirectory, $"show \"{reference}:{path}\"");
+        // The trailing -- holds git to reading an object. Without it, a path with a glob character -- a plan's
+        // `findings/*.json` -- is no object, so git takes the whole argument as a pathspec and prints the commit
+        // checked out instead, and whatever read it took HEAD's header for the file.
+        return Run(workingDirectory, $"show \"{reference}:{path}\" --");
     }
 
     /// <inheritdoc />

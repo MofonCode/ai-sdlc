@@ -103,6 +103,17 @@ slicing or a successor review still skips the build and the tests. A pull reques
 under `.sdlc/`, a harvest's records, or removes closed cycles' folders is built and tested. A harvest close had
 passed its pull request untested and then failed two of the solution's own tests on the integration branch.
 
+**A verify round no longer goes stale with every commit.** A plan whose proof named a pattern in backticks —
+`` `findings/*.json` `` — had git print the commit checked out in place of a file, and that text went into the
+`proof-sources.txt` the verify's evidence hash covers, so committing the round made it read as judged against other
+evidence, every time. A file read at a commit is now that commit's or nothing, and a pattern is never taken for a
+file a proof rests on.
+
+**`sdlc tidy` offers what carried a harvested cycle.** A harvest's close removes closed cycles' folders, and tidy
+looked for their plans there, so it never offered the sandboxes and slicings that had carried them. It now reads the
+harvest ledger for those too, and offers a plan's `probe/<id>/<slug>` branches once their cycle's plan is on the
+integration branch or the cycle is closed.
+
 **What moving to it asks.** Nothing to write by hand except where named below. It is a minor because several
 things can now block or refuse where they passed before, and a successor file gained a key a binary before it refuses,
 so every machine and pipeline reading a solution's successors moves together:

@@ -248,7 +248,8 @@ public static class DeclaredFiles
     /// </summary>
     /// <remarks>
     /// How a proof that rests on a helper the change never touched points at it, so the verify is handed that
-    /// file (D-168). A slash, because a bare <c>Foo.cs</c> in prose is as often a type as a file.
+    /// file (D-168). A slash, because a bare <c>Foo.cs</c> in prose is as often a type as a file. Never a
+    /// pattern: <c>findings/*.json</c> names no one file a proof rests on.
     /// </remarks>
     /// <param name="entry">One proof entry's text, or one row's cells joined.</param>
     /// <returns>The paths, with forward slashes, which may be none.</returns>
@@ -261,6 +262,7 @@ public static class DeclaredFiles
             .. _quoted.Matches(entry)
                 .Select(match => Normalise(match.Groups["path"].Value))
                 .Where(path => path.Contains('/', StringComparison.Ordinal))
+                .Where(path => path.IndexOfAny(['*', '?', '[']) < 0)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
