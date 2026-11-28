@@ -792,6 +792,11 @@ a harvest reads each as it would alone once the series merges.
 starts, printed in the waves it is forecast to take them in. A successor written once it started is never taken, and
 a cycle its planning parks stays on the list for a later wave to take back.
 
+**The one thing it adds is a fix** (D-232): when a build hands back a cycle stopped on a test that passed in a cycle's
+recorded run and failed in its own, the series runs `sdlc series fix`, which puts the fix first in the wave and holds
+what it stopped until it passes. One fix a wave, never two for one test, never under `approval: required`; its report
+says what it added and why.
+
 **A series that stops partway is continued, not restarted** (D-230). Each wave is recorded built once every item in
 it has an outcome or has stopped, so a series that hit a usage limit or lost its process is handed its open wave
 back the next time it runs, each item with what is left of it, rather than a new wave that counts the stopped one

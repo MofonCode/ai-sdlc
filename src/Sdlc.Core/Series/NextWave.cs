@@ -79,7 +79,7 @@ public static class NextWave
     /// <param name="state">Where the item stands, as <see cref="SeriesStatus.StateOf"/> or this class says it.</param>
     /// <returns>True while the wave cannot be done without it.</returns>
     public static bool IsOpen(string state) =>
-        state is NotStarted or ParkedReady or SeriesStatus.BeingPlanned or SeriesStatus.Planned;
+        state is NotStarted or ParkedReady or SeriesStatus.BeingPlanned or SeriesStatus.Planned or AddFix.WaitsOnFix or AddFix.BuildAgain;
 
     /// <summary>What starts one item of a wave.</summary>
     /// <param name="item">The item.</param>
@@ -190,6 +190,8 @@ public static class NextWave
             NotStarted or ParkedReady => StartOf(item, branch, approval),
             SeriesStatus.BeingPlanned => cycle + state + ": to-plan takes it on from where it stopped",
             SeriesStatus.Planned => cycle + state + ": the wave's build builds it",
+            AddFix.WaitsOnFix => cycle + state + ": the wave's build builds it once the fix first in the wave passes, and skips it if that does not",
+            AddFix.BuildAgain => cycle + state + ": the wave's build remediates it",
             _ => cycle + state + ": nothing left to do",
         };
     }
@@ -223,7 +225,7 @@ public static class NextWave
 
     // Where each item of the last wave stands, while that wave is not recorded built and one of its items still has
     // work; null when the next wave can be taken.
-    private static async Task<IReadOnlyList<string>?> OpenStates(SeriesRecord record, string root, string branch, Mediator mediator, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<string>?> OpenStates(SeriesRecord record, string root, string branch, Mediator mediator, IRepository repository, CancellationToken cancellationToken)
     {
         if (record.Waves.Count == 0 || record.Waves[^1].Done is not null)
         {
@@ -260,7 +262,10 @@ public static class NextWave
             // A parked item not yet taken back is the wave's to take back while it is ready against the series branch.
             // Any other parked cycle -- one its planning parked -- has stopped in this wave, and a later wave takes it
             // back (D-231).
-            states.Add(item.Kind == SeriesItemKind.Parked && state == SeriesStatus.ParkedState && ready.Contains(id.Value) ? ParkedReady : state);
+            // A cycle a fix holds waits on it, and one blocked on the fault is built again once it passes (D-232).
+            states.Add(item.Kind == SeriesItemKind.Parked && state == SeriesStatus.ParkedState && ready.Contains(id.Value)
+                ? ParkedReady
+                : AddFix.StateOf(record, named, state, root, repository));
         }
 
         return states.Any(IsOpen) ? states : null;
@@ -294,7 +299,7 @@ public static class NextWave
 
             // A wave the series stopped partway through is handed back before the limit is asked, so the last wave is
             // finished too (D-230).
-            if (await OpenStates(record, root, branch, mediator, cancellationToken).ConfigureAwait(false) is { } open)
+            if (await OpenStates(record, root, branch, mediator, repository, cancellationToken).ConfigureAwait(false) is { } open)
             {
                 await WriteIfChanged(root, id, read.Value, record, cancellationToken).ConfigureAwait(false);
                 return Result.Ok(new Response(record, branch, record.Waves[^1], Open: open));
@@ -401,6 +406,15 @@ public static class NextWave
             }
 
             bool already = read.Value.Waves[^1].Done is not null;
+
+            // A fix the series added to this wave is built before the wave is recorded built: recorded first, the next
+            // wave would never hand it back, and what it holds would stay stopped (D-232).
+            if (!already && AddFix.Unbuilt(read.Value.Resolved(await ReadSuccessors.Starts(root, cancellationToken).ConfigureAwait(false)), root) is { } unbuilt)
+            {
+                return Result.Fail<Recorded>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Wave {read.Value.Waves[^1].Number} of series {here.Value} added a fix, successor:{unbuilt}, and it is not built yet. Build it and what it holds first; 'sdlc series wave' hands the wave back with it first."));
+            }
             SeriesRecord record = read.Value.WithWaveDone(clock.GetUtcNow());
 
             if (!already)

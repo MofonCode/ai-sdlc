@@ -233,8 +233,9 @@ Platform runner passes it through, and every project reports "Zero tests ran". D
 
 **A test that fails only sometimes is a fault, never a run to repeat** (D-216). Do not run the suite again until a
 run misses it: a green run got that way hides a fault that can stop any cycle's evidence. If this change caused
-it, fix the cause. If it did not, hand back as not finished, naming the test and the runs that failed: the report
-carries it to the person, who has it fixed in a cycle of its own before this one records evidence again.
+it, fix the cause. If it did not, hand back as not finished, naming the test, the runs that failed and the failing
+run's results file, kept where it was written: the report carries it to the person, who has it fixed in a cycle of
+its own before this one records evidence again -- or, in a series, the series adds that cycle itself (D-232).
 
 **The platform the pipeline tests on decides whether a test passes** (D-216). Where this machine is not that
 platform, a failure seen only here is not chased unless it reproduces there; say so in the hand-back, and never

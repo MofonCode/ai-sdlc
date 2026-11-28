@@ -174,6 +174,17 @@ public static class SeriesStatus
             }
         }
 
+        if (AddFix.Lines(record) is { Count: > 0 } fixes)
+        {
+            text.AppendLine();
+            text.AppendLine("Added by the series -- a fault that stopped a wave's evidence, fixed first in a cycle of its own (D-232):");
+
+            foreach (string line in fixes)
+            {
+                text.AppendLine("  " + line);
+            }
+        }
+
         text.AppendLine();
         text.AppendLine("The forecast -- what comes ready next, and after which merges:");
         text.AppendLine();
@@ -230,7 +241,8 @@ public static class SeriesStatus
                 foreach (SeriesItem item in wave.Items)
                 {
                     Cycle? opened = item.Cycle is { } cycle && CycleId.TryParse(cycle, out CycleId? parsed) ? new Cycle(parsed.Value, root) : null;
-                    items.Add(new ItemState(wave.Number, item, opened is null ? NextWave.NotStarted : StateOf(opened), StepsOf(opened)));
+                    string state = opened is null ? NextWave.NotStarted : AddFix.StateOf(record, item.Cycle!, StateOf(opened), root, repository);
+                    items.Add(new ItemState(wave.Number, item, state, StepsOf(opened)));
                 }
             }
 

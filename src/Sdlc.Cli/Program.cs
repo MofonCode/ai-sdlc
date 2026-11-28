@@ -1613,7 +1613,7 @@ static async Task ToolsInEffect(string worktree)
 
 // A series: wave after wave of successors planned and built into series/<id>, ending in one pull request. 'start'
 // opens its branch and worktree; 'wave' takes the next wave there, or hands back one left open, and '--done' records
-// one built; 'status' says where it stands; 'run' starts its own process, which is what the factory runs.
+// one built; 'fix' adds a fix for a test that comes and goes first in the open wave (D-232); 'status' says where it stands; 'run' starts its own process, which is what the factory runs.
 static async Task<int> SeriesCommand(CommandLine line)
 {
     string what = line.Arguments.Count == 0 ? string.Empty : line.Arguments[0].ToUpperInvariant();
@@ -1698,6 +1698,28 @@ static async Task<int> SeriesCommand(CommandLine line)
                 return ExitCode.Ok;
             }).ConfigureAwait(false);
 
+        case "FIX":
+            if (!line.TryOption("test", out string? test) || !line.TryOption("results", out string? results) || !line.TryOption("holds", out string? holds))
+            {
+                await Console.Error.WriteLineAsync("Which test, which run, and what did it stop? As in 'sdlc series fix --test Totals_add_up --results TestResults/run.trx --holds 20261121_1000_01,20261121_1000_02', the cycle whose run failed first.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
+            return await Workspace.Run(rest, async workspace =>
+            {
+                Result<AddFix.Response> added = await workspace
+                    .Send<AddFix.Command, AddFix.Response>(new AddFix.Command(test, Path.GetFullPath(results), holds.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)))
+                    .ConfigureAwait(false);
+
+                if (added.IsFailed)
+                {
+                    return await Report(added, ExitCode.Refused).ConfigureAwait(false);
+                }
+
+                await Console.Out.WriteAsync(AddFix.Render(added.Value)).ConfigureAwait(false);
+                return ExitCode.Ok;
+            }).ConfigureAwait(false);
+
         case "STATUS":
             return await Workspace.Run(rest, async workspace =>
             {
@@ -1718,7 +1740,7 @@ static async Task<int> SeriesCommand(CommandLine line)
             return await Workspace.Run(rest, workspace => SeriesRunCommand(workspace, rest)).ConfigureAwait(false);
 
         default:
-            await Console.Error.WriteLineAsync("Which? 'sdlc series start --waves <n>', 'sdlc series wave [--done]', 'sdlc series status [<id>]' or 'sdlc series run [<id>]'.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("Which? 'sdlc series start --waves <n>', 'sdlc series wave [--done]', 'sdlc series fix --test <name> --results <file> --holds <ids>', 'sdlc series status [<id>]' or 'sdlc series run [<id>]'.").ConfigureAwait(false);
             return ExitCode.Usage;
     }
 }

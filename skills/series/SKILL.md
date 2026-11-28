@@ -153,9 +153,25 @@ another on this branch — implemented, verified and remediated as one cycle is,
 of the one before. **A blocked verification stops only that cycle and the cycles that depend on it**: `build`
 leaves it as it is and names what it held back, and its siblings carry on. The series carries on with what is ready.
 
+**A cycle that stopped on a test that fails only sometimes** -- `build` hands it back not finished, naming the test
+and the failing run's results file, because its change did not cause it (D-216) -- is the one stop the series answers
+itself, under `approval: none` (D-232). Add the fix to the wave:
+
+```
+sdlc series fix --test <name> --results <file> --holds <id>[,<id>...]
+```
+
+`--holds` names every cycle of the wave that stopped on it, the one whose run failed first. It writes the fix as a
+successor, puts it first in the wave and on the list, and holds those cycles until it passes. Commit what it wrote --
+`git add .sdlc`, then `git commit -m "Series <id>: wave <n> adds a fix"` -- and go back to §1: the wave is handed back
+with the fix first, planned and built before what it holds. **When it refuses** -- a second fault in one wave, the
+same test failing again after its fix, a test no recorded run shows passing, or `approval: required` -- the cycles
+stay stopped, with the refusal as their reason, and the series goes on as for any stopped cycle.
+
 ## 4. Record it, and go again
 
-Record the wave built — once every item has an outcome or has stopped with its reason, never before:
+Record the wave built — once every item has an outcome or has stopped with its reason, and no fix §3 added is
+still to build, never before:
 
 ```
 sdlc series wave --done
@@ -191,3 +207,5 @@ person.
 - **Plan anything under `approval: required`**, or build a cycle nobody approved there.
 - **Merge anything**, approve anything, or write any file only a person writes.
 - **Ask anybody anything.** A cycle that needs a person stops, with why, and the series goes on without it.
+- **Add any work but a fix `sdlc series fix` accepts.** A successor a cycle proposes mid-run waits for a later series
+  (D-231); a test the series reruns until it passes is the green run D-216 forbids.

@@ -177,14 +177,25 @@ internal static class Usage
                                      built with an item still to start, plan or build -- the
                                      series stopped partway through it -- is handed back
                                      instead, each item with what is left of it. --done records
-                                     the last wave built. Refuses once every wave is taken and
+                                     the last wave built, and refuses while a fix it added is
+                                     still to build. Refuses once every wave is taken and
                                      built; takes nothing once its list is taken or nothing on it
                                      is ready. Commits nothing.
+            series fix --test <name> --results <file> --holds <ids>
+                                     On series/<id>, under approval: none, while a wave is open:
+                                     a test that failed in the run --results names and passed in
+                                     a cycle's recorded evidence here comes and goes, so write its
+                                     fix as a successor, put it first in the wave and on the list,
+                                     keep the failing results in the series' folder, and hold the
+                                     cycles --holds names, the one whose run failed first, until
+                                     the fix passes. Refuses a second fix in one wave, a second
+                                     for one test, a test that did not fail or never passed, and
+                                     approval: required. Commits nothing.
             series status [<id>]     The series' list and where each item on it was taken, its
                                      waves, each item's cycle, where it stands -- planned, built:
                                      pass, blocked, escalated, parked, abandoned -- and which of
-                                     its steps its own files show done, and the backlog judged
-                                     against the series branch.
+                                     its steps its own files show done, each fix the series added
+                                     to itself, and the backlog judged against the series branch.
             series run [<id>]        Start the series' own process in its worktree, running
                                      /sdlc:series <id> --unattended, its tools named as a build's
                                      are, never with permission checks off. --solution names the

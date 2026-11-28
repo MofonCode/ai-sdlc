@@ -152,6 +152,19 @@ public static class RunReport
                 }
             }
 
+            if (AddFix.Lines(series) is { Count: > 0 } fixes)
+            {
+                text.Append("### Added by the series\n\n");
+                text.Append("A test that passed in one recorded run and failed in another stopped a wave's evidence, so the series fixed it first, in a cycle of its own, and held what it stopped until the fix passed (D-232).\n\n");
+
+                foreach (string line in fixes)
+                {
+                    text.Append("- " + line + "\n");
+                }
+
+                text.Append('\n');
+            }
+
             if (report.Cycles.Any(cycle => !shown.Contains(cycle.Id)))
             {
                 text.Append("### Not in a recorded wave\n\n");
