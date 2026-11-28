@@ -259,6 +259,26 @@ public sealed class CollectRoundTests
     }
 
     [TestMethod]
+    public async Task A_verdict_with_a_section_a_verify_does_not_carry_is_refused_where_it_is_written()
+    {
+        // A real verdict carried a section for the perspectives' questions, and only the chain check after the build
+        // refused it (D-233).
+        using var workspace = CycleWorkspace.Create();
+        string from = Path.Combine(workspace.Root, "adjudicate.json");
+        const string Body = "---\ncycle: 20260929_1456_32\noutcome: pass\n---\n\n# Rolls\n\n## Criteria\n\n1. Met. `Rolls` passed.\n\n";
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Body + "## Security and operability questions of the evidence\n\nNone.\n\n## Open\n\nNone.\n"));
+        Result<WriteVerdict.Response> refused = await Verdict(workspace, from);
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "is not a section");
+        Assert.IsFalse(File.Exists(workspace.Cycle.PathOf(ArtifactKind.Verify)), "Nothing is written.");
+
+        await File.WriteAllTextAsync(from, ReaderPromptsTests.Envelope(Body + "## Open\n\nNone.\n"));
+        Assert.IsTrue((await Verdict(workspace, from)).IsSuccess);
+    }
+
+    [TestMethod]
     public async Task A_finding_settled_by_name_is_copied_from_the_ledger_and_records()
     {
         // D-162. Sessions retyped earlier findings into round.json by hand, and the ledger refused the retyping.

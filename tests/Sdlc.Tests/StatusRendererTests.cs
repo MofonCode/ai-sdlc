@@ -48,6 +48,25 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    public async Task The_brief_panel_the_planning_loop_reads_shows_a_shape_problem_such_as_a_departure_naming_no_decision()
+    {
+        // A plan whose departure named no decision passed its loop, because the brief panel left the shape out, and was
+        // refused first by the pull-request check after the cycle was built.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Plan);
+
+        ArtifactValidation bad = new(ArtifactKind.Plan, [new SchemaViolation("## Shape and departures", "has a departure that names no decision: 'Departs from the declared default cache'.")]);
+        string panel = await Render(workspace, ArtifactKind.Plan, shapeResult: bad, brief: true);
+
+        StringAssert.Contains(panel, "Shape");
+        StringAssert.Contains(panel, "has a departure that names no decision");
+
+        string sound = await Render(workspace, ArtifactKind.Plan, shapeResult: new ArtifactValidation(ArtifactKind.Plan, []), brief: true);
+        Assert.IsFalse(sound.Contains("Shape", StringComparison.Ordinal), "A sound shape says nothing.");
+    }
+
+    [TestMethod]
     public async Task The_panel_names_the_stage_the_cycle_and_the_round()
     {
         using var workspace = CycleWorkspace.Create();

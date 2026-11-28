@@ -79,6 +79,15 @@ public static class StatusRenderer
 
         Field(output, "Says", panel.Outline.Headline ?? "(no heading yet)");
 
+        // The shape too, departures included: this is the panel the planning loop reads, and a plan whose departure
+        // named no decision passed its loop with the problem printed only on the full panel, to be refused first by
+        // the pull-request check after the cycle was built.
+        if (panel.Shape is { IsValid: false } shape)
+        {
+            output.AppendLine();
+            Shape(output, shape);
+        }
+
         // Each blocker's gist and the command that explains them. This is the panel every stage skill ends
         // a lap on, and "blockers 3" in the counter line told somebody something was wrong without a single
         // word they could act on. The gist rather than the id and rule, because ids are what a reader then

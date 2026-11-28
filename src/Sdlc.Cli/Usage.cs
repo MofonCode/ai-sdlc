@@ -198,7 +198,8 @@ internal static class Usage
                                      to itself, and the backlog judged against the series branch.
             series run [<id>]        Start the series' own process in its worktree, running
                                      /sdlc:series <id> --unattended, its tools named as a build's
-                                     are, never with permission checks off. --solution names the
+                                     are, never with permission checks off. Exits non-zero when the
+                                     process ends with the last wave not recorded built. --solution names the
                                      worktree 'series start' printed. The factory runs this.
             factory                  Write the factory's pipeline for the recorded platform: a run
                                      a person starts, never a schedule, of one series from the

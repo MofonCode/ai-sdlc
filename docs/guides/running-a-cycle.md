@@ -304,6 +304,13 @@ cycle's recorded run and failed in a later one stops every remaining build's evi
 series writes the fix, builds it first in the wave, and builds what it stopped again once it passes — without asking.
 `sdlc series status` and the run's report say what it added, where the test passed and failed, and what it held.
 
+**A run loses at most the step it was on** (D-233). Every step is committed as it finishes and every wave is pushed,
+so a usage limit, a closed session or a lost machine costs the step in hand. A build picks up at the step `sdlc
+status` names — evidence with no verdict is verified, not built again. The series' process is given Claude Code's
+`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, which you never set yourself: without it a headless process stops its
+background work after ten minutes and exits 0, which once killed a twenty-minute evidence run and looked like a clean
+finish. `sdlc series run` reads the series' record when its process ends and exits non-zero if a wave is still open.
+
 **A series that stops partway** — a usage limit reached, the session closed — **is continued with
 `/sdlc:series <id>`**. It runs the series again in its worktree, and the series finishes the wave it stopped in
 before it takes the next: an item never started is started, a cycle part-planned is planned from where it stopped,

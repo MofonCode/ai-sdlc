@@ -1897,7 +1897,9 @@ what is ready then; what it could not reach, or its waves could not hold, is lef
 planning parks stays on the list for a later wave to take back (D-231). **The one thing it adds is a fix**: a test that
 passed in one recorded run and failed in another stops every remaining build's evidence, so under `approval: none` the
 series writes the fix as a successor, puts it first in the wave and on the list, and holds what it stopped until it
-passes — one fix a wave, never two for one test — and its report says what it added and why (D-232). **A series that stops is continued, never restarted**: each wave is recorded built once every
+passes — one fix a wave, never two for one test — and its report says what it added and why (D-232). **A run loses at
+most the step it was on**: each step is committed as it finishes, each wave pushed, a build starts at the step its
+cycle's status names, and a process that exits 0 with a wave still open is reported as stopped, not finished (D-233). **A series that stops is continued, never restarted**: each wave is recorded built once every
 item in it has an outcome or has stopped, and a wave not recorded built is handed back, with what is left of each
 item, before the next is taken (D-230). Its record, `.sdlc/series/<id>/series.json`, is written only by the binary
 — `sdlc series start` and `sdlc series wave` — and says what each wave took and when each was recorded built;
@@ -7825,6 +7827,39 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-233 — A run loses at most the step it was on: each step committed, each wave pushed, and a stop never reads as a finish
+
+**Governs:** §10.6
+
+**Decision.** Six small changes, each closing a way a real series lost more than the step it stopped on:
+
+- **Each step is committed** as it finishes: `to-plan` after every document, round and refine; `build` after the code,
+  the evidence, the verdict and each remediation. A stop costs the step in hand.
+- **A build starts at the step `sdlc status` names**: evidence with no verdict goes straight to verify, a blocked
+  verdict to remediate. Committed work is never built again.
+- **Each wave is pushed** once its commit is made, so a lost worktree or machine loses nothing a wave finished.
+- **Every process the binary starts is given `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`**, Claude Code's own setting,
+  so a long evidence run in the background is never stopped at ten minutes. **`sdlc series run` reads the series'
+  record when its process exits**, and exits non-zero when the last wave is not recorded built, whatever the process
+  said.
+- **The brief panel shows the shape**, departures included, and `to-plan` counts a document done only with no blocker
+  and no shape problem. `sdlc round verdict` refuses a verify with a section it does not carry.
+- **`sdlc series start` prints what its process may run**, and what only this machine allows, before anything is spent.
+
+**Why.** A real series lost its first run to the ten-minute background limit, which killed a twenty-minute evidence run
+and exited 0; its next run hit the usage limit with a wave's planning uncommitted; and two of its cycles were refused
+by the pull-request check after they were built, for a plan departure that named no decision and a verify section the
+check does not allow. Both of those checks existed; the loop that should have met them never printed the first, and
+nothing wrote the second where it was written. The goal a person set: a run that stops loses at most the step it was
+on, never a cycle or a wave.
+
+**Rejected.** *Pinning a series to the release it started on*: a series that meets a framework bug is fixed by moving
+to the release that fixes it, and a pin would strand it. The binary already hands every command to the release the
+solution pins, and a run's process loads that release's own skills. *Refusing to start a series when this machine
+allows a command `build_tools` does not name*: a machine allows many things no build needs, and nothing declares what
+an evidence script runs, so the binary can show the difference and not judge it. *Committing once per wave, as
+before*: the wave's planning is hours of rounds, and a usage limit lands wherever it lands.
 
 ### D-232 — A series fixes a test that comes and goes itself, first in the wave it stopped, and says so in its report
 

@@ -86,8 +86,12 @@ For one document — the intent, the spec or the plan:
 
 1. **`interrogate`** it: a round of fresh readers that never saw it written.
 2. Read the panel: `sdlc status <id> --stage <document> --brief`.
-3. **Clean** — no blocker open — and the document is done. Otherwise **`refine`** applies the round's
-   findings to it, and back to 1.
+3. **Clean** — no blocker open, **and no `Shape` problem on the panel** — and the document is done. Otherwise
+   **`refine`** applies the round's findings and every `Shape` line to it, and back to 1. A shape problem is what the
+   pull-request check refuses, so a plan that leaves this loop with one is a cycle built only to be refused (D-233).
+
+**Commit after every step** (D-233): each document written, each round, each refine — `git add .sdlc/cycles/<id>`,
+then `git commit -m "<id>: <what the step did>"`. A run that stops loses the step it was on, never the ones before.
 
 **Stop on convergence, on conflict, or on a halt — never on a count.** A clean round is convergence. Two
 constraints whose remedies exclude each other is a conflict: report it as one rather than picking a side. A halt
@@ -212,7 +216,9 @@ except that **nobody is there to answer**:
 - **A cycle that cannot go on stops, and the run goes on.** A loop stuck on a rule, a reader reporting a conflict, a
   decision to keep or depart from, a question only a person can answer: leave the cycle where it is — planned as far
   as it got — and write its reason in the hand-back. Never answer for the person, and never pick a side of a
-  conflict to keep the run moving.
+  conflict to keep the run moving. **A shape problem only a person can answer** — a departure from the declared stack
+  or a default that no recorded decision covers, when only a person writes `decisions.md` — stops the cycle too, with
+  the decision it needs written out in the hand-back, so placing it is one step.
 - **An intent's `(inferred)` marks are left**, as the series' `intent` wrote them: the run's report names each one
   as confirmed by nobody.
 - **No suggestions question.** Every open suggestion stays open, in `sdlc suggestions`, for a person to answer

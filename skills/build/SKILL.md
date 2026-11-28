@@ -201,7 +201,9 @@ running at once. Whether anything reads them is the solution's AppHost's busines
 
 ## 4. For each cycle: implement, verify, remediate, pull request
 
-In the cycle's worktree, each skill as it is written:
+In the cycle's worktree, each skill as it is written, **starting at the step `sdlc status <id>` names** — evidence
+with no verdict goes straight to verify, a blocked verdict to remediate — and **committing after every step**
+(D-233):
 
 1. **`implement`**, handed the approved plan. It writes the code and tests, records deviations and choices, and
    records the evidence. If the build or tests are red after it, the cycle did not finish.
@@ -284,7 +286,11 @@ each on top of the one before, a cycle before any that depends on it:
 2. **`verify`**, in a fresh process that never saw the build.
 3. **`remediate`**, when the outcome is `blocked`, while each pass converges.
 
-Commit everything a cycle wrote, verify included, before the next one starts: the next cycle builds on it.
+**Start each cycle at the step `sdlc status <id>` names, never before it** (D-233): evidence recorded with no
+verdict goes straight to **`verify`**, a blocked verdict to **`remediate`**. A cycle whose code and evidence are
+committed is never implemented again. **Commit after every step** — the code, the evidence, the verdict, each
+remediation — so a run that stops loses the step it was on. Everything a cycle wrote is committed before the next
+one starts: the next cycle builds on it.
 
 **A cycle that stays `blocked` or `escalated` is left as it is.** Every cycle that depends on it — a successor that
 `succeeds` it, a parked cycle that `waits_on` it, and so on through each other — is **skipped**: not built, and
