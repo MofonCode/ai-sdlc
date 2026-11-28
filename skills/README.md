@@ -729,7 +729,7 @@ it plans nothing and builds only cycles a person approved, in wave order.
 | Stage | the planning chain and the build, across several waves |
 | Started by | a person, with the number of waves it may run; with `--unattended`, the process `sdlc series run` starts, and the factory, which runs only series |
 | Reads | `sdlc series wave` for each wave, and `sdlc series status` |
-| Writes | nothing itself: what `intent`, `to-plan`, `build`, `remediate` and `pr` write, on `series/<id>` — `remediate` only to bring the branch up to date when `pr` finds it behind the integration branch (D-227); the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start` and `sdlc series wave` |
+| Writes | nothing itself: what `intent`, `to-plan`, `build`, `remediate` and `pr` write, on `series/<id>` — `remediate` only to bring the branch up to date when `pr` finds it behind the integration branch (D-227); the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start`, `sdlc series wave` and `sdlc series wave --done` |
 
 #### Syntax
 
@@ -741,14 +741,15 @@ it plans nothing and builds only cycles a person approved, in wave order.
 
 | Parameter | Description |
 |---|---|
-| `<id>` | the series, as `sdlc series start` named it. `sdlc series run` passes it; a person starting one names none |
+| `<id>` | the series, as `sdlc series start` named it. `sdlc series run` passes it; a person starting one names none, and a person naming one, without `--unattended`, continues that series where it stopped (D-230) |
 | `--waves <n>` | how many waves it may run: it stops there or when nothing is ready, whichever comes first. Asked for when not given, since an open-ended run is spend nobody chose |
 | `--wave-size <n>` | how many items one wave may take, 3 when not given: what is ready past it waits for the next wave, so the waves times the wave size is the most a series takes on (D-228) |
 | `--unattended` | run as the series' own process: ask nothing. `sdlc series run` passes it, and the factory's pipeline runs it. A person never needs to type it |
 
 #### Output
 
-In a person's session, what `sdlc series run` printed, `sdlc series status` verbatim, and the pull request's link.
+In a person's session, the series' list as it started, what `sdlc series run` printed, `sdlc series status` verbatim, and
+the pull request's link.
 In its own process, wave after wave: each successor's intent suggested with its `(inferred)` marks left, each cycle
 planned with its loop, each wave built and recorded on the series' branch — then one pull request, its body a short
 summary followed by `sdlc report --run`.
@@ -786,6 +787,15 @@ the series with one reason; an approved cycle already on the integration branch 
 
 **One pull request, many cycles, each still its own.** Each keeps its folder, rounds, verification and commits, so
 a harvest reads each as it would alone once the series merges.
+
+**A series takes only from its list** (D-231): everything it may take, worked out from the backlog and frozen when it
+starts, printed in the waves it is forecast to take them in. A successor written once it started is never taken, and
+a cycle its planning parks stays on the list for a later wave to take back.
+
+**A series that stops partway is continued, not restarted** (D-230). Each wave is recorded built once every item in
+it has an outcome or has stopped, so a series that hit a usage limit or lost its process is handed its open wave
+back the next time it runs, each item with what is left of it, rather than a new wave that counts the stopped one
+against the limit. `/sdlc:series <id>` runs it again in its worktree.
 
 #### See also
 

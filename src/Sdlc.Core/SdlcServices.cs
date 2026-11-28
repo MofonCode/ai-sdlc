@@ -182,6 +182,7 @@ public static class SdlcServices
         // cycles ends on, a wave's or a series'.
         services.AddStartSeriesRequestHandler();
         services.AddNextWaveRequestHandler();
+        services.AddSeriesScopeRequestHandler();
         services.AddSeriesStatusRequestHandler();
         services.AddSeriesRunRequestHandler();
         services.AddRunReportRequestHandler();

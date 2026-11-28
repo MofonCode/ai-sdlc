@@ -158,22 +158,33 @@ internal static class Usage
                                      Start a series: series/<id> from the integration branch, in
                                      a worktree beside the repository, its record committed there
                                      at .sdlc/series/<id>/series.json with the wave limit, how many
-                                     items a wave may take (3 unless --wave-size says) and the
-                                     approval setting. Prints the worktree's path alone; what it
-                                     will do and the next command go to standard error. Under
-                                     approval: required it builds only approved cycles. Refuses
-                                     fewer than one wave, or a wave size below one.
-            series wave              On series/<id>: record the next wave and print one line per
-                                     item with what starts it, at most the series' wave size,
-                                     parked cycles first, saying how many more wait. Under
-                                     approval: none, successors and parked cycles ready against
-                                     the series branch; under approval: required, approved cycles
-                                     nothing has built that no earlier wave took. Refuses once
-                                     every wave is taken; records nothing when nothing is ready.
-                                     Commits nothing.
-            series status [<id>]     The series' waves, each item's cycle and where it stands --
-                                     planned, built: pass, blocked, escalated, abandoned -- and
-                                     the backlog judged against the series branch.
+                                     items a wave may take (3 unless --wave-size says), the
+                                     approval setting, and its list: everything it may take,
+                                     worked out from the backlog against its branch, in the waves
+                                     it is forecast to take them in, leaving out what its waves
+                                     cannot hold and what waits on work it does not carry. Prints
+                                     the worktree's path alone; what it will do, its list and the
+                                     next command go to standard error. Under approval: required
+                                     it builds only approved cycles. Refuses fewer than one wave,
+                                     or a wave size below one.
+            series wave [--done]     On series/<id>: record the next wave and print one line per
+                                     item with what starts it -- what on its list is ready, at
+                                     most the series' wave size, parked cycles first, saying how
+                                     many more wait, and any cycle its planning parked once it is
+                                     ready again. Under approval: none, successors and parked
+                                     cycles; under approval: required, approved cycles nothing
+                                     has built that no earlier wave took. A wave not recorded
+                                     built with an item still to start, plan or build -- the
+                                     series stopped partway through it -- is handed back
+                                     instead, each item with what is left of it. --done records
+                                     the last wave built. Refuses once every wave is taken and
+                                     built; takes nothing once its list is taken or nothing on it
+                                     is ready. Commits nothing.
+            series status [<id>]     The series' list and where each item on it was taken, its
+                                     waves, each item's cycle, where it stands -- planned, built:
+                                     pass, blocked, escalated, parked, abandoned -- and which of
+                                     its steps its own files show done, and the backlog judged
+                                     against the series branch.
             series run [<id>]        Start the series' own process in its worktree, running
                                      /sdlc:series <id> --unattended, its tools named as a build's
                                      are, never with permission checks off. --solution names the
