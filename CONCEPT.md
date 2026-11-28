@@ -1873,25 +1873,33 @@ this one. A series has run in the suite and nowhere else yet.
 | Run | What it builds | Branch | Allowed |
 |---|---|---|---|
 | a cycle — `/sdlc:build` | one cycle | `cycle/<id>/build-unattended` | always |
-| a wave — `/sdlc:wave` | every item ready now, planned with the person in one sandbox | `wave/<id>`, opened from the sandbox | always; under `approval: required` it stops at the approvals first |
-| a series — `/sdlc:series` | wave after wave, until its limit or an empty backlog | `series/<id>`, one worktree | always; under `approval: none` it plans and builds asking nobody, under `approval: required` it builds approved cycles in wave order |
+| a wave — `/sdlc:wave` | every item ready now, planned with the person in one sandbox | `wave/<id>`, opened from the sandbox; each cycle on its own branch, merged into it | always; under `approval: required` it stops at the approvals first |
+| a series — `/sdlc:series` | wave after wave, until its limit or an empty backlog | `series/<id>`, one worktree; each cycle on its own branch, merged into it | always; under `approval: none` it plans and builds asking nobody, under `approval: required` it builds approved cycles in wave order |
 
-**A run builds its cycles one after another into its own branch**, through `sdlc build --run`, each implemented,
+**The binary drives a run, and each cycle builds on a branch of its own** (D-234). `sdlc build --run` for a wave and
+`sdlc series run` for a series build each cycle in a process of its own, the build playbook for that one cycle, on
+`cycle/<id>/build-unattended` taken from the run's latest, in a worktree beside the repository — each implemented,
 verified and remediated as a cycle alone is, each keeping its own folder, rounds, verification and commits. A run is
 a grouping, never a merged record, which is what keeps every cycle in it harvestable. **A cycle's evidence is measured
-from the recorded head of the cycle before it** on the same branch, so it is neither credited nor blamed for an
-earlier cycle's change; a cycle recorded again keeps the base it was first measured from, and when the run merged
-the integration branch after that base, the change is measured from the base with the merge taken in (D-206).
-**Every change a run's pull request makes outside `.sdlc/` belongs to a verified cycle**: it is in some built cycle's
-recorded change, and nothing changed after the last cycle's head but what a merge of the integration branch brought.
-**A blocked verification stops only that cycle and the cycles that depend on it**; its siblings carry on.
+from the commit its branch was taken from**, so it is neither credited nor blamed for another cycle's change (D-206).
+**The binary merges each cycle that passes, one at a time**, under a lock every process on the machine shares, and
+**runs the whole suite on the merged result**: a merge that conflicts, or that the suite fails, is undone. The merge
+commit and that run are the run's **merge evidence**, kept in its folder, and the pull-request check reads it — every
+test any built cycle's plan named must pass there, since it is the one run that holds every cycle. **Every change a
+run's pull request makes outside `.sdlc/` belongs to a verified cycle**: it is in some built cycle's recorded change,
+and nothing changed after the last merge but what a merge of the integration branch brought. A run built one after
+another on its branch, before this, is read as it was: its last cycle's run counts. **A wave builds a few of its cycles
+at once**, two unless a person says, and never two whose plans declare the same file; a series runs one wave at a time,
+since the next wave's readiness depends on what the last one merged (D-236). **A cycle that cannot be saved is taken
+out** — its verification stayed blocked, its merge conflicted, or the suite failed on the result — with its reason and
+its pushed branch, and the run carries on; it is never abandoned, and a person starts a wave or a series from it later
+(D-235).
 
 **A series asks nobody.** It suggests each successor's intent and keeps it, leaving what it inferred marked
 `(inferred)` — the one place the schema allows a mark to stay — and plans each cycle with its full loop. **It stops
 at the number of waves a person set or an empty backlog**, whichever comes first: an open-ended run is spend nobody
-chose. **A wave takes a few items, never the whole backlog** — three unless the person names a wave size — and a
-series runs them one after another, never at once, so a usage limit reached mid-wave leaves the finished items
-finished (D-228). **It takes only from its list**: everything it may take, worked out from the backlog against its
+chose. **A wave takes a few items, never the whole backlog** — three unless the person names a wave size (D-228). Planning
+them is one item at a time, in one process; building them is the binary's, a few at a time (D-236). **It takes only from its list**: everything it may take, worked out from the backlog against its
 branch and frozen when it starts, printed in the waves it is forecast to take them in. Each wave takes from the list
 what is ready then; what it could not reach, or its waves could not hold, is left out and counted, and a cycle its
 planning parks stays on the list for a later wave to take back (D-231). **The one thing it adds is a fix**: a test that
@@ -7827,6 +7835,94 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-236 — A wave builds a few of its cycles at once, two unless a person says, and never two that share a file
+
+**Governs:** §10.6
+
+**Amends D-228**, whose series ran every item one after another. Planning stays one item at a time; building does not.
+
+**Decision.** A wave's cycles build side by side, each in a process of its own, at most `parallel` at once: `sdlc series
+start --parallel <n>` sets it for a series, which copies it, with the wave size, into each wave as the wave is taken, so
+**each wave owns its own limits**; `sdlc build --run --parallel <n>` sets it for a wave that stands alone, kept in
+`.sdlc/waves/<id>/wave.json`. Two when nobody says, and a number below one is refused. When a cycle finishes, the next
+ready one takes its slot. **Two cycles whose plans declare the same file never build at once**: the later in the wave's
+order starts once the earlier has merged or stopped, so it is taken from code that already holds the earlier's change.
+**A series runs one wave at a time, with no setting**: what the next wave takes depends on what this one merged, so a
+setting for waves at once could only ever say one.
+
+**Why.** D-228 refused parallel work for two reasons: the whole spend landed in one usage window, and a limit reached
+mid-wave left every item half done. D-233 removed the second — every step is committed, so a limit reached costs the
+step each process was on — and the first is a trade the person can now make with a number. Built one after another,
+a wave of three cycles each with a twenty-minute evidence run took an hour of waiting no work needed. Run at once on
+one branch they could not be; on branches of their own (D-234) they can, and the merge order is the binary's.
+
+**Rejected.** *Planning in parallel too*: two processes writing intents and plans for one series at once is what D-228
+measured, and planning is the cheap half. *A default above two*: each process rebuilds its own context, so the spend
+rate rises with the number, and two halves the wall clock without surprising anybody's usage window. *Leaving files
+that overlap to the merge*: the second cycle would be built on code that never held the first's change, and the merge
+would conflict at the end, against the last cycle, which is the failure this exists to avoid. *A waves-at-once
+setting*: it could only ever be one.
+
+### D-235 — A cycle a run cannot save is taken out, with its pushed branch, and the run carries on
+
+**Governs:** §10.6
+
+**Decision.** A cycle whose verification stays blocked after remediation, whose build did not finish, whose merge into
+the run conflicts, or whose merge the suite fails, is **taken out**: not merged, its branch pushed when there is a
+remote, and recorded with its wave, its reason and its branch — in the series' record under `taken_out`, or in a wave's
+own record. Under `approval: none` a series first hands what stopped to the series playbook, which may add the fix a
+test that comes and goes needs (D-232); what the fix holds waits for it, and everything else that stopped is taken
+out. A cycle taken out reads as *taken out* in `sdlc series status`, never as open, so it never holds its wave. `sdlc
+series status` and `sdlc report --run` carry a *Taken out* section: each cycle, why, and where its work is. A
+successor waiting on it is never ready against the series' branch, so the series leaves it on its list.
+
+**Taken out is not abandoned.** Its folder keeps its plan on the run's branch, its branch keeps its code, verdict and
+findings, and a harvest still reads it. A person starts a wave or a series from it later, where its plan is read again
+because what it was planned against may have moved.
+
+**Why.** One blocked cycle used to hold the series' one pull request: the run's check refuses a pull request with a
+cycle that did not pass, and abandoning the series threw away every cycle that did. A run is meant to lose at most the
+step it was on (D-233), and a cycle nobody can save unattended is a stop for a person, not for every sibling.
+
+**Rejected.** *Abandoning it*: abandonment is a person's decision, in a file only a person writes, and it ends the
+cycle; what the run decides is only that this pull request goes without it. *Keeping it in the pull request, blocked*:
+the check refuses the whole pull request for one cycle. *Retrying it until it passes*: the remediation bound (D-179)
+already decided when retrying stops, and a test rerun until green is what D-216 forbids.
+
+### D-234 — The binary drives a run: each cycle on a branch of its own, merged one at a time, the suite run where it lands
+
+**Governs:** §10.6
+
+**Amends D-205 and D-206**, whose runs built every cycle one after another on the run's branch, and **D-187**, whose
+`sdlc build --run` started the build playbook for the whole run.
+
+**Decision.** `sdlc build --run` on `wave/<id>` and `sdlc series run` drive the run from the binary. Each cycle is built
+by the build playbook for that one cycle, `--no-pr`, in a process of its own, on `cycle/<id>/build-unattended` taken from
+the run's latest and in a worktree beside the repository. A series starts the series playbook in a process of its own
+for each step that needs language — planning a wave, answering what its build left stopped — and `pr --run` at the end;
+**no process runs longer than its one step**. **The binary does every merge into a run**, under a lock file in the
+repository's common directory that every process on the machine shares, and runs the whole suite — `dotnet build`,
+then `dotnet test --report-trx` — on the merged commit. A conflict is abandoned and its files named; a red suite undoes
+the merge. A green one is kept with its **merge evidence** — the merge commit and that run — in the run's own folder.
+**The run's pull-request check reads the merge evidence** whenever its merge commit holds every built cycle's recorded
+head, and the last cycle's run otherwise, so a run built before this reads as it did. A run that fell behind its
+integration branch takes it in the same way, tested where it lands, before its pull request; one that conflicts opens
+nothing and waits for a person (D-227).
+
+**Why.** One branch meant one cycle at a time (D-236 needs more), every conflict surfacing at the end against the last
+cycle, and no way to leave one cycle out without leaving everything (D-235 needs that). And an agent cannot drive a
+run: a series of three waves is hours of builds, and no host lets one shell call last that long — the series' own
+process sat waiting on its builds, and a host that stops background work after ten minutes killed it. Built side by
+side, two cycles can each pass and fail together, since neither ran the other's code; the suite on the merged result
+is the one run that holds both, which is why the check reads it.
+
+**Rejected.** *A wave branch inside a series, between the cycles and the series*: the series' branch does not move
+while a wave builds, so merging the wave into it ran the same suite on the same tree a second time. Each level still
+knows its parent — a cycle the run it merges into, a wave the series that took it — without a branch for it. *Host
+subagents for the parallel builds*: not every host has them, and a subagent shares its parent's session and its limit.
+*Rebasing each cycle onto the run instead of merging*: it rewrites the commits the evidence's recorded heads name.
+*Resolving a conflict in the binary*: which side wins is a person's (D-86).
 
 ### D-233 — A run loses at most the step it was on: each step committed, each wave pushed, and a stop never reads as a finish
 

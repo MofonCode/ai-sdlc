@@ -98,7 +98,11 @@ public static class AddFix
         return slug.Length <= 64 ? slug.TrimEnd('-') : slug[..64].TrimEnd('-');
     }
 
-    /// <summary>Where a cycle of a wave stands once the fixes that hold it are read.</summary>
+    /// <summary>Where a cycle of a wave stands once the series' record is read: taken out, or held by a fix.</summary>
+    /// <remarks>
+    /// A cycle the series took out (D-235) is never merged, so its files on the series branch still read as planned; the
+    /// record is what says it has left. A fix taken out stops what it holds, as a fix that did not pass does.
+    /// </remarks>
     /// <param name="record">The series' record.</param>
     /// <param name="cycle">The cycle's id.</param>
     /// <param name="state">Where its own files say it stands.</param>
@@ -110,6 +114,11 @@ public static class AddFix
         ArgumentNullException.ThrowIfNull(record);
         ArgumentNullException.ThrowIfNull(repository);
 
+        if (record.TakenOutOf(cycle) is not null)
+        {
+            return SeriesStatus.TakenOutState;
+        }
+
         if (record.Fixes?.LastOrDefault(fix => fix.Holds.Contains(cycle, StringComparer.Ordinal)) is not { } holding
             || state is "built: pass" or "abandoned" or "not here")
         {
@@ -119,7 +128,9 @@ public static class AddFix
         string? fixCycle = record.Waves.SelectMany(wave => wave.Items)
             .FirstOrDefault(item => item.Kind == SeriesItemKind.Successor && item.Ref == holding.Successor)?.Cycle;
         Cycle? fix = fixCycle is not null && CycleId.TryParse(fixCycle, out CycleId? id) ? new Cycle(id.Value, root) : null;
-        string fixState = fix is null ? NextWave.NotStarted : SeriesStatus.StateOf(fix);
+        string fixState = fix is null ? NextWave.NotStarted
+            : record.TakenOutOf(fixCycle) is not null ? SeriesStatus.TakenOutState
+            : SeriesStatus.StateOf(fix);
 
         if (NextWave.IsOpen(fixState))
         {

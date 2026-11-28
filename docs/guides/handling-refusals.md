@@ -545,7 +545,8 @@ the plan branches with `sdlc slices` is usually the quickest way.
 
 ## A run's pull request — the ways it is refused
 
-`wave/<id>` and `series/<id>` carry several cycles built one after another into one branch. Each cycle whose
+`wave/<id>` and `series/<id>` carry several cycles, each built on a branch of its own and merged into the run's (or,
+in a run built before 0.61, one after another on it). Each cycle whose
 folder the pull request changes gets the whole chain it would get alone, and one that fails refuses the run —
 the entries above say what each of those means. An abandoned cycle in it is admitted as a record. Three refusals
 are a run's own, and `sdlc verify-chain series/<id> --base <branch>` gives all three; `sdlc pr-ready` on the run's
@@ -560,17 +561,22 @@ carries the cycles it built.
 
 ### a named test that failed at the end of the run
 
-A test one of the run's plans names in its `## Proof` did not run and pass in the last cycle's recorded
-run — the cycle every other one was built before. A later cycle broke what an earlier one proved, and
-nothing verifies the earlier cycle again. The check names each test and the cycle whose plan named it.
+A test one of the run's plans names in its `## Proof` did not run and pass in the run that holds every cycle: the
+run's last merge evidence — the whole suite, run by the binary on the commit its last merge made (D-234) — or, for a
+run built one after another, the last cycle's recorded run. One cycle broke what another proved, and nothing
+verifies the other again. The check names each test, the cycle whose plan named it, and which run it read. Merge
+evidence that does not hold every cycle's recorded head is not read, so a run whose cycles were built side by side and
+that has none is refused as *not in one line*.
 
-**Next:** fix it on the run's branch, then record the last cycle's evidence again, so its run is the one
-that shows every named test passing.
+**Next:** fix it on the run's branch. For a run the binary merged, `sdlc build --run` or `sdlc series run` again
+merges and runs the suite afresh; for one built one after another, record the last cycle's evidence again, so its run
+is the one that shows every named test passing.
 
 ### code no verified cycle accounts for
 
 A file outside `.sdlc/` that the pull request changes is in no built cycle's recorded change, or changed after
-the last cycle's recorded head. A cycle that carries only its paperwork — an abandoned one, a plan nobody built —
+the last cycle's recorded head, or the last merge. A cycle that carries only its paperwork — a cycle the run took out
+among them — — an abandoned one, a plan nobody built —
 is read from its own folder, so without this a run could carry code nobody verified while every cycle in it
 passed. Two causes are common: a cycle whose code was committed and whose evidence was never recorded, and an
 abandoned or unbuilt cycle whose code was left on the branch. A run with no built cycle at all that changes code
@@ -592,7 +598,8 @@ A series runs wave after wave into `series/<id>`, in a worktree of its own; `sdl
 
 `sdlc series start --waves <n>` was given a number below one. A series stops at its number of waves or an empty
 backlog, whichever comes first, and the number is the person's: an open-ended run is spend nobody chose. A
-`--wave-size` below one is refused the same way: a wave takes at least one item, and 3 when no size is named.
+`--wave-size` or `--parallel` below one is refused the same way: a wave takes at least one item, 3 when no size is
+named, and builds at least one cycle at a time, 2 when none is named.
 
 **Next:** start it again with the number of waves it may run, and leave `--wave-size` out or give it a number.
 
@@ -621,11 +628,12 @@ none.
 
 ### not on a run's branch
 
-`sdlc build --run` or `sdlc report --run` ran somewhere other than `wave/<id>` or `series/<id>`. A run builds, and
-reports on, the cycles its own branch carries.
+`sdlc build --run` ran somewhere other than `wave/<id>`, or `sdlc report --run` somewhere other than `wave/<id>` or
+`series/<id>`. A run builds, and reports on, the cycles its own branch carries; a series' waves are built by `sdlc
+series run`, which plans them too.
 
-**Next:** run it in the run's worktree, or pass it with `--solution`; for one cycle, `sdlc build <id>` or
-`sdlc report <id>`.
+**Next:** run it in the run's worktree, or pass it with `--solution`; on `series/<id>`, `sdlc series run`; for one
+cycle, `sdlc build <id>` or `sdlc report <id>`.
 
 ---
 

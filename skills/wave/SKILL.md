@@ -1,6 +1,6 @@
 ---
 name: wave
-description: Run the next wave from the backlog -- start every successor that is ready, take back every parked cycle whose predecessor merged, plan them all in one sandbox, then build every cycle of the wave on one branch into one pull request. Under approval required it stops at the approvals, and a later run builds what was approved. A playbook: intent suggests each successor's intent, to-plan checks and plans, and sdlc build --run builds the wave in a process of its own. Use after merges land, when someone asks what is next, or to keep a piece of work moving to completion.
+description: Run the next wave from the backlog -- start every successor that is ready, take back every parked cycle whose predecessor merged, plan them all in one sandbox, then build every cycle of the wave on one branch into one pull request. Under approval required it stops at the approvals, and a later run builds what was approved. A playbook: intent suggests each successor's intent, to-plan checks and plans, and sdlc build --run builds the wave's cycles a few at a time, each in a process of its own, merging each that passes. Use after merges land, when someone asks what is next, or to keep a piece of work moving to completion.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: ""
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
@@ -10,7 +10,7 @@ allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 
 **A playbook** (D-186): `intent` suggests each ready successor's intent and asks what it inferred, `to-plan`
 checks and plans every cycle the wave holds, its loop and its parking check included, and `sdlc build --run`
-builds them all, one after another, in a process of its own, into **one pull request for the wave**.
+builds them, a few at a time and each in a process of its own, into **one pull request for the wave** (D-234).
 
 Work that was sliced, or whose plans turned out to need each other, comes ready in waves: a successor once what
 it succeeds has merged, a parked cycle once what it waits on has. This takes **every item ready now**, plans it
@@ -114,16 +114,18 @@ Then:
 sdlc build --run --solution <the wave's worktree>
 ```
 
-**One command, and a process of its own** (D-187): it starts the `build` playbook's run form in that worktree,
-which builds every cycle of the wave one after another on `wave/<id>` — each implemented, verified and remediated
-as one cycle is — and opens **one pull request for the wave**. Tell the person in one line that the build has
+**One command, and the binary drives it** (D-187, D-234): it builds each cycle of the wave on a branch and in a
+worktree of its own, taken from `wave/<id>`, at most two at once (`--parallel <n>` says otherwise) and never two whose
+plans declare the same file — each implemented, verified and remediated as one cycle is, in a process of its own. Each
+that passes is merged into `wave/<id>` with the whole suite run on the result; one that does not is taken out, its
+branch pushed (D-235). Then it opens **one pull request for the wave**. Tell the person in one line that the build has
 started and that you will report when it ends. **Never start the build yourself** in this session: if the
 command refuses, show what it said.
 
 ## 8. Hand back once
 
-Show what `sdlc build --run` printed verbatim — the run's report and the pull request's link. A cycle whose
-verification stayed blocked is named there, with every cycle that depends on it and was not built. Then:
+Show what `sdlc build --run` printed verbatim — the run's report and the pull request's link. A cycle it took out
+is named there with why and the branch its work is on. Then:
 
 ```
 sdlc backlog

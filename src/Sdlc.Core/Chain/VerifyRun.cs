@@ -7,13 +7,14 @@ using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Git;
+using Sdlc.Core.Runs;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Chain;
 
 /// <summary>
-/// The pull-request check on a run's branch, <c>wave/&lt;id&gt;</c> or <c>series/&lt;id&gt;</c>: several cycles built
-/// one after another, in one pull request.
+/// The pull-request check on a run's branch, <c>wave/&lt;id&gt;</c> or <c>series/&lt;id&gt;</c>: several cycles in one
+/// pull request, built one after another on the branch or side by side and merged into it.
 /// </summary>
 /// <remarks>
 /// <para><strong>Each cycle is checked as it would be alone.</strong> Every cycle whose folder the pull request
@@ -23,12 +24,14 @@ namespace Sdlc.Core.Chain;
 /// the admission check a slicing would give it.</para>
 /// <para><strong>Then the one thing only a run can break.</strong> A later cycle can fail a test an earlier one
 /// named, and nothing verifies the earlier one again. So every test named in every built cycle's plan must have
-/// passed in the last cycle's run — the cycle whose recorded head every other built cycle's descends into.</para>
+/// passed in the run that holds them all: the run's last merge evidence when its merge commit holds every cycle's
+/// recorded head (D-234), and otherwise the last cycle's run — the cycle whose recorded head every other built cycle's
+/// descends into.</para>
 /// <para><strong>And every change outside <c>.sdlc/</c> belongs to a verified cycle.</strong> A cycle carrying only its
 /// paperwork is read from its own folder, so without this a run could carry code no cycle's evidence records — a cycle
 /// committed and never recorded, or an abandoned one whose code was never taken out — and every cycle would still pass.
 /// Every path the pull request changes outside <c>.sdlc/</c> must be in some built cycle's recorded change, and nothing
-/// there may change after the last cycle's head except what merging the integration branch brought.</para>
+/// there may change after the last cycle's head, or the last merge, except what merging the integration branch brought.</para>
 /// <para><strong>Still chosen by the diff</strong> (D-87): the branch's name says only that this is a run, so a
 /// pull request that changes no cycle's folder is refused rather than waved through.</para>
 /// </remarks>
@@ -162,10 +165,35 @@ public static class VerifyRun
                 }
             }
 
-            checks.Add(await NamedTestsAtTheEnd(built, cancellationToken).ConfigureAwait(false));
-            checks.Add(await Accounted(request.Changed, built, request.Divergence, cancellationToken).ConfigureAwait(false));
+            MergeRun? merge = await LastMerge(request.Kind, request.Id, built, cancellationToken).ConfigureAwait(false);
+            checks.Add(await NamedTestsAtTheEnd(built, merge, cancellationToken).ConfigureAwait(false));
+            checks.Add(await Accounted(request.Changed, built, request.Divergence, merge, cancellationToken).ConfigureAwait(false));
 
             return Result.Ok(new Response(request.Kind, request.Id, cycles, checks));
+        }
+
+        /// <summary>
+        /// The run's last merge evidence, when its merge commit holds every built cycle's recorded head (D-234): the run on
+        /// the merged result, which speaks for every cycle merged into it. Null for a run built one after another on its
+        /// branch, whose last cycle's run is the one that counts, and for evidence a later change left behind.
+        /// </summary>
+        private async Task<MergeRun?> LastMerge(RunKind kind, string id, List<Cycle> built, CancellationToken cancellationToken)
+        {
+            if (built.Count == 0 || (await MergeEvidence.Read(solution.Path, kind, id, cancellationToken).ConfigureAwait(false)).ValueOrDefault is not { } merge)
+            {
+                return null;
+            }
+
+            foreach (Cycle cycle in built)
+            {
+                if (await EvidenceDiff.Commit(cycle, RecordEvidence.HeadFileName, cancellationToken).ConfigureAwait(false) is not { } head
+                    || !repository.IsAncestor(solution.Path, head, merge.Head))
+                {
+                    return null;
+                }
+            }
+
+            return merge;
         }
 
         /// <summary>
@@ -176,6 +204,7 @@ public static class VerifyRun
             IReadOnlyList<string> changed,
             List<Cycle> built,
             string? divergence,
+            MergeRun? merge,
             CancellationToken cancellationToken)
         {
             string prefix = Cycle.SdlcDirectoryName + "/";
@@ -238,8 +267,9 @@ public static class VerifyRun
                     $"{Files(loose)} changed, and no built cycle's recorded change includes {(loose.Count == 1 ? "it" : "them")}. If a cycle built {(loose.Count == 1 ? "it" : "them")}, record that cycle's evidence; if {(loose.Count == 1 ? "it belongs" : "they belong")} to a cycle left unbuilt or abandoned, revert that code."));
             }
 
-            // After the last cycle's head, nothing may move but what a merge of the integration branch brought.
-            if (heads.FirstOrDefault(candidate => heads.All(other => repository.IsAncestor(solution.Path, other, candidate))) is { } last)
+            // After the last cycle's head -- or the last merge, which holds every head -- nothing may move but what a merge of
+            // the integration branch brought.
+            if ((merge?.Head ?? heads.FirstOrDefault(candidate => heads.All(other => repository.IsAncestor(solution.Path, other, candidate)))) is { } last)
             {
                 string from = last;
 
@@ -284,11 +314,16 @@ public static class VerifyRun
                 : string.Create(CultureInfo.InvariantCulture, $"{string.Join(", ", paths.Take(8))} and {paths.Count - 8} more");
 
         /// <summary>Every test every built cycle's plan names passed in the last cycle's run.</summary>
-        private async Task<VerifyChain.ChainCheck> NamedTestsAtTheEnd(List<Cycle> built, CancellationToken cancellationToken)
+        private async Task<VerifyChain.ChainCheck> NamedTestsAtTheEnd(List<Cycle> built, MergeRun? merge, CancellationToken cancellationToken)
         {
             if (built.Count == 0)
             {
                 return new VerifyChain.ChainCheck(NamedTestsCheck, true, "no cycle in this run was built, so no test is named.");
+            }
+
+            if (merge is not null)
+            {
+                return await Named(built, merge.Summary, "the run's last merge, " + merge.Head[..Math.Min(12, merge.Head.Length)], cancellationToken).ConfigureAwait(false);
             }
 
             List<(Cycle Cycle, string Head)> heads = [];
@@ -335,6 +370,12 @@ public static class VerifyRun
                 return new VerifyChain.ChainCheck(NamedTestsCheck, false, string.Join("; ", read.Errors.Select(error => error.Message)));
             }
 
+            return await Named(built, read.Value, "the last cycle's run, " + last.Id, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Every test every built cycle's plan names passed in one run.</summary>
+        private static async Task<VerifyChain.ChainCheck> Named(List<Cycle> built, TestSummary run, string which, CancellationToken cancellationToken)
+        {
             List<string> failed = [];
             int named = 0;
 
@@ -355,7 +396,7 @@ public static class VerifyRun
                 {
                     named++;
 
-                    if (!read.Value.DidPass(test))
+                    if (!run.DidPass(test))
                     {
                         failed.Add(string.Create(CultureInfo.InvariantCulture, $"{test} (cycle {cycle.Id})"));
                     }
@@ -368,13 +409,13 @@ public static class VerifyRun
                     true,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{named} test{(named == 1 ? string.Empty : "s")} named across {built.Count} cycle{(built.Count == 1 ? string.Empty : "s")}, every one passing in the last cycle's run, {last.Id}."))
+                        $"{named} test{(named == 1 ? string.Empty : "s")} named across {built.Count} cycle{(built.Count == 1 ? string.Empty : "s")}, every one passing in {which}."))
                 : new VerifyChain.ChainCheck(
                     NamedTestsCheck,
                     false,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"in the last cycle's run, {last.Id}, these did not run and pass: {string.Join(", ", failed)}. A later cycle broke what an earlier one proved; fix it on the run's branch and record the last cycle's evidence again."));
+                        $"in {which}, these did not run and pass: {string.Join(", ", failed)}. A later cycle broke what an earlier one proved; fix it on the run's branch and record the last cycle's evidence again."));
         }
     }
 }

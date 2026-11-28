@@ -30,6 +30,9 @@ public static class SeriesStatus
     /// <summary>What a cycle waiting, with its spec and plan kept, on code that has not merged says it is.</summary>
     public const string ParkedState = "parked";
 
+    /// <summary>What a cycle the series took out rather than merge says it is (D-235): its work is on its own branch.</summary>
+    public const string TakenOutState = "taken out";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -182,6 +185,19 @@ public static class SeriesStatus
             foreach (string line in fixes)
             {
                 text.AppendLine("  " + line);
+            }
+        }
+
+        if (record.TakenOut is { Count: > 0 } leftOut)
+        {
+            text.AppendLine();
+            text.AppendLine("Taken out -- did not pass or did not merge, left out so the rest could carry on (D-235):");
+
+            foreach (Runs.TakenOut cycle in leftOut)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  wave {cycle.Wave}: {cycle.Cycle} -- {cycle.Reason} Branch: {cycle.Branch}{(cycle.Pushed ? ", pushed" : ", on this machine only")}."));
             }
         }
 
