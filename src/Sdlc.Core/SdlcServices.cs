@@ -24,6 +24,7 @@ using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
+using Sdlc.Core.Runs;
 using Sdlc.Core.Series;
 using Sdlc.Core.Solutions;
 using Sdlc.Core.Successors;
@@ -77,6 +78,7 @@ public static class SdlcServices
         // Work trackers, read through the platforms' own CLIs so the binary never holds a token (D-89).
         services.TryAddSingleton<ITracker, CliTracker>();
         services.TryAddSingleton<IAgentProcess, CliAgentProcess>();
+        services.TryAddSingleton<ISuiteRunner, DotnetSuiteRunner>();
         services.TryAddSingleton<IBranchPolicies, CliBranchPolicies>();
 
         // Operate's store and the tracker it files into, both through the platforms' CLIs (D-89).
@@ -187,6 +189,14 @@ public static class SdlcServices
         services.AddSeriesStatusRequestHandler();
         services.AddSeriesRunRequestHandler();
         services.AddRunReportRequestHandler();
+
+        // A run's cycles built side by side and merged into its branch one at a time, each merge tested where it lands,
+        // by the binary rather than an agent (D-234).
+        services.AddMergeIntoRunRequestHandler();
+        services.AddWaveBuildRequestHandler();
+        services.AddDriveSeriesRequestHandler();
+        services.AddDriveWaveRequestHandler();
+        services.AddRunPullRequestRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

@@ -540,7 +540,7 @@ public sealed class SeriesTests
         Assert.AreEqual(2, record.Limit);
         Assert.AreEqual(SeriesRecord.DefaultWaveSize, record.WaveSize, "Given no size, a wave takes the default.");
         Assert.AreEqual(ApprovalRequirement.Required, record.Approval, "Read from solution.md, whose default is required.");
-        StringAssert.Contains(StartSeries.Render(started.Value), "of at most 3 items each, one after another");
+        StringAssert.Contains(StartSeries.Render(started.Value), "of at most 3 items each, one wave after another, 2 cycles of a wave building at once");
         StringAssert.Contains(StartSeries.Render(started.Value), "builds only cycles a person has already approved");
 
         // The worktree's folder beside the scratch solution, <root>.series, and nothing above it.
@@ -719,20 +719,21 @@ public sealed class SeriesTests
     }
 
     [TestMethod]
-    public void The_series_process_is_asked_for_its_playbook_unattended_with_every_skill_a_wave_and_a_build_run()
+    public void Each_series_process_is_asked_for_one_step_unattended_with_every_skill_planning_a_wave_runs()
     {
         IReadOnlyList<string> arguments = SeriesRun.ArgumentsFor(Run, "/plugin", ["make"]);
 
-        Assert.AreEqual("/sdlc:series " + Run + " --unattended", arguments[3]);
+        Assert.AreEqual("/sdlc:series " + Run + " --unattended --step plan", arguments[3]);
+        Assert.AreEqual("/sdlc:series " + Run + " --unattended --step stops --stops \"/tmp/stops.md\"", SeriesRun.PromptFor(Run, SeriesStep.Stops, "/tmp/stops.md"));
 
-        foreach (string skill in new[] { "intent", "to-plan", "spec", "plan", "interrogate", "refine", "build", "implement", "verify", "remediate", "pr", "resolve-conflict" })
+        foreach (string skill in new[] { "intent", "to-plan", "spec", "plan", "interrogate", "refine" })
         {
             CollectionAssert.Contains(arguments.ToList(), "Skill(sdlc:" + skill + ")");
         }
 
         CollectionAssert.Contains(arguments.ToList(), "Bash(make *)");
         CollectionAssert.DoesNotContain(arguments.ToList(), "--permission-mode");
-        Assert.AreEqual("/sdlc:build --run --unattended", BuildRun.PromptFor(null, run: true));
+        Assert.AreEqual("/sdlc:build " + First + " --unattended --no-pr", BuildRun.PromptFor(Parse(First), inRun: true), "A cycle of a run opens no pull request of its own.");
     }
 
     [TestMethod]

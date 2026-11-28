@@ -95,7 +95,7 @@ stage skill (D-29), and it is now `to-plan`'s, run the same way on the intent, t
 | [`plan`](#plan) | single | — |
 | [`to-plan`](#to-plan) | playbook | `spec`, `plan`, `interrogate`, `refine`, `steer` |
 | [`wave`](#wave) | playbook | `intent`, `to-plan` |
-| [`series`](#series) | playbook | `intent`, `to-plan`, `build`, `remediate`, `pr` |
+| [`series`](#series) | playbook | `intent`, `to-plan` |
 | [`interrogate`](#interrogate) | single | — |
 | [`refine`](#refine) | single | — |
 | [`steer`](#steer) | single | — |
@@ -658,7 +658,7 @@ approvals, and a later run builds what was approved.
 | Stage | the planning chain and the build, for whatever the last merges made ready |
 | Started by | a person, after merges land, or asking what is next for a piece of work |
 | Reads | `sdlc backlog` for the wave, or `sdlc cycles --here --for build` in a sandbox already planned; then what `intent`, `interrogate`, `spec` and `plan` read, per item |
-| Writes | what `intent`, `spec` and `plan` write, per item; removes a parked cycle's `parked.md` through `sdlc unpark`; then, through `sdlc build --run` on the wave's branch, what the build writes and the wave's one pull request |
+| Writes | what `intent`, `spec` and `plan` write, per item; removes a parked cycle's `parked.md` through `sdlc unpark`; then, through `sdlc build --run` on the wave's branch, what each cycle's build writes, the merge evidence and the wave's record under `.sdlc/waves/<id>/`, and the wave's one pull request |
 
 #### Syntax
 
@@ -711,15 +711,17 @@ until the series arrived; the rename took no alias, as `batch-build`'s retiremen
 
 - [`to-plan`](#to-plan) — what it runs for the intents it opened
 - [`intent`](#intent) — `--from successor:<slug>`, what it runs for each successor
-- [`build`](#build) — `--run`, what `sdlc build --run` starts for the wave
+- [`build`](#build) — `--no-pr`, what `sdlc build --run` starts for each of the wave's cycles
 - [Running a cycle](../docs/guides/running-a-cycle.md)
 
 ---
 
 ### `series`
 
-Runs a **series**: wave after wave of ready successors and parked cycles, planned and built one after another into
-one branch, `series/<id>`, ending in **one pull request**, until its wave limit or an empty backlog. What it may do
+Runs a **series**: wave after wave of ready successors and parked cycles into one branch, `series/<id>`, ending in
+**one pull request**, until its wave limit or an empty backlog. **The binary drives it** (D-234): `sdlc series run`
+takes each wave, starts this playbook to plan it, builds its cycles a few at a time in processes of their own, merges
+each that passes with the suite run on the result, and takes out a cycle that cannot be saved (D-235). What it may do
 follows the approval setting: under `approval: none` it plans and builds asking nobody; under `approval: required`
 it plans nothing and builds only cycles a person approved, in wave order.
 
@@ -727,14 +729,15 @@ it plans nothing and builds only cycles a person approved, in wave order.
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | the planning chain and the build, across several waves |
-| Started by | a person, with the number of waves it may run; with `--unattended`, the process `sdlc series run` starts, and the factory, which runs only series |
-| Reads | `sdlc series wave` for each wave, and `sdlc series status` |
-| Writes | nothing itself: what `intent`, `to-plan`, `build`, `remediate` and `pr` write, on `series/<id>` — `remediate` only to bring the branch up to date when `pr` finds it behind the integration branch (D-227); the series' record, `.sdlc/series/<id>/series.json`, through `sdlc series start`, `sdlc series wave` and `sdlc series wave --done` |
+| Started by | a person, with the number of waves it may run; with `--unattended --step`, a process `sdlc series run` starts — which the factory runs, and which runs only series |
+| Reads | `sdlc series wave` for the open wave, `sdlc series status`, and the stopped cycles' file `sdlc series run` hands it |
+| Writes | nothing itself: what `intent` and `to-plan` write, on `series/<id>`, and a fix through `sdlc series fix`; the binary writes the series' record, `.sdlc/series/<id>/series.json`, and its merge evidence beside it |
 
 #### Syntax
 
 ```
-/sdlc:series [<id>] [--waves <n>] [--wave-size <n>] [--unattended]
+/sdlc:series [<id>] [--waves <n>] [--wave-size <n>] [--parallel <n>]
+/sdlc:series <id> --unattended --step plan|stops [--stops <file>]
 ```
 
 #### Parameters
@@ -744,24 +747,28 @@ it plans nothing and builds only cycles a person approved, in wave order.
 | `<id>` | the series, as `sdlc series start` named it. `sdlc series run` passes it; a person starting one names none, and a person naming one, without `--unattended`, continues that series where it stopped (D-230) |
 | `--waves <n>` | how many waves it may run: it stops there or when nothing is ready, whichever comes first. Asked for when not given, since an open-ended run is spend nobody chose |
 | `--wave-size <n>` | how many items one wave may take, 3 when not given: what is ready past it waits for the next wave, so the waves times the wave size is the most a series takes on (D-228) |
-| `--unattended` | run as the series' own process: ask nothing. `sdlc series run` passes it, and the factory's pipeline runs it. A person never needs to type it |
+| `--parallel <n>` | how many of a wave's cycles build at once, 2 when not given (D-236). Each is a process of its own, so more at once reach a usage limit sooner |
+| `--unattended` | run as one of the series' processes: ask nothing. `sdlc series run` passes it. A person never needs to type it |
+| `--step plan` | with `--unattended`: plan the open wave — each successor's intent, each unparked cycle, then `to-plan` — and stop |
+| `--step stops --stops <file>` | with `--unattended`: read the cycles the wave's build left stopped, add the fix a test that comes and goes needs (D-232), and stop. Every other stop is taken out by the binary |
 
 #### Output
 
 In a person's session, the series' list as it started, what `sdlc series run` printed, `sdlc series status` verbatim, and
 the pull request's link.
-In its own process, wave after wave: each successor's intent suggested with its `(inferred)` marks left, each cycle
-planned with its loop, each wave built and recorded on the series' branch — then one pull request, its body a short
-summary followed by `sdlc report --run`.
+In its own process, one step: the wave planned — each successor's intent suggested with its `(inferred)` marks
+left, each cycle planned with its loop — or the stops answered, one line per cycle. Between the steps the binary
+builds and merges each wave, records it on the series' branch and pushes it, and at the end opens one pull request,
+its body a short summary followed by `sdlc report --run`.
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
-| fewer than one wave, or a wave size below one | `sdlc series start` refuses | name a number |
+| fewer than one wave, or a wave size or `--parallel` below one | `sdlc series start` refuses | name a number |
 | `sdlc series run` names no series, or the worktree is not on its branch | refuses, saying which worktree to pass | `--solution` with the path `sdlc series start` printed |
 | a cycle's loop cannot settle, or a question only a person can answer comes up | that cycle stops where it is, with its reason; the series goes on with what is ready | answer it after the series, then take it to plan |
-| a verification stays blocked | that cycle and every cycle depending on it stop; the rest carry on | the pull request's report names each |
+| a verification stays blocked, its merge conflicts, or the suite fails on the merged result | that cycle is taken out with its reason and its pushed branch; the rest carry on (D-235) | the report's *Taken out* section names each; start a wave or a series from it later |
 
 #### Example
 
@@ -797,6 +804,14 @@ recorded run and failed in its own, the series runs `sdlc series fix`, which put
 what it stopped until it passes. One fix a wave, never two for one test, never under `approval: required`; its report
 says what it added and why.
 
+**Cycles build side by side and merge one at a time** (D-234, D-236). Each of a wave's cycles is built on a branch of
+its own taken from the series' latest, at most `--parallel` at once, and two whose plans declare the same file never
+at once. Each that passes is merged by the binary under a lock, with the whole suite run on the result; a merge the
+suite fails is undone. The pull-request check reads that last run, since it holds every cycle merged.
+
+**A cycle that cannot be saved is taken out, not abandoned** (D-235): its branch is pushed with its plan, code and
+findings, the report names it and why, and a person starts a wave or a series from it later.
+
 **A series that stops partway is continued, not restarted** (D-230). Each wave is recorded built once every item in
 it has an outcome or has stopped, so a series that hit a usage limit or lost its process is handed its open wave
 back the next time it runs, each item with what is left of it, rather than a new wave that counts the stopped one
@@ -805,7 +820,7 @@ against the limit. `/sdlc:series <id>` runs it again in its worktree.
 #### See also
 
 - [`wave`](#wave) — one wave, with the person
-- [`intent`](#intent), [`to-plan`](#to-plan) — each `--unattended`; [`build`](#build), [`pr`](#pr) — each `--run`: what it runs
+- [`intent`](#intent), [`to-plan`](#to-plan) — each `--unattended`: what it runs; [`build`](#build) `--no-pr` and [`pr`](#pr) `--run` — what `sdlc series run` starts beside it
 - [Running a cycle](../docs/guides/running-a-cycle.md), [Running the factory](../docs/guides/running-the-factory.md)
 
 ---
@@ -1220,15 +1235,14 @@ build made that nothing approved settled, and every concern (D-181).
 |---|---|
 | Kind | playbook — it names the skills it runs and does no stage work itself |
 | Stage | build, verify and the pull request, once the gate is satisfied |
-| Started by | a person saying *build it*, after the cycle's planning documents are approved; with `--unattended`, the process `sdlc build` starts; with `--run`, the process `sdlc build --run` starts for a wave, and the series for each of its waves |
+| Started by | a person saying *build it*, after the cycle's planning documents are approved; with `--unattended`, the process `sdlc build` starts; with `--no-pr`, a process `sdlc build --run` or `sdlc series run` starts for one cycle of the run |
 | Reads | `sdlc gate`, then `sdlc cycles --queued` and `--claims` in its own process |
 | Writes | nothing itself: what `implement`, `verify`, `remediate` and `pr` write, for each cycle, in its own worktree on `cycle/<id>/build-unattended` |
 
 #### Syntax
 
 ```
-/sdlc:build [<cycle id>] [--unattended]
-/sdlc:build --run [--no-pr] --unattended
+/sdlc:build [<cycle id>] [--unattended] [--no-pr]
 ```
 
 #### Parameters
@@ -1237,8 +1251,7 @@ build made that nothing approved settled, and every concern (D-181).
 |---|---|
 | `<cycle id>` | the approved cycle to build. Optional: without it, every approved cycle ready to build — `sdlc cycles --here --for build` says which before it starts |
 | `--unattended` | run as the build's own process: ask nothing. `sdlc build` passes it. A person never needs to type it |
-| `--run` | on a run's branch, `wave/<id>` or `series/<id>`: build every planned, unbuilt cycle the branch carries — a wave's, or a series' current wave — one after another on that branch, with no branch or worktree of a cycle's own, then one pull request for the run through `pr --run`. A cycle that stays blocked or escalated is left as it is, and every cycle depending on it is skipped and named. `sdlc build --run` starts it for a wave; the series runs it for each wave |
-| `--no-pr` | with `--run`: open no pull request. The series passes it for each wave and opens one at the end |
+| `--no-pr` | for one cycle of a wave or a series: stop at the verdict and open no pull request. The binary merges a pass into the run's branch and opens one pull request for the run (D-234) |
 
 #### Output
 
@@ -1273,13 +1286,14 @@ it (D-66), which is why the factory's pipeline job has a timeout.
 
 **One name for building** (D-187). `batch-build` was the many-cycle form and `sdlc build-run` the command that
 started a person's build; both are gone. Given no id it builds every approved cycle, each independently in its own
-worktree; with `--unattended` it asks nothing. **With `--run` it builds a run of several cycles** into one branch and
-one pull request — a wave's or a series' — and a series is what the factory runs now.
+worktree; with `--unattended` it asks nothing. **A run of several cycles is the binary's** (D-234): `sdlc build --run`
+for a wave and `sdlc series run` for a series start this playbook with `--no-pr` once per cycle, merge each that
+passes, and open one pull request — and a series is what the factory runs now.
 
 #### See also
 
 - [`implement`](#implement), [`verify`](#verify), [`remediate`](#remediate), [`pr`](#pr) — what it runs
-- [`wave`](#wave), [`series`](#series) — what starts its run form
+- [`wave`](#wave), [`series`](#series) — the runs that start it once per cycle
 - [Running a cycle](../docs/guides/running-a-cycle.md), [Running the factory](../docs/guides/running-the-factory.md)
 
 ### `implement`

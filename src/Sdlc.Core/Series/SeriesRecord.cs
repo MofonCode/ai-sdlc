@@ -36,7 +36,15 @@ public sealed record SeriesItem(SeriesItemKind Kind, string Ref, string? Cycle);
 /// When the series recorded it built, through <c>sdlc series wave --done</c>, or null while it is open: a series that
 /// stopped partway through it finishes it before the next is taken (D-230).
 /// </param>
-public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyList<SeriesItem> Items, DateTimeOffset? Done = null);
+/// <param name="Size">
+/// How many items it could take, set from the series' wave size when it was taken: the wave owns its own limits (D-236).
+/// Null for a wave recorded before the key existed.
+/// </param>
+/// <param name="Parallel">
+/// How many of its cycles build at once, set from the series' setting when it was taken (D-236). Null for a wave recorded
+/// before the key existed, which built one after another.
+/// </param>
+public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyList<SeriesItem> Items, DateTimeOffset? Done = null, int? Size = null, int? Parallel = null);
 
 /// <summary>One item on a series' list: what it may take, frozen when it starts (D-231).</summary>
 /// <param name="Kind">What starts it.</param>
@@ -81,7 +89,15 @@ public sealed record SeriesScopeItem(SeriesItemKind Kind, string Ref, int Wave);
 /// Each fix the series added to itself, in the order added: a fault that stopped a wave's evidence, fixed in a cycle of
 /// its own at the head of that wave (D-232). Empty for a record written before the key existed.
 /// </param>
-public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize, IReadOnlyList<SeriesScopeItem>? Scope = null, IReadOnlyList<SeriesFix>? Fixes = null)
+/// <param name="Parallel">
+/// How many cycles each wave builds at once, which each wave copies when it is taken (D-236). A record written before
+/// the key existed reads as <see cref="Runs.WaveRecord.DefaultParallel"/>.
+/// </param>
+/// <param name="TakenOut">
+/// Each cycle a wave took out rather than merge, in the order it did (D-235). Empty for a record written before the key
+/// existed.
+/// </param>
+public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize, IReadOnlyList<SeriesScopeItem>? Scope = null, IReadOnlyList<SeriesFix>? Fixes = null, int Parallel = Runs.WaveRecord.DefaultParallel, IReadOnlyList<Runs.TakenOut>? TakenOut = null)
 {
     /// <summary>How many items a wave takes when the person starting the series names no number.</summary>
     public const int DefaultWaveSize = 3;
@@ -131,9 +147,10 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
     /// <param name="limit">How many waves it may run.</param>
     /// <param name="approval">The approval setting it starts under.</param>
     /// <param name="waveSize">How many items one wave may take.</param>
+    /// <param name="parallel">How many cycles each wave builds at once.</param>
     /// <returns>The record.</returns>
-    public static SeriesRecord Start(string id, DateTimeOffset started, int limit, ApprovalRequirement approval, int waveSize = DefaultWaveSize) =>
-        new(id, started, limit, approval, [], waveSize);
+    public static SeriesRecord Start(string id, DateTimeOffset started, int limit, ApprovalRequirement approval, int waveSize = DefaultWaveSize, int parallel = Runs.WaveRecord.DefaultParallel) =>
+        new(id, started, limit, approval, [], waveSize, Parallel: parallel);
 
     /// <summary>Reads a record's text.</summary>
     /// <param name="json">The text.</param>
@@ -158,6 +175,7 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
             {
                 Waves = [.. (read.Waves ?? []).Select(wave => wave with { Items = wave.Items ?? [] })],
                 WaveSize = read.WaveSize < 1 ? DefaultWaveSize : read.WaveSize,
+                Parallel = read.Parallel < 1 ? Runs.WaveRecord.DefaultParallel : read.Parallel,
                 Fixes = read.Fixes is null ? null : [.. read.Fixes.Select(fix => fix with { Holds = fix.Holds ?? [] })],
             });
         }
@@ -190,7 +208,7 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
     /// <param name="items">What it took.</param>
     /// <returns>The new record.</returns>
     public SeriesRecord WithWave(DateTimeOffset started, IReadOnlyList<SeriesItem> items) =>
-        this with { Waves = [.. Waves, new SeriesWave(Waves.Count + 1, started, items)] };
+        this with { Waves = [.. Waves, new SeriesWave(Waves.Count + 1, started, items, Size: WaveSize, Parallel: Parallel)] };
 
     /// <summary>What names an item on a series' list or in a wave, the way the backlog names it.</summary>
     /// <param name="kind">What starts it.</param>
@@ -228,6 +246,22 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
             Fixes = [.. Fixes ?? [], fix],
         };
     }
+
+    /// <summary>The record with cycles its last wave took out (D-235).</summary>
+    /// <param name="taken">What was taken out.</param>
+    /// <returns>The new record.</returns>
+    public SeriesRecord WithTakenOut(IReadOnlyList<Runs.TakenOut> taken)
+    {
+        ArgumentNullException.ThrowIfNull(taken);
+
+        return taken.Count == 0 ? this : this with { TakenOut = [.. TakenOut ?? [], .. taken] };
+    }
+
+    /// <summary>What the series took out of a cycle, when it took it out (D-235).</summary>
+    /// <param name="cycle">The cycle's id.</param>
+    /// <returns>The record of it, or null.</returns>
+    public Runs.TakenOut? TakenOutOf(string? cycle) =>
+        cycle is null ? null : TakenOut?.LastOrDefault(taken => string.Equals(taken.Cycle, cycle, StringComparison.Ordinal));
 
     /// <summary>The record with its last wave recorded built.</summary>
     /// <param name="done">When.</param>

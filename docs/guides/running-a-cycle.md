@@ -277,8 +277,8 @@ behind what merged — there are two larger ones. **Each is one skill, ends in o
 | Run | Builds | Asks you | Pull request |
 |---|---|---|---|
 | **cycle** — *build it*, `/sdlc:build` | one approved cycle, on its own branch | everything above | the cycle's |
-| **wave** — `/sdlc:wave` | every item ready now, planned together in one sandbox, then built one after another on `wave/<id>` | each successor's inferred lines and the suggestions; under `approval: required` it stops at the approvals, and `/sdlc:wave` again builds what you approved | one, the wave's |
-| **series** — `/sdlc:series --waves <n> [--wave-size <n>]` | wave after wave on `series/<id>`, at most three items a wave unless `--wave-size` says, one after another, until that many waves or nothing is ready | nothing, once started | one, the series' |
+| **wave** — `/sdlc:wave` | every item ready now, planned together in one sandbox, then built a few at a time and merged into `wave/<id>` | each successor's inferred lines and the suggestions; under `approval: required` it stops at the approvals, and `/sdlc:wave` again builds what you approved | one, the wave's |
+| **series** — `/sdlc:series --waves <n> [--wave-size <n>] [--parallel <n>]` | wave after wave on `series/<id>`, at most three items a wave unless `--wave-size` says, two of a wave's cycles building at once unless `--parallel` says, until that many waves or nothing is ready | nothing, once started | one, the series' |
 
 **A series plans only where nobody reads plans before code anyway.** Under `approval: none` it suggests each
 successor's intent, plans it and builds it, wave after wave, asking nobody; every line it inferred stays marked and
@@ -289,9 +289,15 @@ predecessor passed on the series' branch, so later waves build on earlier ones b
 why **the whole series is accepted or rejected together**, at its one pull request. Rejecting it is one step:
 `sdlc draft abandon --series <id>` prints the record you place to stop every cycle that exists only in it; an approved cycle already on the integration branch stays as it stands, to be built again.
 
-**In a wave or a series, a blocked verification stops only that cycle and those that depend on it**; the rest
-carry on, and the run's report — `sdlc report --run`, which leads its pull request — names what stopped and what it
-held back. `sdlc backlog` lists what is waiting, and `sdlc series status` where a series stands.
+**In a wave or a series, each cycle builds on a branch of its own and the binary merges it** (D-234). Each is built in
+a process of its own from the run's latest — two at a time unless you say, never two whose plans touch the same file
+(D-236) — and each that passes is merged into the run's branch one at a time, with your whole suite run on the
+result. Two cycles can each pass alone and fail together; a merge the suite fails is undone. **A cycle that cannot be
+saved is taken out** (D-235) — its verification stayed blocked, its merge conflicted, or the suite failed on the
+result — and the rest carry on. It is not abandoned: its branch is pushed with its code and findings, and the run's
+report — `sdlc report --run`, which leads its pull request — has a *Taken out* section saying why and where its work
+is, so you can start a wave or a series from it later. `sdlc backlog` lists what is waiting, and `sdlc series status`
+where a series stands.
 
 **A series starts by printing its list**: everything it may take, worked out from the backlog, in the waves it is
 forecast to take them in, with what it left out — what its waves cannot hold, and what waits on work it does not
@@ -303,6 +309,16 @@ shows the list, the wave each item was taken in, and which of each cycle's steps
 cycle's recorded run and failed in a later one stops every remaining build's evidence, so under `approval: none` the
 series writes the fix, builds it first in the wave, and builds what it stopped again once it passes — without asking.
 `sdlc series status` and the run's report say what it added, where the test passed and failed, and what it held.
+
+**A run loses at most the step it was on** (D-233). Every step is committed as it finishes and every wave is pushed,
+so a usage limit, a closed session or a lost machine costs the step in hand. A build picks up at the step `sdlc
+status` names — evidence with no verdict is verified, not built again, and a cycle that passed on its branch before
+the run stopped is merged without being built again. `sdlc series run` drives the series from the binary, starting a
+process for each step — planning a wave, building a cycle, the pull request — so no process waits hours on another.
+Every process it starts is given Claude Code's
+`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, which you never set yourself: without it a headless process stops its
+background work after ten minutes and exits 0, which once killed a twenty-minute evidence run and looked like a clean
+finish. `sdlc series run` exits non-zero whenever it stops before its pull request.
 
 **A series that stops partway** — a usage limit reached, the session closed — **is continued with
 `/sdlc:series <id>`**. It runs the series again in its worktree, and the series finishes the wave it stopped in

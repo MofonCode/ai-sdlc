@@ -336,18 +336,20 @@ Abandoning is terminal and recorded with a reason, and the rename is yours, like
 
 ### In a wave or a series
 
-**A cycle that stays blocked or escalated in a run of several stops only itself and what depends on it.** Its
-siblings carry on; every successor that succeeds it and every parked cycle that waits on it is skipped, not built.
-There is no draft pull request of its own: the run's one pull request is a draft, and its report — `sdlc report
---run` — names the cycle, what stopped it, and each cycle it held back. Answer it the same way, naming the cycle:
-*fix it* on that pull request, or abandon it.
+**A cycle that stays blocked or escalated in a run of several is taken out of it** (D-235). It was built on a branch
+of its own, so it is simply never merged: its branch is pushed with its code, verdict and findings, and the run carries
+on and opens its pull request without it. The same happens to a cycle that passed but whose merge conflicted, or whose
+merge the suite failed on — two cycles can each pass alone and break each other. Every successor that succeeds it and
+every parked cycle that waits on it stays waiting. The run's report — `sdlc report --run` — and `sdlc series status`
+name each cycle taken out, why, and its branch. Nothing is abandoned: start a wave or a series from it once you have
+looked, or abandon it yourself.
 
 **One stop a series answers itself: a test that comes and goes** (D-232). When a build hands back a cycle because a
 test failed that its change did not cause, and a cycle's recorded evidence shows that test passing, a series under
 `approval: none` runs `sdlc series fix`: the fix becomes a successor first in the wave, the cycles it stopped wait for
 it, and they are built again once it passes. Nobody is asked; the report's *Added by the series* section says what
 was added and why. It adds one fix a wave and never two for one test — past that, or under `approval: required`, the
-cycles stay stopped and are yours, as above.
+cycles are taken out and are yours, as above.
 
 ---
 

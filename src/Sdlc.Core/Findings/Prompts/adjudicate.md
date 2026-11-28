@@ -140,7 +140,8 @@ perspective lists is a criterion not met, citing that rule. **Anything else it f
 record here**: the interrogation of this document that follows runs every perspective's reader against the
 same evidence, and writes what they find with the perspective named, which is where `sdlc harvest
 constraints` counts it. Writing it into `verify.md` as well would put it in a file nothing counts. It never
-adds a criterion the spec did not state.
+adds a criterion the spec did not state. **Nor a section of its own**: an answer goes in the entry of the criterion it
+bears on, and `verify.md` carries only `## Criteria` and `## Open` — `sdlc round verdict` refuses any other.
 
 ## Cite everything
 

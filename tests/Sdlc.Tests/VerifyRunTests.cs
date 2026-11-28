@@ -4,6 +4,7 @@ using Sdlc.Core.Chain;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Git;
+using Sdlc.Core.Runs;
 
 namespace Sdlc.Tests;
 
@@ -20,6 +21,7 @@ public sealed class VerifyRunTests
     private const string FirstHead = "1111111111111111111111111111111111111111";
     private const string SecondHead = "2222222222222222222222222222222222222222";
     private const string RunBase = "0000000000000000000000000000000000000000";
+    private const string MergeHead = "3333333333333333333333333333333333333333";
     private const string NamedTests = "every named test passed at the end of the run";
     private const string Accounted = "every change outside .sdlc/ belongs to a verified cycle";
     private const string Run = "20261121_0930_15";
@@ -75,6 +77,63 @@ public sealed class VerifyRunTests
         StringAssert.Contains(verdict.Checks.Single(c => c.Name == NamedTests).Detail, "the last cycle's run, " + Second);
         Assert.IsTrue(verdict.Checks.Single(c => c.Name == Accounted).Passed);
         StringAssert.Contains(VerifyRun.Render(verdict), "The series holds");
+    }
+
+    [TestMethod]
+    public async Task Cycles_built_side_by_side_are_held_by_the_run_on_their_merged_result()
+    {
+        // Each cycle built from the run's base on a branch of its own, so neither's head holds the other's: only the
+        // suite run on the merge commit speaks for both (D-234).
+        using CycleWorkspace workspace = Built();
+        using CycleWorkspace second = Beside(workspace);
+        WriteMerge(workspace, MergeHead, proofs: 3);
+
+        VerifyRun.Response verdict = await Check(workspace, Changed(First, Second), SideBySide);
+
+        Assert.IsTrue(verdict.Holds, Describe(verdict));
+        StringAssert.Contains(verdict.Checks.Single(c => c.Name == NamedTests).Detail, "the run's last merge, " + MergeHead[..12]);
+    }
+
+    [TestMethod]
+    public async Task Cycles_built_side_by_side_with_no_merge_evidence_are_not_in_one_line()
+    {
+        using CycleWorkspace workspace = Built();
+        using CycleWorkspace second = Beside(workspace);
+
+        VerifyRun.Response verdict = await Check(workspace, Changed(First, Second), SideBySide);
+
+        VerifyChain.ChainCheck atTheEnd = verdict.Checks.Single(c => c.Name == NamedTests);
+        Assert.IsFalse(atTheEnd.Passed);
+        StringAssert.Contains(atTheEnd.Detail, "not in one line");
+    }
+
+    [TestMethod]
+    public async Task Merge_evidence_that_does_not_hold_every_cycle_speaks_for_none_of_them()
+    {
+        // A merge recorded before the second cycle merged ran on less than the pull request carries.
+        using CycleWorkspace workspace = Built();
+        using CycleWorkspace second = Beside(workspace);
+        WriteMerge(workspace, FirstHead, proofs: 3);
+
+        VerifyRun.Response verdict = await Check(workspace, Changed(First, Second), SideBySide);
+
+        Assert.IsFalse(verdict.Checks.Single(c => c.Name == NamedTests).Passed, Describe(verdict));
+    }
+
+    [TestMethod]
+    public async Task A_test_failing_in_the_merged_run_fails_the_run_though_each_cycle_passed_alone()
+    {
+        using CycleWorkspace workspace = Built();
+        using CycleWorkspace second = Beside(workspace);
+        WriteMerge(workspace, MergeHead, proofs: 3, failing: 2);
+
+        VerifyRun.Response verdict = await Check(workspace, Changed(First, Second), SideBySide);
+
+        Assert.IsTrue(verdict.Cycles.All(c => c.Holds), Describe(verdict));
+        VerifyChain.ChainCheck atTheEnd = verdict.Checks.Single(c => c.Name == NamedTests);
+        Assert.IsFalse(atTheEnd.Passed);
+        StringAssert.Contains(atTheEnd.Detail, "in the run's last merge");
+        StringAssert.Contains(atTheEnd.Detail, "Thing_does_the_thing_2 (cycle " + Second + ")");
     }
 
     [TestMethod]
@@ -258,6 +317,40 @@ public sealed class VerifyRunTests
         CycleWorkspace second = workspace.Beside(Second);
         Sound(second, 3, FirstHead, SecondHead);
         return second;
+    }
+
+    /// <summary>The second sound cycle, built beside the first from the run's base rather than on top of it.</summary>
+    private static CycleWorkspace Beside(CycleWorkspace workspace)
+    {
+        CycleWorkspace second = workspace.Beside(Second);
+        Sound(second, 3, RunBase, SecondHead);
+        return second;
+    }
+
+    /// <summary>Both heads merged into one commit, and nothing changed since.</summary>
+    private static void SideBySide(FakeRepository git)
+    {
+        git.Ancestors.Remove((FirstHead, SecondHead));
+        git.Ancestors.Add((FirstHead, MergeHead));
+        git.Ancestors.Add((SecondHead, MergeHead));
+        git.CommittedBetween[(RunBase, SecondHead)] = ["src/Thing.cs"];
+        git.CommittedBetween[(MergeHead, "HEAD")] = [];
+    }
+
+    /// <summary>The run's merge evidence: the merge commit, and the suite run on it.</summary>
+    private static void WriteMerge(CycleWorkspace workspace, string head, int proofs, params int[] failing)
+    {
+        string directory = MergeEvidence.DirectoryIn(workspace.Root, RunKind.Series, Run);
+        Directory.CreateDirectory(directory);
+        CycleWorkspace.WriteRaw(Path.Combine(directory, RecordEvidence.HeadFileName), head + "\n");
+        CycleWorkspace.WriteRaw(
+            Path.Combine(directory, RecordEvidence.SummaryFileName),
+            TestSummaryReader.Write(new TestSummary(
+                null,
+                DateTimeOffset.UnixEpoch,
+                [.. Enumerable.Range(1, proofs).Select(number => new RecordedTest(
+                    "Thing.Tests.Thing_does_the_thing_" + number.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    failing.Contains(number) ? TestOutcome.Failed : TestOutcome.Passed))])));
     }
 
     private static void Sound(CycleWorkspace workspace, int proofs, string from, string head)

@@ -74,6 +74,16 @@ public interface IAgentProcess
 /// </remarks>
 public sealed class CliAgentProcess : IAgentProcess
 {
+    /// <summary>
+    /// Claude Code's own setting for how long a headless process waits on its background work after its last turn.
+    /// </summary>
+    /// <remarks>
+    /// Left unset it waits ten minutes, then stops that work and exits 0, so a build waiting on a long evidence run is
+    /// killed and reads as a clean finish -- what stopped a real series' first run. Every process the binary starts is
+    /// given <c>0</c>, waiting as long as the work takes; the launch's own timeout still bounds the whole.
+    /// </remarks>
+    public const string BackgroundWaitVariable = "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS";
+
     private readonly string? _executable;
 
     /// <summary>Starts <c>claude</c>, found on the path.</summary>
@@ -112,6 +122,7 @@ public sealed class CliAgentProcess : IAgentProcess
         }
 
         start.Environment.Remove(PinnedRelease.HandedOnVariable);
+        start.Environment[BackgroundWaitVariable] = "0";
 
         if (launch.Reader)
         {

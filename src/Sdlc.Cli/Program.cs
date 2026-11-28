@@ -1522,24 +1522,38 @@ static async Task<int> BacklogCommand(Workspace workspace, CommandLine line)
 // a cycle, that cycle; with none, every queued cycle in one process.
 static async Task<int> BuildVerb(CommandLine line) =>
     line.HasOption("run")
-        ? await Workspace.Run(line, BuildRunCommand).ConfigureAwait(false)
+        ? await Workspace.Run(line, workspace => BuildRunCommand(workspace, line)).ConfigureAwait(false)
         : line.Arguments.Count == 0
             ? await Workspace.Run(line, BuildEveryQueuedCommand).ConfigureAwait(false)
             : await WithCycle(line, "build", BuildCommand).ConfigureAwait(false);
 
-// The run checked out here, wave/<id> or series/<id>: its own process builds every cycle the branch carries, one
-// after another, into that branch, with no branch or worktree of a cycle's own; it ends in the run's one pull request.
-static async Task<int> BuildRunCommand(Workspace workspace)
+// The wave checked out here, wave/<id>: the binary builds every cycle it carries a few at a time, each in a branch
+// and a worktree of its own, merges each that passes with the suite run on the result, and opens the wave's one pull
+// request (D-234). A series' waves are built by 'sdlc series run', which plans them too.
+static async Task<int> BuildRunCommand(Workspace workspace, CommandLine line)
 {
     string? on = workspace.Repository.IsRepository(workspace.SolutionRoot) ? workspace.Repository.CurrentBranch(workspace.SolutionRoot) : null;
 
-    if (!RunBranch.TryParse(on, out RunKind kind, out string? run))
+    if (!RunBranch.TryParse(on, out RunKind kind, out string? run) || kind != RunKind.Wave)
     {
-        await Console.Error.WriteLineAsync(string.Create(
-            CultureInfo.InvariantCulture,
-            $"'sdlc build --run' builds a run's cycles on the run's own branch, wave/<id> or series/<id>, and this is {on ?? "no branch"}. Run it in the run's worktree, or name it with --solution; for one cycle, 'sdlc build <id>'."))
+        await Console.Error.WriteLineAsync(kind == RunKind.Series && run is not null
+            ? string.Create(CultureInfo.InvariantCulture, $"A series' waves are planned and built by 'sdlc series run {run}', which this is the worktree of.")
+            : string.Create(CultureInfo.InvariantCulture, $"'sdlc build --run' builds a wave's cycles on the wave's own branch, wave/<id>, and this is {on ?? "no branch"}. Run it in the wave's worktree, or name it with --solution; for one cycle, 'sdlc build <id>'."))
             .ConfigureAwait(false);
         return ExitCode.Refused;
+    }
+
+    int? parallel = null;
+
+    if (line.TryOption("parallel", out string? across))
+    {
+        if (!int.TryParse(across, NumberStyles.Integer, CultureInfo.InvariantCulture, out int given) || given < 1)
+        {
+            await Console.Error.WriteLineAsync($"How many of the wave's cycles may build at once? As in 'sdlc build --run --parallel 1'; left out, it is what the wave's record says, {Sdlc.Core.Runs.WaveRecord.DefaultParallel} for a new one.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        parallel = given;
     }
 
     if (await BuildPlugin().ConfigureAwait(false) is not { } plugin)
@@ -1549,34 +1563,28 @@ static async Task<int> BuildRunCommand(Workspace workspace)
 
     await Console.Error.WriteLineAsync(string.Create(
         CultureInfo.InvariantCulture,
-        $"Building every cycle {RunBranch.NameOf(kind, run)} carries, in {workspace.SolutionRoot}, one after another into that branch. Its own process implements, verifies and fixes what it can, and opens the run's one pull request; it asks nothing, and this waits for it."))
+        $"Building every cycle wave/{run} carries, in {workspace.SolutionRoot}, a few at a time, each in a worktree of its own, merging each that passes into wave/{run} with the suite run on the result{(line.HasOption("no-pr") ? string.Empty : ", then its one pull request")}. It asks nothing, and this waits for it."))
         .ConfigureAwait(false);
     await ToolsInEffect(workspace.SolutionRoot).ConfigureAwait(false);
 
-    return await Launched(await workspace
-        .Send<BuildRun.Launch, Sdlc.Core.AgentExit>(new BuildRun.Launch(null, workspace.SolutionRoot, plugin, Run: true))
-        .ConfigureAwait(false), "'sdlc report --run' says where each cycle stopped.").ConfigureAwait(false);
-}
+    Result<Sdlc.Core.Runs.DriveWave.Response> driven = await workspace
+        .Send<Sdlc.Core.Runs.DriveWave.Command, Sdlc.Core.Runs.DriveWave.Response>(
+            new Sdlc.Core.Runs.DriveWave.Command(run, plugin, parallel, !line.HasOption("no-pr"), new ConsoleProgress()))
+        .ConfigureAwait(false);
 
-// How a launched process ended, said once for every command that starts one and prints nothing after it.
-static async Task<int> Launched(Result<Sdlc.Core.AgentExit> exit, string where)
-{
-    if (exit.IsFailed)
+    if (driven.IsFailed)
     {
-        return await Report(exit, ExitCode.Failed).ConfigureAwait(false);
+        return await Report(driven, ExitCode.Failed).ConfigureAwait(false);
     }
 
-    if (exit.Value.NeverStarted)
+    if (driven.Value.Said is { Length: > 0 } said)
     {
-        await Console.Error.WriteLineAsync("The process cannot start: " + exit.Value.Problem).ConfigureAwait(false);
-        return ExitCode.Failed;
+        await Console.Out.WriteLineAsync(said).ConfigureAwait(false);
     }
 
-    await HandedBack(exit.Value).ConfigureAwait(false);
-
-    if (!exit.Value.Succeeded)
+    if (driven.Value.Stopped is { } stopped)
     {
-        await Console.Error.WriteLineAsync("The process ended badly: " + exit.Value.Problem + " " + where).ConfigureAwait(false);
+        await Console.Error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"Wave {run} stopped before its pull request: {stopped}")).ConfigureAwait(false);
         return ExitCode.Failed;
     }
 
@@ -1636,10 +1644,18 @@ static async Task<int> SeriesCommand(CommandLine line)
                 return ExitCode.Usage;
             }
 
+            int parallel = Sdlc.Core.Runs.WaveRecord.DefaultParallel;
+
+            if (line.TryOption("parallel", out string? across) && !int.TryParse(across, NumberStyles.Integer, CultureInfo.InvariantCulture, out parallel))
+            {
+                await Console.Error.WriteLineAsync($"How many of a wave's cycles may build at once? As in 'sdlc series start --waves 3 --parallel 1'; left out, it is {Sdlc.Core.Runs.WaveRecord.DefaultParallel}.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
             return await Workspace.Run(rest, async workspace =>
             {
                 Result<StartSeries.Response> started = await workspace
-                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves, waveSize))
+                    .Send<StartSeries.Command, StartSeries.Response>(new StartSeries.Command(waves, waveSize, parallel))
                     .ConfigureAwait(false);
 
                 if (started.IsFailed)
@@ -1650,6 +1666,10 @@ static async Task<int> SeriesCommand(CommandLine line)
                 // The path alone on standard output, so a pipeline can hand it to 'series run --solution'.
                 await Console.Out.WriteLineAsync(started.Value.Worktree).ConfigureAwait(false);
                 await Console.Error.WriteAsync(StartSeries.Render(started.Value)).ConfigureAwait(false);
+
+                // What its process may run, and what only this machine allows, before anything is spent rather than at
+                // the first refused evidence script (D-233).
+                await ToolsInEffect(started.Value.Worktree).ConfigureAwait(false);
 
                 // Its list is worked out in its own worktree, against its own branch's successors and cycles, and
                 // frozen there (D-231). A list that cannot be frozen now is frozen as the first wave is taken.
@@ -1779,13 +1799,36 @@ static async Task<int> SeriesRunCommand(Workspace workspace, CommandLine rest)
 
     await Console.Error.WriteLineAsync(string.Create(
         CultureInfo.InvariantCulture,
-        $"Running series {id} in {workspace.SolutionRoot}. Its own process takes each wave, plans and builds it into series/{id}, and opens one pull request; it asks nothing, and this waits for it."))
+        $"Running series {id} in {workspace.SolutionRoot}. For each wave this starts a process to plan it, builds its cycles a few at a time in processes of their own, merges each that passes into series/{id} with the suite run on the result, and records the wave; then one pull request. It asks nothing, and this waits for it."))
         .ConfigureAwait(false);
     await ToolsInEffect(workspace.SolutionRoot).ConfigureAwait(false);
 
-    return await Launched(await workspace
-        .Send<SeriesRun.Launch, Sdlc.Core.AgentExit>(new SeriesRun.Launch(id, workspace.SolutionRoot, plugin))
-        .ConfigureAwait(false), "'sdlc series status' says where each wave stopped.").ConfigureAwait(false);
+    Result<DriveSeries.Response> driven = await workspace
+        .Send<DriveSeries.Command, DriveSeries.Response>(new DriveSeries.Command(id, plugin, new ConsoleProgress()))
+        .ConfigureAwait(false);
+
+    if (driven.IsFailed)
+    {
+        return await Report(driven, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    if (driven.Value.Said is { Length: > 0 } said)
+    {
+        await Console.Out.WriteLineAsync(said).ConfigureAwait(false);
+    }
+
+    // Stopped before its pull request -- a process that ended partway, or a merge that waits on a person -- is never a
+    // finish, however the last process exited.
+    if (driven.Value.Stopped is { } stopped)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Series {id} stopped before its pull request: {stopped} 'sdlc series status' says where each item stands."))
+            .ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    return ExitCode.Ok;
 }
 
 // The plugin this release carries, which the build's process loads so it runs the release the solution pins.
@@ -3847,4 +3890,10 @@ static async Task<int> Unknown(string verb)
     await Console.Error.WriteLineAsync($"Unknown command '{verb}'.").ConfigureAwait(false);
     await Console.Error.WriteAsync(Usage.Text).ConfigureAwait(false);
     return ExitCode.Usage;
+}
+
+// Each line a run's driver reports, on standard error as it happens, for the person waiting on a run that takes hours.
+internal sealed class ConsoleProgress : IProgress<string>
+{
+    public void Report(string value) => Console.Error.WriteLine(value);
 }

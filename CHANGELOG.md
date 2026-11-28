@@ -9,6 +9,55 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.61
+
+**A run loses at most the step it was on** (D-233). Six changes, each from a way a real series lost more:
+
+- `to-plan` commits after every document, round and refine, and `build` after the code, the evidence, the verdict and
+  each remediation. The series pushes its branch after every wave.
+- A build starts at the step `sdlc status` names, so a cycle whose evidence is recorded is verified, not built again.
+- Every process the binary starts is given Claude Code's `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`; without it a long
+  evidence run in the background was killed at ten minutes and the process exited 0. `sdlc series run` now exits
+  non-zero when its process ends with the last wave not recorded built.
+- The brief status panel shows shape problems, departures included, and `to-plan` no longer calls a document done
+  while it has one. A plan whose departure named no decision used to pass planning and be refused after its build.
+- `sdlc round verdict` refuses a verify with a section it does not carry.
+- `sdlc series start` prints what the series' process may run, and what only this machine allows, before it runs.
+
+**The binary drives a run, and a run carries on past a cycle it cannot save** (D-234, D-235, D-236). Built one after
+another on one branch, a run's cycles could not build at once, every conflict surfaced at the end, and one blocked
+cycle held the whole pull request. Now:
+
+- `sdlc build --run` on a wave and `sdlc series run` build each cycle on a branch and in a worktree of its own, taken
+  from the run's latest, in a process of its own running the build playbook for that cycle with the new `--no-pr`. A
+  series starts the series playbook only to plan a wave (`--step plan`) and to answer what stopped (`--step stops`),
+  and `pr --run` at the end. No process waits on another for hours.
+- The binary merges each cycle that passes, one at a time under a lock, and runs the whole suite (`dotnet build`, then
+  `dotnet test --report-trx`) on the merged commit. A merge that conflicts, or that the suite fails, is undone. The merge
+  commit and that run are kept as the run's merge evidence, in the run's folder under `merge/`, and the run's
+  pull-request check reads it. A run that fell behind its integration branch takes it in the same way.
+- A wave builds two of its cycles at once unless `--parallel` says otherwise (`sdlc series start --parallel <n>`, `sdlc
+  build --run --parallel <n>`), never two whose plans declare the same file. A series still runs one wave at a time.
+- A cycle whose verification stays blocked, whose merge conflicts or whose merge the suite fails is taken out: never
+  merged, its branch pushed, and recorded with why. `sdlc series status` and `sdlc report --run` carry a *Taken out*
+  section. It is not abandoned; start a wave or a series from it later.
+
+**What moving to it asks.** Nothing to write by hand. It is a minor because planning and verify now refuse what
+only the pull-request check refused before — a plan with a shape problem stops in planning, and a verdict with a stray
+section is refused where it is written rather than after the build — because a run now leaves a cycle out of its pull
+request rather than stopping on it, and because the build, series and wave skills changed:
+
+- The series record gained `parallel` and `taken_out`, and each wave `size` and `parallel`; a binary before 0.61
+  ignores them, and a record without them reads as two at once and nothing taken out. A wave that stands alone gains
+  its own record, `.sdlc/waves/<id>/wave.json`.
+- `/sdlc:build --run` is gone: the binary builds a run, and starts `/sdlc:build <id> --unattended --no-pr` per cycle.
+  `sdlc build --run` on a series' branch is refused; `sdlc series run` builds a series' waves.
+- A series still running when you move continues under the new loop: a cycle its earlier waves built on the series'
+  branch reads as before, and the run's check reads its last cycle's run until the run has merge evidence that holds
+  every cycle.
+- The merge runs your suite on the run's machine, so a run takes a little longer per cycle, and the build and test
+  commands must work there unattended, as an evidence run's already do.
+
 ## 0.60
 
 **A series fixes a test that comes and goes itself, and says so** (D-232). A series under `approval: none` used to stop

@@ -116,28 +116,27 @@ public static class BuildRun
 
     /// <summary>What the build's own process is asked to do.</summary>
     /// <param name="id">The cycle, or none for every queued cycle.</param>
-    /// <param name="run">
-    /// True to build every cycle a run's branch carries, one after another, into that branch: <c>wave/&lt;id&gt;</c> or
-    /// <c>series/&lt;id&gt;</c>, checked out where the process starts.
+    /// <param name="inRun">
+    /// True for one cycle of a wave or a series, built on a branch of its own from the run's and opening no pull request:
+    /// the binary merges it into the run when it passes, and the run opens one pull request for all of it (D-234).
     /// </param>
-    /// <returns>The prompt: the build playbook, unattended, for this cycle, every queued one, or the run's (D-187).</returns>
-    public static string PromptFor(CycleId? id, bool run = false) =>
-        run ? "/sdlc:build --run --unattended"
-        : id is { } cycle
-            ? string.Create(CultureInfo.InvariantCulture, $"/sdlc:build {cycle} --unattended")
+    /// <returns>The prompt: the build playbook, unattended, for this cycle or every queued one (D-187).</returns>
+    public static string PromptFor(CycleId? id, bool inRun = false) =>
+        id is { } cycle
+            ? string.Create(CultureInfo.InvariantCulture, $"/sdlc:build {cycle} --unattended{(inRun ? " --no-pr" : string.Empty)}")
             : "/sdlc:build --unattended";
 
     /// <summary>The arguments the build's own process starts with, after the word <c>claude</c>.</summary>
     /// <param name="id">The cycle, or none for every queued cycle.</param>
     /// <param name="pluginDirectory">This release's skills, so the process runs the release the solution pins.</param>
     /// <param name="buildTools">The commands the solution's <c>build_tools</c> names, or none.</param>
-    /// <param name="run">True to build the run checked out where the process starts.</param>
+    /// <param name="inRun">True for one cycle of a run, which opens no pull request of its own.</param>
     /// <returns>The arguments, one each; the named tools last, because the option takes every word after it.</returns>
-    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory, IReadOnlyList<string>? buildTools = null, bool run = false)
+    public static IReadOnlyList<string> ArgumentsFor(CycleId? id, string pluginDirectory, IReadOnlyList<string>? buildTools = null, bool inRun = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pluginDirectory);
 
-        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id, run), .. OutputFormat, "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
+        return ["--plugin-dir", pluginDirectory, "-p", PromptFor(id, inRun), .. OutputFormat, "--allowedTools", .. AllowedToolsWith(buildTools ?? [])];
     }
 
     /// <summary>
@@ -214,8 +213,8 @@ public static class BuildRun
     /// <param name="Id">The cycle, or none for every queued cycle, each of which the playbook builds in a worktree of its own.</param>
     /// <param name="Worktree">The worktree's full path, or the repository's root when no cycle is named.</param>
     /// <param name="PluginDirectory">This release's skills.</param>
-    /// <param name="Run">True to build every cycle the run checked out in <paramref name="Worktree"/> carries, into its branch.</param>
-    public sealed record Launch(CycleId? Id, string Worktree, string PluginDirectory, bool Run = false) : IRequest<AgentExit>;
+    /// <param name="InRun">True for one cycle of a wave or a series, which opens no pull request of its own (D-234).</param>
+    public sealed record Launch(CycleId? Id, string Worktree, string PluginDirectory, bool InRun = false) : IRequest<AgentExit>;
 
     private sealed class PrepareHandler(SolutionRoot solution, Mediator mediator, IRepository repository)
         : IRequestHandler<Prepare, Place>
@@ -555,7 +554,7 @@ public static class BuildRun
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            return Start(agents, request.Worktree, tools => ArgumentsFor(request.Id, request.PluginDirectory, tools, request.Run), cancellationToken);
+            return Start(agents, request.Worktree, tools => ArgumentsFor(request.Id, request.PluginDirectory, tools, request.InRun), cancellationToken);
         }
     }
 }

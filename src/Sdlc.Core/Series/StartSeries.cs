@@ -37,7 +37,8 @@ public static class StartSeries
     /// <summary>Asks for a series to start.</summary>
     /// <param name="Waves">How many waves it may run, at least one.</param>
     /// <param name="WaveSize">How many items one wave may take, at least one.</param>
-    public sealed record Command(int Waves, int WaveSize = SeriesRecord.DefaultWaveSize) : IRequest<Response>;
+    /// <param name="Parallel">How many of a wave's cycles build at once, at least one (D-236).</param>
+    public sealed record Command(int Waves, int WaveSize = SeriesRecord.DefaultWaveSize, int Parallel = Runs.WaveRecord.DefaultParallel) : IRequest<Response>;
 
     /// <summary>The series started.</summary>
     /// <param name="Id">Its id.</param>
@@ -61,7 +62,7 @@ public static class StartSeries
         return string.Create(
             CultureInfo.InvariantCulture,
             $"""
-            Started series {started.Id} on {started.Branch}, from {started.From}, in {started.Worktree}: at most {started.Record.Limit} wave{(started.Record.Limit == 1 ? string.Empty : "s")} of at most {started.Record.WaveSize} item{(started.Record.WaveSize == 1 ? string.Empty : "s")} each, one after another.
+            Started series {started.Id} on {started.Branch}, from {started.From}, in {started.Worktree}: at most {started.Record.Limit} wave{(started.Record.Limit == 1 ? string.Empty : "s")} of at most {started.Record.WaveSize} item{(started.Record.WaveSize == 1 ? string.Empty : "s")} each, one wave after another, {started.Record.Parallel} cycle{(started.Record.Parallel == 1 ? string.Empty : "s")} of a wave building at once.
             The solution declares {does}
             Next: 'sdlc series run {started.Id} --solution "{started.Worktree}"' starts its own process there; it ends in one pull request.
 
@@ -86,6 +87,13 @@ public static class StartSeries
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"A wave takes at least one item, and {request.WaveSize} is not one. Leave --wave-size out for {SeriesRecord.DefaultWaveSize}, or name a number, as in 'sdlc series start --waves 3 --wave-size 2'."));
+            }
+
+            if (request.Parallel < 1)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"A wave builds at least one cycle at a time, and {request.Parallel} is not one. Leave --parallel out for {Runs.WaveRecord.DefaultParallel}, or name a number, as in 'sdlc series start --waves 3 --parallel 1'."));
             }
 
             string root = solution.Path;
@@ -118,7 +126,7 @@ public static class StartSeries
                 return opened.ToResult<Response>();
             }
 
-            var record = SeriesRecord.Start(id, clock.GetUtcNow(), request.Waves, approval, request.WaveSize);
+            var record = SeriesRecord.Start(id, clock.GetUtcNow(), request.Waves, approval, request.WaveSize, request.Parallel);
             string path = SeriesRecord.PathIn(worktree, id);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, record.Write(), cancellationToken).ConfigureAwait(false);

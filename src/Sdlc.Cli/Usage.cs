@@ -148,25 +148,34 @@ internal static class Usage
                                      in a sandbox is queued only when named. Refuses when the
                                      build's process cannot start, or ends without a report. The
                                      one stage this binary runs rather than names a skill for.
-            build --run              On a run's branch, wave/<id> or series/<id>: start the build's
-                                     own process there, running /sdlc:build --run --unattended,
-                                     which builds every cycle the branch carries, one after
-                                     another, into it -- no branch or worktree of a cycle's own --
-                                     and opens the run's one pull request. Refused on any other
-                                     branch. --solution names the run's worktree.
-            series start --waves <n> [--wave-size <n>]
+            build --run [--parallel <n>] [--no-pr]
+                                     On a wave's branch, wave/<id>: build every cycle it carries
+                                     ready to build, each in a branch and a worktree of its own
+                                     taken from the wave's latest, in a process of its own running
+                                     /sdlc:build <id> --unattended --no-pr -- at most --parallel at
+                                     once (what .sdlc/waves/<id>/wave.json says, 2 for a new wave),
+                                     never two whose plans declare the same file. Each that passes
+                                     is merged into the wave, one at a time under a lock, with the
+                                     whole suite run on the result; a merge that conflicts or fails
+                                     is undone. A cycle that does not make it is taken out, its
+                                     branch pushed, and recorded in wave.json. Then the wave's one
+                                     pull request, unless --no-pr. Refused on any other branch; a
+                                     series' waves are built by 'series run'. --solution names the
+                                     wave's worktree.
+            series start --waves <n> [--wave-size <n>] [--parallel <n>]
                                      Start a series: series/<id> from the integration branch, in
                                      a worktree beside the repository, its record committed there
                                      at .sdlc/series/<id>/series.json with the wave limit, how many
-                                     items a wave may take (3 unless --wave-size says), the
-                                     approval setting, and its list: everything it may take,
+                                     items a wave may take (3 unless --wave-size says), how many
+                                     of a wave's cycles build at once (2 unless --parallel says),
+                                     the approval setting, and its list: everything it may take,
                                      worked out from the backlog against its branch, in the waves
                                      it is forecast to take them in, leaving out what its waves
                                      cannot hold and what waits on work it does not carry. Prints
                                      the worktree's path alone; what it will do, its list and the
                                      next command go to standard error. Under approval: required
                                      it builds only approved cycles. Refuses fewer than one wave,
-                                     or a wave size below one.
+                                     or a wave size or --parallel below one.
             series wave [--done]     On series/<id>: record the next wave and print one line per
                                      item with what starts it -- what on its list is ready, at
                                      most the series' wave size, parked cycles first, saying how
@@ -195,11 +204,19 @@ internal static class Usage
                                      waves, each item's cycle, where it stands -- planned, built:
                                      pass, blocked, escalated, parked, abandoned -- and which of
                                      its steps its own files show done, each fix the series added
-                                     to itself, and the backlog judged against the series branch.
-            series run [<id>]        Start the series' own process in its worktree, running
-                                     /sdlc:series <id> --unattended, its tools named as a build's
-                                     are, never with permission checks off. --solution names the
-                                     worktree 'series start' printed. The factory runs this.
+                                     to itself, each cycle it took out with why and its branch,
+                                     and the backlog judged against the series branch.
+            series run [<id>]        Run the series to its end from its worktree: for each wave,
+                                     take it, start /sdlc:series <id> --unattended --step plan to
+                                     plan it, build its cycles as 'build --run' builds a wave's,
+                                     merging each that passes into series/<id>, hand what stopped
+                                     to --step stops under approval: none, take out the rest, and
+                                     record the wave built and push it; then take in the
+                                     integration branch if it moved, tested the same way, and
+                                     start /sdlc:pr --run. Every process with its tools named,
+                                     never with permission checks off. Exits non-zero when it
+                                     stops before its pull request. --solution names the worktree
+                                     'series start' printed. The factory runs this.
             factory                  Write the factory's pipeline for the recorded platform: a run
                                      a person starts, never a schedule, of one series from the
                                      integration branch -- 'series start' with the number of waves

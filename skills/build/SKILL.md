@@ -1,8 +1,8 @@
 ---
 name: build
-description: Carry approved cycles to their pull requests -- the one named, or every approved cycle when none is -- and report every deviation, choice and concern. In a person's session it asks the gate and runs sdlc build, which starts this playbook again in a process of its own; there, with --unattended, it runs implement, verify, remediate while it converges, and pr for each cycle. With --run, on a wave's or a series' branch, it builds every cycle the branch carries one after another into that branch, and opens one pull request for the run unless --no-pr. A playbook: it names the skills it runs and does no stage work itself. Use when a person says build it, and as the run of a wave or a series.
+description: Carry approved cycles to their pull requests -- the one named, or every approved cycle when none is -- and report every deviation, choice and concern. In a person's session it asks the gate and runs sdlc build, which starts this playbook again in a process of its own; there, with --unattended, it runs implement, verify, remediate while it converges, and pr for each cycle. With --no-pr, for one cycle of a wave or a series, it stops at the verdict and opens nothing: the binary merges the cycle into the run when it passes. A playbook: it names the skills it runs and does no stage work itself. Use when a person says build it, and as each cycle's build in a wave or a series.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[<cycle id>] [--unattended] | --run [--no-pr] --unattended"
+argument-hint: "[<cycle id>] [--unattended] [--no-pr]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -17,10 +17,11 @@ opened — then one report of everything a person should know before they merge.
 |---|---|---|
 | `/sdlc:build [<id>]` | a person's session | asks the gate, runs `sdlc build [<id>]`, hands back what it prints — *In a person's session* |
 | `/sdlc:build [<id>] --unattended` | the process `sdlc build` starts | for each cycle: `implement`, `verify`, `remediate` while it converges, `pr`, then the report — *In its own process* |
-| `/sdlc:build --run [--no-pr] --unattended` | on `wave/<id>` or `series/<id>`: the process `sdlc build --run` starts, or the series | every cycle the branch carries, one after another into it, then one pull request for the run — *A run of several cycles* |
+| `/sdlc:build <id> --unattended --no-pr` | a process `sdlc build --run` or `sdlc series run` starts, for one cycle of the run | `implement`, `verify`, `remediate` while it converges, and no pull request — *One cycle of a run* |
 
-**Given an id, that one cycle; given none, every approved cycle ready to build; with `--run`, every cycle the run's
-branch carries.**
+**Given an id, that one cycle; given none, every approved cycle ready to build.** A wave's or a series' cycles are
+built by the binary (D-234): `sdlc build --run` on `wave/<id>`, and `sdlc series run`, start this playbook once per
+cycle with `--no-pr`, a few at a time, and merge each that passes into the run's branch themselves.
 
 ---
 
@@ -112,7 +113,8 @@ the report says what stopped it: *say what to do, then fix it* (`/sdlc:remediate
 
 # In its own process: `--unattended`
 
-Run by `sdlc build` for a person (`CONCEPT.md` §10.5, D-84). The factory runs a series, which runs this playbook's run form below.
+Run by `sdlc build` for a person (`CONCEPT.md` §10.5, D-84), and by a wave or a series for each of its cycles, with
+`--no-pr` (*One cycle of a run*, below).
 **Ask nothing**: starting the run was the decision. What the build could not settle from what was written down
 goes into `deviations.md`, where the report finds it.
 
@@ -201,7 +203,9 @@ running at once. Whether anything reads them is the solution's AppHost's busines
 
 ## 4. For each cycle: implement, verify, remediate, pull request
 
-In the cycle's worktree, each skill as it is written:
+In the cycle's worktree, each skill as it is written, **starting at the step `sdlc status <id>` names** — evidence
+with no verdict goes straight to verify, a blocked verdict to remediate — and **committing after every step**
+(D-233):
 
 1. **`implement`**, handed the approved plan. It writes the code and tests, records deviations and choices, and
    records the evidence. If the build or tests are red after it, the cycle did not finish.
@@ -259,50 +263,21 @@ Show it verbatim and stop.
 
 ---
 
-# A run of several cycles: `--run`
+# One cycle of a run: `--no-pr`
 
-Run on a run's branch — `wave/<id>`, by the process `sdlc build --run` starts for a wave, or `series/<id>`, by the
-series playbook in its own process, once per wave. Everything *In its own process* says holds here — ask nothing,
-the remediation bound, the tools named — except where the cycles are built and how many pull requests there are.
+Started by the binary for one cycle of a wave or a series, in the cycle's own worktree, on
+`cycle/<id>/build-unattended` taken from the run's branch. Everything *In its own process* says holds, steps 4 and 6,
+with three differences:
 
-## 1. Find the cycles
-
-**For a wave**, every cycle the branch carries that is ready to build — `sdlc cycles --here --for build` lists
-them. **For a series**, the current wave's cycles, from `sdlc series status`, in the order it lists them: each
-planned and not yet built. A fix the series added comes first (D-232); a cycle status says *waits on its fix* is built
-after it, and skipped when it does not pass; one it says is *blocked, built again now its fix passed* goes through
-**`remediate`**. Under `approval: required` only an approved one is ever built; `sdlc gate <id>` refuses the rest.
-**Do not work either list out yourself.**
-
-## 2. One branch, one cycle after another
-
-Every cycle is built **on this branch, in this worktree** — no branch or worktree of a cycle's own — one at a time,
-each on top of the one before, a cycle before any that depends on it:
-
-1. **`implement`**, handed the approved plan: the code, the tests, the deviations and choices, and the evidence,
-   measured against the commit this cycle was built onto.
-2. **`verify`**, in a fresh process that never saw the build.
-3. **`remediate`**, when the outcome is `blocked`, while each pass converges.
-
-Commit everything a cycle wrote, verify included, before the next one starts: the next cycle builds on it.
-
-**A cycle that stays `blocked` or `escalated` is left as it is.** Every cycle that depends on it — a successor that
-`succeeds` it, a parked cycle that `waits_on` it, and so on through each other — is **skipped**: not built, and
-named with what held it back. Its siblings carry on. A cycle that did not finish is treated the same way.
-
-## 3. One pull request for the run
-
-**Unless `--no-pr`**, run **`pr`** with `--run` once every cycle has an outcome: one pull request for the run, ready
-or draft as `sdlc pr-ready` says, its body led by `sdlc report --run`. A series passes `--no-pr` for each wave and
-opens its pull request once, at the end. **When `pr` hands back that the run's branch is behind** (D-227), the
-same as for one cycle, on the run's last cycle: a clean merge goes through **`remediate`** for that cycle, whose
-fresh run is the one the run's check reads, then **`pr`** again; a conflict opens nothing, and the report says
-where the merge stops.
-
-## 4. Report, and stop
-
-Print `sdlc report --run` verbatim and the pull request's link, or with `--no-pr`, one line per cycle: its id, its
-outcome, and for a cycle skipped, what held it back. That is what the run hands back.
+- **No pull request.** Stop at the verdict: `passed`, `blocked` after remediation, `escalated`, or did not finish.
+  The binary reads the verdict on this branch, merges a pass into the run with the whole suite run on the result, and
+  leaves anything else on its pushed branch (D-234, D-235). The run opens one pull request for all of it.
+- **Never merge anything**, the run's branch or the integration branch, and never touch another cycle's worktree:
+  other cycles of the run are building beside this one.
+- **Hand back one paragraph**: the outcome, and for anything not `passed` what stopped it — each criterion
+  `verify.md` marks Not met by its number and the first sentence of its reason. **A test that fails only sometimes**
+  is named with the failing run's results file, as `implement` hands it back (D-216): the series reads that to add
+  its fix.
 
 ## What you may not do
 

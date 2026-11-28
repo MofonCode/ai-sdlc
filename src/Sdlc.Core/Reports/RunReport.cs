@@ -8,6 +8,7 @@ using Sdlc.Core.Chain;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Deviations;
 using Sdlc.Core.Git;
+using Sdlc.Core.Runs;
 using Sdlc.Core.Series;
 using Sdlc.Core.Solutions;
 using Sdlc.Core.Successors;
@@ -71,13 +72,15 @@ public static class RunReport
     /// <param name="Cycles">Every cycle the run carries, oldest first.</param>
     /// <param name="Stops">Every cycle that did not pass, with what it held back.</param>
     /// <param name="Named">Every rule, decision and successor the report names, with its text.</param>
+    /// <param name="TakenOut">Every cycle the run took out rather than merge, from its record (D-235).</param>
     public sealed record Response(
         RunKind Run,
         string Id,
         SeriesRecord? Record,
         IReadOnlyList<Entry> Cycles,
         IReadOnlyList<Stopped> Stops,
-        IReadOnlyList<IdTexts.Named> Named)
+        IReadOnlyList<IdTexts.Named> Named,
+        IReadOnlyList<TakenOut>? TakenOut = null)
     {
         /// <summary>Whether any cycle's deviations have something wrong with them, which its pull request check refuses.</summary>
         public bool Unsound => Cycles.Any(cycle => cycle.Report is { } report && report.Deviations.Problems.Count > 0);
@@ -176,6 +179,19 @@ public static class RunReport
             Cycle(text, cycle, report.Run);
         }
 
+        if (report.TakenOut is { Count: > 0 } taken)
+        {
+            text.Append("### Taken out\n\n");
+            text.Append("Each did not pass, or did not merge cleanly with the suite green on the result, so it was left out of this pull request rather than holding the rest back (D-235). Its work is on its own branch, to start a wave or a series from later.\n\n");
+
+            foreach (TakenOut cycle in taken)
+            {
+                text.Append(CultureInfo.InvariantCulture, $"- {cycle.Cycle}{(report.Run == RunKind.Series ? ", wave " + cycle.Wave.ToString(CultureInfo.InvariantCulture) : string.Empty)}: {cycle.Reason} Branch: {cycle.Branch}{(cycle.Pushed ? ", pushed" : ", on this machine only")}.\n");
+            }
+
+            text.Append('\n');
+        }
+
         text.Append("### What stopped\n\n");
 
         if (report.Stops.Count == 0)
@@ -256,6 +272,10 @@ public static class RunReport
                 record = read.Value.Resolved(await ReadSuccessors.Starts(root, cancellationToken).ConfigureAwait(false));
             }
 
+            IReadOnlyList<TakenOut> taken = record?.TakenOut
+                ?? (request.Run == RunKind.Wave ? (await WaveRecord.Read(root, request.Id, cancellationToken).ConfigureAwait(false)).ValueOrDefault?.TakenOut : null)
+                ?? [];
+            HashSet<string> leaving = new(taken.Select(cycle => cycle.Cycle), StringComparer.Ordinal);
             List<Entry> entries = [];
 
             foreach (CycleId id in VerifyChain.ChangedCycles(request.Changed))
@@ -271,7 +291,7 @@ public static class RunReport
                 entries.Add(new Entry(
                     id,
                     text is null ? null : ArtifactOutlineReader.Read(text).Headline,
-                    OutcomeOf(cycle),
+                    leaving.Contains(id.ToString()) ? SeriesStatus.TakenOutState : OutcomeOf(cycle),
                     text is null ? null : SeriesRecord.LeadOf(text, intent),
                     built.IsSuccess ? built.Value : null,
                     text is null ? [] : Inferred(text)));
@@ -288,7 +308,7 @@ public static class RunReport
                     .Select(entry => new Stopped(entry.Id, entry.Outcome, HeldBack(backlog, entry.Id))));
             }
 
-            Response report = new(request.Run, request.Id, record, entries, stops, []);
+            Response report = new(request.Run, request.Id, record, entries, stops, [], taken);
 
             Result<IdTexts.Response> named = await mediator
                 .Send<IdTexts.Query, IdTexts.Response>(new IdTexts.Query(IdTexts.Find(Body(report))), cancellationToken)
