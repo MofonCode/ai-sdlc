@@ -5,7 +5,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.59** · .NET 10 · [changelog](CHANGELOG.md)
+**Version 0.60** · .NET 10 · [changelog](CHANGELOG.md)
 
 **ai-sdlc holds an AI coding agent, and the people directing it, to what was written down.**
 
@@ -322,7 +322,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.59.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.60.x`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (30)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -481,6 +481,7 @@ fixtures, and nothing live. What each release changed is in the [changelog](CHAN
 | **Steering before the spec, and reslicing** | the suite | either done for real |
 | **Slicing and successors** | the suite | a slicing accepted, composed and merged; a successor started the morning it came ready. Readiness is read from the working copy and the integration branch, so a successor started in another worktree reads `ready` until its plan merges |
 | **Parking, the backlog, `/sdlc:wave` and `/sdlc:series`** | the suite | a parked plan meeting the code it waited for; a piece of work carried wave by wave; a wave or a series built into one pull request; a series run unattended end to end |
+| **A series fixing a test that comes and goes** | the suite | a series under `approval: none` adding its own fix, building it first and building what it held again; a reviewer reading its *Added by the series* section |
 | **One report per run, and a run checked as a whole** | the suite: `sdlc report --run` rendered for a wave and a series, and the run's pull-request check refusing a named test a later cycle broke | a reviewer accepting or rejecting a wave or a series from its report; a rejected series abandoned in one step and harvested |
 | **Harvesting, areas and closing** | the suite, and one solution's history for reading a cycle's record (as mining) | a harvest one aspect at a time, a closed cycle or a harvest ledger in any solution; the notes for the framework and their export, and any export read across solutions; a suggestions sitting answered with *covered* and handed back by theme through `sdlc harvest summary` |
 | **Amending a plan after admission** | the suite | an amended plan through a real pull request |

@@ -299,6 +299,11 @@ carry. The list is its scope: each wave takes from it what is ready then, a succ
 is never taken, and a cycle its planning parks is taken back by a later wave once it is ready. `sdlc series status`
 shows the list, the wave each item was taken in, and which of each cycle's steps its own files show done (D-231).
 
+**The one thing a series adds to its list is a fix for a test that comes and goes** (D-232). A test that passed in one
+cycle's recorded run and failed in a later one stops every remaining build's evidence, so under `approval: none` the
+series writes the fix, builds it first in the wave, and builds what it stopped again once it passes — without asking.
+`sdlc series status` and the run's report say what it added, where the test passed and failed, and what it held.
+
 **A series that stops partway** — a usage limit reached, the session closed — **is continued with
 `/sdlc:series <id>`**. It runs the series again in its worktree, and the series finishes the wave it stopped in
 before it takes the next: an item never started is started, a cycle part-planned is planned from where it stopped,

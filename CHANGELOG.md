@@ -9,6 +9,27 @@ Why each change was made is `CONCEPT.md`'s, cited here by decision id rather tha
 number moves is in [`AGENTS.md`](AGENTS.md), under Releasing: a **minor** is where a change that can make a
 cycle block, or changes what a person or a stage writes, is announced.
 
+## 0.60
+
+**A series fixes a test that comes and goes itself, and says so** (D-232). A series under `approval: none` used to stop
+mid-wave when a build met a test that failed only sometimes: the framework's rule (D-216) is that such a fault is
+fixed in a cycle of its own, never rerun until green, and only a person could open that cycle. Now the series opens
+it. When a build hands back a cycle stopped on a test its change did not cause, the series runs the new `sdlc series
+fix --test <name> --results <file> --holds <ids>`. The binary checks the evidence -- the failing run shows the test
+failing, and a cycle's recorded evidence shows it passing -- writes the fix as a successor, puts it first in the open
+wave and on the series' list, keeps the failing results in the series' folder, and holds the stopped cycles until it
+passes. They are then built again, a blocked one remediated; if the fix stops, they stay stopped. One fix a wave,
+never two for one test, never under `approval: required`, and not counted against the wave size. `sdlc series
+status` and `sdlc report --run` carry an *Added by the series* section saying what was added and why.
+
+**What moving to it asks.** Nothing to write by hand. It is a minor because a series now adds work it did not list
+when it started, `series.json` gained a `fixes` key, and the series, build and implement skills changed:
+
+- `series.json` gained `fixes`, which a binary before 0.60 ignores. A record without it reads as having added none.
+- The implement skill now names the failing run's results file when it hands back on a test that comes and goes, and
+  the build skill builds a series' wave in the order `sdlc series status` lists it, a fix first.
+- A series running under `approval: required` behaves as before: it stops, and the fix is a person's to open.
+
 ## 0.59
 
 **A series that stops partway is continued, not restarted** (D-230). A series that hit a usage limit, lost its

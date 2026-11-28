@@ -77,7 +77,11 @@ public sealed record SeriesScopeItem(SeriesItemKind Kind, string Ref, int Wave);
 /// what is ready, so no item outside it is ever taken. Null for a record written before the key existed, or before the
 /// list was frozen: such a series takes whatever is ready, as it did.
 /// </param>
-public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize, IReadOnlyList<SeriesScopeItem>? Scope = null)
+/// <param name="Fixes">
+/// Each fix the series added to itself, in the order added: a fault that stopped a wave's evidence, fixed in a cycle of
+/// its own at the head of that wave (D-232). Empty for a record written before the key existed.
+/// </param>
+public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize, IReadOnlyList<SeriesScopeItem>? Scope = null, IReadOnlyList<SeriesFix>? Fixes = null)
 {
     /// <summary>How many items a wave takes when the person starting the series names no number.</summary>
     public const int DefaultWaveSize = 3;
@@ -154,6 +158,7 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
             {
                 Waves = [.. (read.Waves ?? []).Select(wave => wave with { Items = wave.Items ?? [] })],
                 WaveSize = read.WaveSize < 1 ? DefaultWaveSize : read.WaveSize,
+                Fixes = read.Fixes is null ? null : [.. read.Fixes.Select(fix => fix with { Holds = fix.Holds ?? [] })],
             });
         }
         catch (JsonException error)
@@ -198,6 +203,31 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
     /// <param name="scope">Everything it may take, in order.</param>
     /// <returns>The new record.</returns>
     public SeriesRecord WithScope(IReadOnlyList<SeriesScopeItem> scope) => this with { Scope = scope };
+
+    /// <summary>
+    /// The record with a fix added to itself (D-232): its successor first in the last wave, and first on the list, so
+    /// the wave builds it before anything it holds.
+    /// </summary>
+    /// <param name="fix">The fix, whose <see cref="SeriesFix.Wave"/> is the last wave's number.</param>
+    /// <returns>The new record; the same one when it has no wave.</returns>
+    public SeriesRecord WithFix(SeriesFix fix)
+    {
+        ArgumentNullException.ThrowIfNull(fix);
+
+        if (Waves.Count == 0)
+        {
+            return this;
+        }
+
+        SeriesWave last = Waves[^1];
+
+        return this with
+        {
+            Waves = [.. Waves.Take(Waves.Count - 1), last with { Items = [new SeriesItem(SeriesItemKind.Successor, fix.Successor, null), .. last.Items] }],
+            Scope = Scope is null ? null : [new SeriesScopeItem(SeriesItemKind.Successor, fix.Successor, last.Number), .. Scope],
+            Fixes = [.. Fixes ?? [], fix],
+        };
+    }
 
     /// <summary>The record with its last wave recorded built.</summary>
     /// <param name="done">When.</param>

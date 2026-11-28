@@ -1894,7 +1894,10 @@ series runs them one after another, never at once, so a usage limit reached mid-
 finished (D-228). **It takes only from its list**: everything it may take, worked out from the backlog against its
 branch and frozen when it starts, printed in the waves it is forecast to take them in. Each wave takes from the list
 what is ready then; what it could not reach, or its waves could not hold, is left out and counted, and a cycle its
-planning parks stays on the list for a later wave to take back (D-231). **A series that stops is continued, never restarted**: each wave is recorded built once every
+planning parks stays on the list for a later wave to take back (D-231). **The one thing it adds is a fix**: a test that
+passed in one recorded run and failed in another stops every remaining build's evidence, so under `approval: none` the
+series writes the fix as a successor, puts it first in the wave and on the list, and holds what it stopped until it
+passes — one fix a wave, never two for one test — and its report says what it added and why (D-232). **A series that stops is continued, never restarted**: each wave is recorded built once every
 item in it has an outcome or has stopped, and a wave not recorded built is handed back, with what is left of each
 item, before the next is taken (D-230). Its record, `.sdlc/series/<id>/series.json`, is written only by the binary
 — `sdlc series start` and `sdlc series wave` — and says what each wave took and when each was recorded built;
@@ -7822,6 +7825,44 @@ mentioned the command.
 nobody agreed to govern -- produces drafts on a local branch, which bind nothing until a person places them and
 reach nobody without a pull request. It added a condition, a directory walk and a word list of ways to change
 directory, to guard a commit a person still reviews.
+
+### D-232 — A series fixes a test that comes and goes itself, first in the wave it stopped, and says so in its report
+
+**Governs:** §10.6
+
+**Amends D-231**, whose list took nothing added once a series started, and **D-216**, whose fix in a cycle of its own
+was always a person's to open.
+
+**Decision.** Under `approval: none`, when a build in a series hands back a cycle not finished because a test failed
+that its change did not cause (D-216), the series runs `sdlc series fix --test <name> --results <file> --holds <ids>`.
+The binary accepts it only on evidence: the failing run's results show the test failing, and a cycle's recorded
+evidence in the working copy shows it passing. Accepted, it writes the fix as a successor that succeeds the cycle the
+test passed in, puts it first in the open wave and first on the list, keeps the failing run's results in the series'
+folder, and records the fix in `series.json` with the cycles it holds. The wave is handed back with the fix first;
+each held cycle reads *waits on its fix* until the fix passes, then is built again — a blocked one remediated — and
+reads *held: its fix did not pass* if the fix stops, which ends the wave as any stopped cycle does. A held cycle that
+was recorded again on top of the fix and is still blocked keeps its verdict. **Bounded:** one fix a wave, never a
+second for one test, never under `approval: required`, and a fix is not counted against the wave size. `sdlc series
+status` and the run's report carry an *Added by the series* section: each fix, the test, where it passed and failed,
+and what it held.
+
+**Why.** A real series under `approval: none` stopped mid-wave on a test whose body check matched a random trace id
+about once in 140 runs: it had passed twice on the pipeline's platform and failed the third time. The solution's own
+decision, and D-216, said the fault is fixed in a cycle of its own before more evidence is recorded, and every
+remaining build in the wave recorded evidence through that suite, so the series could only stop and ask a person to
+open a cycle whose content the evidence already dictated. A series under `approval: none` exists so nobody has to be
+in the loop; the person wanted the deviation explained in the report, not a stop. The fix's substance is the test and
+its two runs, which the binary can check, so writing it needs no judgement the build had not already made.
+
+**Rejected.** *Letting the series add any successor it finds necessary*: it is exactly the mid-run membership D-231
+closed, and a series could then grow without bound. Only a fault that stops the wave's evidence, shown by a run, is
+added. *Detecting the flake by running the suite again at the same commit*: it is the rerun D-216 forbids, and a run
+that happens to pass would be taken as evidence. A recorded pass and a run's failure are already two runs.
+*A person editing the series to insert an approved cycle, or editing which cycles depend on which*: it keeps a person
+in the loop for a fix whose content is fixed by the evidence, and editing dependencies would change planning
+documents the rounds hash. Under `approval: required` that is still the way, because nothing unapproved is built there.
+*Counting the fix against the wave size*: it would push a planned item out of a wave it was already in, to be lost
+from the series if no later wave had room.
 
 ### D-231 — A series takes only from its list, frozen when it starts; its waves still take what is ready
 

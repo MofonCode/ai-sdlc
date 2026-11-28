@@ -268,8 +268,10 @@ the remediation bound, the tools named — except where the cycles are built and
 ## 1. Find the cycles
 
 **For a wave**, every cycle the branch carries that is ready to build — `sdlc cycles --here --for build` lists
-them. **For a series**, the current wave's cycles, from `sdlc series status`: each planned and not
-yet built. Under `approval: required` only an approved one is ever built; `sdlc gate <id>` refuses the rest.
+them. **For a series**, the current wave's cycles, from `sdlc series status`, in the order it lists them: each
+planned and not yet built. A fix the series added comes first (D-232); a cycle status says *waits on its fix* is built
+after it, and skipped when it does not pass; one it says is *blocked, built again now its fix passed* goes through
+**`remediate`**. Under `approval: required` only an approved one is ever built; `sdlc gate <id>` refuses the rest.
 **Do not work either list out yourself.**
 
 ## 2. One branch, one cycle after another

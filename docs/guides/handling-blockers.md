@@ -342,6 +342,13 @@ There is no draft pull request of its own: the run's one pull request is a draft
 --run` — names the cycle, what stopped it, and each cycle it held back. Answer it the same way, naming the cycle:
 *fix it* on that pull request, or abandon it.
 
+**One stop a series answers itself: a test that comes and goes** (D-232). When a build hands back a cycle because a
+test failed that its change did not cause, and a cycle's recorded evidence shows that test passing, a series under
+`approval: none` runs `sdlc series fix`: the fix becomes a successor first in the wave, the cycles it stopped wait for
+it, and they are built again once it passes. Nobody is asked; the report's *Added by the series* section says what
+was added and why. It adds one fix a wave and never two for one test — past that, or under `approval: required`, the
+cycles stay stopped and are yours, as above.
+
 ---
 
 ## Suggestions are not blockers
