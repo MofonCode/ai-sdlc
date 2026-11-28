@@ -748,7 +748,8 @@ it plans nothing and builds only cycles a person approved, in wave order.
 
 #### Output
 
-In a person's session, what `sdlc series run` printed, `sdlc series status` verbatim, and the pull request's link.
+In a person's session, the series' list as it started, what `sdlc series run` printed, `sdlc series status` verbatim, and
+the pull request's link.
 In its own process, wave after wave: each successor's intent suggested with its `(inferred)` marks left, each cycle
 planned with its loop, each wave built and recorded on the series' branch — then one pull request, its body a short
 summary followed by `sdlc report --run`.
@@ -786,6 +787,10 @@ the series with one reason; an approved cycle already on the integration branch 
 
 **One pull request, many cycles, each still its own.** Each keeps its folder, rounds, verification and commits, so
 a harvest reads each as it would alone once the series merges.
+
+**A series takes only from its list** (D-231): everything it may take, worked out from the backlog and frozen when it
+starts, printed in the waves it is forecast to take them in. A successor written once it started is never taken, and
+a cycle its planning parks stays on the list for a later wave to take back.
 
 **A series that stops partway is continued, not restarted** (D-230). Each wave is recorded built once every item in
 it has an outcome or has stopped, so a series that hit a usage limit or lost its process is handed its open wave

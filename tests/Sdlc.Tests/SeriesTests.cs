@@ -107,6 +107,7 @@ public sealed class SeriesTests
         StringAssert.Contains(text, "1 more is ready, past this series' wave size of 2");
         StringAssert.Contains(text, "one after another, never in parallel");
 
+        File.Delete(Parked.PathOf(new Cycle(Parse(Second), workspace.Root)));
         await WaveDone(workspace, git);
         NextWave.Response next = await Wave(workspace, git);
 
@@ -163,7 +164,9 @@ public sealed class SeriesTests
         using CycleWorkspace workspace = Approved();
         Opened(workspace, Second);
         Park(workspace, First, Second);
-        Record(workspace, SeriesRecord.Start(Run, _now, 2, ApprovalRequirement.Required));
+        // Its list names it: a series that builds Second would reach it. That list is frozen by the binary from the
+        // backlog; here it is written, so the test is of the wave alone.
+        Record(workspace, SeriesRecord.Start(Run, _now, 2, ApprovalRequirement.Required).WithScope([new SeriesScopeItem(SeriesItemKind.Parked, First, 2)]));
 
         // Waiting on a cycle that has not passed on the series branch: nothing to take.
         Assert.IsNull((await Wave(workspace, OnSeries())).Wave);
@@ -345,6 +348,126 @@ public sealed class SeriesTests
         string older = System.Text.RegularExpressions.Regex.Replace(json, ",\\s*\"done\": \"[^\"]*\"", string.Empty);
         Assert.AreNotEqual(json, older);
         Assert.IsNull(SeriesRecord.Parse(older, "series.json").Value.Waves[0].Done);
+    }
+
+    [TestMethod]
+    public async Task A_series_list_holds_what_it_can_reach_in_the_waves_it_can_hold_and_is_frozen_once()
+    {
+        // Two waves of two. Three successors ready now, one waiting on one of them, and one waiting on a cycle open
+        // outside the series, which can never pass on the series branch (D-231).
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Opened(workspace, Third);
+        SuccessorTests.Write(workspace, "extra", First);
+        SuccessorTests.Write(workspace, "notes", First);
+        SuccessorTests.Write(workspace, "totals", First);
+        SuccessorTests.Write(workspace, "chart", "successor:totals");
+        SuccessorTests.Write(workspace, "audit", Third);
+        Record(workspace, SeriesRecord.Start(Run, _now, 2, ApprovalRequirement.None, waveSize: 2));
+        FakeRepository git = OnSeries();
+        git.Files[Branch + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        SeriesScope.Response frozen = await Freeze(workspace, git);
+
+        CollectionAssert.AreEqual(
+            new[] { "successor:extra@1", "successor:notes@1", "successor:totals@2" },
+            frozen.Record.Scope!.Select(item => SeriesRecord.KeyOf(item.Kind, item.Ref) + "@" + item.Wave).ToArray(),
+            "Ready now first, two to a wave; chart would need a third wave.");
+        Assert.AreEqual(1, frozen.Left, "chart is reachable, past what two waves of two hold.");
+        Assert.AreEqual(1, frozen.Outside, "audit waits on a cycle the series does not carry.");
+        Assert.AreEqual(1, git.Commits.Count, "The list is committed on the series branch.");
+
+        string text = SeriesScope.Render(frozen);
+        StringAssert.Contains(text, "Its list: 3 items");
+        StringAssert.Contains(text, "  wave 2: successor:totals");
+        StringAssert.Contains(text, "1 more is past what 2 waves of 2 can take");
+        StringAssert.Contains(text, "1 waits on work this series does not carry");
+
+        SeriesScope.Response again = await Freeze(workspace, git);
+        Assert.IsTrue(again.Already, "Frozen once: freezing again leaves it as it was.");
+        Assert.AreEqual(1, git.Commits.Count);
+    }
+
+    [TestMethod]
+    public async Task A_wave_takes_only_from_the_list_frozen_as_the_first_wave_is_taken_and_finishes_when_the_list_is_taken()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        SuccessorTests.Write(workspace, "notes", First);
+        SuccessorTests.Write(workspace, "totals", First);
+        Record(workspace, SeriesRecord.Start(Run, _now, 3, ApprovalRequirement.None, waveSize: 1));
+        FakeRepository git = OnSeries();
+        git.Files[Branch + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        NextWave.Response first = await Wave(workspace, git);
+
+        Assert.AreEqual(2, first.Record.Scope!.Count, "A series started without a list has it frozen as its first wave is taken.");
+        Assert.AreEqual("notes", first.Wave!.Items.Single().Ref);
+
+        // A successor written once the series started is ready, and never on the list.
+        SuccessorTests.Write(workspace, "late", First);
+        Lead(workspace, Second, "notes");
+        Verify(workspace, Second, "pass");
+        await WaveDone(workspace, git);
+
+        NextWave.Response second = await Wave(workspace, git);
+        CollectionAssert.AreEqual(new[] { "totals" }, second.Wave!.Items.Select(item => item.Ref).ToArray());
+        Assert.AreEqual(0, second.Left, "late is ready, but not the series' to take.");
+
+        Lead(workspace, Third, "totals");
+        Verify(workspace, Third, "pass");
+        await WaveDone(workspace, git);
+
+        NextWave.Response done = await Wave(workspace, git);
+        Assert.IsNull(done.Wave);
+        StringAssert.Contains(NextWave.Render(done), "It has taken everything on its list, so series " + Run + " is finished early");
+    }
+
+    [TestMethod]
+    public async Task A_cycle_its_planning_parked_is_taken_back_by_a_later_wave_once_ready()
+    {
+        // Wave one took totals; planning found it needed First, unmerged then, and parked it. First has since passed on
+        // the series branch, so the next wave takes it back rather than losing it.
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Lead(workspace, Third, "totals");
+        Park(workspace, Third, First);
+        Record(workspace, SeriesRecord.Start(Run, _now, 3, ApprovalRequirement.None)
+            .WithScope([new SeriesScopeItem(SeriesItemKind.Successor, "totals", 1)])
+            .WithWave(_now, [new SeriesItem(SeriesItemKind.Successor, "totals", Third)])
+            .WithWaveDone(_now));
+        FakeRepository git = OnSeries();
+        git.Files[Branch + ":" + Folder(First) + "verify.md"] = "---\ncycle: " + First + "\noutcome: pass\n---\n\n# v\n";
+
+        NextWave.Response taken = await Wave(workspace, git);
+
+        SeriesItem item = taken.Wave!.Items.Single();
+        Assert.AreEqual(SeriesItemKind.Parked, item.Kind);
+        Assert.AreEqual(Third, item.Ref);
+        StringAssert.Contains(NextWave.Render(taken), "sdlc unpark " + Third + " --onto " + Branch);
+    }
+
+    [TestMethod]
+    public async Task The_status_shows_the_list_and_each_items_steps_from_its_own_files()
+    {
+        using CycleWorkspace workspace = Solution();
+        Lead(workspace, Third, "totals");
+        Record(workspace, SeriesRecord.Start(Run, _now, 2, ApprovalRequirement.None)
+            .WithScope([new SeriesScopeItem(SeriesItemKind.Successor, "totals", 1), new SeriesScopeItem(SeriesItemKind.Successor, "chart", 2)])
+            .WithWave(_now, [new SeriesItem(SeriesItemKind.Successor, "totals", null)]));
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(OnSeries()));
+        Result<SeriesStatus.Response> status = await gate.Send<SeriesStatus.Query, SeriesStatus.Response>(new SeriesStatus.Query());
+
+        Assert.IsTrue(status.IsSuccess, string.Join("; ", status.Errors.Select(e => e.Message)));
+        string text = SeriesStatus.Render(status.Value);
+        StringAssert.Contains(text, "1 of 2 waves taken; 1 of the 2 items on its list taken");
+        StringAssert.Contains(text, "  wave 1: successor:totals -- taken in wave 1");
+        StringAssert.Contains(text, "  wave 2: successor:chart -- not taken yet");
+        StringAssert.Contains(text, "successor:totals, cycle " + Third + " -- being planned (intent written; spec next)");
+        StringAssert.Contains(text, "not recorded built");
+
+        Assert.AreEqual("nothing written; intent next", SeriesStatus.StepsOf(null));
     }
 
     [TestMethod]
@@ -779,6 +902,14 @@ public sealed class SeriesTests
             .AddSingleton<TimeProvider>(new FakeClock(_now)));
 
         return await gate.Send<NextWave.Command, NextWave.Response>(new NextWave.Command());
+    }
+
+    private static async Task<SeriesScope.Response> Freeze(CycleWorkspace workspace, FakeRepository git)
+    {
+        Result<SeriesScope.Response> result = await Send<SeriesScope.Command, SeriesScope.Response>(workspace, git, new SeriesScope.Command());
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        return result.Value;
     }
 
     private static async Task<NextWave.Recorded> WaveDone(CycleWorkspace workspace, FakeRepository git)

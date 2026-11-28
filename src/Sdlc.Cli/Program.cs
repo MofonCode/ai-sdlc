@@ -1650,7 +1650,20 @@ static async Task<int> SeriesCommand(CommandLine line)
                 // The path alone on standard output, so a pipeline can hand it to 'series run --solution'.
                 await Console.Out.WriteLineAsync(started.Value.Worktree).ConfigureAwait(false);
                 await Console.Error.WriteAsync(StartSeries.Render(started.Value)).ConfigureAwait(false);
-                return ExitCode.Ok;
+
+                // Its list is worked out in its own worktree, against its own branch's successors and cycles, and
+                // frozen there (D-231). A list that cannot be frozen now is frozen as the first wave is taken.
+                return await Workspace.RunAt(started.Value.Worktree, async inSeries =>
+                {
+                    Result<SeriesScope.Response> frozen = await inSeries
+                        .Send<SeriesScope.Command, SeriesScope.Response>(new SeriesScope.Command())
+                        .ConfigureAwait(false);
+
+                    await Console.Error.WriteAsync(frozen.IsSuccess
+                        ? SeriesScope.Render(frozen.Value)
+                        : "Its list was not frozen: " + string.Join(" ", frozen.Errors.Select(error => error.Message)) + " It is frozen as the first wave is taken." + Environment.NewLine).ConfigureAwait(false);
+                    return ExitCode.Ok;
+                }).ConfigureAwait(false);
             }).ConfigureAwait(false);
 
         case "WAVE" when line.HasOption("done"):

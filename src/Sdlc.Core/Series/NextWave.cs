@@ -113,9 +113,17 @@ public static class NextWave
 
         if (taken.Wave is not { } wave)
         {
+            string why = taken.Record.Scope switch
+            {
+                null => "Nothing is ready against " + taken.Branch,
+                { Count: 0 } => "Its list is empty",
+                _ when ListTaken(taken.Record) => "It has taken everything on its list",
+                _ => "Nothing left on its list is ready against " + taken.Branch,
+            };
+
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"Nothing is ready against {taken.Branch}, so series {taken.Record.Id} is finished early, after {taken.Record.Waves.Count} of its {taken.Record.Limit} waves. Nothing was recorded. Open its pull request."));
+                $"{why}, so series {taken.Record.Id} is finished early, after {taken.Record.Waves.Count} of its {taken.Record.Limit} waves. No wave was taken. Open its pull request."));
             return text.ToString();
         }
 
@@ -186,17 +194,32 @@ public static class NextWave
         };
     }
 
-    // The series checked out here, or why this is not a series' branch.
-    private static Result<string> SeriesHere(IRepository repository, string root)
+    // What a series' list names, and every cycle a listed item became; null for a series with no list, which takes
+    // whatever is ready.
+    private static HashSet<string>? Listed(SeriesRecord record)
     {
-        string? on = repository.IsRepository(root) ? repository.CurrentBranch(root) : null;
+        if (record.Scope is null)
+        {
+            return null;
+        }
 
-        return RunBranch.TryParse(on, out RunKind kind, out string? id) && kind == RunKind.Series
-            ? Result.Ok(id)
-            : Result.Fail<string>(string.Create(
-                CultureInfo.InvariantCulture,
-                $"A series' wave is taken on its own branch, series/<id>, and this is {on ?? "no branch"}. Run it in the series' worktree, or name it with --solution; 'sdlc series start' opens one."));
+        HashSet<string> listed = new(record.Scope.Select(item => SeriesRecord.KeyOf(item.Kind, item.Ref)), StringComparer.Ordinal);
+
+        foreach (SeriesItem item in record.Waves.SelectMany(wave => wave.Items))
+        {
+            if (listed.Contains(SeriesRecord.KeyOf(item.Kind, item.Ref)) && item.Cycle is { } cycle)
+            {
+                listed.Add(cycle);
+            }
+        }
+
+        return listed;
     }
+
+    // Whether everything on a series' list has been taken.
+    private static bool ListTaken(SeriesRecord record) =>
+        record.Scope is { } scope
+        && scope.All(item => record.Waves.SelectMany(wave => wave.Items).Any(taken => taken.Kind == item.Kind && taken.Ref == item.Ref));
 
     // Where each item of the last wave stands, while that wave is not recorded built and one of its items still has
     // work; null when the next wave can be taken.
@@ -232,17 +255,12 @@ public static class NextWave
                 continue;
             }
 
-            Cycle cycle = new(id.Value, root);
+            string state = SeriesStatus.StateOf(new Cycle(id.Value, root));
 
-            // A parked item not yet taken back is the wave's to take back only while it is ready against the series
-            // branch; one its planning parked again waits, as any parked cycle does.
-            if (item.Kind == SeriesItemKind.Parked && File.Exists(Parked.PathOf(cycle)))
-            {
-                states.Add(ready.Contains(id.Value) ? ParkedReady : "parked");
-                continue;
-            }
-
-            states.Add(SeriesStatus.StateOf(cycle));
+            // A parked item not yet taken back is the wave's to take back while it is ready against the series branch.
+            // Any other parked cycle -- one its planning parked -- has stopped in this wave, and a later wave takes it
+            // back (D-231).
+            states.Add(item.Kind == SeriesItemKind.Parked && state == SeriesStatus.ParkedState && ready.Contains(id.Value) ? ParkedReady : state);
         }
 
         return states.Any(IsOpen) ? states : null;
@@ -256,7 +274,7 @@ public static class NextWave
             ArgumentNullException.ThrowIfNull(request);
 
             string root = solution.Path;
-            Result<string> here = SeriesHere(repository, root);
+            Result<string> here = SeriesScope.SeriesHere(repository, root);
 
             if (here.IsFailed)
             {
@@ -293,71 +311,41 @@ public static class NextWave
                     $"Series {id} is finished: it has taken all {record.Limit} of its waves. Open its pull request; a new series takes what is ready next."));
             }
 
+            // A series whose list was never frozen has it frozen as its first wave is taken (D-231).
+            if (record.Scope is null && record.Waves.Count == 0)
+            {
+                Result<SeriesScope.Response> frozen = await SeriesScope.FreezeIn(record, root, mediator, cancellationToken).ConfigureAwait(false);
+
+                if (frozen.IsFailed)
+                {
+                    return frozen.ToResult<Response>();
+                }
+
+                record = frozen.Value.Record;
+            }
+
+            Result<IReadOnlyList<SeriesScope.Candidate>> candidates = await SeriesScope
+                .Candidates(record.Approval, branch, mediator, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (candidates.IsFailed)
+            {
+                return candidates.ToResult<Response>();
+            }
+
             HashSet<string> taken = new(record.Waves.SelectMany(wave => wave.Items).SelectMany(item => new[] { item.Ref, item.Cycle }).OfType<string>(), StringComparer.Ordinal);
-            List<SeriesItem> items = [];
+            HashSet<string>? listed = Listed(record);
 
-            if (record.Approval == ApprovalRequirement.None)
-            {
-                Result<ReadSuccessors.Response> ready = await mediator
-                    .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(branch), cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (ready.IsFailed)
-                {
-                    return ready.ToResult<Response>();
-                }
-
-                // A parked cycle first: it was planned once already, so it is the nearer to done.
-                items.AddRange(ready.Value.Waiting
-                    .Where(parked => parked.State == SuccessorState.Ready && !taken.Contains(parked.Cycle.ToString()))
-                    .Select(parked => new SeriesItem(SeriesItemKind.Parked, parked.Cycle.ToString(), parked.Cycle.ToString())));
-
-                items.AddRange(ready.Value.Successors
-                    .Where(standing => standing.State == SuccessorState.Ready && !taken.Contains(standing.Successor.Slug))
-                    .Select(standing => new SeriesItem(SeriesItemKind.Successor, standing.Successor.Slug, null)));
-            }
-            else
-            {
-                Result<ListQueuedCycles.Response> queued = await mediator
-                    .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(Onto: branch), cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (queued.IsFailed)
-                {
-                    return queued.ToResult<Response>();
-                }
-
-                items.AddRange(queued.Value.Cycles
-                    .Where(cycle => !taken.Contains(cycle.Id.ToString()))
-                    .Select(cycle => new SeriesItem(SeriesItemKind.Approved, cycle.Id.ToString(), cycle.Id.ToString())));
-
-                // An approved cycle that was parked is never in the queue: it waits on code that had not merged. Once
-                // what it waits on is ready against the series branch it is taken back and built, as approved; a
-                // person read its plan, so nothing is planned again.
-                Result<ReadSuccessors.Response> ready = await mediator
-                    .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(branch), cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (ready.IsFailed)
-                {
-                    return ready.ToResult<Response>();
-                }
-
-                Result<ComputeClaimGraph.Response> graph = await mediator
-                    .Send<ComputeClaimGraph.Query, ComputeClaimGraph.Response>(new ComputeClaimGraph.Query(), cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (graph.IsFailed)
-                {
-                    return graph.ToResult<Response>();
-                }
-
-                HashSet<CycleId> approved = [.. graph.Value.Claims.Select(claim => claim.Cycle)];
-
-                items.AddRange(ready.Value.Waiting
-                    .Where(parked => parked.State == SuccessorState.Ready && approved.Contains(parked.Cycle) && !taken.Contains(parked.Cycle.ToString()))
-                    .Select(parked => new SeriesItem(SeriesItemKind.Parked, parked.Cycle.ToString(), parked.Cycle.ToString())));
-            }
+            // Ready, on the list, and not taken -- or taken and parked again by its planning, which a later wave takes
+            // back once what it waits on is ready, so the series never loses it.
+            List<SeriesItem> items =
+            [
+                .. candidates.Value
+                    .Where(candidate => candidate.Ready
+                        && (listed is null || listed.Contains(candidate.Key))
+                        && (!taken.Contains(candidate.Ref) || candidate.Kind == SeriesItemKind.Parked))
+                    .Select(candidate => new SeriesItem(candidate.Kind, candidate.Ref, candidate.Kind == SeriesItemKind.Successor ? null : candidate.Ref)),
+            ];
 
             // What is ready past the wave size waits for the next wave, still ready then (D-228).
             int left = Math.Max(0, items.Count - record.WaveSize);
@@ -391,7 +379,7 @@ public static class NextWave
             ArgumentNullException.ThrowIfNull(request);
 
             string root = solution.Path;
-            Result<string> here = SeriesHere(repository, root);
+            Result<string> here = SeriesScope.SeriesHere(repository, root);
 
             if (here.IsFailed)
             {

@@ -60,12 +60,11 @@ public static class BacklogRenderer
             return output.ToString();
         }
 
-        Dictionary<string, int> depth = new(StringComparer.Ordinal);
-        var byName = items.ToDictionary(Key, StringComparer.Ordinal);
+        Dictionary<string, int> depth = Depths(items);
 
         foreach (IGrouping<int, Item> wave in items
             .Where(i => i.State is SuccessorState.Ready or SuccessorState.Waiting)
-            .GroupBy(i => Depth(i, byName, depth, []))
+            .GroupBy(i => depth[Key(i)])
             .OrderBy(g => g.Key))
         {
             output.AppendLine(wave.Key == 0
@@ -114,6 +113,37 @@ public static class BacklogRenderer
         }
 
         return output.ToString().TrimEnd() + Environment.NewLine;
+    }
+
+    /// <summary>
+    /// How many merges stand between each ready or waiting item and its start: none for one ready now. A successor is
+    /// keyed <c>successor:&lt;slug&gt;</c>, a parked cycle by its id. Stuck, unresolved and held items are left out.
+    /// </summary>
+    /// <param name="read">Where every successor and parked cycle stands.</param>
+    /// <returns>The merges before each item.</returns>
+    public static IReadOnlyDictionary<string, int> Forecast(ReadSuccessors.Response read)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+
+        return Depths(
+        [
+            .. read.Successors.Select(s => new Item("successor:" + s.Successor.Slug, null, s.State, s.Waits, string.Empty, null, null)),
+            .. read.Waiting.Select(p => new Item(p.Cycle + " (parked)", null, p.State, p.Waits, string.Empty, null, null)),
+        ]);
+    }
+
+    private static Dictionary<string, int> Depths(IReadOnlyList<Item> items)
+    {
+        Dictionary<string, int> depth = new(StringComparer.Ordinal);
+        var byName = items.ToDictionary(Key, StringComparer.Ordinal);
+
+        foreach (Item item in items.Where(i => i.State is SuccessorState.Ready or SuccessorState.Waiting))
+        {
+            Depth(item, byName, depth, []);
+        }
+
+        return depth.Where(entry => byName[entry.Key].State is SuccessorState.Ready or SuccessorState.Waiting)
+            .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
     }
 
     private static void Line(StringBuilder output, Item item)

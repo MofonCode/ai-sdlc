@@ -27,6 +27,9 @@ public static class SeriesStatus
     /// <summary>What a cycle with a plan and no verification yet says it is.</summary>
     public const string Planned = "planned";
 
+    /// <summary>What a cycle waiting, with its spec and plan kept, on code that has not merged says it is.</summary>
+    public const string ParkedState = "parked";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -45,7 +48,8 @@ public static class SeriesStatus
     /// <param name="Wave">The wave's number.</param>
     /// <param name="Item">The item.</param>
     /// <param name="State">Where its cycle stands, in a word or two.</param>
-    public sealed record ItemState(int Wave, SeriesItem Item, string State);
+    /// <param name="Steps">Which of its steps its cycle's own files show done, and the next, as <see cref="StepsOf"/> says.</param>
+    public sealed record ItemState(int Wave, SeriesItem Item, string State, string Steps = "");
 
     /// <summary>Where the series stands.</summary>
     /// <param name="Record">Its record, its successors resolved.</param>
@@ -80,7 +84,48 @@ public static class SeriesStatus
             return string.Equals(outcome.Trim(), "pass", StringComparison.OrdinalIgnoreCase) ? "built: pass" : outcome.Trim();
         }
 
+        if (File.Exists(Parked.PathOf(cycle)))
+        {
+            return ParkedState;
+        }
+
         return File.Exists(cycle.PathOf(ArtifactKind.Plan)) ? Planned : BeingPlanned;
+    }
+
+    /// <summary>
+    /// Which of a cycle's steps its own files show done -- its intent, spec and plan written, its build verified -- and
+    /// the step next, worked out on every read and never stored, so it cannot disagree with them (D-231).
+    /// </summary>
+    /// <param name="cycle">The cycle, or null for an item no cycle has been opened for.</param>
+    /// <returns>The steps, as in <c>intent, spec written; plan next</c>; empty for an abandoned cycle or one not here.</returns>
+    public static string StepsOf(Cycle? cycle)
+    {
+        if (cycle is null)
+        {
+            return "nothing written; intent next";
+        }
+
+        if (!cycle.Exists || cycle.IsAbandoned)
+        {
+            return string.Empty;
+        }
+
+        (string Name, ArtifactKind Kind)[] planning = [("intent", ArtifactKind.Intent), ("spec", ArtifactKind.Spec), ("plan", ArtifactKind.Plan)];
+        string[] written = [.. planning.Where(step => File.Exists(cycle.PathOf(step.Kind))).Select(step => step.Name)];
+        string done = written.Length == 0 ? "nothing written" : string.Join(", ", written) + " written";
+
+        if (File.Exists(cycle.PathOf(ArtifactKind.Verify)))
+        {
+            return done + ", build verified";
+        }
+
+        if (File.Exists(Parked.PathOf(cycle)))
+        {
+            return done + "; waits on what it needs, then a later wave takes it back";
+        }
+
+        string? missing = planning.Select(step => step.Name).FirstOrDefault(name => !written.Contains(name, StringComparer.Ordinal));
+        return done + "; " + (missing ?? "build") + " next";
     }
 
     /// <summary>The series as a person reads it.</summary>
@@ -93,9 +138,27 @@ public static class SeriesStatus
         SeriesRecord record = status.Record;
         StringBuilder text = new();
 
+        IReadOnlyList<SeriesItem> taken = [.. record.Waves.SelectMany(wave => wave.Items)];
+        string listed = record.Scope is { } list
+            ? string.Create(CultureInfo.InvariantCulture, $"; {list.Count(item => taken.Any(entry => entry.Kind == item.Kind && entry.Ref == item.Ref))} of the {list.Count} item{(list.Count == 1 ? string.Empty : "s")} on its list taken")
+            : string.Empty;
+
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"Series {record.Id}, started {record.Started:yyyy-MM-dd HH:mm} UTC under approval: {SolutionDocument.NameOf(record.Approval)}: {record.Waves.Count} of {record.Limit} wave{(record.Limit == 1 ? string.Empty : "s")} taken{(record.Finished ? ", finished" : string.Empty)}."));
+            $"Series {record.Id}, started {record.Started:yyyy-MM-dd HH:mm} UTC under approval: {SolutionDocument.NameOf(record.Approval)}: {record.Waves.Count} of {record.Limit} wave{(record.Limit == 1 ? string.Empty : "s")} taken{listed}{(record.Finished ? ", finished" : string.Empty)}."));
+
+        if (record.Scope is { Count: > 0 } scope)
+        {
+            text.AppendLine();
+            text.AppendLine("Its list, in the waves forecast when it started:");
+
+            foreach (SeriesScopeItem item in scope)
+            {
+                SeriesWave? took = record.Waves.FirstOrDefault(wave => wave.Items.Any(entry => entry.Kind == item.Kind && entry.Ref == item.Ref));
+                string where = took is null ? "not taken yet" : string.Create(CultureInfo.InvariantCulture, $"taken in wave {took.Number}");
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  wave {item.Wave}: {SeriesScope.Named(item.Kind, item.Ref, record.Approval)} -- {where}"));
+            }
+        }
 
         foreach (SeriesWave wave in record.Waves)
         {
@@ -105,15 +168,9 @@ public static class SeriesStatus
 
             foreach (ItemState item in status.Items.Where(entry => entry.Wave == wave.Number))
             {
-                string what = item.Item.Kind switch
-                {
-                    SeriesItemKind.Successor => "successor:" + item.Item.Ref,
-                    SeriesItemKind.Parked => item.Item.Ref + " (parked)",
-                    _ => item.Item.Ref + " (approved)",
-                };
-
                 string cycle = item.Item.Cycle is { } id && item.Item.Kind == SeriesItemKind.Successor ? ", cycle " + id : string.Empty;
-                text.AppendLine("  " + what + cycle + " -- " + item.State);
+                string steps = item.Steps.Length > 0 ? " (" + item.Steps + ")" : string.Empty;
+                text.AppendLine("  " + SeriesScope.Named(item.Item.Kind, item.Item.Ref) + cycle + " -- " + item.State + steps);
             }
         }
 
@@ -172,12 +229,8 @@ public static class SeriesStatus
             {
                 foreach (SeriesItem item in wave.Items)
                 {
-                    items.Add(new ItemState(
-                        wave.Number,
-                        item,
-                        item.Cycle is { } cycle && CycleId.TryParse(cycle, out CycleId? parsed)
-                            ? StateOf(new Cycle(parsed.Value, root))
-                            : "not started"));
+                    Cycle? opened = item.Cycle is { } cycle && CycleId.TryParse(cycle, out CycleId? parsed) ? new Cycle(parsed.Value, root) : null;
+                    items.Add(new ItemState(wave.Number, item, opened is null ? NextWave.NotStarted : StateOf(opened), StepsOf(opened)));
                 }
             }
 

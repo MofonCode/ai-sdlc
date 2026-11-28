@@ -21,12 +21,26 @@ each item with what is left of it, before it takes a new one or says the series 
 continues a stopped series: it runs `sdlc series run` in the series' worktree again. `sdlc series status` says which
 waves are recorded built.
 
-**What moving to it asks.** Nothing to write by hand. It is a minor because the series' record gained a key and the
-series playbook a step:
+**A series takes only from its list** (D-231). `sdlc series start` works out everything the series could take — ready
+against its branch, or waiting only on what the list holds before it — up to its waves times its wave size, freezes it
+in `series.json`, and prints it in the waves it is forecast to take them in, with how many it left out and why. Each
+wave takes from the list what is ready then. A successor written once the series started is never taken, a cycle its
+planning parks is taken back by a later wave once it is ready instead of being lost, and the series finishes when its
+list is taken. `sdlc series status` shows the list, the wave each item was taken in, and which of each cycle's steps
+its own files show done. A cycle waiting on code that has not merged now reads `parked` there and in the run's report,
+where it read `planned`.
+
+**What moving to it asks.** Nothing to write by hand. It is a minor because the series' record gained keys, a series
+takes less than it did, and the series playbook gained a step:
 
 - `series.json` gained a `done` key on each wave, which a binary before 0.59 ignores. A series already running when
   its machine moves reads its earlier waves as not recorded built, which matters only for its last: one whose items
   all have an outcome is recorded built as the next wave is taken, and one with work left is handed back once.
+- `series.json` gained a `scope` key, the list. A series that has already taken a wave without one goes on taking
+  whatever is ready; one that has taken none has its list frozen as its first wave is taken.
+- **A series no longer takes what it cannot reach.** A successor waiting on a cycle open outside the series is left off
+  its list, where before it was taken once it read ready — which it could only do on the series branch if the series
+  built that cycle. `sdlc backlog` still lists it.
 - The series playbook records each wave built before it commits it. `sdlc series run` always starts the playbook
   its own binary carries, so the two cannot disagree; a person running a series' steps by hand runs
   `sdlc series wave --done` after each wave, or the next `sdlc series wave` hands the same wave back.

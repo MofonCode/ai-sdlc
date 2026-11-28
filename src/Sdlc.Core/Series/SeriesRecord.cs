@@ -38,9 +38,15 @@ public sealed record SeriesItem(SeriesItemKind Kind, string Ref, string? Cycle);
 /// </param>
 public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyList<SeriesItem> Items, DateTimeOffset? Done = null);
 
+/// <summary>One item on a series' list: what it may take, frozen when it starts (D-231).</summary>
+/// <param name="Kind">What starts it.</param>
+/// <param name="Ref">A successor's slug, or the cycle id of a parked or approved cycle.</param>
+/// <param name="Wave">The wave it was forecast to be taken in when the series started: a forecast, never a promise.</param>
+public sealed record SeriesScopeItem(SeriesItemKind Kind, string Ref, int Wave);
+
 /// <summary>
 /// A series' own record, <c>.sdlc/series/&lt;id&gt;/series.json</c>: its wave limit, how many items a wave may take,
-/// the approval setting it started under, and what each wave took.
+/// the approval setting it started under, its list, and what each wave took.
 /// </summary>
 /// <remarks>
 /// <para><strong>Written only by the binary</strong>, committed on the series branch, so it reaches the integration
@@ -66,7 +72,12 @@ public sealed record SeriesWave(int Number, DateTimeOffset Started, IReadOnlyLis
 /// How many items one wave may take; what is ready past it waits for the next wave (D-228). A record written before the
 /// key existed reads as <see cref="DefaultWaveSize"/>.
 /// </param>
-public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize)
+/// <param name="Scope">
+/// Its list: everything it may take, in the order it takes them, frozen when it starts (D-231). Each wave takes from it
+/// what is ready, so no item outside it is ever taken. Null for a record written before the key existed, or before the
+/// list was frozen: such a series takes whatever is ready, as it did.
+/// </param>
+public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, ApprovalRequirement Approval, IReadOnlyList<SeriesWave> Waves, int WaveSize = SeriesRecord.DefaultWaveSize, IReadOnlyList<SeriesScopeItem>? Scope = null)
 {
     /// <summary>How many items a wave takes when the person starting the series names no number.</summary>
     public const int DefaultWaveSize = 3;
@@ -175,6 +186,18 @@ public sealed record SeriesRecord(string Id, DateTimeOffset Started, int Limit, 
     /// <returns>The new record.</returns>
     public SeriesRecord WithWave(DateTimeOffset started, IReadOnlyList<SeriesItem> items) =>
         this with { Waves = [.. Waves, new SeriesWave(Waves.Count + 1, started, items)] };
+
+    /// <summary>What names an item on a series' list or in a wave, the way the backlog names it.</summary>
+    /// <param name="kind">What starts it.</param>
+    /// <param name="reference">A successor's slug, or a cycle id.</param>
+    /// <returns><c>successor:&lt;slug&gt;</c> for a successor, else the cycle id.</returns>
+    public static string KeyOf(SeriesItemKind kind, string reference) =>
+        kind == SeriesItemKind.Successor ? "successor:" + reference : reference;
+
+    /// <summary>The record with its list frozen.</summary>
+    /// <param name="scope">Everything it may take, in order.</param>
+    /// <returns>The new record.</returns>
+    public SeriesRecord WithScope(IReadOnlyList<SeriesScopeItem> scope) => this with { Scope = scope };
 
     /// <summary>The record with its last wave recorded built.</summary>
     /// <param name="done">When.</param>

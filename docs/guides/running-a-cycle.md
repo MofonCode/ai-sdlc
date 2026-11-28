@@ -293,6 +293,12 @@ why **the whole series is accepted or rejected together**, at its one pull reque
 carry on, and the run's report — `sdlc report --run`, which leads its pull request — names what stopped and what it
 held back. `sdlc backlog` lists what is waiting, and `sdlc series status` where a series stands.
 
+**A series starts by printing its list**: everything it may take, worked out from the backlog, in the waves it is
+forecast to take them in, with what it left out — what its waves cannot hold, and what waits on work it does not
+carry. The list is its scope: each wave takes from it what is ready then, a successor written once the series started
+is never taken, and a cycle its planning parks is taken back by a later wave once it is ready. `sdlc series status`
+shows the list, the wave each item was taken in, and which of each cycle's steps its own files show done (D-231).
+
 **A series that stops partway** — a usage limit reached, the session closed — **is continued with
 `/sdlc:series <id>`**. It runs the series again in its worktree, and the series finishes the wave it stopped in
 before it takes the next: an item never started is started, a cycle part-planned is planned from where it stopped,

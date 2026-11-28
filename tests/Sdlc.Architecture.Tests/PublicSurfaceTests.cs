@@ -512,7 +512,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Reports.RunReport+Response",
         "Sdlc.Core.Reports.RunReport+Stopped",
 
-        // 'sdlc series': a series' record and its four operations -- start, the next wave and its close, where it stands, and its own
+        // 'sdlc series': a series' record and its five operations -- start, its list, the next wave and its close, where it stands, and its own
         // process, whose skills a test holds to the series playbook.
         "Sdlc.Core.Series.NextWave",
         "Sdlc.Core.Series.NextWave+Command",
@@ -524,6 +524,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Series.SeriesRecord",
         "Sdlc.Core.Series.SeriesRun",
         "Sdlc.Core.Series.SeriesRun+Launch",
+        "Sdlc.Core.Series.SeriesScope",
+        "Sdlc.Core.Series.SeriesScope+Command",
+        "Sdlc.Core.Series.SeriesScope+Response",
+        "Sdlc.Core.Series.SeriesScopeItem",
         "Sdlc.Core.Series.SeriesStatus",
         "Sdlc.Core.Series.SeriesStatus+ItemState",
         "Sdlc.Core.Series.SeriesStatus+Query",

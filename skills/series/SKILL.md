@@ -47,8 +47,10 @@ sdlc series start --waves <n> [--wave-size <n>]
 ```
 
 It opens `series/<id>` from the integration branch, in a worktree beside the repository, with the series' record
-committed there, and prints the worktree's path alone. Show what it said on standard error — what the series will
-do under this solution's approval setting. **A refusal is final**: show it and stop.
+committed there, and prints the worktree's path alone. Show what it said on standard error verbatim — what the
+series will do under this solution's approval setting, and **its list** (D-231): everything it may take, in the waves
+it is forecast to take them in, with what it left out and why. The list is the series' scope; each wave takes from it
+what is ready then. **A refusal is final**: show it and stop.
 
 ## Run it
 
@@ -115,9 +117,10 @@ on Windows.
 sdlc series wave
 ```
 
-It records the next wave in the series' record — at most the series' wave size, parked cycles first — and prints one
-line per item with what starts it. **When it says
-the series is finished** — its limit reached, or nothing ready against the series branch — go to §5.
+It records the next wave in the series' record — what on its list is ready, at most the series' wave size, parked
+cycles first, and any cycle its planning parked once it is ready again — and prints one line per item with what
+starts it. **When it says the series is finished** — its limit reached, everything on its list taken, or nothing on
+it ready against the series branch — go to §5.
 
 **When it says a wave is not finished**, the series stopped partway through that wave on an earlier run — a usage
 limit, a process stopped — and it hands that wave back rather than taking a new one (D-230). Each line says what is
