@@ -143,8 +143,8 @@ settle stops there**, left planned or less with its reason in the hand-back; the
 required` it reads again only the unparked cycles: **one whose spec or plan the loop changed has lost its approval,
 and stops** — the gate refuses it until a person reopens and approves it — with that named in the hand-back.
 
-Commit what the wave planned, on this branch: `git add .sdlc/cycles`, then `git commit -m "Series <id>: wave <n>
-planned"`.
+`to-plan` commits after every step; commit whatever the wave planned that is left, on this branch: `git add
+.sdlc/cycles`, then `git commit -m "Series <id>: wave <n> planned"`.
 
 ## 3. Build the wave
 
@@ -178,7 +178,9 @@ sdlc series wave --done
 ```
 
 Then commit the series' record, `.sdlc/series/<id>/series.json`, and anything the wave left uncommitted:
-`git add .sdlc`, then `git commit -m "Series <id>: wave <n> built"`. Then back to §1. **A wave not recorded built is
+`git add .sdlc`, then `git commit -m "Series <id>: wave <n> built"`. **Then push it**: `git push -u origin
+series/<id>`, so a lost worktree or machine loses nothing a wave finished (D-233); with no remote, skip it. Then back
+to §1. **A wave not recorded built is
 handed back by the next `sdlc series wave`**, so skipping this step runs the same wave again.
 
 ## 5. One pull request for the series

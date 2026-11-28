@@ -104,6 +104,17 @@ public static partial class WriteVerdict
                     + Again);
             }
 
+            // The shape the pull-request check holds a verify to, checked where it is written: a real verdict carried a
+            // section of its own for the perspectives' questions, and only the chain check after the build refused it.
+            if (ArtifactSections.Read(text).Keys.Where(section => section is not ("Criteria" or ArtifactSchema.OpenSection)).ToList() is { Count: > 0 } stray)
+            {
+                return Result.Fail<Response>(
+                    "The adjudicator's answer has a section a verify does not carry: "
+                    + string.Join(", ", stray.Select(section => "## " + section))
+                    + " is not a section a verify carries. It carries ## Criteria and ## Open; an answer goes in the entry of the criterion it bears on."
+                    + Again);
+            }
+
             string path = cycle.PathOf(ArtifactKind.Verify);
             await File.WriteAllTextAsync(path, text, cancellationToken).ConfigureAwait(false);
 

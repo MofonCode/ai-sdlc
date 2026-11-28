@@ -1651,6 +1651,10 @@ static async Task<int> SeriesCommand(CommandLine line)
                 await Console.Out.WriteLineAsync(started.Value.Worktree).ConfigureAwait(false);
                 await Console.Error.WriteAsync(StartSeries.Render(started.Value)).ConfigureAwait(false);
 
+                // What its process may run, and what only this machine allows, before anything is spent rather than at
+                // the first refused evidence script (D-233).
+                await ToolsInEffect(started.Value.Worktree).ConfigureAwait(false);
+
                 // Its list is worked out in its own worktree, against its own branch's successors and cycles, and
                 // frozen there (D-231). A list that cannot be frozen now is frozen as the first wave is taken.
                 return await Workspace.RunAt(started.Value.Worktree, async inSeries =>
@@ -1783,9 +1787,24 @@ static async Task<int> SeriesRunCommand(Workspace workspace, CommandLine rest)
         .ConfigureAwait(false);
     await ToolsInEffect(workspace.SolutionRoot).ConfigureAwait(false);
 
-    return await Launched(await workspace
+    int launched = await Launched(await workspace
         .Send<SeriesRun.Launch, Sdlc.Core.AgentExit>(new SeriesRun.Launch(id, workspace.SolutionRoot, plugin))
         .ConfigureAwait(false), "'sdlc series status' says where each wave stopped.").ConfigureAwait(false);
+
+    // A process that exits 0 has not necessarily finished: a host that stops its background work exits 0 too. The
+    // series' own record says whether its last wave was recorded built, so that is what decides.
+    if (launched == ExitCode.Ok
+        && (await SeriesRecord.Read(workspace.SolutionRoot, id, CancellationToken.None).ConfigureAwait(false)).ValueOrDefault is { Waves.Count: > 0 } record
+        && record.Waves[^1].Done is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"The process exited 0, but series {id} stopped partway through wave {record.Waves[^1].Number}: it is not recorded built. '/sdlc:series {id}' continues it; 'sdlc series status' says where each item stopped."))
+            .ConfigureAwait(false);
+        return ExitCode.Failed;
+    }
+
+    return launched;
 }
 
 // The plugin this release carries, which the build's process loads so it runs the release the solution pins.

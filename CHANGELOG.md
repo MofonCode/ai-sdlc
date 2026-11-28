@@ -22,6 +22,19 @@ passes. They are then built again, a blocked one remediated; if the fix stops, t
 never two for one test, never under `approval: required`, and not counted against the wave size. `sdlc series
 status` and `sdlc report --run` carry an *Added by the series* section saying what was added and why.
 
+**A run loses at most the step it was on** (D-233). Six changes, each from a way a real series lost more:
+
+- `to-plan` commits after every document, round and refine, and `build` after the code, the evidence, the verdict and
+  each remediation. The series pushes its branch after every wave.
+- A build starts at the step `sdlc status` names, so a cycle whose evidence is recorded is verified, not built again.
+- Every process the binary starts is given Claude Code's `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`; without it a long
+  evidence run in the background was killed at ten minutes and the process exited 0. `sdlc series run` now exits
+  non-zero when its process ends with the last wave not recorded built.
+- The brief status panel shows shape problems, departures included, and `to-plan` no longer calls a document done
+  while it has one. A plan whose departure named no decision used to pass planning and be refused after its build.
+- `sdlc round verdict` refuses a verify with a section it does not carry.
+- `sdlc series start` prints what the series' process may run, and what only this machine allows, before it runs.
+
 **What moving to it asks.** Nothing to write by hand. It is a minor because a series now adds work it did not list
 when it started, `series.json` gained a `fixes` key, and the series, build and implement skills changed:
 
